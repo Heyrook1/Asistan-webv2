@@ -1,24 +1,34 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Manrope, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const manrope = Manrope({ 
+  subsets: ['latin'],
+  variable: '--font-manrope',
+  weight: ['400', '500', '600', '700', '800']
+})
+
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  weight: ['400', '500']
+})
 
 export const metadata: Metadata = {
   title: {
     default: 'Asistan - İşini Yöneten Akıllı Asistan',
     template: '%s | Asistan',
   },
-  description: 'Randevu ve hizmet yönetimi için akıllı asistanınız. Müşteri randevularını kolayca yönetin, takviminizi düzenleyin ve işinizi büyütün.',
-  keywords: ['randevu', 'hizmet sağlayıcı', 'takvim', 'müşteri yönetimi', 'asistan'],
+  description: 'Klinikler için tasarlanmış AI-destekli operasyon platformu. Randevu ve hizmet yönetimi için akıllı asistanınız.',
+  keywords: ['randevu', 'hizmet sağlayıcı', 'takvim', 'müşteri yönetimi', 'asistan', 'klinik', 'AI'],
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#0891b2' },
-    { media: '(prefers-color-scheme: dark)', color: '#0e7490' },
+    { media: '(prefers-color-scheme: light)', color: '#F4F0EC' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B1828' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -31,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="bg-background">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-right" richColors />
         {process.env.NODE_ENV === 'production' && <Analytics />}
