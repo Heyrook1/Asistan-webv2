@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { AsistanLogo } from '@/components/asistan-logo'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,7 +71,15 @@ export default function SignUpPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <AsistanLogo variant="dark" />
+            <Image
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-QY93LEdQAobmNB8KwIAfbTEs2h3aYQ.png"
+              alt="Asistan Logo"
+              width={180}
+              height={60}
+              className="h-14 w-auto"
+              priority
+              unoptimized
+            />
           </div>
           <div>
             <CardTitle className="text-2xl">Hesap Oluştur</CardTitle>

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { AsistanLogo } from '@/components/asistan-logo'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -56,7 +56,15 @@ export function DashboardSidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-4">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <AsistanLogo variant="light" />
+          <Image
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-QY93LEdQAobmNB8KwIAfbTEs2h3aYQ.png"
+            alt="Asistan"
+            width={140}
+            height={40}
+            className="h-9 w-auto brightness-0 invert"
+            priority
+            unoptimized
+          />
         </Link>
       </div>
 

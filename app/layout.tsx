@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F4F0EC' },
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
     { media: '(prefers-color-scheme: dark)', color: '#0B1828' },
   ],
   width: 'device-width',
@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr" className="bg-background">
+    <html lang="tr" className="bg-white">
       <body className={`${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-right" richColors />

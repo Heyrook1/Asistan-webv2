@@ -1,258 +1,171 @@
 'use client'
 
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { AsistanLogo } from '@/components/asistan-logo'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Navbar } from '@/components/marketing/navbar'
+import { Footer } from '@/components/marketing/footer'
 import { 
   Calendar, 
   Users, 
+  BarChart3, 
   Bell, 
-  Sparkles,
-  Play,
-  Star,
-  ChevronDown,
   ArrowRight,
-  Check,
-  Clock,
-  UserCheck,
-  Brain,
+  Play,
   Shield,
-  Heart,
-  Target,
-  Lightbulb,
-  Eye
+  Cloud,
+  Lock,
+  Star,
+  UserCircle,
+  Sparkles,
+  Clock,
+  CheckCircle2
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
-
-const stats = [
-  { icon: UserCheck, value: '500+', label: 'Profesyonel', sublabel: 'Bize güveniyor' },
-  { icon: Calendar, value: '100.000+', label: 'Randevu', sublabel: 'Yönetildi' },
-  { icon: Star, value: '%98', label: 'Müşteri', sublabel: 'Memnuniyeti' },
-  { icon: Clock, value: '10.000+', label: 'Saat', sublabel: 'Kazandırıldık' },
-]
 
 const features = [
   {
     icon: Calendar,
     title: 'Akıllı Takvim',
-    description: 'Randevularınızı kolayca yönetin. Çakışmaları önleyin, doluluk oranınızı artırın.',
+    description: 'Randevularınızı kolayca yönetin. Çakışmaları önleyin, doluluk oranınızı artırın.'
   },
   {
     icon: Bell,
     title: 'Hatırlatmalar',
-    description: 'Otomatik hatırlatmalar ile randevu iptallerini azaltın, katılım oranını yükseltin.',
+    description: 'Otomatik hatırlatmalar ile randevu iptallerini azaltın, katılım oranını yükseltin.'
   },
   {
     icon: Users,
     title: 'Ekip Yönetimi',
-    description: 'Ekibinizi organize edin, görevleri paylaşın ve performansı tek yerden takip edin.',
+    description: 'Ekibinizi organize edin, görevleri paylaşın ve performansı tek yerden takip edin.'
   },
   {
-    icon: Brain,
+    icon: Sparkles,
     title: 'AI Önerileri',
-    description: 'Yapay zeka destekli önerilerle randevu planlamanızı optimize edin ve verimliliğinizi artırın.',
+    description: 'Yapay zeka destekli önerilerle randevu planlamanızı optimize edin ve verimliliğinizi artırın.'
   },
+]
+
+const stats = [
+  { value: '500+', label: 'Profesyonel', sublabel: 'Bize güveniyor', icon: Users },
+  { value: '100.000+', label: 'Randevu', sublabel: 'Yönetildi', icon: Calendar },
+  { value: '%98', label: 'Müşteri', sublabel: 'Memnuniyeti', icon: Star },
+  { value: '10.000+', label: 'Saat', sublabel: 'Kazandırıldı', icon: Clock }
 ]
 
 const industries = [
   {
+    icon: '🏥',
     title: 'Asistan Health',
-    description: 'Klinik, hastane ve muayenehaneler için randevu ve hasta yönetimi.',
-    image: '/images/industry-health.jpg',
-    color: 'from-teal-500 to-cyan-500',
+    description: 'Klinik, hastane ve muayenehaneler için randevu ve hasta yönetimi kolaylaştırılıyor.',
+    image: '/images/industry-health.jpg'
   },
   {
+    icon: '💇',
     title: 'Asistan Beauty',
-    description: 'Güzellik merkezleri ve salonlar için randevu, paket ve müşteri yönetimi.',
-    image: '/images/industry-beauty.jpg',
-    color: 'from-pink-500 to-rose-500',
+    description: 'Güzellik merkezleri ve salonlar için randevu, paket ve müşteri yönetimini optimize eder.',
+    image: '/images/industry-beauty.jpg'
   },
   {
+    icon: '⚖️',
     title: 'Asistan Legal',
-    description: 'Hukuk büroları için dava, görüşme ve müvekkil randevu yönetimi.',
-    image: '/images/industry-legal.jpg',
-    color: 'from-amber-500 to-orange-500',
+    description: 'Hukuk büroları için dava, görüşme ve müvekkil yönetimini düzenli hale getirir.',
+    image: '/images/industry-legal.jpg'
   },
   {
+    icon: '💼',
     title: 'Asistan Pro',
-    description: 'Danışmanlar ve hizmet profesyonelleri için esnek randevu çözümleri.',
-    image: '/images/industry-pro.jpg',
-    color: 'from-violet-500 to-purple-500',
-  },
-]
-
-const todayAppointments = [
-  { time: '09:30', name: 'Ayşe Yılmaz', status: 'Onaylandı' },
-  { time: '11:00', name: 'Mehmet Kaya', status: 'Beklemede' },
-  { time: '14:00', name: 'Zeynep Kaya', status: 'İptal edildi' },
-  { time: '16:00', name: 'Ahmet Şahin', status: 'Onaylandı' },
-]
-
-const availableSlots = [
-  '12:00 - 12:30',
-  '15:30 - 16:00',
-  '17:00 - 17:30',
-]
-
-const pricingPlans = [
-  {
-    name: 'Başlangıç',
-    price: '0',
-    period: '',
-    description: 'Küçük işletmeler için ideal',
-    features: ['Aylık 50 randevu', '1 personel hesabı', 'Temel raporlar', 'E-posta bildirimleri'],
-    popular: false,
-    cta: 'Ücretsiz Başla'
-  },
-  {
-    name: 'Profesyonel',
-    price: '₺37',
-    period: '/gün',
-    description: 'Büyüyen işletmeler için',
-    features: ['Sınırsız randevu', '5 personel hesabı', 'Gelişmiş analitik', 'SMS + E-posta', 'Öncelikli destek', 'API erişimi'],
-    popular: true,
-    cta: 'Hemen Başla'
-  },
-  {
-    name: 'Kurumsal',
-    price: 'Özel',
-    period: '',
-    description: 'Büyük organizasyonlar için',
-    features: ['Her şey dahil', 'Sınırsız personel', 'Özel entegrasyonlar', '7/24 destek', 'SLA garantisi'],
-    popular: false,
-    cta: 'İletişime Geç'
+    description: 'Danışmanlar ve hizmet profesyonelleri için esnek randevu çözümleri sunar.',
+    image: '/images/industry-pro.jpg'
   },
 ]
 
 export default function HomePage() {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/95 backdrop-blur-xl shadow-sm' : 'bg-white'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-10">
-              <Link href="/">
-                <AsistanLogo variant="dark" />
-              </Link>
-              
-              <div className="hidden md:flex items-center gap-6">
-                {[
-                  { label: 'Ürün', hasDropdown: false },
-                  { label: 'Çözümler', hasDropdown: true },
-                  { label: 'Fiyatlandırma', hasDropdown: false },
-                  { label: 'Kaynaklar', hasDropdown: true },
-                  { label: 'Hakkımızda', hasDropdown: false },
-                ].map((item) => (
-                  <a 
-                    key={item.label}
-                    href={item.label === 'Hakkımızda' ? '/hakkimizda' : `#${item.label.toLowerCase()}`}
-                    className="flex items-center gap-1 text-[#5E6A78] hover:text-[#0B1828] transition-colors text-sm font-medium"
-                  >
-                    {item.label}
-                    {item.hasDropdown && <ChevronDown className="w-4 h-4" />}
-                  </a>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Link href="/auth/login">
-                <Button variant="ghost" className="text-[#5E6A78] hover:text-[#0B1828] text-sm font-medium">
-                  Giriş Yap
-                </Button>
-              </Link>
-              <Link href="/auth/sign-up">
-                <Button className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-medium text-sm px-5 rounded-full">
-                  Ücretsiz Dene
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 bg-gradient-to-b from-white to-[#F8FAFB]">
+      <section className="pt-28 pb-16 bg-gradient-to-b from-[#F8FAFB] to-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div>
-              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#0B1828] leading-[1.1] tracking-tight mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#0B1828] leading-[1.1] mb-6">
                 İşinize yarayan
                 <br />
-                <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">
-                  akıllı asistanınız.
-                </span>
+                <span className="text-[#1BD1B5]">akıllı asistanınız.</span>
               </h1>
               
-              <p className="text-lg text-[#5E6A78] mb-8 leading-relaxed max-w-lg">
-                Asistan, randevu yönetimini, hatırlatmaları, müşteri iletişimini 
-                ve ekip organizasyonunu kolaylaştırır. Zamandan tasarruf edin, 
+              <p className="text-[#5E6A78] text-lg mb-8 max-w-lg leading-relaxed">
+                Asistan, randevu yönetimini, hatırlatmaları, müşteri iletişimini
+                ve ekip organizasyonunu kolaylaştırır. Zamandan tasarruf edin,
                 daha mutlu müşteriler kazanın.
               </p>
-              
-              <div className="flex flex-wrap items-center gap-4 mb-8">
+
+              {/* CTAs */}
+              <div className="flex flex-wrap items-center gap-4 mb-10">
                 <Link href="/auth/sign-up">
-                  <Button 
-                    size="lg"
-                    className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold text-sm px-6 h-12 rounded-full"
-                  >
+                  <Button className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold px-6 py-6 rounded-full text-base">
                     Ücretsiz Dene
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
                 <Button 
-                  size="lg"
-                  variant="outline"
-                  className="border-[#E2E8F0] text-[#0B1828] hover:bg-[#F8FAFB] font-medium text-sm px-6 h-12 rounded-full"
+                  variant="outline" 
+                  className="border-gray-300 text-[#0B1828] font-medium px-6 py-6 rounded-full text-base"
                 >
                   <Play className="w-4 h-4 mr-2 fill-current" />
                   Demo İzle
                 </Button>
               </div>
+
+              {/* Trust Badges */}
+              <div className="flex flex-wrap items-center gap-6 text-sm text-[#5E6A78]">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#1BD1B5]" />
+                  <span>KVKK Uyumlu</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Cloud className="w-4 h-4 text-[#1BD1B5]" />
+                  <span>Bulut Tabanlı</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-[#1BD1B5]" />
+                  <span>Verileriniz Güvende</span>
+                </div>
+              </div>
             </div>
 
-            {/* Right - Image with floating cards */}
+            {/* Right - Hero Image with Floating Cards */}
             <div className="relative">
-              <Image
-                src="/images/medical-team.jpg"
-                alt="Medical professionals using Asistan"
-                width={600}
-                height={500}
-                className="rounded-2xl object-cover w-full h-[400px] lg:h-[480px]"
-                priority
-              />
-              
-              {/* Floating Card - Today's Appointments */}
-              <div className="absolute -right-4 top-4 bg-white rounded-xl shadow-xl p-4 w-64">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <Image
+                  src="/images/medical-team.jpg"
+                  alt="Medical professionals"
+                  width={600}
+                  height={450}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+
+              {/* Floating Card - Appointments */}
+              <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-4 min-w-[220px] border border-gray-100">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-[#0B1828]">Bugünkü Randevular</span>
+                  <span className="text-xs font-semibold text-[#0B1828]">Bugünkü Randevular</span>
                 </div>
                 <div className="space-y-2">
-                  {todayAppointments.map((apt, i) => (
+                  {[
+                    { time: '09:30', name: 'Ayşe Yılmaz', status: 'Onaylandı' },
+                    { time: '11:00', name: 'Mehmet Demir', status: 'Onaylandı' },
+                    { time: '14:30', name: 'Zeynep Kaya', status: 'Beklemede' },
+                    { time: '16:00', name: 'Ahmet Şahin', status: 'Onaylandı' },
+                  ].map((apt, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="text-[#5E6A78] font-mono">{apt.time}</span>
+                        <span className="text-[#1BD1B5] font-mono">{apt.time}</span>
                         <span className="text-[#0B1828]">{apt.name}</span>
                       </div>
-                      <span className={`text-[10px] font-medium ${
-                        apt.status === 'Onaylandı' ? 'text-[#1BD1B5]' : 
-                        apt.status === 'Beklemede' ? 'text-[#F59E0B]' : 'text-[#EF4444]'
-                      }`}>
+                      <span className={apt.status === 'Onaylandı' ? 'text-[#1BD1B5]' : 'text-orange-500'}>
                         {apt.status}
                       </span>
                     </div>
@@ -261,33 +174,31 @@ export default function HomePage() {
               </div>
 
               {/* Floating Card - Approval Rate */}
-              <div className="absolute -left-4 bottom-32 bg-white rounded-xl shadow-xl p-4 w-40">
-                <span className="text-xs text-[#5E6A78]">Onay Oranı</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-3xl font-bold text-[#1BD1B5]">%98</span>
-                  <span className="text-[10px] text-[#5E6A78]">Bu hafta</span>
-                </div>
-                <div className="mt-2 h-2 bg-[#E8F5F3] rounded-full overflow-hidden">
-                  <div className="h-full w-[98%] bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] rounded-full" />
+              <div className="absolute bottom-20 -left-8 bg-white rounded-xl shadow-xl p-4 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-xs text-[#5E6A78] mb-1">Onay Oranı</div>
+                    <div className="text-2xl font-bold text-[#0B1828]">%98</div>
+                    <div className="text-xs text-[#1BD1B5]">+%12 artış</div>
+                  </div>
+                  <div className="w-14 h-14 bg-[#1BD1B5]/10 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="w-7 h-7 text-[#1BD1B5]" />
+                  </div>
                 </div>
               </div>
 
-              {/* Floating Card - Available Slots */}
-              <div className="absolute right-8 bottom-8 bg-white rounded-xl shadow-xl p-4 w-48">
+              {/* Floating Card - Available Hours */}
+              <div className="absolute -bottom-4 right-8 bg-white rounded-xl shadow-xl p-4 min-w-[160px] border border-gray-100">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-4 h-4 text-[#1BD1B5]" />
                   <span className="text-xs font-semibold text-[#0B1828]">Boş Saatler</span>
                 </div>
-                <div className="space-y-1.5">
-                  {availableSlots.map((slot, i) => (
-                    <div key={i} className="text-xs text-[#5E6A78] bg-[#F8FAFB] px-2 py-1.5 rounded">
-                      {slot}
-                    </div>
-                  ))}
+                <div className="space-y-1 text-xs text-[#5E6A78]">
+                  <div>12:00 - 12:30</div>
+                  <div>15:30 - 16:00</div>
+                  <div>17:00 - 17:30</div>
                 </div>
-                <a href="#" className="text-[10px] text-[#1BD1B5] font-medium mt-2 inline-block">
-                  Tümünü Gör
-                </a>
+                <div className="mt-2 text-xs text-[#1BD1B5] font-medium">Tümünü Gör</div>
               </div>
             </div>
           </div>
@@ -295,20 +206,18 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 bg-white border-y border-[#E8E4E0]/50">
+      <section className="py-12 border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
               <div key={i} className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#E8F5F3] flex items-center justify-center">
+                <div className="w-12 h-12 bg-[#1BD1B5]/10 rounded-xl flex items-center justify-center">
                   <stat.icon className="w-6 h-6 text-[#1BD1B5]" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-[#0B1828]">{stat.value}</div>
                   <div className="text-xs text-[#5E6A78]">
-                    {stat.label}
-                    <br />
-                    {stat.sublabel}
+                    {stat.label}<br />{stat.sublabel}
                   </div>
                 </div>
               </div>
@@ -317,43 +226,51 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Why Asistan Section */}
-      <section className="py-20 bg-[#F8FAFB]">
+      {/* Features Section */}
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828] mb-4">
               Neden Asistan?
             </h2>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, i) => (
-              <Card key={i} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 rounded-xl bg-[#E8F5F3] flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-[#1BD1B5]" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-[#0B1828] mb-2">{feature.title}</h3>
-                  <p className="text-sm text-[#5E6A78] leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
+              <div 
+                key={i} 
+                className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg hover:border-[#1BD1B5]/20 transition-all"
+              >
+                <div className="w-12 h-12 bg-[#1BD1B5]/10 rounded-xl flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-[#1BD1B5]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[#0B1828] mb-2">{feature.title}</h3>
+                <p className="text-sm text-[#5E6A78] leading-relaxed">{feature.description}</p>
+                <Link href="#" className="inline-flex items-center gap-1 text-sm text-[#1BD1B5] font-medium mt-4 hover:gap-2 transition-all">
+                  Detayları İncele
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Industry Solutions Section */}
-      <section className="py-20 bg-white">
+      {/* Industry Solutions */}
+      <section className="py-20 bg-[#F8FAFB]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828] mb-4">
               Sizin sektörünüze uyum sağlar
             </h2>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {industries.map((industry, i) => (
-              <Card key={i} className="group overflow-hidden border-0 shadow-sm hover:shadow-lg transition-all">
+              <div 
+                key={i} 
+                className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all group"
+              >
                 <div className="relative h-40 overflow-hidden">
                   <Image
                     src={industry.image}
@@ -361,71 +278,19 @@ export default function HomePage() {
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${industry.color} opacity-20`} />
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="text-base font-semibold text-[#0B1828] mb-2">{industry.title}</h3>
-                  <p className="text-xs text-[#5E6A78] leading-relaxed mb-3">{industry.description}</p>
-                  <a href="#" className="inline-flex items-center text-xs font-medium text-[#1BD1B5] hover:text-[#17b8a0]">
-                    Detayları İncele
-                    <ArrowRight className="w-3 h-3 ml-1" />
-                  </a>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="fiyatlandırma" className="py-20 bg-[#F8FAFB]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828] mb-4">
-              Size uygun planı seçin
-            </h2>
-            <p className="text-[#5E6A78] max-w-2xl mx-auto">
-              Her büyüklükteki işletme için esnek fiyatlandırma seçenekleri
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {pricingPlans.map((plan, i) => (
-              <Card 
-                key={i} 
-                className={`relative border-0 ${plan.popular ? 'shadow-xl ring-2 ring-[#1BD1B5] scale-105' : 'shadow-sm'}`}
-              >
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#1BD1B5] text-white text-xs px-3">
-                    En Popüler
-                  </Badge>
-                )}
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-[#0B1828] mb-1">{plan.name}</h3>
-                  <p className="text-xs text-[#5E6A78] mb-4">{plan.description}</p>
-                  <div className="mb-6">
-                    <span className="text-3xl font-bold text-[#0B1828]">{plan.price}</span>
-                    <span className="text-[#5E6A78] text-sm">{plan.period}</span>
+                  <div className="absolute top-3 left-3 w-10 h-10 bg-white rounded-lg flex items-center justify-center text-xl shadow-md">
+                    {industry.icon}
                   </div>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-[#5E6A78]">
-                        <Check className="w-4 h-4 text-[#1BD1B5] flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    className={`w-full rounded-full ${
-                      plan.popular 
-                        ? 'bg-[#1BD1B5] hover:bg-[#17b8a0] text-white' 
-                        : 'bg-[#0B1828] hover:bg-[#152535] text-white'
-                    }`}
-                  >
-                    {plan.cta}
-                  </Button>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="p-5">
+                  <h3 className="text-lg font-semibold text-[#0B1828] mb-2">{industry.title}</h3>
+                  <p className="text-sm text-[#5E6A78] leading-relaxed mb-4">{industry.description}</p>
+                  <Link href="/cozumler" className="inline-flex items-center gap-1 text-sm text-[#1BD1B5] font-medium hover:gap-2 transition-all">
+                    Detayları İncele
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -435,26 +300,20 @@ export default function HomePage() {
       <section className="py-20 bg-[#0B1828]">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Asistan ile kliniğinizi sonraki seviyeye taşıyın
+            Asistan ile kliniğinizi bir sonraki seviyeye taşıyın.
           </h2>
-          <p className="text-[#8A9AAA] mb-8 max-w-2xl mx-auto">
-            Hemen ücretsiz denemeye başlayın, farkı görün.
+          <p className="text-[#8A9AAA] text-lg mb-8">
+            Hemen ücretsiz denemeye başlayın.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/auth/sign-up">
-              <Button 
-                size="lg"
-                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold px-8 rounded-full"
-              >
+              <Button className="bg-white text-[#0B1828] hover:bg-gray-100 font-semibold px-8 py-6 rounded-full text-base">
                 14 Gün Ücretsiz Dene
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
             <Link href="/auth/login">
-              <Button 
-                size="lg"
-                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-[#0B1828] font-semibold px-8 rounded-full"
-              >
+              <Button className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold px-8 py-6 rounded-full text-base">
                 Giriş Yap
               </Button>
             </Link>
@@ -462,50 +321,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-16 bg-[#0B1828] border-t border-[#1E3448]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid md:grid-cols-5 gap-12 mb-12">
-            <div className="md:col-span-2">
-              <div className="mb-6">
-                <AsistanLogo variant="light" />
-              </div>
-              <p className="text-[#5E6A78] leading-relaxed max-w-xs text-sm">
-                Kuzey Kıbrıs&apos;ın ilk ve tek AI destekli klinik yönetim platformu. 
-                Modern, güvenli ve kullanımı kolay.
-              </p>
-            </div>
-
-            {[
-              { title: 'Ürün', links: ['Özellikler', 'Fiyatlar', 'Entegrasyonlar', 'API'] },
-              { title: 'Şirket', links: ['Hakkımızda', 'Blog', 'Kariyer', 'İletişim'] },
-              { title: 'Destek', links: ['Yardım Merkezi', 'Dokümantasyon', 'SSS', 'İletişim'] }
-            ].map((section, i) => (
-              <div key={i}>
-                <h4 className="text-white font-semibold mb-4 text-sm">{section.title}</h4>
-                <ul className="space-y-3">
-                  {section.links.map((link, j) => (
-                    <li key={j}>
-                      <a href="#" className="text-[#5E6A78] hover:text-white transition-colors text-sm">
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-8 border-t border-[#1E3448] flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-[#5E6A78]">
-              &copy; 2026 Asistan. Tüm hakları saklıdır.
-            </p>
-            <a href="https://asistan.com.tr" className="text-sm text-[#1BD1B5] hover:text-[#1BD1B5]/80 transition-colors font-medium">
-              asistan.com.tr
-            </a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
