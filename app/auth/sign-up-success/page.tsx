@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Mail } from 'lucide-react'
 
@@ -10,15 +10,7 @@ export default function SignUpSuccessPage() {
       <Card className="w-full max-w-md text-center">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-QY93LEdQAobmNB8KwIAfbTEs2h3aYQ.png"
-              alt="Asistan Logo"
-              width={180}
-              height={60}
-              className="h-14 w-auto"
-              priority
-              unoptimized
-            />
+            <AsistanLogo variant="dark" />
           </div>
           <div className="flex justify-center">
             <div className="rounded-full bg-primary/10 p-4">
