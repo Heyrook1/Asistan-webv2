@@ -18,9 +18,11 @@ import {
   Sparkles,
   Zap,
   Shield,
-  Smartphone
+  Smartphone,
+  Play,
+  Star
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const facilities = [
   {
@@ -113,55 +115,62 @@ const pricingPlans = [
   }
 ]
 
-const trustedBy = [
-  'Ünlüer Dental', 
-  'Özel Mediplus', 
-  'Istanbul Klinik', 
-  'Healty Prs', 
-  'Akvaryum Pet', 
-  'Yıldız Kliniği'
-]
-
 export default function HomePage() {
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9]">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B1828]/95 backdrop-blur-xl border-b border-[#1E3448]/50">
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white/90 backdrop-blur-xl shadow-sm' : 'bg-transparent'
+      }`}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Image
-              src="/images/asistan-logo.png"
-              alt="Asistan"
-              width={140}
-              height={40}
-              className="h-8 w-auto"
-            />
+          <div className="flex items-center justify-between h-20">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/images/asistan-logo.png"
+                alt="Asistan"
+                width={140}
+                height={40}
+                className="h-9 w-auto"
+                priority
+              />
+            </Link>
             
-            <div className="hidden md:flex items-center gap-8">
-              {['Özellikler', 'Fiyatlar', 'Hakkımızda', 'İletişim'].map((item) => (
+            <div className="hidden lg:flex items-center gap-10">
+              {[
+                { label: 'Özellikler', href: '#ozellikler' },
+                { label: 'Fiyatlar', href: '#fiyatlar' },
+                { label: 'Hakkımızda', href: '#hakkimizda' },
+                { label: 'İletişim', href: '#iletisim' }
+              ].map((item) => (
                 <a 
-                  key={item}
-                  href={`#${item.toLowerCase()}`} 
-                  className="text-[#8A9AAA] hover:text-white transition-colors text-sm font-medium"
+                  key={item.label}
+                  href={item.href} 
+                  className="text-[#5E6A78] hover:text-[#0B1828] transition-colors text-[15px] font-medium"
                 >
-                  {item}
+                  {item.label}
                 </a>
               ))}
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Link href="/auth/login">
                 <Button 
                   variant="ghost" 
-                  className="text-[#8A9AAA] hover:text-white hover:bg-[#1E3448] text-sm font-medium"
+                  className="text-[#0B1828] hover:bg-[#F4F0EC] text-[15px] font-medium h-11 px-5"
                 >
                   Giriş Yap
                 </Button>
               </Link>
               <Link href="/auth/sign-up">
-                <Button className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-medium text-sm px-5 rounded-full">
+                <Button className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-semibold text-[15px] h-11 px-6 rounded-full shadow-lg shadow-[#1BD1B5]/25 transition-all hover:shadow-xl hover:shadow-[#1BD1B5]/30">
                   Ücretsiz Dene
                 </Button>
               </Link>
@@ -170,193 +179,140 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Dark Modern */}
-      <section className="pt-16 bg-[#0B1828] relative overflow-hidden">
-        {/* Background grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(30,52,72,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(30,52,72,0.3)_1px,transparent_1px)] bg-[size:60px_60px]" />
-        
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-24 relative">
-          {/* Announcement Badge */}
-          <div className="flex justify-center mb-10">
-            <Badge 
-              variant="outline" 
-              className="px-4 py-2 bg-[#1BD1B5]/10 border-[#1BD1B5]/30 text-[#1BD1B5] rounded-full font-medium cursor-pointer hover:bg-[#1BD1B5]/20 transition-colors group"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              KKTC + TR
-              <ArrowUpRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-            </Badge>
-          </div>
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0B1828] via-[#0F2132] to-[#0B1828]">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#1BD1B5]/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#207FF5]/10 rounded-full blur-[100px] animate-pulse delay-1000" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-[#1BD1B5]/5 to-[#207FF5]/5 rounded-full blur-[150px]" />
+        </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Content */}
-            <div>
-              <p className="text-[#1BD1B5] text-sm font-semibold uppercase tracking-wider mb-4">
-                SAAS PLATFORMU
-              </p>
-              
-              {/* Main Headline */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Klinik işinizi
-                <br />
-                yöneten{' '}
-                <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">
-                  akıllı
-                </span>
-                <br />
-                <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">
-                  asistan.
-                </span>
-              </h1>
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMxQkQxQjUiIGZpbGwtb3BhY2l0eT0iLjAyIiBkPSJNMCAwaDYwdjYwSDB6Ii8+PHBhdGggZD0iTTYwIDBIMHY2MCIgc3Ryb2tlPSIjMUJEMUI1IiBzdHJva2Utb3BhY2l0eT0iLjAzIi8+PC9nPjwvc3ZnPg==')] opacity-50" />
 
-              {/* Subheadline */}
-              <p className="text-base md:text-lg text-[#8A9AAA] mb-8 leading-relaxed max-w-lg">
-                Klinikler için tasarlanmış AI destekli operasyon platformu — marka, 
-                ürün, mobil ve oturum akışlarının hi-fi tasarımları.
-              </p>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-20">
+          <div className="text-center">
+            {/* Logo Icon */}
+            <div className="flex justify-center mb-8">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] rounded-3xl blur-2xl opacity-30 scale-150" />
+                <Image
+                  src="/images/asistan-icon.png"
+                  alt="Asistan"
+                  width={100}
+                  height={100}
+                  className="relative w-24 h-24 md:w-28 md:h-28"
+                  priority
+                />
+              </div>
+            </div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap items-center gap-4 mb-12">
-                <Link href="/auth/sign-up">
-                  <Button 
-                    size="lg"
-                    className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-semibold text-sm px-6 py-5 rounded-full"
-                  >
-                    Ücretsiz Başla
-                  </Button>
-                </Link>
+            {/* Main Logo with Tagline */}
+            <div className="flex justify-center mb-12">
+              <Image
+                src="/images/asistan-main.png"
+                alt="Asistan - İşini Yöneten Akıllı Asistan"
+                width={500}
+                height={150}
+                className="w-[320px] md:w-[440px] lg:w-[500px] h-auto"
+                priority
+              />
+            </div>
+
+            {/* Headline */}
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-8 max-w-4xl mx-auto">
+              Klinik işinizi yöneten
+              <br />
+              <span className="bg-gradient-to-r from-[#1BD1B5] via-[#20E3C2] to-[#207FF5] bg-clip-text text-transparent">
+                akıllı asistan.
+              </span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-lg md:text-xl text-[#8A9AAA] max-w-2xl mx-auto mb-12 leading-relaxed">
+              Klinikler için tasarlanmış AI-destekli operasyon platformu. 
+              Randevu, hasta ve ekip yönetimini tek yerden yapın.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+              <Link href="/auth/sign-up">
                 <Button 
                   size="lg"
-                  variant="outline"
-                  className="border-[#1E3448] text-white hover:bg-[#1E3448] font-medium text-sm px-6 py-5 rounded-full"
+                  className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-semibold text-base h-14 px-8 rounded-full shadow-2xl shadow-[#1BD1B5]/30 transition-all hover:shadow-[#1BD1B5]/40 hover:scale-[1.02] group"
                 >
-                  3 dakikada bil
+                  14 Gün Ücretsiz Başla
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-8">
-                {[
-                  { value: '840+', label: 'RANDEVULAR' },
-                  { value: '₺37', label: 'GÜNLÜK' },
-                  { value: '1', label: 'SİSTEM' }
-                ].map((stat, i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-[#1BD1B5] font-mono">{stat.value}</div>
-                    <div className="text-[10px] text-[#5E6A78] uppercase tracking-wider mt-1">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
+              </Link>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="border-[#2A3F52] bg-[#0B1828]/50 backdrop-blur-sm text-white hover:bg-[#152535] hover:border-[#3A5169] font-medium text-base h-14 px-8 rounded-full transition-all group"
+              >
+                <Play className="w-5 h-5 mr-2 fill-[#1BD1B5] text-[#1BD1B5]" />
+                Demo İzle
+              </Button>
             </div>
 
-            {/* Right: Dashboard Preview */}
-            <div className="relative">
-              <div className="bg-[#152535] border border-[#1E3448] rounded-2xl p-5 shadow-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs text-[#5E6A78]">asistan.app</span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#27CA40]"></div>
-                  </div>
+            {/* Stats Row */}
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+              {[
+                { value: '840+', label: 'Aktif Klinik' },
+                { value: '₺37', label: 'Günlük' },
+                { value: '2.4 sa', label: 'Tasarruf/Gün' }
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white font-mono tracking-tight">{stat.value}</div>
+                  <div className="text-sm text-[#5E6A78] uppercase tracking-wider mt-1">{stat.label}</div>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-[#1E3448] rounded-lg p-3">
-                    <div className="text-xs text-[#5E6A78] mb-1">Bugün</div>
-                    <div className="text-lg font-bold text-white">12</div>
-                  </div>
-                  <div className="bg-[#1E3448] rounded-lg p-3">
-                    <div className="text-xs text-[#5E6A78] mb-1">Bekleyen</div>
-                    <div className="text-lg font-bold text-[#FFBD2E]">3</div>
-                  </div>
-                  <div className="bg-[#1E3448] rounded-lg p-3">
-                    <div className="text-xs text-[#5E6A78] mb-1">Tamamlanan</div>
-                    <div className="text-lg font-bold text-[#1BD1B5]">9</div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  {[
-                    { time: '09:00', name: 'Ali Yılmaz', status: 'Onaylandı' },
-                    { time: '10:30', name: 'Ayşe Demir', status: 'Beklemede' },
-                    { time: '14:00', name: 'Mehmet Kaya', status: 'Onaylandı' },
-                  ].map((apt, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[#1E3448] rounded-lg px-3 py-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="text-xs font-mono text-[#1BD1B5]">{apt.time}</div>
-                        <div className="text-sm text-white">{apt.name}</div>
-                      </div>
-                      <Badge className={`text-[10px] ${apt.status === 'Onaylandı' ? 'bg-[#1BD1B5]/20 text-[#1BD1B5]' : 'bg-[#FFBD2E]/20 text-[#FFBD2E]'} border-0`}>
-                        {apt.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Trust Logos */}
-          <div className="mt-16 pt-8 border-t border-[#1E3448]">
-            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-4 opacity-40">
-              {trustedBy.map((logo, i) => (
-                <span key={i} className="text-white text-xs font-medium tracking-wide">
-                  {logo}
-                </span>
               ))}
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Brand Logo Section */}
-      <section className="py-16 bg-[#0B1828]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-center">
-          <Image
-            src="/images/asistan-main.png"
-            alt="Asistan - İşini Yöneten Akıllı Asistan"
-            width={500}
-            height={140}
-            className="w-[320px] md:w-[450px] h-auto"
-            priority
-          />
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
+          <div className="w-6 h-10 rounded-full border-2 border-[#2A3F52] flex justify-center pt-2">
+            <div className="w-1.5 h-3 bg-[#1BD1B5] rounded-full animate-pulse" />
+          </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 bg-[#F4F0EC]">
+      {/* Trust Bar */}
+      <section className="py-12 bg-[#FAFAF9] border-y border-[#E8E4E0]/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-            {[
-              { value: '840+', label: 'Aktif Klinik' },
-              { value: '₺37', label: 'Günlük Maliyet' },
-              { value: '2.4 sa', label: 'Günlük Tasarruf' },
-              { value: '%99.9', label: 'Uptime' }
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-[#0B1828] font-mono mb-2">{stat.value}</div>
-                <div className="text-sm text-[#5E6A78] uppercase tracking-wider">{stat.label}</div>
-              </div>
+          <p className="text-center text-sm text-[#8A9AAA] mb-8 font-medium uppercase tracking-wider">
+            Kuzey Kıbrıs&apos;ın önde gelen klinikleri tarafından tercih ediliyor
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6">
+            {['Ünlüer Dental', 'Özel Mediplus', 'Istanbul Klinik', 'Healty Prs', 'Akvaryum Pet', 'Yıldız Kliniği'].map((name, i) => (
+              <span key={i} className="text-[#0B1828]/40 text-base font-semibold tracking-wide hover:text-[#0B1828]/70 transition-colors cursor-default">
+                {name}
+              </span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section - Bento Grid */}
-      <section id="özellikler" className="py-24 px-6 lg:px-8 bg-[#FAFAF9]">
+      {/* Features Section */}
+      <section id="ozellikler" className="py-24 lg:py-32 px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-[#1BD1B5]/10 text-[#0B1828] border-0 rounded-full px-4 py-2">
+          <div className="text-center mb-20">
+            <Badge className="mb-6 bg-[#1BD1B5]/10 text-[#0B1828] border-0 rounded-full px-5 py-2 text-sm font-semibold">
+              <Sparkles className="w-4 h-4 mr-2 text-[#1BD1B5]" />
               Özellikler
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-[#0B1828] mb-6">
-              Kliniğiniz için ihtiyacınız
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#0B1828] mb-6 leading-tight">
+              Bir kliniği yönetmek için
               <br />
-              olan her şey.
+              <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">
+                ihtiyacınız olan her şey.
+              </span>
             </h2>
             <p className="text-lg text-[#5E6A78] max-w-xl mx-auto">
-              Modern araçlar ile kliniğinizi daha verimli yönetin.
+              Modern araçlar ile operasyonlarınızı otomatikleştirin ve büyümeye odaklanın.
             </p>
           </div>
 
@@ -364,19 +320,18 @@ export default function HomePage() {
             {facilities.map((facility, index) => (
               <Card 
                 key={index}
-                className={`group relative bg-white border border-[#E8E4E0]/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[#0B1828]/5 hover:-translate-y-1 cursor-pointer ${
-                  hoveredFeature === index ? 'scale-[1.02]' : ''
-                }`}
-                onMouseEnter={() => setHoveredFeature(index)}
-                onMouseLeave={() => setHoveredFeature(null)}
+                className="group relative bg-white border border-[#E8E4E0] rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[#0B1828]/8 hover:-translate-y-2 hover:border-transparent cursor-pointer"
               >
                 <CardContent className="p-8">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${facility.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500`}>
-                    <facility.icon className="w-7 h-7 text-white" />
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${facility.gradient} flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}>
+                    <facility.icon className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold text-[#0B1828] mb-3">{facility.title}</h3>
+                  <h3 className="text-xl font-bold text-[#0B1828] mb-3">{facility.title}</h3>
                   <p className="text-[#5E6A78] leading-relaxed">{facility.description}</p>
-                  <ArrowUpRight className="w-5 h-5 text-[#1BD1B5] mt-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="mt-6 flex items-center text-[#1BD1B5] font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    Daha fazla
+                    <ArrowUpRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -385,19 +340,22 @@ export default function HomePage() {
       </section>
 
       {/* Why Asistan Section */}
-      <section className="py-24 bg-[#0B1828]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <section className="py-24 lg:py-32 bg-[#0B1828] relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#1BD1B5]/5 to-transparent" />
+        
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative">
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
             <div>
-              <Badge className="mb-6 bg-[#1BD1B5]/10 text-[#1BD1B5] border-0 rounded-full px-4 py-2">
+              <Badge className="mb-6 bg-[#1BD1B5]/10 text-[#1BD1B5] border-0 rounded-full px-5 py-2 text-sm font-semibold">
                 Neden Asistan?
               </Badge>
-              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-6">
                 Sekreterin yapamadığı
                 <br />
-                <span className="text-[#1BD1B5]">her şeyi yapan</span>
+                her şeyi yapan
                 <br />
-                dijital çalışan.
+                <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">dijital çalışan.</span>
               </h2>
               <p className="text-lg text-[#8A9AAA] mb-10 leading-relaxed">
                 Asistan, kliniğinizin tüm operasyonel süreçlerini otomatikleştirir. 
@@ -410,8 +368,8 @@ export default function HomePage() {
                   { icon: Shield, title: 'Güvenli & Uyumlu', desc: 'KVKK uyumlu, şifreli veri saklama' },
                   { icon: Smartphone, title: 'Her Yerden Erişim', desc: 'Mobil uygulama ile dilediğiniz yerden yönetin' }
                 ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-4 group">
-                    <div className="w-12 h-12 rounded-xl bg-[#1BD1B5]/10 flex items-center justify-center group-hover:bg-[#1BD1B5]/20 transition-colors">
+                  <div key={i} className="flex items-start gap-5 group">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1BD1B5]/20 to-[#207FF5]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <item.icon className="w-6 h-6 text-[#1BD1B5]" />
                     </div>
                     <div>
@@ -425,37 +383,57 @@ export default function HomePage() {
 
             {/* Dashboard Preview */}
             <div className="relative">
-              <div className="bg-[#152535] border border-[#1E3448] rounded-3xl p-6 shadow-2xl">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#27CA40]"></div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-[#1BD1B5]/20 to-[#207FF5]/20 rounded-[2.5rem] blur-2xl opacity-50" />
+              <div className="relative bg-[#0F2132] border border-[#1E3448] rounded-3xl p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#27CA40]"></div>
+                  </div>
+                  <div className="text-xs text-[#5E6A78] font-mono">asistan.com.tr</div>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="text-sm text-[#8A9AAA] mb-3">Bugünkü Randevular</div>
-                  {[
-                    { time: '09:00', name: 'Ali Yılmaz', service: 'Diş Kontrolü' },
-                    { time: '10:30', name: 'Ayşe Demir', service: 'Dolgu' },
-                    { time: '14:00', name: 'Mehmet Kaya', service: 'Kanal Tedavisi' },
-                  ].map((apt, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[#1E3448] rounded-xl p-4 hover:bg-[#253649] transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm font-mono text-[#1BD1B5] font-medium">{apt.time}</div>
-                        <div>
-                          <div className="text-sm text-white font-medium">{apt.name}</div>
-                          <div className="text-xs text-[#5E6A78]">{apt.service}</div>
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-[#8A9AAA]">Bugünkü Randevular</div>
+                    <Badge className="bg-[#1BD1B5]/10 text-[#1BD1B5] border-0 text-xs">+12 yeni</Badge>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { time: '09:00', name: 'Ali Yılmaz', service: 'Diş Kontrolü', status: 'confirmed' },
+                      { time: '10:30', name: 'Ayşe Demir', service: 'Dolgu', status: 'confirmed' },
+                      { time: '14:00', name: 'Mehmet Kaya', service: 'Kanal Tedavisi', status: 'pending' },
+                      { time: '15:30', name: 'Zeynep Ak', service: 'Temizlik', status: 'confirmed' },
+                    ].map((apt, i) => (
+                      <div key={i} className="flex items-center justify-between bg-[#152535] rounded-xl p-4 hover:bg-[#1A3042] transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm font-mono text-[#1BD1B5] font-semibold w-12">{apt.time}</div>
+                          <div>
+                            <div className="text-sm text-white font-medium">{apt.name}</div>
+                            <div className="text-xs text-[#5E6A78]">{apt.service}</div>
+                          </div>
                         </div>
+                        <div className={`w-2 h-2 rounded-full ${apt.status === 'confirmed' ? 'bg-[#1BD1B5]' : 'bg-[#F59E0B]'}`}></div>
                       </div>
-                      <div className="w-2 h-2 rounded-full bg-[#1BD1B5]"></div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Bugün', value: '18', icon: Calendar },
+                    { label: 'Bekleyen', value: '3', icon: Clock },
+                    { label: 'Gelir', value: '₺4.2k', icon: BarChart3 }
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-[#152535] rounded-xl p-3 text-center">
+                      <stat.icon className="w-4 h-4 text-[#5E6A78] mx-auto mb-1" />
+                      <div className="text-lg font-bold text-white font-mono">{stat.value}</div>
+                      <div className="text-xs text-[#5E6A78]">{stat.label}</div>
                     </div>
                   ))}
                 </div>
-              </div>
-              
-              {/* Floating notification */}
-              <div className="absolute -bottom-6 -right-6 bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] text-white px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl">
-                +12 yeni randevu bugün
               </div>
             </div>
           </div>
@@ -463,17 +441,19 @@ export default function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="fiyatlar" className="py-24 px-6 lg:px-8 bg-white">
+      <section id="fiyatlar" className="py-24 lg:py-32 px-6 lg:px-8 bg-[#FAFAF9]">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-[#0B1828] text-white border-0 rounded-full px-4 py-2">
+          <div className="text-center mb-20">
+            <Badge className="mb-6 bg-[#0B1828] text-white border-0 rounded-full px-5 py-2 text-sm font-semibold">
               Fiyatlandırma
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-[#0B1828] mb-6">
-              Basit, şeffaf fiyatlar.
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#0B1828] mb-6">
+              Basit, şeffaf
+              <br />
+              <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">fiyatlandırma.</span>
             </h2>
             <p className="text-lg text-[#5E6A78] max-w-xl mx-auto">
-              Gizli ücret yok. Dilediğiniz zaman iptal edin.
+              Gizli ücret yok. İstediğiniz zaman iptal edin.
             </p>
           </div>
 
@@ -481,22 +461,23 @@ export default function HomePage() {
             {pricingPlans.map((plan, index) => (
               <Card 
                 key={index}
-                className={`relative bg-white rounded-3xl transition-all duration-300 hover:-translate-y-2 ${
+                className={`relative bg-white rounded-3xl transition-all duration-500 hover:-translate-y-2 ${
                   plan.popular 
-                    ? 'border-2 border-[#1BD1B5] shadow-xl shadow-[#1BD1B5]/10' 
-                    : 'border border-[#E8E4E0]'
+                    ? 'border-2 border-[#1BD1B5] shadow-2xl shadow-[#1BD1B5]/15 scale-105' 
+                    : 'border border-[#E8E4E0] hover:shadow-xl hover:border-[#1BD1B5]/30'
                 }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] text-white font-semibold px-4 py-1 rounded-full shadow-lg">
+                    <Badge className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] text-white font-semibold px-5 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-white" />
                       En Popüler
                     </Badge>
                   </div>
                 )}
-                <CardContent className="p-8 pt-10">
-                  <h3 className="text-xl font-semibold text-[#0B1828] mb-2">{plan.name}</h3>
-                  <p className="text-sm text-[#5E6A78] mb-6">{plan.description}</p>
+                <CardContent className="p-8 pt-12">
+                  <h3 className="text-xl font-bold text-[#0B1828] mb-2">{plan.name}</h3>
+                  <p className="text-sm text-[#5E6A78] mb-6 h-10">{plan.description}</p>
                   
                   <div className="mb-8">
                     <span className="text-5xl font-bold text-[#0B1828] font-mono">{plan.price}</span>
@@ -506,8 +487,8 @@ export default function HomePage() {
                   <ul className="space-y-4 mb-8">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center gap-3 text-[#5E6A78]">
-                        <div className="w-5 h-5 rounded-full bg-[#1BD1B5]/10 flex items-center justify-center">
-                          <Check className="w-3 h-3 text-[#1BD1B5]" />
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${plan.popular ? 'bg-[#1BD1B5]' : 'bg-[#1BD1B5]/10'}`}>
+                          <Check className={`w-3 h-3 ${plan.popular ? 'text-white' : 'text-[#1BD1B5]'}`} />
                         </div>
                         <span className="text-sm">{feature}</span>
                       </li>
@@ -516,9 +497,9 @@ export default function HomePage() {
 
                   <Link href="/auth/sign-up">
                     <Button 
-                      className={`w-full py-6 rounded-full font-semibold ${
+                      className={`w-full h-12 rounded-full font-semibold transition-all ${
                         plan.popular 
-                          ? 'bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white' 
+                          ? 'bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white shadow-lg shadow-[#1BD1B5]/25' 
                           : 'bg-[#0B1828] hover:bg-[#152535] text-white'
                       }`}
                     >
@@ -533,32 +514,38 @@ export default function HomePage() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 bg-[#0B1828]">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <p className="text-[#1BD1B5] text-sm font-semibold uppercase tracking-wider mb-4">Başlamaya Hazır mısınız?</p>
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+      <section className="py-24 lg:py-32 bg-[#0B1828] relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-[#1BD1B5]/10 via-[#207FF5]/10 to-[#1BD1B5]/10 rounded-full blur-[150px]" />
+        </div>
+        
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center relative">
+          <Badge className="mb-6 bg-[#1BD1B5]/10 text-[#1BD1B5] border-0 rounded-full px-5 py-2 text-sm font-semibold">
+            Başlamaya Hazır mısınız?
+          </Badge>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
             Sezgiyle değil,
             <br />
-            <span className="text-[#1BD1B5]">veriyle yönetin.</span>
+            <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">veriyle yönetin.</span>
           </h2>
           <p className="text-lg text-[#8A9AAA] mb-10 max-w-2xl mx-auto">
-            Asistan ile kliniğinizi bir sonraki seviyeye taşıyın. Hemen ücretsiz denemeye başlayın.
+            Asistan ile kliniğinizi bir sonraki seviyeye taşıyın. 
+            Bugün ücretsiz denemeye başlayın, farkı hemen görün.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/auth/sign-up">
               <Button 
                 size="lg"
-                className="bg-[#1BD1B5] hover:bg-[#15B89E] text-[#0B1828] font-semibold text-base px-10 py-6 rounded-full"
+                className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-semibold text-base h-14 px-10 rounded-full shadow-2xl shadow-[#1BD1B5]/30 transition-all hover:shadow-[#1BD1B5]/40 hover:scale-[1.02] group"
               >
                 14 Gün Ücretsiz Dene
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link href="/auth/login">
               <Button 
                 size="lg"
-                variant="outline"
-                className="border-[#1E3448] text-white hover:bg-[#152535] hover:text-white font-medium text-base px-10 py-6 rounded-full"
+                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-[#0B1828] font-semibold text-base h-14 px-10 rounded-full transition-all"
               >
                 Giriş Yap
               </Button>
@@ -568,50 +555,64 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-16 bg-[#0B1828] border-t border-[#1E3448]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid md:grid-cols-5 gap-12 mb-12">
-            <div className="md:col-span-2">
+      <footer className="bg-[#050D14] py-16 px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row justify-between items-start gap-12 mb-12">
+            <div className="max-w-sm">
               <Image
                 src="/images/asistan-logo.png"
                 alt="Asistan"
                 width={140}
                 height={40}
-                className="h-9 w-auto mb-5"
+                className="h-10 w-auto mb-6 brightness-0 invert opacity-90"
               />
-              <p className="text-sm text-[#5E6A78] leading-relaxed max-w-xs">
-                Kuzey Kıbrıs&apos;ın ilk ve tek AI destekli klinik yönetim
-                platformu. Modern, güvenli ve kullanımı kolay.
+              <p className="text-[#5E6A78] leading-relaxed">
+                Kuzey Kıbrıs&apos;ın ilk ve tek AI destekli klinik yönetim platformu. 
+                Modern, güvenli ve kullanımı kolay.
               </p>
             </div>
-
-            {[
-              { title: 'Ürün', links: ['Özellikler', 'Fiyatlar', 'Entegrasyonlar', 'API'] },
-              { title: 'Şirket', links: ['Hakkımızda', 'Blog', 'Kariyer', 'İletişim'] },
-              { title: 'Yasal', links: ['Gizlilik', 'Kullanım Şartları', 'KVKK'] }
-            ].map((section, i) => (
-              <div key={i}>
-                <h4 className="text-white font-semibold mb-4">{section.title}</h4>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
+              <div>
+                <h4 className="text-white font-semibold mb-4">Ürün</h4>
                 <ul className="space-y-3">
-                  {section.links.map((link, j) => (
-                    <li key={j}>
-                      <a href="#" className="text-sm text-[#5E6A78] hover:text-[#1BD1B5] transition-colors">
-                        {link}
-                      </a>
+                  {['Özellikler', 'Fiyatlar', 'Entegrasyonlar', 'API'].map((item) => (
+                    <li key={item}>
+                      <a href="#" className="text-[#5E6A78] hover:text-white transition-colors text-sm">{item}</a>
                     </li>
                   ))}
                 </ul>
               </div>
-            ))}
+              <div>
+                <h4 className="text-white font-semibold mb-4">Şirket</h4>
+                <ul className="space-y-3">
+                  {['Hakkımızda', 'Blog', 'Kariyer', 'İletişim'].map((item) => (
+                    <li key={item}>
+                      <a href="#" className="text-[#5E6A78] hover:text-white transition-colors text-sm">{item}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold mb-4">Destek</h4>
+                <ul className="space-y-3">
+                  {['Yardım Merkezi', 'Dokümantasyon', 'SSS', 'İletişim'].map((item) => (
+                    <li key={item}>
+                      <a href="#" className="text-[#5E6A78] hover:text-white transition-colors text-sm">{item}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
-
-          <div className="pt-8 border-t border-[#1E3448] flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-[#5E6A78]">
+          
+          <div className="pt-8 border-t border-[#1E3448] flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-[#5E6A78] text-sm">
               &copy; 2026 Asistan. Tüm hakları saklıdır.
             </p>
-            <a href="https://asistan.com.tr" className="text-sm text-[#1BD1B5] hover:text-[#1BD1B5]/80 transition-colors font-medium">
-              asistan.com.tr
-            </a>
+            <div className="flex items-center gap-6">
+              <span className="text-[#1BD1B5] text-sm font-medium">asistan.com.tr</span>
+            </div>
           </div>
         </div>
       </footer>
