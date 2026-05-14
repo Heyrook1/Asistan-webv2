@@ -11,12 +11,13 @@ export default function SignUpSuccessPage() {
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
             <Image
-              src="/images/asistan-logo.png"
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-QY93LEdQAobmNB8KwIAfbTEs2h3aYQ.png"
               alt="Asistan Logo"
               width={180}
               height={60}
               className="h-14 w-auto"
               priority
+              unoptimized
             />
           </div>
           <div className="flex justify-center">
