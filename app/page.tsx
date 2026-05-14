@@ -1,64 +1,100 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { AsistanLogo } from '@/components/asistan-logo'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
   Calendar, 
   Users, 
-  BarChart3, 
-  Clock, 
   Bell, 
-  Building2,
-  Check,
-  ArrowRight,
-  ArrowUpRight,
   Sparkles,
-  Zap,
+  Play,
+  Star,
+  ChevronDown,
+  ArrowRight,
+  Check,
+  Clock,
+  UserCheck,
+  Brain,
   Shield,
-  Smartphone
+  Heart,
+  Target,
+  Lightbulb,
+  Eye
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-const facilities = [
+const stats = [
+  { icon: UserCheck, value: '500+', label: 'Profesyonel', sublabel: 'Bize güveniyor' },
+  { icon: Calendar, value: '100.000+', label: 'Randevu', sublabel: 'Yönetildi' },
+  { icon: Star, value: '%98', label: 'Müşteri', sublabel: 'Memnuniyeti' },
+  { icon: Clock, value: '10.000+', label: 'Saat', sublabel: 'Kazandırıldık' },
+]
+
+const features = [
   {
     icon: Calendar,
     title: 'Akıllı Takvim',
-    description: 'Randevularınızı otomatik senkronize edin ve çakışmaları önleyin.',
-    gradient: 'from-[#1BD1B5] to-[#207FF5]'
-  },
-  {
-    icon: Clock,
-    title: 'Bekleme Listesi',
-    description: 'İptal durumunda otomatik bildirim ile bekleme listesi yönetimi.',
-    gradient: 'from-[#207FF5] to-[#8B5CF6]'
-  },
-  {
-    icon: Users,
-    title: 'Personel Yönetimi',
-    description: 'Çalışanlarınızın programlarını ve izinlerini kolayca yönetin.',
-    gradient: 'from-[#1BD1B5] to-[#10B981]'
+    description: 'Randevularınızı kolayca yönetin. Çakışmaları önleyin, doluluk oranınızı artırın.',
   },
   {
     icon: Bell,
-    title: 'Otomatik Bildirimler',
-    description: 'SMS ve e-posta ile hasta hatırlatmaları otomatik gönderilir.',
-    gradient: 'from-[#F59E0B] to-[#EF4444]'
+    title: 'Hatırlatmalar',
+    description: 'Otomatik hatırlatmalar ile randevu iptallerini azaltın, katılım oranını yükseltin.',
   },
   {
-    icon: BarChart3,
-    title: 'Gelişmiş Analitik',
-    description: 'Detaylı raporlar ve iş zekası ile büyümenizi takip edin.',
-    gradient: 'from-[#8B5CF6] to-[#EC4899]'
+    icon: Users,
+    title: 'Ekip Yönetimi',
+    description: 'Ekibinizi organize edin, görevleri paylaşın ve performansı tek yerden takip edin.',
   },
   {
-    icon: Building2,
-    title: 'Çoklu Şube',
-    description: 'Tüm şubelerinizi tek bir panel üzerinden yönetin.',
-    gradient: 'from-[#10B981] to-[#1BD1B5]'
-  }
+    icon: Brain,
+    title: 'AI Önerileri',
+    description: 'Yapay zeka destekli önerilerle randevu planlamanızı optimize edin ve verimliliğinizi artırın.',
+  },
+]
+
+const industries = [
+  {
+    title: 'Asistan Health',
+    description: 'Klinik, hastane ve muayenehaneler için randevu ve hasta yönetimi.',
+    image: '/images/industry-health.jpg',
+    color: 'from-teal-500 to-cyan-500',
+  },
+  {
+    title: 'Asistan Beauty',
+    description: 'Güzellik merkezleri ve salonlar için randevu, paket ve müşteri yönetimi.',
+    image: '/images/industry-beauty.jpg',
+    color: 'from-pink-500 to-rose-500',
+  },
+  {
+    title: 'Asistan Legal',
+    description: 'Hukuk büroları için dava, görüşme ve müvekkil randevu yönetimi.',
+    image: '/images/industry-legal.jpg',
+    color: 'from-amber-500 to-orange-500',
+  },
+  {
+    title: 'Asistan Pro',
+    description: 'Danışmanlar ve hizmet profesyonelleri için esnek randevu çözümleri.',
+    image: '/images/industry-pro.jpg',
+    color: 'from-violet-500 to-purple-500',
+  },
+]
+
+const todayAppointments = [
+  { time: '09:30', name: 'Ayşe Yılmaz', status: 'Onaylandı' },
+  { time: '11:00', name: 'Mehmet Kaya', status: 'Beklemede' },
+  { time: '14:00', name: 'Zeynep Kaya', status: 'İptal edildi' },
+  { time: '16:00', name: 'Ahmet Şahin', status: 'Onaylandı' },
+]
+
+const availableSlots = [
+  '12:00 - 12:30',
+  '15:30 - 16:00',
+  '17:00 - 17:30',
 ]
 
 const pricingPlans = [
@@ -66,14 +102,8 @@ const pricingPlans = [
     name: 'Başlangıç',
     price: '0',
     period: '',
-    description: 'Küçük klinikler için ideal başlangıç',
-    features: [
-      'Aylık 50 randevu',
-      '1 personel hesabı',
-      'Temel raporlar',
-      'E-posta bildirimleri',
-      'Mobil erişim'
-    ],
+    description: 'Küçük işletmeler için ideal',
+    features: ['Aylık 50 randevu', '1 personel hesabı', 'Temel raporlar', 'E-posta bildirimleri'],
     popular: false,
     cta: 'Ücretsiz Başla'
   },
@@ -81,16 +111,8 @@ const pricingPlans = [
     name: 'Profesyonel',
     price: '₺37',
     period: '/gün',
-    description: 'Büyüyen klinikler için en popüler seçim',
-    features: [
-      'Sınırsız randevu',
-      '5 personel hesabı',
-      'Gelişmiş analitik',
-      'SMS + E-posta bildirimleri',
-      'Öncelikli destek',
-      'API erişimi',
-      'Özel raporlar'
-    ],
+    description: 'Büyüyen işletmeler için',
+    features: ['Sınırsız randevu', '5 personel hesabı', 'Gelişmiş analitik', 'SMS + E-posta', 'Öncelikli destek', 'API erişimi'],
     popular: true,
     cta: 'Hemen Başla'
   },
@@ -98,71 +120,63 @@ const pricingPlans = [
     name: 'Kurumsal',
     price: 'Özel',
     period: '',
-    description: 'Büyük klinikler ve zincirler için',
-    features: [
-      'Sınırsız her şey',
-      'Sınırsız personel',
-      'Çoklu şube yönetimi',
-      'Özel entegrasyonlar',
-      '7/24 öncelikli destek',
-      'Özel eğitim',
-      'SLA garantisi'
-    ],
+    description: 'Büyük organizasyonlar için',
+    features: ['Her şey dahil', 'Sınırsız personel', 'Özel entegrasyonlar', '7/24 destek', 'SLA garantisi'],
     popular: false,
     cta: 'İletişime Geç'
-  }
-]
-
-const trustedBy = [
-  'Ünlüer Dental', 
-  'Özel Mediplus', 
-  'Istanbul Klinik', 
-  'Healty Prs', 
-  'Akvaryum Pet', 
-  'Yıldız Kliniği'
+  },
 ]
 
 export default function HomePage() {
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9]">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B1828]/95 backdrop-blur-xl border-b border-[#1E3448]/50">
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white/95 backdrop-blur-xl shadow-sm' : 'bg-white'
+      }`}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-QY93LEdQAobmNB8KwIAfbTEs2h3aYQ.png"
-              alt="Asistan"
-              width={140}
-              height={40}
-              className="h-8 w-auto"
-              unoptimized
-            />
-            
-            <div className="hidden md:flex items-center gap-8">
-              {['Özellikler', 'Fiyatlar', 'Hakkımızda', 'İletişim'].map((item) => (
-                <a 
-                  key={item}
-                  href={`#${item.toLowerCase()}`} 
-                  className="text-[#8A9AAA] hover:text-white transition-colors text-sm font-medium"
-                >
-                  {item}
-                </a>
-              ))}
+            <div className="flex items-center gap-10">
+              <Link href="/">
+                <AsistanLogo variant="dark" />
+              </Link>
+              
+              <div className="hidden md:flex items-center gap-6">
+                {[
+                  { label: 'Ürün', hasDropdown: false },
+                  { label: 'Çözümler', hasDropdown: true },
+                  { label: 'Fiyatlandırma', hasDropdown: false },
+                  { label: 'Kaynaklar', hasDropdown: true },
+                  { label: 'Hakkımızda', hasDropdown: false },
+                ].map((item) => (
+                  <a 
+                    key={item.label}
+                    href={item.label === 'Hakkımızda' ? '/hakkimizda' : `#${item.label.toLowerCase()}`}
+                    className="flex items-center gap-1 text-[#5E6A78] hover:text-[#0B1828] transition-colors text-sm font-medium"
+                  >
+                    {item.label}
+                    {item.hasDropdown && <ChevronDown className="w-4 h-4" />}
+                  </a>
+                ))}
+              </div>
             </div>
             
             <div className="flex items-center gap-4">
               <Link href="/auth/login">
-                <Button 
-                  variant="ghost" 
-                  className="text-[#8A9AAA] hover:text-white hover:bg-[#1E3448] text-sm font-medium"
-                >
+                <Button variant="ghost" className="text-[#5E6A78] hover:text-[#0B1828] text-sm font-medium">
                   Giriş Yap
                 </Button>
               </Link>
               <Link href="/auth/sign-up">
-                <Button className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-medium text-sm px-5 rounded-full">
+                <Button className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-medium text-sm px-5 rounded-full">
                   Ücretsiz Dene
                 </Button>
               </Link>
@@ -171,362 +185,156 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Dark Modern */}
-      <section className="pt-16 bg-[#0B1828] relative overflow-hidden">
-        {/* Background grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(30,52,72,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(30,52,72,0.3)_1px,transparent_1px)] bg-[size:60px_60px]" />
-        
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-24 relative">
-          {/* Announcement Badge */}
-          <div className="flex justify-center mb-10">
-            <Badge 
-              variant="outline" 
-              className="px-4 py-2 bg-[#1BD1B5]/10 border-[#1BD1B5]/30 text-[#1BD1B5] rounded-full font-medium cursor-pointer hover:bg-[#1BD1B5]/20 transition-colors group"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              KKTC + TR
-              <ArrowUpRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-            </Badge>
-          </div>
-
+      {/* Hero Section */}
+      <section className="pt-28 pb-16 bg-gradient-to-b from-white to-[#F8FAFB]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Content */}
+            {/* Left Content */}
             <div>
-              <p className="text-[#1BD1B5] text-sm font-semibold uppercase tracking-wider mb-4">
-                SAAS PLATFORMU
-              </p>
-              
-              {/* Main Headline */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Klinik işinizi
-                <br />
-                yöneten{' '}
-                <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">
-                  akıllı
-                </span>
+              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#0B1828] leading-[1.1] tracking-tight mb-6">
+                İşinize yarayan
                 <br />
                 <span className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] bg-clip-text text-transparent">
-                  asistan.
+                  akıllı asistanınız.
                 </span>
               </h1>
-
-              {/* Subheadline */}
-              <p className="text-base md:text-lg text-[#8A9AAA] mb-8 leading-relaxed max-w-lg">
-                Klinikler için tasarlanmış AI destekli operasyon platformu — marka, 
-                ürün, mobil ve oturum akışlarının hi-fi tasarımları.
+              
+              <p className="text-lg text-[#5E6A78] mb-8 leading-relaxed max-w-lg">
+                Asistan, randevu yönetimini, hatırlatmaları, müşteri iletişimini 
+                ve ekip organizasyonunu kolaylaştırır. Zamandan tasarruf edin, 
+                daha mutlu müşteriler kazanın.
               </p>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap items-center gap-4 mb-12">
+              
+              <div className="flex flex-wrap items-center gap-4 mb-8">
                 <Link href="/auth/sign-up">
                   <Button 
                     size="lg"
-                    className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white font-semibold text-sm px-6 py-5 rounded-full"
+                    className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold text-sm px-6 h-12 rounded-full"
                   >
-                    Ücretsiz Başla
+                    Ücretsiz Dene
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
                 <Button 
                   size="lg"
                   variant="outline"
-                  className="border-[#1E3448] text-white hover:bg-[#1E3448] font-medium text-sm px-6 py-5 rounded-full"
+                  className="border-[#E2E8F0] text-[#0B1828] hover:bg-[#F8FAFB] font-medium text-sm px-6 h-12 rounded-full"
                 >
-                  3 dakikada bil
+                  <Play className="w-4 h-4 mr-2 fill-current" />
+                  Demo İzle
                 </Button>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-8">
-                {[
-                  { value: '840+', label: 'RANDEVULAR' },
-                  { value: '₺37', label: 'GÜNLÜK' },
-                  { value: '1', label: 'SİSTEM' }
-                ].map((stat, i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-[#1BD1B5] font-mono">{stat.value}</div>
-                    <div className="text-[10px] text-[#5E6A78] uppercase tracking-wider mt-1">{stat.label}</div>
-                  </div>
-                ))}
               </div>
             </div>
 
-            {/* Right: Dashboard Preview */}
+            {/* Right - Image with floating cards */}
             <div className="relative">
-              <div className="bg-[#152535] border border-[#1E3448] rounded-2xl p-5 shadow-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs text-[#5E6A78]">asistan.app</span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#27CA40]"></div>
-                  </div>
+              <Image
+                src="/images/medical-team.jpg"
+                alt="Medical professionals using Asistan"
+                width={600}
+                height={500}
+                className="rounded-2xl object-cover w-full h-[400px] lg:h-[480px]"
+                priority
+              />
+              
+              {/* Floating Card - Today's Appointments */}
+              <div className="absolute -right-4 top-4 bg-white rounded-xl shadow-xl p-4 w-64">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-[#0B1828]">Bugünkü Randevular</span>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-[#1E3448] rounded-lg p-3">
-                    <div className="text-xs text-[#5E6A78] mb-1">Bugün</div>
-                    <div className="text-lg font-bold text-white">12</div>
-                  </div>
-                  <div className="bg-[#1E3448] rounded-lg p-3">
-                    <div className="text-xs text-[#5E6A78] mb-1">Bekleyen</div>
-                    <div className="text-lg font-bold text-[#FFBD2E]">3</div>
-                  </div>
-                  <div className="bg-[#1E3448] rounded-lg p-3">
-                    <div className="text-xs text-[#5E6A78] mb-1">Tamamlanan</div>
-                    <div className="text-lg font-bold text-[#1BD1B5]">9</div>
-                  </div>
-                </div>
-                
                 <div className="space-y-2">
-                  {[
-                    { time: '09:00', name: 'Ali Yılmaz', status: 'Onaylandı' },
-                    { time: '10:30', name: 'Ayşe Demir', status: 'Beklemede' },
-                    { time: '14:00', name: 'Mehmet Kaya', status: 'Onaylandı' },
-                  ].map((apt, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[#1E3448] rounded-lg px-3 py-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="text-xs font-mono text-[#1BD1B5]">{apt.time}</div>
-                        <div className="text-sm text-white">{apt.name}</div>
+                  {todayAppointments.map((apt, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#5E6A78] font-mono">{apt.time}</span>
+                        <span className="text-[#0B1828]">{apt.name}</span>
                       </div>
-                      <Badge className={`text-[10px] ${apt.status === 'Onaylandı' ? 'bg-[#1BD1B5]/20 text-[#1BD1B5]' : 'bg-[#FFBD2E]/20 text-[#FFBD2E]'} border-0`}>
+                      <span className={`text-[10px] font-medium ${
+                        apt.status === 'Onaylandı' ? 'text-[#1BD1B5]' : 
+                        apt.status === 'Beklemede' ? 'text-[#F59E0B]' : 'text-[#EF4444]'
+                      }`}>
                         {apt.status}
-                      </Badge>
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Floating Card - Approval Rate */}
+              <div className="absolute -left-4 bottom-32 bg-white rounded-xl shadow-xl p-4 w-40">
+                <span className="text-xs text-[#5E6A78]">Onay Oranı</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-3xl font-bold text-[#1BD1B5]">%98</span>
+                  <span className="text-[10px] text-[#5E6A78]">Bu hafta</span>
+                </div>
+                <div className="mt-2 h-2 bg-[#E8F5F3] rounded-full overflow-hidden">
+                  <div className="h-full w-[98%] bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] rounded-full" />
+                </div>
+              </div>
+
+              {/* Floating Card - Available Slots */}
+              <div className="absolute right-8 bottom-8 bg-white rounded-xl shadow-xl p-4 w-48">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-[#1BD1B5]" />
+                  <span className="text-xs font-semibold text-[#0B1828]">Boş Saatler</span>
+                </div>
+                <div className="space-y-1.5">
+                  {availableSlots.map((slot, i) => (
+                    <div key={i} className="text-xs text-[#5E6A78] bg-[#F8FAFB] px-2 py-1.5 rounded">
+                      {slot}
+                    </div>
+                  ))}
+                </div>
+                <a href="#" className="text-[10px] text-[#1BD1B5] font-medium mt-2 inline-block">
+                  Tümünü Gör
+                </a>
+              </div>
             </div>
           </div>
-
-          {/* Trust Logos */}
-          <div className="mt-16 pt-8 border-t border-[#1E3448]">
-            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-4 opacity-40">
-              {trustedBy.map((logo, i) => (
-                <span key={i} className="text-white text-xs font-medium tracking-wide">
-                  {logo}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Brand Logo Section */}
-      <section className="py-16 bg-[#0B1828]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-center">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/asistan%20main-z34u62Sny6fzkOcIIzWIFNxdTyz0SN.png"
-            alt="Asistan - İşini Yöneten Akıllı Asistan"
-            width={500}
-            height={140}
-            className="w-[320px] md:w-[450px] h-auto"
-            priority
-            unoptimized
-          />
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-[#F4F0EC]">
+      <section className="py-12 bg-white border-y border-[#E8E4E0]/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-            {[
-              { value: '840+', label: 'Aktif Klinik' },
-              { value: '₺37', label: 'Günlük Maliyet' },
-              { value: '2.4 sa', label: 'Günlük Tasarruf' },
-              { value: '%99.9', label: 'Uptime' }
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-[#0B1828] font-mono mb-2">{stat.value}</div>
-                <div className="text-sm text-[#5E6A78] uppercase tracking-wider">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section - Bento Grid */}
-      <section id="��zellikler" className="py-24 px-6 lg:px-8 bg-[#FAFAF9]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-[#1BD1B5]/10 text-[#0B1828] border-0 rounded-full px-4 py-2">
-              Özellikler
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-[#0B1828] mb-6">
-              Kliniğiniz için ihtiyacınız
-              <br />
-              olan her şey.
-            </h2>
-            <p className="text-lg text-[#5E6A78] max-w-xl mx-auto">
-              Modern araçlar ile kliniğinizi daha verimli yönetin.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {facilities.map((facility, index) => (
-              <Card 
-                key={index}
-                className={`group relative bg-white border border-[#E8E4E0]/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[#0B1828]/5 hover:-translate-y-1 cursor-pointer ${
-                  hoveredFeature === index ? 'scale-[1.02]' : ''
-                }`}
-                onMouseEnter={() => setHoveredFeature(index)}
-                onMouseLeave={() => setHoveredFeature(null)}
-              >
-                <CardContent className="p-8">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${facility.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500`}>
-                    <facility.icon className="w-7 h-7 text-white" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#E8F5F3] flex items-center justify-center">
+                  <stat.icon className="w-6 h-6 text-[#1BD1B5]" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-[#0B1828]">{stat.value}</div>
+                  <div className="text-xs text-[#5E6A78]">
+                    {stat.label}
+                    <br />
+                    {stat.sublabel}
                   </div>
-                  <h3 className="text-xl font-semibold text-[#0B1828] mb-3">{facility.title}</h3>
-                  <p className="text-[#5E6A78] leading-relaxed">{facility.description}</p>
-                  <ArrowUpRight className="w-5 h-5 text-[#1BD1B5] mt-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Why Asistan Section */}
-      <section className="py-24 bg-[#0B1828]">
+      <section className="py-20 bg-[#F8FAFB]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <Badge className="mb-6 bg-[#1BD1B5]/10 text-[#1BD1B5] border-0 rounded-full px-4 py-2">
-                Neden Asistan?
-              </Badge>
-              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-8">
-                Sekreterin yapamadığı
-                <br />
-                <span className="text-[#1BD1B5]">her şeyi yapan</span>
-                <br />
-                dijital çalışan.
-              </h2>
-              <p className="text-lg text-[#8A9AAA] mb-10 leading-relaxed">
-                Asistan, kliniğinizin tüm operasyonel süreçlerini otomatikleştirir. 
-                7/24 çalışır, hata yapmaz ve sürekli öğrenir.
-              </p>
-
-              <div className="space-y-6">
-                {[
-                  { icon: Zap, title: 'Anında Kurulum', desc: '5 dakikada kliniğinizi sisteme ekleyin' },
-                  { icon: Shield, title: 'Güvenli & Uyumlu', desc: 'KVKK uyumlu, şifreli veri saklama' },
-                  { icon: Smartphone, title: 'Her Yerden Erişim', desc: 'Mobil uygulama ile dilediğiniz yerden yönetin' }
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-4 group">
-                    <div className="w-12 h-12 rounded-xl bg-[#1BD1B5]/10 flex items-center justify-center group-hover:bg-[#1BD1B5]/20 transition-colors">
-                      <item.icon className="w-6 h-6 text-[#1BD1B5]" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-1">{item.title}</h4>
-                      <p className="text-[#8A9AAA]">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Dashboard Preview */}
-            <div className="relative">
-              <div className="bg-[#152535] border border-[#1E3448] rounded-3xl p-6 shadow-2xl">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#27CA40]"></div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="text-sm text-[#8A9AAA] mb-3">Bugünkü Randevular</div>
-                  {[
-                    { time: '09:00', name: 'Ali Yılmaz', service: 'Diş Kontrolü' },
-                    { time: '10:30', name: 'Ayşe Demir', service: 'Dolgu' },
-                    { time: '14:00', name: 'Mehmet Kaya', service: 'Kanal Tedavisi' },
-                  ].map((apt, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[#1E3448] rounded-xl p-4 hover:bg-[#253649] transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm font-mono text-[#1BD1B5] font-medium">{apt.time}</div>
-                        <div>
-                          <div className="text-sm text-white font-medium">{apt.name}</div>
-                          <div className="text-xs text-[#5E6A78]">{apt.service}</div>
-                        </div>
-                      </div>
-                      <div className="w-2 h-2 rounded-full bg-[#1BD1B5]"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Floating notification */}
-              <div className="absolute -bottom-6 -right-6 bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] text-white px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl">
-                +12 yeni randevu bugün
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="fiyatlar" className="py-24 px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-[#0B1828] text-white border-0 rounded-full px-4 py-2">
-              Fiyatlandırma
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-[#0B1828] mb-6">
-              Basit, şeffaf fiyatlar.
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828] mb-4">
+              Neden Asistan?
             </h2>
-            <p className="text-lg text-[#5E6A78] max-w-xl mx-auto">
-              Gizli ücret yok. Dilediğiniz zaman iptal edin.
-            </p>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {pricingPlans.map((plan, index) => (
-              <Card 
-                key={index}
-                className={`relative bg-white rounded-3xl transition-all duration-300 hover:-translate-y-2 ${
-                  plan.popular 
-                    ? 'border-2 border-[#1BD1B5] shadow-xl shadow-[#1BD1B5]/10' 
-                    : 'border border-[#E8E4E0]'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] text-white font-semibold px-4 py-1 rounded-full shadow-lg">
-                      En Popüler
-                    </Badge>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, i) => (
+              <Card key={i} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 rounded-xl bg-[#E8F5F3] flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-[#1BD1B5]" />
                   </div>
-                )}
-                <CardContent className="p-8 pt-10">
-                  <h3 className="text-xl font-semibold text-[#0B1828] mb-2">{plan.name}</h3>
-                  <p className="text-sm text-[#5E6A78] mb-6">{plan.description}</p>
-                  
-                  <div className="mb-8">
-                    <span className="text-5xl font-bold text-[#0B1828] font-mono">{plan.price}</span>
-                    <span className="text-[#5E6A78] text-lg">{plan.period}</span>
-                  </div>
-
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center gap-3 text-[#5E6A78]">
-                        <div className="w-5 h-5 rounded-full bg-[#1BD1B5]/10 flex items-center justify-center">
-                          <Check className="w-3 h-3 text-[#1BD1B5]" />
-                        </div>
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link href="/auth/sign-up">
-                    <Button 
-                      className={`w-full py-6 rounded-full font-semibold ${
-                        plan.popular 
-                          ? 'bg-gradient-to-r from-[#1BD1B5] to-[#207FF5] hover:opacity-90 text-white' 
-                          : 'bg-[#0B1828] hover:bg-[#152535] text-white'
-                      }`}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </Link>
+                  <h3 className="text-lg font-semibold text-[#0B1828] mb-2">{feature.title}</h3>
+                  <p className="text-sm text-[#5E6A78] leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -534,33 +342,118 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-24 bg-[#0B1828]">
+      {/* Industry Solutions Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828] mb-4">
+              Sizin sektörünüze uyum sağlar
+            </h2>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {industries.map((industry, i) => (
+              <Card key={i} className="group overflow-hidden border-0 shadow-sm hover:shadow-lg transition-all">
+                <div className="relative h-40 overflow-hidden">
+                  <Image
+                    src={industry.image}
+                    alt={industry.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${industry.color} opacity-20`} />
+                </div>
+                <CardContent className="p-5">
+                  <h3 className="text-base font-semibold text-[#0B1828] mb-2">{industry.title}</h3>
+                  <p className="text-xs text-[#5E6A78] leading-relaxed mb-3">{industry.description}</p>
+                  <a href="#" className="inline-flex items-center text-xs font-medium text-[#1BD1B5] hover:text-[#17b8a0]">
+                    Detayları İncele
+                    <ArrowRight className="w-3 h-3 ml-1" />
+                  </a>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="fiyatlandırma" className="py-20 bg-[#F8FAFB]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828] mb-4">
+              Size uygun planı seçin
+            </h2>
+            <p className="text-[#5E6A78] max-w-2xl mx-auto">
+              Her büyüklükteki işletme için esnek fiyatlandırma seçenekleri
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {pricingPlans.map((plan, i) => (
+              <Card 
+                key={i} 
+                className={`relative border-0 ${plan.popular ? 'shadow-xl ring-2 ring-[#1BD1B5] scale-105' : 'shadow-sm'}`}
+              >
+                {plan.popular && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#1BD1B5] text-white text-xs px-3">
+                    En Popüler
+                  </Badge>
+                )}
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-[#0B1828] mb-1">{plan.name}</h3>
+                  <p className="text-xs text-[#5E6A78] mb-4">{plan.description}</p>
+                  <div className="mb-6">
+                    <span className="text-3xl font-bold text-[#0B1828]">{plan.price}</span>
+                    <span className="text-[#5E6A78] text-sm">{plan.period}</span>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    {plan.features.map((feature, j) => (
+                      <li key={j} className="flex items-center gap-2 text-sm text-[#5E6A78]">
+                        <Check className="w-4 h-4 text-[#1BD1B5] flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    className={`w-full rounded-full ${
+                      plan.popular 
+                        ? 'bg-[#1BD1B5] hover:bg-[#17b8a0] text-white' 
+                        : 'bg-[#0B1828] hover:bg-[#152535] text-white'
+                    }`}
+                  >
+                    {plan.cta}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-[#0B1828]">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <p className="text-[#1BD1B5] text-sm font-semibold uppercase tracking-wider mb-4">Başlamaya Hazır mısınız?</p>
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            Sezgiyle değil,
-            <br />
-            <span className="text-[#1BD1B5]">veriyle yönetin.</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Asistan ile kliniğinizi sonraki seviyeye taşıyın
           </h2>
-          <p className="text-lg text-[#8A9AAA] mb-10 max-w-2xl mx-auto">
-            Asistan ile kliniğinizi bir sonraki seviyeye taşıyın. Hemen ücretsiz denemeye başlayın.
+          <p className="text-[#8A9AAA] mb-8 max-w-2xl mx-auto">
+            Hemen ücretsiz denemeye başlayın, farkı görün.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link href="/auth/sign-up">
               <Button 
                 size="lg"
-                className="bg-[#1BD1B5] hover:bg-[#15B89E] text-[#0B1828] font-semibold text-base px-10 py-6 rounded-full"
+                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold px-8 rounded-full"
               >
                 14 Gün Ücretsiz Dene
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
             <Link href="/auth/login">
               <Button 
                 size="lg"
-                variant="outline"
-                className="border-[#1E3448] text-white hover:bg-[#152535] hover:text-white font-medium text-base px-10 py-6 rounded-full"
+                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-[#0B1828] font-semibold px-8 rounded-full"
               >
                 Giriş Yap
               </Button>
@@ -574,17 +467,12 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid md:grid-cols-5 gap-12 mb-12">
             <div className="md:col-span-2">
-              <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-QY93LEdQAobmNB8KwIAfbTEs2h3aYQ.png"
-                alt="Asistan"
-                width={140}
-                height={40}
-                className="h-9 w-auto mb-5"
-                unoptimized
-              />
-              <p className="text-sm text-[#5E6A78] leading-relaxed max-w-xs">
-                Kuzey Kıbrıs&apos;ın ilk ve tek AI destekli klinik yönetim
-                platformu. Modern, güvenli ve kullanımı kolay.
+              <div className="mb-6">
+                <AsistanLogo variant="light" />
+              </div>
+              <p className="text-[#5E6A78] leading-relaxed max-w-xs text-sm">
+                Kuzey Kıbrıs&apos;ın ilk ve tek AI destekli klinik yönetim platformu. 
+                Modern, güvenli ve kullanımı kolay.
               </p>
             </div>
 
@@ -594,11 +482,11 @@ export default function HomePage() {
               { title: 'Destek', links: ['Yardım Merkezi', 'Dokümantasyon', 'SSS', 'İletişim'] }
             ].map((section, i) => (
               <div key={i}>
-                <h4 className="text-white font-semibold mb-4">{section.title}</h4>
+                <h4 className="text-white font-semibold mb-4 text-sm">{section.title}</h4>
                 <ul className="space-y-3">
                   {section.links.map((link, j) => (
                     <li key={j}>
-                      <a href="#" className="text-sm text-[#5E6A78] hover:text-[#1BD1B5] transition-colors">
+                      <a href="#" className="text-[#5E6A78] hover:text-white transition-colors text-sm">
                         {link}
                       </a>
                     </li>
