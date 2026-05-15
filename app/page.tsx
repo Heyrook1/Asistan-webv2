@@ -40,22 +40,22 @@ const trustValueCards = [
   { 
     icon: Layers, 
     title: 'Tek panel', 
-    description: 'Randevu, musteri ve ekip yonetimi'
+    description: 'Randevu, müşteri ve ekip yönetimi'
   },
   { 
     icon: Brain, 
     title: 'AI destekli', 
-    description: 'Akilli oneriler ve otomatik takip'
+    description: 'Akıllı öneriler ve otomatik takip'
   },
   { 
     icon: Briefcase, 
-    title: 'Cok sektorlu', 
-    description: 'Saglik, guzellik, hukuk ve hizmet sektoru'
+    title: 'Çok sektörlü', 
+    description: 'Sağlık, güzellik, hukuk ve hizmet sektörü'
   },
   { 
     icon: Shield, 
-    title: 'Guvenli altyapi', 
-    description: 'Rol bazli erisim ve veri gizliligi'
+    title: 'Güvenli altyapı', 
+    description: 'Rol bazlı erişim ve veri gizliliği'
   },
 ]
 
@@ -63,99 +63,99 @@ const trustValueCards = [
 const asistanNedirCards = [
   {
     icon: Calendar,
-    title: 'Randevulari duzenler',
-    description: 'Tum randevularinizi tek takvimde yonetin, cakilmalari onleyin.'
+    title: 'Randevuları düzenler',
+    description: 'Tüm randevularınızı tek takvimde yönetin, çakışmaları önleyin.'
   },
   {
     icon: MessageSquare,
-    title: 'Musteri iletisimini toplar',
-    description: 'Mesajlar, notlar ve gecmis tek musteri kartinda.'
+    title: 'Müşteri iletişimini toplar',
+    description: 'Mesajlar, notlar ve geçmiş tek müşteri kartında.'
   },
   {
     icon: Zap,
-    title: 'Is akisini otomatiklestirir',
-    description: 'Hatirlatmalar, onaylar ve takipler otomatik calisir.'
+    title: 'İş akışını otomatikleştirir',
+    description: 'Hatırlatmalar, onaylar ve takipler otomatik çalışır.'
   },
 ]
 
-// Product modules for "Asistan programi neler sunar?"
+// Product modules for "Asistan programı neler sunar?"
 const productModules = [
   {
     icon: Calendar,
-    title: 'Akilli Takvim',
-    description: 'Tum randevularinizi tek yerden yonetin, cakilmalari onleyin.',
+    title: 'Akıllı Takvim',
+    description: 'Tüm randevularınızı tek yerden yönetin, çakışmaları önleyin.',
   },
   {
     icon: UserCheck,
-    title: 'Online Randevu Yonetimi',
-    description: 'Musterileriniz online randevu alsin, siz onaylayin.',
+    title: 'Online Randevu Yönetimi',
+    description: 'Müşterileriniz online randevu alsın, siz onaylayın.',
   },
   {
     icon: Bell,
-    title: 'Otomatik Hatirlatmalar',
+    title: 'Otomatik Hatırlatmalar',
     description: 'SMS, e-posta ve WhatsApp ile otomatik bildirimler.',
   },
   {
     icon: FileText,
-    title: 'Musteri Kartlari',
-    description: 'Her musterinin gecmisi, notlari ve iletisimi tek yerde.',
+    title: 'Müşteri Kartları',
+    description: 'Her müşterinin geçmişi, notları ve iletişimi tek yerde.',
   },
   {
     icon: Users,
-    title: 'Ekip & Sekreter Yonetimi',
-    description: 'Ekibinizi organize edin, gorevleri paylasip takip edin.',
+    title: 'Ekip & Sekreter Yönetimi',
+    description: 'Ekibinizi organize edin, görevleri paylaşıp takip edin.',
   },
   {
     icon: Brain,
-    title: 'AI Asistan Onerileri',
-    description: 'Yapay zeka ile akilli oneriler ve verimlilik icegoruleri.',
+    title: 'AI Asistan Önerileri',
+    description: 'Yapay zeka ile akıllı öneriler ve verimlilik içgörüleri.',
   },
   {
     icon: BarChart3,
     title: 'Raporlama',
-    description: 'Performans, doluluk ve gelir raporlari tek bakista.',
+    description: 'Performans, doluluk ve gelir raporları tek bakışta.',
   },
   {
     icon: Settings,
-    title: 'Guvenlik & Yetkilendirme',
-    description: 'Rol bazli erisim kontrolu ve veri gizliligi.',
+    title: 'Güvenlik & Yetkilendirme',
+    description: 'Rol bazlı erişim kontrolü ve veri gizliliği.',
   },
 ]
 
 // AI suggestions for the feed panel
 const aiSuggestions = [
-  { icon: Clock, text: 'Bugun 2 bos saatiniz var.', color: 'bg-[#12C8AD]/10 text-[#12C8AD]' },
+  { icon: Clock, text: 'Bugün 2 boş saatiniz var.', color: 'bg-[#12C8AD]/10 text-[#12C8AD]' },
   { icon: Bell, text: '3 randevu onay bekliyor.', color: 'bg-amber-500/10 text-amber-600' },
-  { icon: TrendingUp, text: 'Cuma gunleri talebiniz daha yuksek.', color: 'bg-[#16A9E8]/10 text-[#16A9E8]' },
-  { icon: MessageSquare, text: 'Bekleyen musteriye bos saat onerilebilir.', color: 'bg-violet-500/10 text-violet-600' },
-  { icon: CheckCircle2, text: 'Bu hafta iptal orani gecen haftaya gore azaldi.', color: 'bg-green-500/10 text-green-600' },
+  { icon: TrendingUp, text: 'Cuma günleri talebiniz daha yüksek.', color: 'bg-[#16A9E8]/10 text-[#16A9E8]' },
+  { icon: MessageSquare, text: 'Bekleyen müşteriye boş saat önerilebilir.', color: 'bg-violet-500/10 text-violet-600' },
+  { icon: CheckCircle2, text: 'Bu hafta iptal oranı geçen haftaya göre azaldı.', color: 'bg-green-500/10 text-green-600' },
 ]
 
 const industries = [
   {
     title: 'Asistan Health',
-    description: 'Doktorlar, klinikler, dis hekimleri, psikologlar ve saglik profesyonelleri icin.',
+    description: 'Doktorlar, klinikler, diş hekimleri, psikologlar ve sağlık profesyonelleri için.',
     icon: Stethoscope,
     color: 'bg-[#12C8AD]',
     featured: true,
   },
   {
     title: 'Asistan Beauty',
-    description: 'Guzellik merkezleri, kuaforler, berberler ve wellness profesyonelleri icin.',
+    description: 'Güzellik merkezleri, kuaförler, berberler ve wellness profesyonelleri için.',
     icon: Scissors,
     color: 'bg-pink-500',
     featured: false,
   },
   {
     title: 'Asistan Legal',
-    description: 'Avukatlar, danismanlar ve hukuk burolari icin.',
+    description: 'Avukatlar, danışmanlar ve hukuk büroları için.',
     icon: Scale,
     color: 'bg-amber-500',
     featured: false,
   },
   {
     title: 'Asistan Pro',
-    description: 'Teknisyenler, servis saglayicilar, serbest calisanlar ve saha ekipleri icin.',
+    description: 'Teknisyenler, servis sağlayıcılar, serbest çalışanlar ve saha ekipleri için.',
     icon: Briefcase,
     color: 'bg-violet-500',
     featured: false,
@@ -164,39 +164,39 @@ const industries = [
 
 const pricingPlans = [
   {
-    name: 'Baslangic',
-    price: 'Ucretsiz',
+    name: 'Başlangıç',
+    price: 'Ücretsiz',
     period: '',
-    description: 'Platformu kesfetmek isteyen bagimsiz profesyoneller icin.',
-    features: ['Aylik 30 randevu', '1 kullanici', 'Temel takvim', 'E-posta hatirlatmalari', 'Temel raporlar'],
+    description: 'Platformu keşfetmek isteyen bağımsız profesyoneller için.',
+    features: ['Aylık 30 randevu', '1 kullanıcı', 'Temel takvim', 'E-posta hatırlatmaları', 'Temel raporlar'],
     popular: false,
-    cta: 'Ucretsiz Basla'
+    cta: 'Ücretsiz Başla'
   },
   {
     name: 'Pro',
-    price: 'Erken Erisim',
+    price: 'Erken Erişim',
     period: '',
-    description: 'Ilk kullanicilar icin ozel fiyatlandirma.',
-    features: ['Sinirsiz randevu', 'Coklu kullanici', 'SMS + WhatsApp hatirlatma', 'Gelismis analitik', 'Ekip yonetimi', 'AI onerileri', 'Oncelikli destek'],
+    description: 'İlk kullanıcılar için özel fiyatlandırma.',
+    features: ['Sınırsız randevu', 'Çoklu kullanıcı', 'SMS + WhatsApp hatırlatma', 'Gelişmiş analitik', 'Ekip yönetimi', 'AI önerileri', 'Öncelikli destek'],
     popular: true,
     cta: 'Beni Bilgilendir'
   },
   {
     name: 'Kurumsal',
-    price: 'Ozel Teklif',
+    price: 'Özel Teklif',
     period: '',
-    description: 'Coklu lokasyonlu ekipler ve ozel ihtiyaclar icin.',
-    features: ['Her sey dahil', 'Sinirsiz kullanici', 'Ozel entegrasyonlar', 'API erisimi', 'Veri tasima destegi', '7/24 oncelikli destek'],
+    description: 'Çoklu lokasyonlu ekipler ve özel ihtiyaçlar için.',
+    features: ['Her şey dahil', 'Sınırsız kullanıcı', 'Özel entegrasyonlar', 'API erişimi', 'Veri taşıma desteği', '7/24 öncelikli destek'],
     popular: false,
     cta: 'Teklif Al'
   },
 ]
 
 const trustPoints = [
-  { icon: CheckCircle2, text: 'Ucretsiz baslangic plani' },
-  { icon: CheckCircle2, text: 'Kredi karti gerekmez' },
-  { icon: Shield, text: 'KVKK odakli veri koruma' },
-  { icon: Lock, text: 'Guvenli altyapi' },
+  { icon: CheckCircle2, text: 'Ücretsiz başlangıç planı' },
+  { icon: CheckCircle2, text: 'Kredi kartı gerekmez' },
+  { icon: Shield, text: 'KVKK odaklı veri koruma' },
+  { icon: Lock, text: 'Güvenli altyapı' },
 ]
 
 export default function HomePage() {
@@ -218,8 +218,8 @@ export default function HomePage() {
               </h1>
               
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Asistan; randevu yonetimi, musteri iletisimi, hatirlatmalar, ekip takibi ve 
-                gunluk is akislarini tek panelde birlestiren AI destekli is yonetim platformudur.
+                Asistan; randevu yönetimi, müşteri iletişimi, hatırlatmalar, ekip takibi ve 
+                günlük iş akışlarını tek panelde birleştiren AI destekli iş yönetim platformudur.
               </p>
               
               <div className="flex flex-wrap items-center gap-4 mb-6">
@@ -228,7 +228,7 @@ export default function HomePage() {
                     size="lg"
                     className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold text-sm px-7 h-12 rounded-full shadow-lg shadow-[#12C8AD]/25 transition-all hover:shadow-xl hover:shadow-[#12C8AD]/30"
                   >
-                    Ucretsiz Dene
+                    Ücretsiz Dene
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
@@ -238,13 +238,13 @@ export default function HomePage() {
                   className="border-gray-200 text-[#06142A] hover:bg-gray-50 font-medium text-sm px-7 h-12 rounded-full transition-all hover:border-gray-300"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Demo Izle
+                  Demo İzle
                 </Button>
               </div>
 
               {/* Trust line */}
               <p className="text-sm text-gray-500">
-                KKTC&apos;den baslayarak profesyonellerin dijital is yonetimini kolaylastirmak icin gelistirildi.
+                KKTC&apos;den başlayarak profesyonellerin dijital iş yönetimini kolaylaştırmak için geliştirildi.
               </p>
             </div>
 
@@ -266,14 +266,14 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-[#12C8AD]" />
-                      <span className="text-xs text-gray-500">Canli</span>
+                      <span className="text-xs text-gray-500">Canlı</span>
                     </div>
                   </div>
                   
                   {/* Stats Grid */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-100">
-                      <div className="text-xs text-gray-500 mb-1">Bugun</div>
+                      <div className="text-xs text-gray-500 mb-1">Bugün</div>
                       <div className="text-2xl font-bold text-[#06142A]">12</div>
                       <div className="text-[10px] text-gray-400">Randevu</div>
                     </div>
@@ -291,12 +291,12 @@ export default function HomePage() {
                   
                   {/* Today's Appointments */}
                   <div className="mb-3">
-                    <div className="text-xs font-semibold text-[#06142A] mb-2">Bugunku Randevular</div>
+                    <div className="text-xs font-semibold text-[#06142A] mb-2">Bugünkü Randevular</div>
                     <div className="space-y-2">
                       {[
-                        { time: '09:30', name: 'Musteri Gorusmesi', status: 'Onaylandi' },
-                        { time: '11:00', name: 'Danismanlik', status: 'Bekliyor' },
-                        { time: '14:00', name: 'Takip Randevusu', status: 'Onaylandi' },
+                        { time: '09:30', name: 'Müşteri Görüşmesi', status: 'Onaylandı' },
+                        { time: '11:00', name: 'Danışmanlık', status: 'Bekliyor' },
+                        { time: '14:00', name: 'Takip Randevusu', status: 'Onaylandı' },
                       ].map((apt, i) => (
                         <div key={i} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors cursor-pointer">
                           <div className="flex items-center gap-2">
@@ -304,7 +304,7 @@ export default function HomePage() {
                             <span className="text-xs font-medium text-[#06142A]">{apt.name}</span>
                           </div>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                            apt.status === 'Onaylandi' ? 'text-[#12C8AD] bg-[#12C8AD]/10' : 'text-amber-600 bg-amber-50'
+                            apt.status === 'Onaylandı' ? 'text-[#12C8AD] bg-[#12C8AD]/10' : 'text-amber-600 bg-amber-50'
                           }`}>
                             {apt.status}
                           </span>
@@ -317,9 +317,9 @@ export default function HomePage() {
                   <div className="bg-gradient-to-r from-[#12C8AD]/5 to-[#16A9E8]/5 rounded-xl p-3 border border-[#12C8AD]/10">
                     <div className="flex items-center gap-2 mb-1">
                       <Sparkles className="w-3.5 h-3.5 text-[#12C8AD]" />
-                      <span className="text-[10px] font-semibold text-[#12C8AD]">AI Onerisi</span>
+                      <span className="text-[10px] font-semibold text-[#12C8AD]">AI Önerisi</span>
                     </div>
-                    <p className="text-xs text-gray-600">Bugun 2 bos saatiniz var. Bekleyen musteriye onerilebilir.</p>
+                    <p className="text-xs text-gray-600">Bugün 2 boş saatiniz var. Bekleyen müşteriye önerilebilir.</p>
                   </div>
                 </div>
               </div>
@@ -330,7 +330,7 @@ export default function HomePage() {
                   <div className="w-6 h-6 rounded-lg bg-[#16A9E8]/10 flex items-center justify-center">
                     <Users className="w-3.5 h-3.5 text-[#16A9E8]" />
                   </div>
-                  <span className="text-xs font-semibold text-[#06142A]">Musteri Kartlari</span>
+                  <span className="text-xs font-semibold text-[#06142A]">Müşteri Kartları</span>
                 </div>
                 <div className="space-y-2">
                   {['Ayse Y.', 'Mehmet K.', 'Zeynep D.'].map((name, i) => (
@@ -350,10 +350,10 @@ export default function HomePage() {
                   <div className="w-6 h-6 rounded-lg bg-[#12C8AD]/10 flex items-center justify-center">
                     <Bell className="w-3.5 h-3.5 text-[#12C8AD]" />
                   </div>
-                  <span className="text-xs font-semibold text-[#06142A]">Hatirlatmalar</span>
+                  <span className="text-xs font-semibold text-[#06142A]">Hatırlatmalar</span>
                 </div>
                 <div className="text-2xl font-bold text-[#12C8AD] mb-1">5</div>
-                <div className="text-[10px] text-gray-500">Otomatik SMS gonderildi</div>
+                <div className="text-[10px] text-gray-500">Otomatik SMS gönderildi</div>
                 <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full w-[100%] bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] rounded-full" />
                 </div>
@@ -361,7 +361,7 @@ export default function HomePage() {
 
               {/* Floating Card - Performance Summary */}
               <div className="absolute right-4 lg:right-8 -bottom-2 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-40 border border-gray-100 backdrop-blur">
-                <span className="text-xs text-gray-500 font-medium">Onay Orani</span>
+                <span className="text-xs text-gray-500 font-medium">Onay Oranı</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-bold text-[#12C8AD]">%94</span>
                 </div>
@@ -383,9 +383,9 @@ export default function HomePage() {
               Asistan nedir?
             </h2>
             <p className="text-lg text-gray-600 leading-relaxed">
-              Asistan, profesyonellerin randevu, musteri, ekip ve gunluk is akislarini tek panelden 
-              yonetmesini saglayan AI destekli bir is yonetim platformudur. Daginik mesajlari, 
-              unutulan randevulari ve manuel takipleri tek bir duzenli sisteme tasir.
+              Asistan, profesyonellerin randevu, müşteri, ekip ve günlük iş akışlarını tek panelden 
+              yönetmesini sağlayan AI destekli bir iş yönetim platformudur. Dağınık mesajları, 
+              unutulan randevuları ve manuel takipleri tek bir düzenli sisteme taşır.
             </p>
           </div>
           
@@ -426,10 +426,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Asistan programi neler sunar?
+              Asistan programı neler sunar?
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Profesyoneller icin tasarlanmis, yapay zeka destekli is yonetim modulleri.
+              Profesyoneller için tasarlanmış, yapay zeka destekli iş yönetim modülleri.
             </p>
           </div>
           
@@ -459,15 +459,15 @@ export default function HomePage() {
                 AI Destekli
               </Badge>
               <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-6">
-                Sizin yerinize takip eder, size onerir.
+                Sizin yerinize takip eder, size önerir.
               </h2>
               <p className="text-gray-600 mb-8 leading-relaxed text-lg">
-                Asistan, gunluk is akisinizi analiz ederek onay bekleyen randevulari, bos saatleri, 
-                yogun gunleri ve takip edilmesi gereken musterileri size bildirir.
+                Asistan, günlük iş akışınızı analiz ederek onay bekleyen randevuları, boş saatleri, 
+                yoğun günleri ve takip edilmesi gereken müşterileri size bildirir.
               </p>
               <Link href="/auth/sign-up">
                 <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold rounded-full px-6 shadow-lg shadow-[#12C8AD]/25 hover:shadow-xl hover:shadow-[#12C8AD]/30 transition-all">
-                  AI Ozelliklerini Kesfet
+                  AI Özelliklerini Keşfet
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
@@ -483,7 +483,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <span className="font-semibold text-white text-sm block">AI Asistan</span>
-                    <span className="text-xs text-gray-400">Akilli oneriler</span>
+                    <span className="text-xs text-gray-400">Akıllı öneriler</span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -509,10 +509,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Her sektore uygun cozumler
+              Her sektöre uygun çözümler
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Sagliktan guzellige, hukuktan danismanliga - her profesyonel icin ozellestirilebilir cozumler.
+              Sağlıktan güzelliğe, hukuktan danışmanlığa - her profesyonel için özelleştirilebilir çözümler.
             </p>
           </div>
           
@@ -521,7 +521,7 @@ export default function HomePage() {
             {/* Featured Asistan Health - Large Card */}
             <Card className="lg:col-span-2 lg:row-span-2 group overflow-hidden border-0 shadow-xl shadow-[#12C8AD]/10 hover:shadow-2xl transition-all duration-300 rounded-3xl ring-2 ring-[#12C8AD]/20">
               <div className="bg-[#12C8AD] text-white text-sm font-semibold text-center py-2">
-                Simdi Aktif - Ilk Lansmanlar
+                Şimdi Aktif - İlk Lansmanlar
               </div>
               <div className="relative h-64 lg:h-80 overflow-hidden bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10">
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -533,13 +533,13 @@ export default function HomePage() {
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold text-[#06142A] mb-3">Asistan Health</h3>
                 <p className="text-gray-600 leading-relaxed mb-6">
-                  Doktorlar, klinikler, dis hekimleri, psikologlar ve tum saglik profesyonelleri icin 
-                  tasarlanmis ozel cozumler. Hasta randevulari, hatirlatmalar ve saglik kayitlari 
+                  Doktorlar, klinikler, diş hekimleri, psikologlar ve tüm sağlık profesyonelleri için 
+                  tasarlanmış özel çözümler. Hasta randevuları, hatırlatmalar ve sağlık kayıtları 
                   tek panelde.
                 </p>
                 <Link href="/cozumler/saglik">
                   <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold rounded-full px-6">
-                    Detaylari Incele
+                    Detayları İncele
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
@@ -560,7 +560,7 @@ export default function HomePage() {
                   <h3 className="text-base font-bold text-[#06142A] mb-2">{industry.title}</h3>
                   <p className="text-sm text-gray-600 leading-relaxed mb-4">{industry.description}</p>
                   <a href="#" className="inline-flex items-center text-sm font-semibold text-[#12C8AD] hover:text-[#10b89e] transition-colors">
-                    Yakinda
+                    Yakında
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </a>
                 </CardContent>
@@ -575,11 +575,11 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Her profesyonel icin sade fiyatlandirma.
+              Her profesyonel için sade fiyatlandırma.
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Ihtiyaciniza gore esnek planlar. Tek basiniza, kliniginizde ya da buyuyen ekibinizle - 
-              Asistan her asamada yaninizda.
+              İhtiyacınıza göre esnek planlar. Tek başınıza, kliniğinizde ya da büyüyen ekibinizle - 
+              Asistan her aşamada yanınızda.
             </p>
           </div>
           
@@ -595,7 +595,7 @@ export default function HomePage() {
               >
                 {plan.popular && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] text-white text-xs px-4 py-1 border-0">
-                    Onerilen
+                    Önerilen
                   </Badge>
                 )}
                 <CardContent className="p-7">

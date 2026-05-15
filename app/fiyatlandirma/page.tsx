@@ -9,48 +9,48 @@ import { Check, ArrowRight, Shield, CreditCard, RefreshCw, Lock, HelpCircle, X }
 
 const plans = [
   {
-    name: "Baslangic",
-    description: "Platformu kesfetmek isteyen profesyoneller icin.",
-    price: { monthly: 0, yearly: 0, label: "Ucretsiz" },
+    name: "Başlangıç",
+    description: "Platformu keşfetmek isteyen profesyoneller için.",
+    price: { monthly: 0, yearly: 0, label: "Ücretsiz" },
     features: [
-      "Aylik 30 randevu",
-      "1 kullanici",
-      "Temel takvim yonetimi",
-      "E-posta hatirlatmalari",
+      "Aylık 30 randevu",
+      "1 kullanıcı",
+      "Temel takvim yönetimi",
+      "E-posta hatırlatmaları",
       "Temel raporlar"
     ],
-    notIncluded: ["Ekip Yonetimi", "AI Onerileri", "API Erisimi"],
-    cta: "Ucretsiz Basla",
+    notIncluded: ["Ekip Yönetimi", "AI Önerileri", "API Erişimi"],
+    cta: "Ücretsiz Başla",
     popular: false
   },
   {
     name: "Pro",
-    description: "Ilk kullanicilar icin ozel fiyatlandirma.",
-    price: { monthly: null, yearly: null, label: "Erken Erisim" },
+    description: "İlk kullanıcılar için özel fiyatlandırma.",
+    price: { monthly: null, yearly: null, label: "Erken Erişim" },
     features: [
-      "Sinirsiz randevu",
-      "Coklu kullanici destegi",
-      "SMS + WhatsApp hatirlatma",
-      "Gelismis analitik",
-      "Ekip yonetimi",
-      "AI destekli oneriler",
-      "Oncelikli destek"
+      "Sınırsız randevu",
+      "Çoklu kullanıcı desteği",
+      "SMS + WhatsApp hatırlatma",
+      "Gelişmiş analitik",
+      "Ekip yönetimi",
+      "AI destekli öneriler",
+      "Öncelikli destek"
     ],
     notIncluded: [],
-    cta: "Erken Erisim Basvurusu",
+    cta: "Erken Erişim Başvurusu",
     popular: true
   },
   {
     name: "Kurumsal",
-    description: "Coklu lokasyon ve ozel ihtiyaclar icin.",
-    price: { monthly: null, yearly: null, label: "Ozel Teklif" },
+    description: "Çoklu lokasyon ve özel ihtiyaçlar için.",
+    price: { monthly: null, yearly: null, label: "Özel Teklif" },
     features: [
-      "Pro planin tum ozellikleri",
-      "Sinirsiz kullanici",
-      "API erisimi",
-      "Ozel entegrasyonlar",
-      "Veri tasima destegi",
-      "7/24 oncelikli destek"
+      "Pro planın tüm özellikleri",
+      "Sınırsız kullanıcı",
+      "API erişimi",
+      "Özel entegrasyonlar",
+      "Veri taşıma desteği",
+      "7/24 öncelikli destek"
     ],
     notIncluded: [],
     cta: "Teklif Al",
@@ -141,7 +141,7 @@ export default function PricingPage() {
               >
                 Yıllık
                 <span className="bg-[#12C8AD] text-white text-xs px-2 py-0.5 rounded-full">
-                  %20 tasarruf edin
+                  %20 tasarruf
                 </span>
               </button>
             </div>

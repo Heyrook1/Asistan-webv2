@@ -66,19 +66,19 @@ export function Footer() {
               <div className="flex flex-wrap gap-2 mb-6">
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
                   <Shield className="w-3.5 h-3.5 text-[#12C8AD]" />
-                  <span className="text-[11px] font-semibold text-[#06142A]">KVKK Odakli</span>
+                  <span className="text-[11px] font-semibold text-[#06142A]">KVKK Odaklı</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
                   <Lock className="w-3.5 h-3.5 text-[#12C8AD]" />
-                  <span className="text-[11px] font-semibold text-[#06142A]">Guvenli Altyapi</span>
+                  <span className="text-[11px] font-semibold text-[#06142A]">Güvenli Altyapı</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
                   <Users className="w-3.5 h-3.5 text-[#12C8AD]" />
-                  <span className="text-[11px] font-semibold text-[#06142A]">Rol Bazli Erisim</span>
+                  <span className="text-[11px] font-semibold text-[#06142A]">Rol Bazlı Erişim</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
                   <Eye className="w-3.5 h-3.5 text-[#12C8AD]" />
-                  <span className="text-[11px] font-semibold text-[#06142A]">Veri Gizliligi</span>
+                  <span className="text-[11px] font-semibold text-[#06142A]">Veri Gizliliği</span>
                 </div>
               </div>
 
