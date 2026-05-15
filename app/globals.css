@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Asistan Brand Colors - Premium SaaS Design */
+/* Deep Navy: #06142A - primary dark */
+/* Teal: #12C8AD - primary accent */
+/* Light Blue: #16A9E8 - secondary accent */
+/* White/Light Gray: backgrounds */
+
+:root {
+  --background: #FFFFFF;
+  --foreground: #06142A;
+  --card: #FFFFFF;
+  --card-foreground: #06142A;
+  --popover: #FFFFFF;
+  --popover-foreground: #06142A;
+  --primary: #12C8AD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F9FAFB;
+  --secondary-foreground: #06142A;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #16A9E8;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #12C8AD;
+  --chart-1: #12C8AD;
+  --chart-2: #16A9E8;
+  --chart-3: #06142A;
+  --chart-4: #6B7280;
+  --chart-5: #F9FAFB;
+  --radius: 0.75rem;
+  
+  /* Sidebar - Dark theme */
+  --sidebar: #06142A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #12C8AD;
+  --sidebar-primary-foreground: #06142A;
+  --sidebar-accent: #0A1F3D;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #1A3050;
+  --sidebar-ring: #12C8AD;
+  
+  /* Brand specific */
+  --deep-navy: #06142A;
+  --teal: #12C8AD;
+  --light-blue: #16A9E8;
+  --paper: #FFFFFF;
+  --line: #6B7280;
+}
+
+.dark {
+  --background: #06142A;
+  --foreground: #FFFFFF;
+  --card: #0A1F3D;
+  --card-foreground: #FFFFFF;
+  --popover: #0A1F3D;
+  --popover-foreground: #FFFFFF;
+  --primary: #12C8AD;
+  --primary-foreground: #06142A;
+  --secondary: #0A1F3D;
+  --secondary-foreground: #FFFFFF;
+  --muted: #0A1F3D;
+  --muted-foreground: #9CA3AF;
+  --accent: #16A9E8;
+  --accent-foreground: #FFFFFF;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #1A3050;
+  --input: #1A3050;
+  --ring: #12C8AD;
+  --chart-1: #12C8AD;
+  --chart-2: #16A9E8;
+  --chart-3: #FFFFFF;
+  --chart-4: #9CA3AF;
+  --chart-5: #0A1F3D;
+  --sidebar: #040D1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #12C8AD;
+  --sidebar-primary-foreground: #06142A;
+  --sidebar-accent: #0A1F3D;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #0A1F3D;
+  --sidebar-ring: #12C8AD;
+}
+
+@theme inline {
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Brand colors */
+  --color-deep-navy: var(--deep-navy);
+  --color-teal: var(--teal);
+  --color-light-blue: var(--light-blue);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+}
+
+/* Gradient utilities */
+.gradient-teal-blue {
+  background: linear-gradient(135deg, #12C8AD 0%, #16A9E8 100%);
+}
+
+.text-gradient-teal-blue {
+  background: linear-gradient(135deg, #12C8AD 0%, #16A9E8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
