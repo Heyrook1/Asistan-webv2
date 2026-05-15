@@ -13,42 +13,54 @@ const coreFeatures = [
     title: "Akıllı Takvim",
     description: "Randevularınızı kolayca yönetin. Çakışmaları önleyin, doluluk oranınızı artırın.",
     details: ["Sürükle-bırak ile randevu yönetimi", "Çoklu takvim görünümü", "Otomatik çakışma kontrolü", "Tekrarlayan randevular"],
-    color: "#12C8AD"
+    color: "#12C8AD",
+    slug: "akilli-takvim",
+    linkTo: "/kaynaklar?ozellik=takvim"
   },
   {
     icon: Bell,
     title: "Otomatik Hatırlatmalar",
     description: "SMS, e-posta ve WhatsApp üzerinden müşterilerinize zamanında hatırlatmalar gönderin. İptalleri azaltın.",
     details: ["SMS hatırlatmaları", "E-posta bildirimleri", "WhatsApp entegrasyonu", "Özelleştirilebilir şablonlar"],
-    color: "#16A9E8"
+    color: "#16A9E8",
+    slug: "otomatik-hatirlatmalar",
+    linkTo: "/kaynaklar?ozellik=hatirlatmalar"
   },
   {
     icon: Users,
     title: "Müşteri Kartları",
     description: "Tüm müşteri bilgilerini tek yerde tutun. Geçmiş randevuları ve notları kolayca erişin.",
     details: ["Detaylı müşteri profilleri", "Randevu geçmişi", "Notlar ve etiketler", "Özel alanlar"],
-    color: "#12C8AD"
+    color: "#12C8AD",
+    slug: "musteri-kartlari",
+    linkTo: "/kaynaklar?ozellik=musteriler"
   },
   {
     icon: Settings,
     title: "Sekreter Hesabı",
     description: "Sekreter veya iş ortaklarınızı ekleyin, müşteri yönetimi ve randevuları paylaşın.",
     details: ["Rol bazlı erişim", "Yetki yönetimi", "Aktivite takibi", "Güvenli paylaşım"],
-    color: "#16A9E8"
+    color: "#16A9E8",
+    slug: "sekreter-hesabi",
+    linkTo: "/kaynaklar?ozellik=ekip"
   },
   {
     icon: BarChart3,
     title: "Ekip Yönetimi",
     description: "Çalışanlarınızı ve terapistlerinizi yönetin, performansı takip edin, yetkileri düzenleyin.",
     details: ["Ekip performans raporları", "Görev atama", "Çalışma saatleri", "İzin yönetimi"],
-    color: "#12C8AD"
+    color: "#12C8AD",
+    slug: "ekip-yonetimi",
+    linkTo: "/kaynaklar?ozellik=ekip-yonetimi"
   },
   {
     icon: Brain,
     title: "AI Önerileri",
     description: "AI destekli önerilerle doluluk oranınızı artırın, iptal risklerini azaltın ve gelirinizi optimize edin.",
     details: ["Boş zaman optimizasyonu", "İptal riski tahmini", "Müşteri davranış analizi", "Gelir önerileri"],
-    color: "#16A9E8"
+    color: "#16A9E8",
+    slug: "ai-onerileri",
+    linkTo: "/kaynaklar?ozellik=ai"
   },
 ]
 
@@ -248,12 +260,12 @@ export default function ProductPage() {
                   ))}
                 </ul>
                 <Link 
-                  href="#" 
-                  className="inline-flex items-center text-sm font-medium mt-5 group-hover:text-[#12C8AD] transition-colors"
+                  href={feature.linkTo}
+                  className="inline-flex items-center text-sm font-medium mt-5 group-hover:text-[#12C8AD] transition-colors hover:underline underline-offset-4"
                   style={{ color: feature.color }}
                 >
                   Detayları İncele
-                  <ArrowRight className="w-4 h-4 ml-1" />
+                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
             ))}
