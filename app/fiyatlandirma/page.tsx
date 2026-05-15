@@ -9,48 +9,48 @@ import { Check, ArrowRight, Shield, CreditCard, RefreshCw, Lock, HelpCircle, X }
 
 const plans = [
   {
-    name: "Başlangıç",
-    description: "Platformu keşfetmek isteyen profesyoneller için.",
-    price: { monthly: 0, yearly: 0, label: "Ücretsiz" },
+    name: "Baslangic",
+    description: "Platformu kesfetmek isteyen profesyoneller icin.",
+    price: { monthly: 0, yearly: 0, label: "Ucretsiz" },
     features: [
-      "Aylık 30 randevu",
-      "1 kullanıcı",
-      "Temel takvim yönetimi",
-      "E-posta hatırlatmaları",
+      "Aylik 30 randevu",
+      "1 kullanici",
+      "Temel takvim yonetimi",
+      "E-posta hatirlatmalari",
       "Temel raporlar"
     ],
-    notIncluded: ["Ekip Yönetimi", "AI Önerileri", "API Erişimi"],
-    cta: "Ücretsiz Başla",
+    notIncluded: ["Ekip Yonetimi", "AI Onerileri", "API Erisimi"],
+    cta: "Ucretsiz Basla",
     popular: false
   },
   {
-    name: "Profesyonel",
-    description: "Ekipler ve büyüyen işletmeler için.",
-    price: { monthly: null, yearly: null, label: "Yakında" },
+    name: "Pro",
+    description: "Ilk kullanicilar icin ozel fiyatlandirma.",
+    price: { monthly: null, yearly: null, label: "Erken Erisim" },
     features: [
-      "Sınırsız randevu",
-      "Çoklu kullanıcı desteği",
-      "SMS + WhatsApp hatırlatma",
-      "Gelişmiş analitik",
-      "Ekip yönetimi",
-      "AI destekli öneriler",
-      "Öncelikli destek"
+      "Sinirsiz randevu",
+      "Coklu kullanici destegi",
+      "SMS + WhatsApp hatirlatma",
+      "Gelismis analitik",
+      "Ekip yonetimi",
+      "AI destekli oneriler",
+      "Oncelikli destek"
     ],
     notIncluded: [],
-    cta: "Beni Bilgilendir",
+    cta: "Erken Erisim Basvurusu",
     popular: true
   },
   {
     name: "Kurumsal",
-    description: "Çoklu lokasyon ve özel ihtiyaçlar için.",
-    price: { monthly: null, yearly: null, label: "Özel Fiyat" },
+    description: "Coklu lokasyon ve ozel ihtiyaclar icin.",
+    price: { monthly: null, yearly: null, label: "Ozel Teklif" },
     features: [
-      "Profesyonel planın tüm özellikleri",
-      "Sınırsız kullanıcı",
-      "API erişimi",
-      "Özel entegrasyonlar",
-      "Veri taşıma desteği",
-      "7/24 öncelikli destek"
+      "Pro planin tum ozellikleri",
+      "Sinirsiz kullanici",
+      "API erisimi",
+      "Ozel entegrasyonlar",
+      "Veri tasima destegi",
+      "7/24 oncelikli destek"
     ],
     notIncluded: [],
     cta: "Teklif Al",

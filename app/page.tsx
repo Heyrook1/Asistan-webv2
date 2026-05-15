@@ -13,7 +13,6 @@ import {
   Bell, 
   Sparkles,
   Play,
-  Star,
   ArrowRight,
   Check,
   Clock,
@@ -29,129 +28,175 @@ import {
   Zap,
   CheckCircle2,
   Lock,
-  LayoutDashboard
+  LayoutDashboard,
+  FileText,
+  BarChart3,
+  Settings,
+  Layers
 } from 'lucide-react'
 
-const trustFeatures = [
-  { icon: Shield, value: 'KVKK Odaklı', label: 'Veri koruma standartlarına uygun' },
-  { icon: Lock, value: 'Güvenli Altyapı', label: 'SSL şifreleme ve güvenli sunucular' },
-  { icon: UserCheck, value: 'Rol Bazlı Yetki', label: 'Ekip erişim kontrolü' },
-  { icon: CheckCircle2, value: 'Veri Gizliliği', label: 'Verileriniz sizin kontrolünüzde' },
+// Trust/Value cards instead of fake metrics
+const trustValueCards = [
+  { 
+    icon: Layers, 
+    title: 'Tek panel', 
+    description: 'Randevu, musteri ve ekip yonetimi'
+  },
+  { 
+    icon: Brain, 
+    title: 'AI destekli', 
+    description: 'Akilli oneriler ve otomatik takip'
+  },
+  { 
+    icon: Briefcase, 
+    title: 'Cok sektorlu', 
+    description: 'Saglik, guzellik, hukuk ve hizmet sektoru'
+  },
+  { 
+    icon: Shield, 
+    title: 'Guvenli altyapi', 
+    description: 'Rol bazli erisim ve veri gizliligi'
+  },
 ]
 
-const features = [
+// Asistan nedir? cards
+const asistanNedirCards = [
   {
     icon: Calendar,
-    title: 'Akıllı Takvim',
-    description: 'Randevularınızı kolayca yönetin, çakışmaları önleyin ve doluluk oranınızı artırın. Tüm takvimlerinizi tek yerden görüntüleyin.',
+    title: 'Randevulari duzenler',
+    description: 'Tum randevularinizi tek takvimde yonetin, cakilmalari onleyin.'
+  },
+  {
+    icon: MessageSquare,
+    title: 'Musteri iletisimini toplar',
+    description: 'Mesajlar, notlar ve gecmis tek musteri kartinda.'
+  },
+  {
+    icon: Zap,
+    title: 'Is akisini otomatiklestirir',
+    description: 'Hatirlatmalar, onaylar ve takipler otomatik calisir.'
+  },
+]
+
+// Product modules for "Asistan programi neler sunar?"
+const productModules = [
+  {
+    icon: Calendar,
+    title: 'Akilli Takvim',
+    description: 'Tum randevularinizi tek yerden yonetin, cakilmalari onleyin.',
+  },
+  {
+    icon: UserCheck,
+    title: 'Online Randevu Yonetimi',
+    description: 'Musterileriniz online randevu alsin, siz onaylayin.',
   },
   {
     icon: Bell,
-    title: 'Otomatik Hatırlatmalar',
-    description: 'SMS, e-posta ve WhatsApp üzerinden otomatik hatırlatmalar gönderin. İptal oranlarını düşürün, katılımı artırın.',
+    title: 'Otomatik Hatirlatmalar',
+    description: 'SMS, e-posta ve WhatsApp ile otomatik bildirimler.',
+  },
+  {
+    icon: FileText,
+    title: 'Musteri Kartlari',
+    description: 'Her musterinin gecmisi, notlari ve iletisimi tek yerde.',
   },
   {
     icon: Users,
-    title: 'Ekip Yönetimi',
-    description: 'Ekibinizi organize edin, görevleri paylaşın ve performansı tek yerden takip edin. Rol bazlı yetkilendirme ile güvenli erişim.',
+    title: 'Ekip & Sekreter Yonetimi',
+    description: 'Ekibinizi organize edin, gorevleri paylasip takip edin.',
   },
   {
     icon: Brain,
-    title: 'AI Önerileri',
-    description: 'Yapay zeka destekli önerilerle randevu planlamanızı optimize edin. Akıllı içgörüler ile verimliliğinizi artırın.',
+    title: 'AI Asistan Onerileri',
+    description: 'Yapay zeka ile akilli oneriler ve verimlilik icegoruleri.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Raporlama',
+    description: 'Performans, doluluk ve gelir raporlari tek bakista.',
+  },
+  {
+    icon: Settings,
+    title: 'Guvenlik & Yetkilendirme',
+    description: 'Rol bazli erisim kontrolu ve veri gizliligi.',
   },
 ]
 
+// AI suggestions for the feed panel
 const aiSuggestions = [
-  { icon: Clock, text: 'Bugün 2 boş zaman diliminiz var.', color: 'bg-[#12C8AD]/10 text-[#12C8AD]' },
-  { icon: Bell, text: '3 randevu onay bekliyor.', color: 'bg-[#16A9E8]/10 text-[#16A9E8]' },
-  { icon: TrendingUp, text: 'En yoğun gününüz Cuma.', color: 'bg-[#06142A]/10 text-[#06142A]' },
-  { icon: MessageSquare, text: 'Bekleyen müşteriye boş slot önerebilirsiniz.', color: 'bg-[#12C8AD]/10 text-[#12C8AD]' },
+  { icon: Clock, text: 'Bugun 2 bos saatiniz var.', color: 'bg-[#12C8AD]/10 text-[#12C8AD]' },
+  { icon: Bell, text: '3 randevu onay bekliyor.', color: 'bg-amber-500/10 text-amber-600' },
+  { icon: TrendingUp, text: 'Cuma gunleri talebiniz daha yuksek.', color: 'bg-[#16A9E8]/10 text-[#16A9E8]' },
+  { icon: MessageSquare, text: 'Bekleyen musteriye bos saat onerilebilir.', color: 'bg-violet-500/10 text-violet-600' },
+  { icon: CheckCircle2, text: 'Bu hafta iptal orani gecen haftaya gore azaldi.', color: 'bg-green-500/10 text-green-600' },
 ]
 
 const industries = [
   {
     title: 'Asistan Health',
-    description: 'Doktorlar, klinikler, diş hekimleri, psikologlar ve sağlık profesyonelleri için.',
-    image: '/images/industry-health.jpg',
+    description: 'Doktorlar, klinikler, dis hekimleri, psikologlar ve saglik profesyonelleri icin.',
     icon: Stethoscope,
     color: 'bg-[#12C8AD]',
     featured: true,
   },
   {
     title: 'Asistan Beauty',
-    description: 'Güzellik merkezleri, kuaförler, berberler ve wellness profesyonelleri için.',
-    image: '/images/industry-beauty.jpg',
+    description: 'Guzellik merkezleri, kuaforler, berberler ve wellness profesyonelleri icin.',
     icon: Scissors,
     color: 'bg-pink-500',
     featured: false,
   },
   {
     title: 'Asistan Legal',
-    description: 'Avukatlar, danışmanlar ve hukuk büroları için.',
-    image: '/images/industry-legal.jpg',
+    description: 'Avukatlar, danismanlar ve hukuk burolari icin.',
     icon: Scale,
     color: 'bg-amber-500',
     featured: false,
   },
   {
     title: 'Asistan Pro',
-    description: 'Teknisyenler, servis sağlayıcılar, serbest çalışanlar ve saha ekipleri için.',
-    image: '/images/industry-pro.jpg',
+    description: 'Teknisyenler, servis saglayicilar, serbest calisanlar ve saha ekipleri icin.',
     icon: Briefcase,
     color: 'bg-violet-500',
     featured: false,
   },
 ]
 
-const todayAppointments = [
-  { time: '09:30', name: 'Ayşe Yılmaz', status: 'Onaylandı' },
-  { time: '11:00', name: 'Mehmet Kaya', status: 'Beklemede' },
-  { time: '14:00', name: 'Zeynep Demir', status: 'Onaylandı' },
-  { time: '16:00', name: 'Ahmet Şahin', status: 'Onaylandı' },
-]
-
-const availableSlots = [
-  '12:00 - 12:30',
-  '15:30 - 16:00',
-  '17:00 - 17:30',
-]
-
 const pricingPlans = [
   {
-    name: 'Başlangıç',
-    price: 'Ücretsiz',
+    name: 'Baslangic',
+    price: 'Ucretsiz',
     period: '',
-    description: 'Platformu keşfetmek isteyen bağımsız profesyoneller için.',
-    features: ['Aylık 30 randevu', '1 kullanıcı', 'Temel takvim', 'E-posta hatırlatmaları', 'Temel raporlar'],
+    description: 'Platformu kesfetmek isteyen bagimsiz profesyoneller icin.',
+    features: ['Aylik 30 randevu', '1 kullanici', 'Temel takvim', 'E-posta hatirlatmalari', 'Temel raporlar'],
     popular: false,
-    cta: 'Ücretsiz Başla'
+    cta: 'Ucretsiz Basla'
   },
   {
-    name: 'Profesyonel',
-    price: 'Yakında',
+    name: 'Pro',
+    price: 'Erken Erisim',
     period: '',
-    description: 'Ekipler ve büyüyen işletmeler için gelişmiş özellikler.',
-    features: ['Sınırsız randevu', 'Çoklu kullanıcı', 'SMS + WhatsApp hatırlatma', 'Gelişmiş analitik', 'Ekip yönetimi', 'AI önerileri', 'Öncelikli destek'],
+    description: 'Ilk kullanicilar icin ozel fiyatlandirma.',
+    features: ['Sinirsiz randevu', 'Coklu kullanici', 'SMS + WhatsApp hatirlatma', 'Gelismis analitik', 'Ekip yonetimi', 'AI onerileri', 'Oncelikli destek'],
     popular: true,
     cta: 'Beni Bilgilendir'
   },
   {
     name: 'Kurumsal',
-    price: 'Özel Fiyat',
+    price: 'Ozel Teklif',
     period: '',
-    description: 'Çoklu lokasyonlu ekipler ve özel ihtiyaçlar için.',
-    features: ['Her şey dahil', 'Sınırsız kullanıcı', 'Özel entegrasyonlar', 'API erişimi', 'Veri taşıma desteği', '7/24 öncelikli destek'],
+    description: 'Coklu lokasyonlu ekipler ve ozel ihtiyaclar icin.',
+    features: ['Her sey dahil', 'Sinirsiz kullanici', 'Ozel entegrasyonlar', 'API erisimi', 'Veri tasima destegi', '7/24 oncelikli destek'],
     popular: false,
     cta: 'Teklif Al'
   },
 ]
 
 const trustPoints = [
-  { icon: CheckCircle2, text: 'Ücretsiz başlangıç planı' },
-  { icon: CheckCircle2, text: 'Kredi kartı gerekmez' },
-  { icon: Shield, text: 'KVKK odaklı veri koruma' },
-  { icon: Lock, text: 'Güvenli altyapı' },
+  { icon: CheckCircle2, text: 'Ucretsiz baslangic plani' },
+  { icon: CheckCircle2, text: 'Kredi karti gerekmez' },
+  { icon: Shield, text: 'KVKK odakli veri koruma' },
+  { icon: Lock, text: 'Guvenli altyapi' },
 ]
 
 export default function HomePage() {
@@ -160,158 +205,170 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-b from-white via-white to-gray-50/50">
+      <section className="pt-24 pb-20 bg-gradient-to-b from-white via-white to-gray-50/30 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Content */}
             <div className="max-w-xl">
-              <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-bold text-[#06142A] leading-[1.15] tracking-tight mb-6">
-                İşinizi yöneten{' '}
+              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#06142A] leading-[1.1] tracking-tight mb-6">
+                Isinizi yoneten{' '}
                 <span className="bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] bg-clip-text text-transparent">
-                  akıllı asistanınız.
+                  akilli asistanizsiz.
                 </span>
               </h1>
               
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Asistan, randevu yönetimi, hatırlatmalar, müşteri iletişimi ve ekip organizasyonunu 
-                tek bir yapay zeka destekli iş yönetim platformunda bir araya getirir.
+                Asistan; randevu yonetimi, musteri iletisimi, hatirlatmalar, ekip takibi ve 
+                gunluk is akislarini tek panelde birlestiren AI destekli is yonetim platformudur.
               </p>
               
-              <div className="flex flex-wrap items-center gap-4 mb-8">
+              <div className="flex flex-wrap items-center gap-4 mb-6">
                 <Link href="/auth/sign-up">
                   <Button 
                     size="lg"
-                    className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold text-sm px-7 h-12 rounded-full shadow-lg shadow-[#12C8AD]/25"
+                    className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold text-sm px-7 h-12 rounded-full shadow-lg shadow-[#12C8AD]/25 transition-all hover:shadow-xl hover:shadow-[#12C8AD]/30"
                   >
-                    Ücretsiz Dene
+                    Ucretsiz Dene
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
                 <Button 
                   size="lg"
                   variant="outline"
-                  className="border-gray-200 text-[#06142A] hover:bg-gray-50 font-medium text-sm px-7 h-12 rounded-full"
+                  className="border-gray-200 text-[#06142A] hover:bg-gray-50 font-medium text-sm px-7 h-12 rounded-full transition-all hover:border-gray-300"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Demo İzle
+                  Demo Izle
                 </Button>
               </div>
+
+              {/* Trust line */}
+              <p className="text-sm text-gray-500">
+                KKTC&apos;den baslayarak profesyonellerin dijital is yonetimini kolaylastirmak icin gelistirildi.
+              </p>
             </div>
 
-            {/* Right - Dashboard Mockup with floating cards */}
+            {/* Right - Dashboard Mockup */}
             <div className="relative lg:ml-8">
-              <div className="bg-gradient-to-br from-[#06142A] to-[#0a1f3d] rounded-3xl p-6 shadow-2xl shadow-gray-300/30">
-                <div className="bg-white rounded-2xl p-4 shadow-inner">
-                  <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                    <div className="w-8 h-8 rounded-lg bg-[#12C8AD] flex items-center justify-center">
-                      <LayoutDashboard className="w-4 h-4 text-white" />
+              {/* Background gradient blob */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-[#12C8AD]/5 via-[#16A9E8]/5 to-[#12C8AD]/5 rounded-[3rem] blur-3xl" />
+              
+              {/* Main Dashboard */}
+              <div className="relative bg-gradient-to-br from-[#06142A] to-[#0a1f3d] rounded-3xl p-5 shadow-2xl shadow-[#06142A]/20">
+                <div className="bg-white/95 backdrop-blur rounded-2xl p-4 shadow-inner">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] flex items-center justify-center">
+                        <LayoutDashboard className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="font-semibold text-[#06142A] text-sm">Asistan Dashboard</span>
                     </div>
-                    <span className="font-semibold text-[#06142A] text-sm">Asistan Dashboard</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#12C8AD]" />
+                      <span className="text-xs text-gray-500">Canli</span>
+                    </div>
                   </div>
+                  
+                  {/* Stats Grid */}
                   <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="bg-gray-50 rounded-xl p-3">
-                      <div className="text-xs text-gray-500 mb-1">Bugün</div>
-                      <div className="text-xl font-bold text-[#06142A]">12</div>
+                    <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-100">
+                      <div className="text-xs text-gray-500 mb-1">Bugun</div>
+                      <div className="text-2xl font-bold text-[#06142A]">12</div>
                       <div className="text-[10px] text-gray-400">Randevu</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
+                    <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-3 border border-amber-100">
                       <div className="text-xs text-gray-500 mb-1">Bekleyen</div>
-                      <div className="text-xl font-bold text-amber-500">3</div>
+                      <div className="text-2xl font-bold text-amber-500">3</div>
                       <div className="text-[10px] text-gray-400">Onay</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
+                    <div className="bg-gradient-to-br from-[#12C8AD]/10 to-white rounded-xl p-3 border border-[#12C8AD]/20">
                       <div className="text-xs text-gray-500 mb-1">Bu Hafta</div>
-                      <div className="text-xl font-bold text-[#12C8AD]">47</div>
+                      <div className="text-2xl font-bold text-[#12C8AD]">47</div>
                       <div className="text-[10px] text-gray-400">Toplam</div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    {[
-                      { time: '09:30', name: 'Müşteri Görüşmesi', status: 'Onaylandı' },
-                      { time: '11:00', name: 'Danışmanlık', status: 'Bekliyor' },
-                      { time: '14:00', name: 'Takip Randevusu', status: 'Onaylandı' },
-                    ].map((apt, i) => (
-                      <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-gray-500 w-10">{apt.time}</span>
-                          <span className="text-xs font-medium text-[#06142A]">{apt.name}</span>
+                  
+                  {/* Today's Appointments */}
+                  <div className="mb-3">
+                    <div className="text-xs font-semibold text-[#06142A] mb-2">Bugunku Randevular</div>
+                    <div className="space-y-2">
+                      {[
+                        { time: '09:30', name: 'Musteri Gorusmesi', status: 'Onaylandi' },
+                        { time: '11:00', name: 'Danismanlik', status: 'Bekliyor' },
+                        { time: '14:00', name: 'Takip Randevusu', status: 'Onaylandi' },
+                      ].map((apt, i) => (
+                        <div key={i} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-gray-500 w-10">{apt.time}</span>
+                            <span className="text-xs font-medium text-[#06142A]">{apt.name}</span>
+                          </div>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            apt.status === 'Onaylandi' ? 'text-[#12C8AD] bg-[#12C8AD]/10' : 'text-amber-600 bg-amber-50'
+                          }`}>
+                            {apt.status}
+                          </span>
                         </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          apt.status === 'Onaylandı' ? 'text-[#12C8AD] bg-[#12C8AD]/10' : 'text-amber-600 bg-amber-50'
-                        }`}>
-                          {apt.status}
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* AI Suggestion Preview */}
+                  <div className="bg-gradient-to-r from-[#12C8AD]/5 to-[#16A9E8]/5 rounded-xl p-3 border border-[#12C8AD]/10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sparkles className="w-3.5 h-3.5 text-[#12C8AD]" />
+                      <span className="text-[10px] font-semibold text-[#12C8AD]">AI Onerisi</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Bugun 2 bos saatiniz var. Bekleyen musteriye onerilebilir.</p>
                   </div>
                 </div>
               </div>
-              
-              {/* Floating Card - Today's Appointments */}
-              <div className="absolute -right-2 lg:-right-6 top-6 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-60 border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-[#06142A]">Bugünkü Randevular</span>
+
+              {/* Floating Card - Customer Cards */}
+              <div className="absolute -right-2 lg:-right-4 top-8 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-48 border border-gray-100 backdrop-blur">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-lg bg-[#16A9E8]/10 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5 text-[#16A9E8]" />
+                  </div>
+                  <span className="text-xs font-semibold text-[#06142A]">Musteri Kartlari</span>
                 </div>
-                <div className="space-y-2.5">
-                  {todayAppointments.map((apt, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500 font-mono w-10">{apt.time}</span>
-                        <span className="text-[#06142A] font-medium">{apt.name}</span>
+                <div className="space-y-2">
+                  {['Ayse Y.', 'Mehmet K.', 'Zeynep D.'].map((name, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] flex items-center justify-center text-[10px] font-semibold text-white">
+                        {name.charAt(0)}
                       </div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        apt.status === 'Onaylandı' ? 'text-[#12C8AD] bg-[#12C8AD]/10' : 'text-amber-600 bg-amber-50'
-                      }`}>
-                        {apt.status}
-                      </span>
+                      <span className="text-xs text-gray-600">{name}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Floating Card - Approval Rate */}
-              <div className="absolute -left-2 lg:-left-6 bottom-36 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-44 border border-gray-100">
-                <span className="text-xs text-gray-500 font-medium">Onay Oranı</span>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-3xl font-bold text-[#12C8AD]">%98</span>
-                </div>
-                <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[98%] bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] rounded-full" />
-                </div>
-                <span className="text-[10px] text-gray-400 mt-1 block">Bu hafta</span>
-              </div>
-
-              {/* Floating Card - Available Slots */}
-              <div className="absolute right-4 lg:right-8 bottom-4 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-44 border border-gray-100">
-                <div className="flex items-center gap-2 mb-2.5">
+              {/* Floating Card - Reminder Queue */}
+              <div className="absolute -left-2 lg:-left-4 bottom-24 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-44 border border-gray-100 backdrop-blur">
+                <div className="flex items-center gap-2 mb-2">
                   <div className="w-6 h-6 rounded-lg bg-[#12C8AD]/10 flex items-center justify-center">
-                    <Clock className="w-3.5 h-3.5 text-[#12C8AD]" />
+                    <Bell className="w-3.5 h-3.5 text-[#12C8AD]" />
                   </div>
-                  <span className="text-xs font-semibold text-[#06142A]">Boş Saatler</span>
+                  <span className="text-xs font-semibold text-[#06142A]">Hatirlatmalar</span>
                 </div>
-                <div className="space-y-1.5">
-                  {availableSlots.map((slot, i) => (
-                    <div key={i} className="text-xs text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-lg font-medium">
-                      {slot}
-                    </div>
-                  ))}
+                <div className="text-2xl font-bold text-[#12C8AD] mb-1">5</div>
+                <div className="text-[10px] text-gray-500">Otomatik SMS gonderildi</div>
+                <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full w-[100%] bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] rounded-full" />
                 </div>
-                <a href="#" className="text-[10px] text-[#12C8AD] font-semibold mt-2 inline-block hover:underline">
-                  Tümünü Gör
-                </a>
               </div>
 
-              {/* Floating Card - Reminder Status */}
-              <div className="absolute left-1/2 -translate-x-1/2 -bottom-4 bg-white rounded-xl shadow-lg shadow-gray-200/50 px-4 py-2.5 border border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-[#12C8AD]/10 flex items-center justify-center">
-                    <Bell className="w-4 h-4 text-[#12C8AD]" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-[#06142A] block">Hatırlatma Gönderildi</span>
-                    <span className="text-[10px] text-gray-500">3 hasta için otomatik SMS</span>
-                  </div>
+              {/* Floating Card - Performance Summary */}
+              <div className="absolute right-4 lg:right-8 -bottom-2 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-40 border border-gray-100 backdrop-blur">
+                <span className="text-xs text-gray-500 font-medium">Onay Orani</span>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl font-bold text-[#12C8AD]">%94</span>
                 </div>
+                <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full w-[94%] bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] rounded-full" />
+                </div>
+                <span className="text-[10px] text-gray-400 mt-1 block">Bu ay</span>
               </div>
             </div>
           </div>
@@ -319,31 +376,44 @@ export default function HomePage() {
       </section>
 
       {/* Asistan Nedir Section */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center mb-12">
+          <div className="max-w-3xl mx-auto text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-6">
               Asistan nedir?
             </h2>
             <p className="text-lg text-gray-600 leading-relaxed">
-              Asistan, profesyoneller için tasarlanmış yapay zeka destekli bir iş yönetim platformudur. 
-              Randevu takibi, müşteri iletişimi, ekip koordinasyonu ve iş akışı otomasyonunu tek bir 
-              platformda birleştirerek zamandan tasarruf etmenizi ve işinize odaklanmanızı sağlar.
+              Asistan, profesyonellerin randevu, musteri, ekip ve gunluk is akislarini tek panelden 
+              yonetmesini saglayan AI destekli bir is yonetim platformudur. Daginik mesajlari, 
+              unutulan randevulari ve manuel takipleri tek bir duzenli sisteme tasir.
             </p>
           </div>
           
-          {/* Trust Features */}
-          <div className="bg-gradient-to-r from-gray-50 to-white rounded-3xl border border-gray-100 p-8 lg:p-10">
+          {/* Three modern cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
+            {asistanNedirCards.map((card, i) => (
+              <Card key={i} className="bg-gradient-to-br from-white to-gray-50/50 border border-gray-100 shadow-lg shadow-gray-100/50 hover:shadow-xl hover:border-[#12C8AD]/20 transition-all duration-300 rounded-2xl group">
+                <CardContent className="p-7">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                    <card.icon className="w-7 h-7 text-[#12C8AD]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#06142A] mb-3">{card.title}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{card.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Trust/Value Cards */}
+          <div className="bg-gradient-to-r from-[#06142A] to-[#0a1f3d] rounded-3xl p-8 lg:p-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
-              {trustFeatures.map((feature, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10 flex items-center justify-center">
-                    <feature.icon className="w-7 h-7 text-[#12C8AD]" />
+              {trustValueCards.map((card, i) => (
+                <div key={i} className="text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
+                    <card.icon className="w-7 h-7 text-[#12C8AD]" />
                   </div>
-                  <div>
-                    <div className="text-base lg:text-lg font-bold text-[#06142A]">{feature.value}</div>
-                    <div className="text-xs text-gray-500 leading-tight">{feature.label}</div>
-                  </div>
+                  <h3 className="text-base font-bold text-white mb-2">{card.title}</h3>
+                  <p className="text-sm text-gray-400 leading-tight">{card.description}</p>
                 </div>
               ))}
             </div>
@@ -351,27 +421,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Why Asistan Section */}
+      {/* Product Modules Section */}
       <section className="py-20 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Neden Asistan?
+              Asistan programi neler sunar?
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Profesyoneller için tasarlanmış, yapay zeka destekli iş yönetim platformu.
+              Profesyoneller icin tasarlanmis, yapay zeka destekli is yonetim modulleri.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, i) => (
-              <Card key={i} className="bg-white border-0 shadow-lg shadow-gray-100/50 hover:shadow-xl transition-all duration-300 rounded-2xl">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {productModules.map((module, i) => (
+              <Card key={i} className="bg-white border-0 shadow-lg shadow-gray-100/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl group">
                 <CardContent className="p-6">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10 flex items-center justify-center mb-5">
-                    <feature.icon className="w-7 h-7 text-[#12C8AD]" />
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <module.icon className="w-6 h-6 text-[#12C8AD]" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#06142A] mb-3">{feature.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-base font-bold text-[#06142A] mb-2">{module.title}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{module.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -380,40 +450,55 @@ export default function HomePage() {
       </section>
 
       {/* AI Assistant Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
-              <Badge className="bg-[#12C8AD]/10 text-[#12C8AD] border-0 mb-4 px-3 py-1">
-                <Sparkles className="w-3 h-3 mr-1" />
+              <Badge className="bg-gradient-to-r from-[#12C8AD]/10 to-[#16A9E8]/10 text-[#12C8AD] border-0 mb-4 px-4 py-1.5">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 AI Destekli
               </Badge>
               <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-6">
-                Asistan, iş akışınızı takip eder ve akıllı öneriler sunar.
+                Sizin yerinize takip eder, size onerir.
               </h2>
-              <p className="text-gray-600 mb-8 leading-relaxed">
-                Yapay zeka destekli asistanınız, randevularınızı analiz eder, boşlukları tespit eder 
-                ve işinizi daha verimli yönetmeniz için akıllı önerilerde bulunur.
+              <p className="text-gray-600 mb-8 leading-relaxed text-lg">
+                Asistan, gunluk is akisinizi analiz ederek onay bekleyen randevulari, bos saatleri, 
+                yogun gunleri ve takip edilmesi gereken musterileri size bildirir.
               </p>
               <Link href="/auth/sign-up">
-                <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold rounded-full px-6">
-                  AI Özelliklerini Keşfet
+                <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold rounded-full px-6 shadow-lg shadow-[#12C8AD]/25 hover:shadow-xl hover:shadow-[#12C8AD]/30 transition-all">
+                  AI Ozelliklerini Kesfet
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {aiSuggestions.map((suggestion, i) => (
-                <Card key={i} className="bg-white border border-gray-100 shadow-lg shadow-gray-100/50 rounded-2xl hover:scale-[1.02] transition-transform">
-                  <CardContent className="p-5">
-                    <div className={`w-10 h-10 rounded-xl ${suggestion.color} flex items-center justify-center mb-3`}>
-                      <suggestion.icon className="w-5 h-5" />
+            {/* AI Assistant Feed Panel */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-r from-[#12C8AD]/5 via-[#16A9E8]/5 to-[#12C8AD]/5 rounded-[2rem] blur-2xl" />
+              <div className="relative bg-gradient-to-br from-[#06142A] to-[#0a1f3d] rounded-3xl p-6 shadow-2xl shadow-[#06142A]/20">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-white text-sm block">AI Asistan</span>
+                    <span className="text-xs text-gray-400">Akilli oneriler</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {aiSuggestions.map((suggestion, i) => (
+                    <div key={i} className="bg-white/95 backdrop-blur rounded-xl p-4 hover:scale-[1.02] transition-transform cursor-pointer">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-lg ${suggestion.color} flex items-center justify-center flex-shrink-0`}>
+                          <suggestion.icon className="w-4 h-4" />
+                        </div>
+                        <p className="text-sm font-medium text-[#06142A] pt-1.5">{suggestion.text}</p>
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-[#06142A]">{suggestion.text}</p>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -424,43 +509,58 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Her sektöre uygun çözümler
+              Her sektore uygun cozumler
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Sağlıktan güzelliğe, hukuktan danışmanlığa - her profesyonel için özelleştirilmiş çözümler.
+              Sagliktan guzellige, hukuktan danismanliga - her profesyonel icin ozellestirilebilir cozumler.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {industries.map((industry, i) => (
-              <Card 
-                key={i} 
-                className={`group overflow-hidden border-0 shadow-lg shadow-gray-100/50 hover:shadow-xl transition-all duration-300 rounded-2xl ${
-                  industry.featured ? 'ring-2 ring-[#12C8AD] lg:scale-105' : ''
-                }`}
-              >
-                {industry.featured && (
-                  <div className="bg-[#12C8AD] text-white text-xs font-semibold text-center py-1.5">
-                    Şimdi Aktif
+          {/* Featured Health + Others Grid */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Featured Asistan Health - Large Card */}
+            <Card className="lg:col-span-2 lg:row-span-2 group overflow-hidden border-0 shadow-xl shadow-[#12C8AD]/10 hover:shadow-2xl transition-all duration-300 rounded-3xl ring-2 ring-[#12C8AD]/20">
+              <div className="bg-[#12C8AD] text-white text-sm font-semibold text-center py-2">
+                Simdi Aktif - Ilk Lansmanlar
+              </div>
+              <div className="relative h-64 lg:h-80 overflow-hidden bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full bg-[#12C8AD]/20 flex items-center justify-center">
+                    <Stethoscope className="w-16 h-16 text-[#12C8AD]" />
                   </div>
-                )}
-                <div className="relative h-40 overflow-hidden">
-                  <Image
-                    src={industry.image}
-                    alt={industry.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  <div className={`absolute bottom-3 left-3 w-10 h-10 ${industry.color} rounded-xl flex items-center justify-center`}>
-                    <industry.icon className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold text-[#06142A] mb-3">Asistan Health</h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Doktorlar, klinikler, dis hekimleri, psikologlar ve tum saglik profesyonelleri icin 
+                  tasarlanmis ozel cozumler. Hasta randevulari, hatirlatmalar ve saglik kayitlari 
+                  tek panelde.
+                </p>
+                <Link href="/cozumler/saglik">
+                  <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold rounded-full px-6">
+                    Detaylari Incele
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Other Industries - Smaller Cards */}
+            {industries.filter(ind => !ind.featured).map((industry, i) => (
+              <Card key={i} className="group overflow-hidden border-0 shadow-lg shadow-gray-100/50 hover:shadow-xl transition-all duration-300 rounded-2xl">
+                <div className="relative h-32 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className={`w-16 h-16 ${industry.color} rounded-2xl flex items-center justify-center`}>
+                      <industry.icon className="w-8 h-8 text-white" />
+                    </div>
                   </div>
                 </div>
                 <CardContent className="p-5">
                   <h3 className="text-base font-bold text-[#06142A] mb-2">{industry.title}</h3>
                   <p className="text-sm text-gray-600 leading-relaxed mb-4">{industry.description}</p>
-                  <a href="#" className="inline-flex items-center text-sm font-semibold text-[#12C8AD] hover:text-[#10b89e]">
-                    Detayları İncele
+                  <a href="#" className="inline-flex items-center text-sm font-semibold text-[#12C8AD] hover:text-[#10b89e] transition-colors">
+                    Yakinda
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </a>
                 </CardContent>
@@ -475,11 +575,11 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Her profesyonel için sade fiyatlandırma.
+              Her profesyonel icin sade fiyatlandirma.
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              İhtiyacınıza göre esnek planlar. Tek başınıza, kliniğinizde ya da büyüyen ekibinizle - 
-              Asistan her aşamada yanınızda.
+              Ihtiyaciniza gore esnek planlar. Tek basiniza, kliniginizde ya da buyuyen ekibinizle - 
+              Asistan her asamada yaninizda.
             </p>
           </div>
           
@@ -487,22 +587,22 @@ export default function HomePage() {
             {pricingPlans.map((plan, i) => (
               <Card 
                 key={i} 
-                className={`relative border-0 rounded-2xl ${
+                className={`relative border-0 rounded-2xl transition-all duration-300 ${
                   plan.popular 
-                    ? 'shadow-2xl shadow-[#12C8AD]/20 ring-2 ring-[#12C8AD] lg:scale-105 bg-white' 
-                    : 'shadow-lg shadow-gray-100/50 bg-white'
+                    ? 'shadow-2xl shadow-[#12C8AD]/20 ring-2 ring-[#12C8AD] lg:scale-105 bg-white hover:shadow-3xl' 
+                    : 'shadow-lg shadow-gray-100/50 bg-white hover:shadow-xl'
                 }`}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#12C8AD] text-white text-xs px-4 py-1 border-0">
-                    En Popüler
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] text-white text-xs px-4 py-1 border-0">
+                    Onerilen
                   </Badge>
                 )}
                 <CardContent className="p-7">
                   <h3 className="text-xl font-bold text-[#06142A] mb-2">{plan.name}</h3>
                   <p className="text-sm text-gray-500 mb-5 min-h-[40px]">{plan.description}</p>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-[#06142A]">{plan.price}</span>
+                    <span className={`text-3xl font-bold ${plan.popular ? 'text-[#12C8AD]' : 'text-[#06142A]'}`}>{plan.price}</span>
                     <span className="text-gray-500 text-sm">{plan.period}</span>
                   </div>
                   <ul className="space-y-3 mb-7">
@@ -514,9 +614,9 @@ export default function HomePage() {
                     ))}
                   </ul>
                   <Button 
-                    className={`w-full rounded-full h-12 font-semibold ${
+                    className={`w-full rounded-full h-12 font-semibold transition-all ${
                       plan.popular 
-                        ? 'bg-[#12C8AD] hover:bg-[#10b89e] text-white shadow-lg shadow-[#12C8AD]/25' 
+                        ? 'bg-[#12C8AD] hover:bg-[#10b89e] text-white shadow-lg shadow-[#12C8AD]/25 hover:shadow-xl hover:shadow-[#12C8AD]/30' 
                         : 'bg-[#06142A] hover:bg-[#0a1f3d] text-white'
                     }`}
                   >
