@@ -211,9 +211,9 @@ export default function HomePage() {
             {/* Left Content */}
             <div className="max-w-xl">
 <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#06142A] leading-[1.1] tracking-tight mb-6">
-                  Isinizi kolaylastiran{' '}
+                  İşinizi kolaylaştıran{' '}
                   <span className="bg-gradient-to-r from-[#12C8AD] to-[#16A9E8] bg-clip-text text-transparent">
-                    akilli Asistanizsiz.
+                    akıllı asistanınız.
                   </span>
               </h1>
               
