@@ -23,6 +23,12 @@ export const metadata: Metadata = {
   },
   description: 'Profesyoneller için yapay zeka destekli randevu ve iş yönetim platformu. Randevu yönetimi, hatırlatmalar, müşteri iletişimi ve ekip organizasyonu - hepsi tek platformda.',
   keywords: ['randevu yönetimi', 'iş yönetimi', 'takvim', 'müşteri yönetimi', 'asistan', 'AI', 'yapay zeka', 'profesyonel', 'SaaS'],
+  icons: {
+    icon: [
+      { url: '/images/asistan-mark.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/images/asistan-mark.svg',
+  },
 }
 
 export const viewport: Viewport = {
