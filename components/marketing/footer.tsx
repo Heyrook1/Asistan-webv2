@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, ArrowRight, Mail, Phone, Shield, Lock } from 'lucide-react'
+import { Calendar, ArrowRight, Mail, Phone, Shield, Lock, Users, Eye } from 'lucide-react'
 
 const footerLinks = [
   {
@@ -95,14 +95,22 @@ export function Footer() {
               </p>
               
               {/* Trust Badges */}
-              <div className="flex flex-wrap gap-3 mb-6">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <Shield className="w-4 h-4 text-[#12C8AD]" />
-                  <span className="text-xs font-semibold text-[#06142A]">KVKK Odaklı</span>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                  <Shield className="w-3.5 h-3.5 text-[#12C8AD]" />
+                  <span className="text-[11px] font-semibold text-[#06142A]">KVKK Odakli</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <Lock className="w-4 h-4 text-[#12C8AD]" />
-                  <span className="text-xs font-semibold text-[#06142A]">Güvenli Altyapı</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                  <Lock className="w-3.5 h-3.5 text-[#12C8AD]" />
+                  <span className="text-[11px] font-semibold text-[#06142A]">Guvenli Altyapi</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                  <Users className="w-3.5 h-3.5 text-[#12C8AD]" />
+                  <span className="text-[11px] font-semibold text-[#06142A]">Rol Bazli Erisim</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                  <Eye className="w-3.5 h-3.5 text-[#12C8AD]" />
+                  <span className="text-[11px] font-semibold text-[#06142A]">Veri Gizliligi</span>
                 </div>
               </div>
 
