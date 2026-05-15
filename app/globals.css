@@ -3,90 +3,90 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Asistan Brand Colors from Brand Guidelines */
-/* Deep Navy: #0B1828 - primary background */
-/* Mint-Blue Gradient: #1BD1B5 to #207FF5 */
-/* Paper: #F4F0EC - surface */
-/* Line: #5E6A78 - hairline */
+/* Asistan Brand Colors - Premium SaaS Design */
+/* Deep Navy: #06142A - primary dark */
+/* Teal: #12C8AD - primary accent */
+/* Light Blue: #16A9E8 - secondary accent */
+/* White/Light Gray: backgrounds */
 
 :root {
-  --background: #F4F0EC;
-  --foreground: #0B1828;
+  --background: #FFFFFF;
+  --foreground: #06142A;
   --card: #FFFFFF;
-  --card-foreground: #0B1828;
+  --card-foreground: #06142A;
   --popover: #FFFFFF;
-  --popover-foreground: #0B1828;
-  --primary: #1BD1B5;
-  --primary-foreground: #0B1828;
-  --secondary: #E8E4E0;
-  --secondary-foreground: #0B1828;
-  --muted: #E8E4E0;
-  --muted-foreground: #5E6A78;
-  --accent: #207FF5;
+  --popover-foreground: #06142A;
+  --primary: #12C8AD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F9FAFB;
+  --secondary-foreground: #06142A;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #16A9E8;
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #D4D0CC;
-  --input: #D4D0CC;
-  --ring: #1BD1B5;
-  --chart-1: #1BD1B5;
-  --chart-2: #207FF5;
-  --chart-3: #0B1828;
-  --chart-4: #5E6A78;
-  --chart-5: #F4F0EC;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #12C8AD;
+  --chart-1: #12C8AD;
+  --chart-2: #16A9E8;
+  --chart-3: #06142A;
+  --chart-4: #6B7280;
+  --chart-5: #F9FAFB;
   --radius: 0.75rem;
   
   /* Sidebar - Dark theme */
-  --sidebar: #0B1828;
-  --sidebar-foreground: #F4F0EC;
-  --sidebar-primary: #1BD1B5;
-  --sidebar-primary-foreground: #0B1828;
-  --sidebar-accent: #152538;
-  --sidebar-accent-foreground: #F4F0EC;
-  --sidebar-border: #1E3448;
-  --sidebar-ring: #1BD1B5;
+  --sidebar: #06142A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #12C8AD;
+  --sidebar-primary-foreground: #06142A;
+  --sidebar-accent: #0A1F3D;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #1A3050;
+  --sidebar-ring: #12C8AD;
   
   /* Brand specific */
-  --deep-navy: #0B1828;
-  --mint: #1BD1B5;
-  --blue: #207FF5;
-  --paper: #F4F0EC;
-  --line: #5E6A78;
+  --deep-navy: #06142A;
+  --teal: #12C8AD;
+  --light-blue: #16A9E8;
+  --paper: #FFFFFF;
+  --line: #6B7280;
 }
 
 .dark {
-  --background: #0B1828;
-  --foreground: #F4F0EC;
-  --card: #0F1F30;
-  --card-foreground: #F4F0EC;
-  --popover: #0F1F30;
-  --popover-foreground: #F4F0EC;
-  --primary: #1BD1B5;
-  --primary-foreground: #0B1828;
-  --secondary: #152538;
-  --secondary-foreground: #F4F0EC;
-  --muted: #152538;
-  --muted-foreground: #8A9AAA;
-  --accent: #207FF5;
+  --background: #06142A;
+  --foreground: #FFFFFF;
+  --card: #0A1F3D;
+  --card-foreground: #FFFFFF;
+  --popover: #0A1F3D;
+  --popover-foreground: #FFFFFF;
+  --primary: #12C8AD;
+  --primary-foreground: #06142A;
+  --secondary: #0A1F3D;
+  --secondary-foreground: #FFFFFF;
+  --muted: #0A1F3D;
+  --muted-foreground: #9CA3AF;
+  --accent: #16A9E8;
   --accent-foreground: #FFFFFF;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
-  --border: #1E3448;
-  --input: #1E3448;
-  --ring: #1BD1B5;
-  --chart-1: #1BD1B5;
-  --chart-2: #207FF5;
-  --chart-3: #F4F0EC;
-  --chart-4: #8A9AAA;
-  --chart-5: #152538;
-  --sidebar: #070F18;
-  --sidebar-foreground: #F4F0EC;
-  --sidebar-primary: #1BD1B5;
-  --sidebar-primary-foreground: #0B1828;
-  --sidebar-accent: #0F1F30;
-  --sidebar-accent-foreground: #F4F0EC;
-  --sidebar-border: #152538;
-  --sidebar-ring: #1BD1B5;
+  --border: #1A3050;
+  --input: #1A3050;
+  --ring: #12C8AD;
+  --chart-1: #12C8AD;
+  --chart-2: #16A9E8;
+  --chart-3: #FFFFFF;
+  --chart-4: #9CA3AF;
+  --chart-5: #0A1F3D;
+  --sidebar: #040D1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #12C8AD;
+  --sidebar-primary-foreground: #06142A;
+  --sidebar-accent: #0A1F3D;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #0A1F3D;
+  --sidebar-ring: #12C8AD;
 }
 
 @theme inline {
@@ -131,19 +131,19 @@
   
   /* Brand colors */
   --color-deep-navy: var(--deep-navy);
-  --color-mint: var(--mint);
-  --color-blue: var(--blue);
+  --color-teal: var(--teal);
+  --color-light-blue: var(--light-blue);
   --color-paper: var(--paper);
   --color-line: var(--line);
 }
 
 /* Gradient utilities */
-.gradient-mint-blue {
-  background: linear-gradient(135deg, #1BD1B5 0%, #207FF5 100%);
+.gradient-teal-blue {
+  background: linear-gradient(135deg, #12C8AD 0%, #16A9E8 100%);
 }
 
-.text-gradient-mint-blue {
-  background: linear-gradient(135deg, #1BD1B5 0%, #207FF5 100%);
+.text-gradient-teal-blue {
+  background: linear-gradient(135deg, #12C8AD 0%, #16A9E8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -18,17 +18,17 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Asistan - İşini Yöneten Akıllı Asistan',
+    default: 'Asistan - İşinizi Yöneten Akıllı Asistanınız',
     template: '%s | Asistan',
   },
-  description: 'Klinikler için tasarlanmış AI-destekli operasyon platformu. Randevu ve hizmet yönetimi için akıllı asistanınız.',
-  keywords: ['randevu', 'hizmet sağlayıcı', 'takvim', 'müşteri yönetimi', 'asistan', 'klinik', 'AI'],
+  description: 'Profesyoneller için yapay zeka destekli randevu ve iş yönetim platformu. Randevu yönetimi, hatırlatmalar, müşteri iletişimi ve ekip organizasyonu - hepsi tek platformda.',
+  keywords: ['randevu yönetimi', 'iş yönetimi', 'takvim', 'müşteri yönetimi', 'asistan', 'AI', 'yapay zeka', 'profesyonel', 'SaaS'],
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F4F0EC' },
-    { media: '(prefers-color-scheme: dark)', color: '#0B1828' },
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
+    { media: '(prefers-color-scheme: dark)', color: '#06142A' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr" className="bg-background">
+    <html lang="tr" className="bg-white">
       <body className={`${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-right" richColors />
