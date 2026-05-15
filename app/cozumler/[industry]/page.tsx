@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/marketing/navbar"
 import { Footer } from "@/components/marketing/footer"
+import { use } from "react"
 
 const industriesData: Record<string, {
   id: string
@@ -214,8 +215,9 @@ const industriesData: Record<string, {
   }
 }
 
-export default function IndustryPage({ params }: { params: { industry: string } }) {
-  const industry = industriesData[params.industry]
+export default function IndustryPage({ params }: { params: Promise<{ industry: string }> }) {
+  const resolvedParams = use(params)
+  const industry = industriesData[resolvedParams.industry]
   
   if (!industry) {
     notFound()
