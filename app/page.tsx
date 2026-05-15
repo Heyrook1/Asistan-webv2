@@ -27,14 +27,16 @@ import {
   MessageSquare,
   TrendingUp,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Lock,
+  LayoutDashboard
 } from 'lucide-react'
 
-const stats = [
-  { icon: UserCheck, value: '500+', label: 'Profesyonel Bize Güveniyor' },
-  { icon: Calendar, value: '100.000+', label: 'Randevu Yönetildi' },
-  { icon: Star, value: '%98', label: 'Müşteri Memnuniyeti' },
-  { icon: Clock, value: '10.000+', label: 'Saat Kazandırdık' },
+const trustFeatures = [
+  { icon: Shield, value: 'KVKK Odaklı', label: 'Veri koruma standartlarına uygun' },
+  { icon: Lock, value: 'Güvenli Altyapı', label: 'SSL şifreleme ve güvenli sunucular' },
+  { icon: UserCheck, value: 'Rol Bazlı Yetki', label: 'Ekip erişim kontrolü' },
+  { icon: CheckCircle2, value: 'Veri Gizliliği', label: 'Verileriniz sizin kontrolünüzde' },
 ]
 
 const features = [
@@ -120,36 +122,36 @@ const pricingPlans = [
     name: 'Başlangıç',
     price: 'Ücretsiz',
     period: '',
-    description: 'Basit randevu yönetimi ihtiyacı olan bağımsız profesyoneller için.',
-    features: ['Aylık 50 randevu', '1 kullanıcı', 'Temel takvim', 'E-posta hatırlatmaları', 'Temel raporlar'],
+    description: 'Platformu keşfetmek isteyen bağımsız profesyoneller için.',
+    features: ['Aylık 30 randevu', '1 kullanıcı', 'Temel takvim', 'E-posta hatırlatmaları', 'Temel raporlar'],
     popular: false,
     cta: 'Ücretsiz Başla'
   },
   {
-    name: 'Pro',
-    price: '₺899',
-    period: '/ay',
-    description: 'Klinikler, ekipler ve büyüyen işletmeler için.',
-    features: ['Sınırsız randevu', '10 kullanıcı', 'SMS + WhatsApp hatırlatma', 'Gelişmiş analitik', 'Ekip yönetimi', 'AI önerileri', 'Öncelikli destek'],
+    name: 'Profesyonel',
+    price: 'Yakında',
+    period: '',
+    description: 'Ekipler ve büyüyen işletmeler için gelişmiş özellikler.',
+    features: ['Sınırsız randevu', 'Çoklu kullanıcı', 'SMS + WhatsApp hatırlatma', 'Gelişmiş analitik', 'Ekip yönetimi', 'AI önerileri', 'Öncelikli destek'],
     popular: true,
-    cta: 'Pro Planını Seç'
+    cta: 'Beni Bilgilendir'
   },
   {
     name: 'Kurumsal',
     price: 'Özel Fiyat',
     period: '',
-    description: 'Çoklu lokasyonlu ekipler ve özel iş akışı ihtiyacı olan organizasyonlar için.',
-    features: ['Her şey dahil', 'Sınırsız kullanıcı', 'Özel entegrasyonlar', 'API erişimi', 'Veri taşıma desteği', '7/24 öncelikli destek', 'SLA garantisi'],
+    description: 'Çoklu lokasyonlu ekipler ve özel ihtiyaçlar için.',
+    features: ['Her şey dahil', 'Sınırsız kullanıcı', 'Özel entegrasyonlar', 'API erişimi', 'Veri taşıma desteği', '7/24 öncelikli destek'],
     popular: false,
     cta: 'Teklif Al'
   },
 ]
 
 const trustPoints = [
-  { icon: CheckCircle2, text: '14 gün ücretsiz deneme' },
-  { icon: CheckCircle2, text: 'İstediğiniz zaman iptal' },
-  { icon: Shield, text: 'Güvenli altyapı' },
-  { icon: Shield, text: 'KVKK uyumlu veri koruma' },
+  { icon: CheckCircle2, text: 'Ücretsiz başlangıç planı' },
+  { icon: CheckCircle2, text: 'Kredi kartı gerekmez' },
+  { icon: Shield, text: 'KVKK odaklı veri koruma' },
+  { icon: Lock, text: 'Güvenli altyapı' },
 ]
 
 export default function HomePage() {
@@ -196,16 +198,54 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right - Image with floating cards */}
+            {/* Right - Dashboard Mockup with floating cards */}
             <div className="relative lg:ml-8">
-              <Image
-                src="/images/medical-team.jpg"
-                alt="Professionals using Asistan"
-                width={600}
-                height={500}
-                className="rounded-3xl object-cover w-full h-[420px] lg:h-[480px] shadow-2xl shadow-gray-200/50"
-                priority
-              />
+              <div className="bg-gradient-to-br from-[#06142A] to-[#0a1f3d] rounded-3xl p-6 shadow-2xl shadow-gray-300/30">
+                <div className="bg-white rounded-2xl p-4 shadow-inner">
+                  <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                    <div className="w-8 h-8 rounded-lg bg-[#12C8AD] flex items-center justify-center">
+                      <LayoutDashboard className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-semibold text-[#06142A] text-sm">Asistan Dashboard</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <div className="text-xs text-gray-500 mb-1">Bugün</div>
+                      <div className="text-xl font-bold text-[#06142A]">12</div>
+                      <div className="text-[10px] text-gray-400">Randevu</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <div className="text-xs text-gray-500 mb-1">Bekleyen</div>
+                      <div className="text-xl font-bold text-amber-500">3</div>
+                      <div className="text-[10px] text-gray-400">Onay</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <div className="text-xs text-gray-500 mb-1">Bu Hafta</div>
+                      <div className="text-xl font-bold text-[#12C8AD]">47</div>
+                      <div className="text-[10px] text-gray-400">Toplam</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { time: '09:30', name: 'Müşteri Görüşmesi', status: 'Onaylandı' },
+                      { time: '11:00', name: 'Danışmanlık', status: 'Bekliyor' },
+                      { time: '14:00', name: 'Takip Randevusu', status: 'Onaylandı' },
+                    ].map((apt, i) => (
+                      <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-gray-500 w-10">{apt.time}</span>
+                          <span className="text-xs font-medium text-[#06142A]">{apt.name}</span>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          apt.status === 'Onaylandı' ? 'text-[#12C8AD] bg-[#12C8AD]/10' : 'text-amber-600 bg-amber-50'
+                        }`}>
+                          {apt.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
               
               {/* Floating Card - Today's Appointments */}
               <div className="absolute -right-2 lg:-right-6 top-6 bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-4 w-60 border border-gray-100">
@@ -278,19 +318,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 bg-white">
+      {/* Asistan Nedir Section */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="bg-white rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 p-8 lg:p-10">
+          <div className="max-w-3xl mx-auto text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-6">
+              Asistan nedir?
+            </h2>
+            <p className="text-lg text-gray-600 leading-relaxed">
+              Asistan, profesyoneller için tasarlanmış yapay zeka destekli bir iş yönetim platformudur. 
+              Randevu takibi, müşteri iletişimi, ekip koordinasyonu ve iş akışı otomasyonunu tek bir 
+              platformda birleştirerek zamandan tasarruf etmenizi ve işinize odaklanmanızı sağlar.
+            </p>
+          </div>
+          
+          {/* Trust Features */}
+          <div className="bg-gradient-to-r from-gray-50 to-white rounded-3xl border border-gray-100 p-8 lg:p-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
-              {stats.map((stat, i) => (
+              {trustFeatures.map((feature, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#12C8AD]/10 to-[#16A9E8]/10 flex items-center justify-center">
-                    <stat.icon className="w-7 h-7 text-[#12C8AD]" />
+                    <feature.icon className="w-7 h-7 text-[#12C8AD]" />
                   </div>
                   <div>
-                    <div className="text-2xl lg:text-3xl font-bold text-[#06142A]">{stat.value}</div>
-                    <div className="text-sm text-gray-500 leading-tight">{stat.label}</div>
+                    <div className="text-base lg:text-lg font-bold text-[#06142A]">{feature.value}</div>
+                    <div className="text-xs text-gray-500 leading-tight">{feature.label}</div>
                   </div>
                 </div>
               ))}

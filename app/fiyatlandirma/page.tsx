@@ -10,46 +10,47 @@ import { Check, ArrowRight, Shield, CreditCard, RefreshCw, Lock, HelpCircle, X }
 const plans = [
   {
     name: "Başlangıç",
-    description: "Tek başına çalışanlar için ideal.",
-    price: { monthly: 399, yearly: 319 },
+    description: "Platformu keşfetmek isteyen profesyoneller için.",
+    price: { monthly: 0, yearly: 0, label: "Ücretsiz" },
     features: [
-      "Randevu ve Takvim Yönetimi",
-      "Hatırlatmalar (SMS & E-posta)",
-      "Müşteri Profilleri ve Geçmişi",
-      "Temel Raporlar",
-      "E-posta & Canlı Destek"
+      "Aylık 30 randevu",
+      "1 kullanıcı",
+      "Temel takvim yönetimi",
+      "E-posta hatırlatmaları",
+      "Temel raporlar"
     ],
     notIncluded: ["Ekip Yönetimi", "AI Önerileri", "API Erişimi"],
-    cta: "Başlangıç Planını Seç",
+    cta: "Ücretsiz Başla",
     popular: false
   },
   {
-    name: "Pro",
-    description: "Klinikler ve küçük ekipler için.",
-    price: { monthly: 899, yearly: 719 },
+    name: "Profesyonel",
+    description: "Ekipler ve büyüyen işletmeler için.",
+    price: { monthly: null, yearly: null, label: "Yakında" },
     features: [
-      "Başlangıç planındaki tüm özellikler",
-      "Ekip Yönetimi & Yetkilendirme",
-      "Gelişmiş Raporlama",
-      "Online Ödeme Entegrasyonu",
-      "Özel Alanlar & Formlar",
-      "Öncelikli Destek"
+      "Sınırsız randevu",
+      "Çoklu kullanıcı desteği",
+      "SMS + WhatsApp hatırlatma",
+      "Gelişmiş analitik",
+      "Ekip yönetimi",
+      "AI destekli öneriler",
+      "Öncelikli destek"
     ],
     notIncluded: [],
-    cta: "Pro Planını Seç",
+    cta: "Beni Bilgilendir",
     popular: true
   },
   {
     name: "Kurumsal",
-    description: "Büyüyen ekipler ve kurumlar için.",
-    price: { monthly: null, yearly: null },
+    description: "Çoklu lokasyon ve özel ihtiyaçlar için.",
+    price: { monthly: null, yearly: null, label: "Özel Fiyat" },
     features: [
-      "Pro planındaki tüm özellikler",
-      "Sınırsız Kullanıcı & Rol Yönetimi",
-      "API Erişimi",
-      "Özel Entegrasyonlar",
-      "Veri Taşıma & Özel Eğitim",
-      "7/24 Öncelikli Destek"
+      "Profesyonel planın tüm özellikleri",
+      "Sınırsız kullanıcı",
+      "API erişimi",
+      "Özel entegrasyonlar",
+      "Veri taşıma desteği",
+      "7/24 öncelikli destek"
     ],
     notIncluded: [],
     cta: "Teklif Al",
@@ -175,17 +176,19 @@ export default function PricingPage() {
                 </div>
                 
                 <div className="mb-6">
-                  {plan.price.monthly ? (
+                  {plan.price.label === "Ücretsiz" ? (
                     <>
                       <span className={`text-4xl font-bold ${plan.popular ? 'text-[#12C8AD]' : 'text-[#06142A]'}`}>
-                        ₺{isYearly ? plan.price.yearly : plan.price.monthly}
+                        Ücretsiz
                       </span>
-                      <span className="text-[#64748B]">/ay</span>
-                      {isYearly && (
-                        <div className="text-xs text-[#12C8AD] mt-1">
-                          Yıllık faturalandırma ile
-                        </div>
-                      )}
+                      <p className="text-xs text-[#64748B] mt-1">Hemen başlayın</p>
+                    </>
+                  ) : plan.price.label === "Yakında" ? (
+                    <>
+                      <span className={`text-3xl font-bold ${plan.popular ? 'text-[#12C8AD]' : 'text-[#06142A]'}`}>
+                        Yakında
+                      </span>
+                      <p className="text-xs text-[#64748B] mt-1">Lansman için bizi takip edin</p>
                     </>
                   ) : (
                     <>

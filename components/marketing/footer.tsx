@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, ArrowRight, Mail, Phone, Shield, Award, Lock } from 'lucide-react'
+import { Calendar, ArrowRight, Mail, Phone, Shield, Lock } from 'lucide-react'
 
 const footerLinks = [
   {
@@ -98,15 +98,11 @@ export function Footer() {
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
                   <Shield className="w-4 h-4 text-[#12C8AD]" />
-                  <span className="text-xs font-semibold text-[#06142A]">KVKK Uyumlu</span>
+                  <span className="text-xs font-semibold text-[#06142A]">KVKK Odaklı</span>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
                   <Lock className="w-4 h-4 text-[#12C8AD]" />
                   <span className="text-xs font-semibold text-[#06142A]">Güvenli Altyapı</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <Award className="w-4 h-4 text-[#12C8AD]" />
-                  <span className="text-xs font-semibold text-[#06142A]">ISO 27001</span>
                 </div>
               </div>
 
