@@ -133,6 +133,7 @@ const aiSuggestions = [
 
 const industries = [
   {
+    id: 'health',
     title: 'Asistan Health',
     description: 'Doktorlar, klinikler, diş hekimleri, psikologlar ve sağlık profesyonelleri için.',
     icon: Stethoscope,
@@ -140,6 +141,7 @@ const industries = [
     featured: true,
   },
   {
+    id: 'beauty',
     title: 'Asistan Beauty',
     description: 'Güzellik merkezleri, kuaförler, berberler ve wellness profesyonelleri için.',
     icon: Scissors,
@@ -147,6 +149,7 @@ const industries = [
     featured: false,
   },
   {
+    id: 'legal',
     title: 'Asistan Legal',
     description: 'Avukatlar, danışmanlar ve hukuk büroları için.',
     icon: Scale,
@@ -154,6 +157,7 @@ const industries = [
     featured: false,
   },
   {
+    id: 'pro',
     title: 'Asistan Pro',
     description: 'Teknisyenler, servis sağlayıcılar, serbest çalışanlar ve saha ekipleri için.',
     icon: Briefcase,
@@ -537,7 +541,7 @@ export default function HomePage() {
                   tasarlanmış özel çözümler. Hasta randevuları, hatırlatmalar ve sağlık kayıtları 
                   tek panelde.
                 </p>
-                <Link href="/cozumler/saglik">
+                <Link href="/cozumler/health">
                   <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold rounded-full px-6">
                     Detayları İncele
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -559,10 +563,10 @@ export default function HomePage() {
                 <CardContent className="p-5">
                   <h3 className="text-base font-bold text-[#06142A] mb-2">{industry.title}</h3>
                   <p className="text-sm text-gray-600 leading-relaxed mb-4">{industry.description}</p>
-                  <a href="#" className="inline-flex items-center text-sm font-semibold text-[#12C8AD] hover:text-[#10b89e] transition-colors">
-                    Yakında
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </a>
+                  <Link href={`/cozumler/${industry.id}`} className="inline-flex items-center text-sm font-semibold text-[#12C8AD] hover:text-[#10b89e] transition-colors hover:underline underline-offset-4">
+                    Detayları İncele
+                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </CardContent>
               </Card>
             ))}
