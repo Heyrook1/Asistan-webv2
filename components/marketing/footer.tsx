@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Calendar, ArrowRight, Mail, Phone, Shield, Lock, Users, Eye } from 'lucide-react'
+import { Mail, Phone, Shield, Lock, Users, Eye } from 'lucide-react'
 
 const footerLinks = [
   {
@@ -51,38 +51,6 @@ export function Footer() {
 
   return (
     <footer className="bg-white">
-      {/* CTA Section */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-        <div className="bg-gradient-to-r from-[#E8FAF7] to-[#F0FBF9] rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-              <Calendar className="w-8 h-8 text-[#12C8AD]" />
-            </div>
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-[#06142A] mb-1">
-                İşinizi Asistan ile daha kolay yönetin.
-              </h3>
-              <p className="text-gray-600 text-sm md:text-base">
-                Randevu yönetimi, hatırlatmalar ve ekip organizasyonu için akıllı çözümünüz.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/auth/sign-up">
-              <Button className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold h-12 px-6 rounded-full shadow-lg shadow-[#12C8AD]/20">
-                Ücretsiz Dene
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/demo">
-              <Button variant="outline" className="border-[#06142A] text-[#06142A] hover:bg-[#06142A] hover:text-white font-semibold h-12 px-6 rounded-full">
-                Demo Talep Et
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer */}
       <div className="border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-14">

@@ -296,33 +296,6 @@ export default function SolutionsPage() {
         </div>
       </section>
       
-      {/* CTA Section */}
-      <section className="py-16 bg-[#06142A]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#0A1F3D] to-[#06142A] rounded-3xl p-8 md:p-12 border border-[#1E3A5F]">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                  Sektörünüze uygun çözümü keşfedin
-                </h2>
-                <p className="text-[#94A3B8]">
-                  İşiniz için en doğru çözümü birlikte belirleyelim.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 rounded-xl"
-                >
-                  Bizimle İletişime Geçin
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
       <Footer />
     </div>
   )

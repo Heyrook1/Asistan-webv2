@@ -324,34 +324,6 @@ export default function PricingPage() {
         </div>
       </section>
       
-      {/* CTA Section */}
-      <section className="py-16 bg-[#06142A]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Hemen başlayın
-          </h2>
-          <p className="text-[#94A3B8] mb-8">
-            14 gün ücretsiz deneyin. Kredi kartı gerekmez.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button 
-              size="lg" 
-              className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 rounded-xl"
-            >
-              Ücretsiz Dene
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-[#1E3A5F] text-white px-8 py-6 rounded-xl hover:bg-[#0A1F3D]"
-            >
-              Satış Ekibiyle Görüşün
-            </Button>
-          </div>
-        </div>
-      </section>
-      
       <Footer />
     </div>
   )

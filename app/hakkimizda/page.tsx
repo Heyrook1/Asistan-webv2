@@ -245,34 +245,6 @@ export default function AboutPage() {
         </div>
       </section>
       
-      {/* CTA Section */}
-      <section className="py-16 bg-[#06142A]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Bizimle çalışmak ister misiniz?
-          </h2>
-          <p className="text-lg text-[#94A3B8] mb-8 max-w-2xl mx-auto">
-            Asistan ekibine katılın veya işbirliği fırsatlarını keşfedin.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button 
-              size="lg" 
-              className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 text-base rounded-xl"
-            >
-              Kariyer Fırsatları
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-[#1E3A5F] text-white px-8 py-6 text-base rounded-xl hover:bg-[#0A1F3D]"
-            >
-              İletişime Geçin
-            </Button>
-          </div>
-        </div>
-      </section>
-      
       <Footer />
     </div>
   )
