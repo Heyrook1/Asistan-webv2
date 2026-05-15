@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Mail, Phone, Shield, Lock, Users, Eye } from 'lucide-react'
+import { Mail, Phone, Shield, Lock, Users, Eye, ArrowRight } from 'lucide-react'
 
 const footerLinks = [
   {
