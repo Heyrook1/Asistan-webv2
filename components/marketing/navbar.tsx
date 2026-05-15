@@ -8,10 +8,10 @@ import { AsistanLogo } from '@/components/asistan-logo'
 import { ChevronDown, Menu, X } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Ürün', hasDropdown: false },
-  { href: '/cozumler', label: 'Çözümler', hasDropdown: true },
+  { href: '/urun', label: 'Ürün', hasDropdown: false },
+  { href: '/cozumler', label: 'Çözümler', hasDropdown: false },
   { href: '/fiyatlandirma', label: 'Fiyatlandırma', hasDropdown: false },
-  { href: '/kaynaklar', label: 'Kaynaklar', hasDropdown: true },
+  { href: '/kaynaklar', label: 'Kaynaklar', hasDropdown: false },
   { href: '/hakkimizda', label: 'Hakkımızda', hasDropdown: false },
 ]
 

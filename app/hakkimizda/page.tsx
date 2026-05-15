@@ -1,290 +1,279 @@
-'use client'
+"use client"
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { 
-  Play,
-  Shield,
-  Users,
-  Lightbulb,
-  Heart,
-  Eye,
-  Calendar,
-  Clock,
-  TrendingUp,
-  ChevronRight,
-  ArrowRight
-} from 'lucide-react'
-import { AsistanLogo } from '@/components/asistan-logo'
+import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { ArrowRight, Play, Shield, Users, Lightbulb, Heart, Target, Calendar, Clock, TrendingUp, Star, Zap } from "lucide-react"
+import { Navbar } from "@/components/marketing/navbar"
+import { Footer } from "@/components/marketing/footer"
 
 const stats = [
-  { value: '500+', label: 'Profesyonel', sublabel: 'Bize güveniyor', icon: Users },
-  { value: '100.000+', label: 'Randevu', sublabel: 'Yönetildi', icon: Calendar },
-  { value: '%98', label: 'Müşteri', sublabel: 'Memnuniyeti', icon: TrendingUp },
-  { value: '10.000+', label: 'Saat', sublabel: 'Kazandırıldı', icon: Clock },
+  { value: "500+", label: "Profesyonel", sublabel: "Bize güveniyor", icon: Users },
+  { value: "100.000+", label: "Randevu", sublabel: "Yönetildi", icon: Calendar },
+  { value: "%98", label: "Müşteri", sublabel: "Memnuniyeti", icon: TrendingUp },
+  { value: "10.000+", label: "Saat", sublabel: "Kazandırıldı", icon: Clock }
 ]
 
 const values = [
   {
     icon: Shield,
-    title: 'Güvenlik',
-    description: 'Verilerinizin güvenliği bizim önceliğimizdir.',
-    color: 'text-[#1BD1B5]',
-    bg: 'bg-[#1BD1B5]/10'
+    title: "Güvenlik",
+    description: "Verilerinizin güvenliği bizim önceliğimizdir. KVKK uyumlu altyapı ve şifreli veri saklama.",
+    color: "#12C8AD"
   },
   {
     icon: Users,
-    title: 'Kullanıcı Odaklılık',
-    description: 'İhtiyaçlarınızı dinler, sizin için geliştiriz.',
-    color: 'text-[#207FF5]',
-    bg: 'bg-[#207FF5]/10'
+    title: "Kullanıcı Odaklılık",
+    description: "İhtiyaçlarınızı dinler, sizin için geliştiriz. Kullanıcı geri bildirimleri ürün yol haritamızı şekillendirir.",
+    color: "#16A9E8"
   },
   {
     icon: Lightbulb,
-    title: 'Yenilikçilik',
-    description: 'Teknolojiyi yakından takip eder, sürekli daha iyisini üretiriz.',
-    color: 'text-[#F59E0B]',
-    bg: 'bg-[#F59E0B]/10'
+    title: "Yenilikçilik",
+    description: "Teknolojiyi yakından takip eder, sürekli daha iyisini üretiriz. AI destekli özelliklerle sektöre yön veririz.",
+    color: "#F59E0B"
   },
   {
     icon: Heart,
-    title: 'İnsana Değer',
-    description: 'Zamanınıza değer verir, işinizi kolaylaştırırız.',
-    color: 'text-[#EF4444]',
-    bg: 'bg-[#EF4444]/10'
-  },
-  {
-    icon: Eye,
-    title: 'Şeffaflık',
-    description: 'Açık iletişim ve şeffaf çözümler sunarız.',
-    color: 'text-[#8B5CF6]',
-    bg: 'bg-[#8B5CF6]/10'
-  },
+    title: "Şeffaflık",
+    description: "Açık iletişim ve dürüst fiyatlandırma ile güven inşa ederiz. Gizli maliyet yoktur.",
+    color: "#EF4444"
+  }
 ]
 
-export default function HakkimizdaPage() {
+const timeline = [
+  { year: "2022", title: "Kuruluş", description: "Asistan fikri doğdu ve ilk prototip geliştirildi." },
+  { year: "2023", title: "İlk Müşteriler", description: "Beta sürümü ile ilk 50 klinik Asistan kullanmaya başladı." },
+  { year: "2024", title: "Büyüme", description: "500+ profesyonel ve 100.000+ randevu yönetim sistemine ulaşıldı." },
+  { year: "2025", title: "AI Entegrasyonu", description: "Yapay zeka destekli öneriler ve akıllı otomasyon özellikleri eklendi." }
+]
+
+const team = [
+  { name: "Ahmet Yılmaz", role: "Kurucu & CEO", image: "/images/team-1.jpg" },
+  { name: "Elif Demir", role: "Ürün Direktörü", image: "/images/team-2.jpg" },
+  { name: "Mehmet Kaya", role: "Teknik Lider", image: "/images/team-3.jpg" },
+  { name: "Zeynep Şahin", role: "Müşteri Başarısı", image: "/images/team-4.jpg" }
+]
+
+export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-10">
-              <Link href="/">
-                <AsistanLogo variant="dark" />
-              </Link>
-              
-              <div className="hidden md:flex items-center gap-8">
-                <a href="/#features" className="text-[#5E6A78] hover:text-[#0B1828] transition-colors text-sm font-medium">
-                  Ürün
-                </a>
-                <a href="#" className="text-[#5E6A78] hover:text-[#0B1828] transition-colors text-sm font-medium">
-                  Çözümler
-                </a>
-                <a href="/#pricing" className="text-[#5E6A78] hover:text-[#0B1828] transition-colors text-sm font-medium">
-                  Fiyatlandırma
-                </a>
-                <a href="#" className="text-[#5E6A78] hover:text-[#0B1828] transition-colors text-sm font-medium">
-                  Kaynaklar
-                </a>
-                <a href="/hakkimizda" className="text-[#0B1828] font-semibold text-sm border-b-2 border-[#1BD1B5] pb-0.5">
-                  Hakkımızda
-                </a>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Link href="/auth/login">
-                <Button variant="ghost" className="text-[#0B1828] hover:bg-gray-100 text-sm font-medium">
-                  Giriş Yap
-                </Button>
-              </Link>
-              <Link href="/auth/sign-up">
-                <Button className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-medium text-sm px-5 rounded-full">
-                  Ücretsiz Dene
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      <Navbar />
+      
       {/* Hero Section */}
-      <section className="py-16 lg:py-20 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section className="relative pt-32 pb-20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#F0FDFA] via-white to-[#F0F9FF] -z-10" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-[#1BD1B5] text-sm font-semibold uppercase tracking-wider">
-                  HAKKIMIZDA
-                </span>
-                <div className="h-px w-12 bg-[#1BD1B5]" />
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#12C8AD]/10 rounded-full">
+                <span className="text-xs font-semibold text-[#12C8AD] uppercase tracking-wider">Hakkımızda</span>
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-[#0B1828] leading-[1.1] mb-6">
-                İşinize yarayan
-                <br />
-                akıllı asistanız.
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#06142A] leading-tight">
+                İşinizi kolaylaştırmak için{" "}
+                <span className="text-[#12C8AD]">buradayız.</span>
               </h1>
               
-              <p className="text-[#5E6A78] text-lg leading-relaxed mb-4 max-w-lg">
-                Asistan, randevu yönetiminden hatırlatmalara, hasta iletişiminden 
-                ekip organizasyonuna kadar işinizi kolaylaştıran yapay zeka 
-                destekli bir platformdur.
+              <p className="text-lg text-[#475569] max-w-xl leading-relaxed">
+                Asistan, profesyonellerin işlerini daha verimli yönetmeleri için tasarlandı. Randevu yönetiminden ekip koordinasyonuna, yapay zeka destekli önerilerden müşteri iletişimine kadar tüm süreçlerinizi tek platformda bir araya getiriyoruz.
               </p>
               
-              <p className="text-[#5E6A78] text-lg leading-relaxed mb-8 max-w-lg">
-                Amacımız, profesyonellerin zamanını geri kazandırmak 
-                ve daha iyi hizmet sunmalarını sağlamaktır.
-              </p>
-              
-              <Button 
-                size="lg"
-                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold text-base px-8 py-6 rounded-full group"
-              >
-                <Play className="w-5 h-5 mr-2 fill-white" />
-                Vizyonumuzu İzleyin
-              </Button>
+              <div className="flex flex-wrap gap-4">
+                <Button 
+                  size="lg" 
+                  className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 text-base rounded-xl shadow-lg shadow-[#12C8AD]/25"
+                >
+                  Bize Ulaşın
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="border-[#E2E8F0] text-[#06142A] px-8 py-6 text-base rounded-xl hover:bg-[#F8FAFC]"
+                >
+                  <Play className="w-5 h-5 mr-2 fill-[#06142A]" />
+                  Hikayemizi İzle
+                </Button>
+              </div>
             </div>
             
-            {/* Right Content - Image with floating cards */}
+            {/* Right - Image */}
             <div className="relative">
-              <div className="relative">
-                <Image
-                  src="/images/medical-team.jpg"
-                  alt="Medical Professionals"
-                  width={600}
-                  height={500}
-                  className="rounded-2xl w-full h-auto"
-                  priority
-                />
-                
-                {/* Floating Stats Cards */}
-                <div className="absolute top-4 right-4 md:top-8 md:-right-4 bg-white rounded-xl shadow-xl p-4 min-w-[180px]">
-                  <div className="text-xs text-[#5E6A78] mb-1">Bugünkü Randevular</div>
-                  <div className="text-3xl font-bold text-[#0B1828]">24</div>
-                  <div className="text-xs text-[#1BD1B5] mt-1">+%8 bu hafta</div>
-                </div>
-                
-                <div className="absolute top-1/3 right-4 md:-right-8 bg-white rounded-xl shadow-xl p-4 min-w-[160px]">
-                  <div className="text-xs text-[#5E6A78] mb-1">Onay Oranı</div>
-                  <div className="text-3xl font-bold text-[#0B1828]">%98</div>
-                  <div className="text-xs text-[#1BD1B5] mt-1">+%2 artış</div>
-                </div>
-                
-                <div className="absolute bottom-8 right-4 md:-right-4 bg-white rounded-xl shadow-xl p-4 min-w-[160px] flex items-center gap-3">
-                  <div>
-                    <div className="text-xs text-[#5E6A78] mb-1">Boş Saatler</div>
-                    <div className="text-2xl font-bold text-[#0B1828]">2</div>
-                    <div className="text-xs text-[#5E6A78]">Öneriler mevcut</div>
+              <Image
+                src="/images/medical-team.jpg"
+                alt="Asistan Ekibi"
+                width={600}
+                height={400}
+                className="rounded-2xl shadow-2xl"
+              />
+              
+              {/* Floating Card */}
+              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-5 border border-[#E2E8F0]">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#12C8AD]/10 flex items-center justify-center">
+                    <Target className="w-6 h-6 text-[#12C8AD]" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-[#1BD1B5]" />
+                  <div>
+                    <div className="text-sm font-semibold text-[#06142A]">Misyonumuz</div>
+                    <div className="text-xs text-[#64748B]">Profesyonellere zaman kazandırmak</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </section>
-
+      
       {/* Stats Section */}
-      <section className="py-12 border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <div key={i} className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#1BD1B5]/10 flex items-center justify-center">
-                  <stat.icon className="w-6 h-6 text-[#1BD1B5]" />
+      <section className="py-16 bg-[#F8FAFC]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-3xl shadow-lg border border-[#E2E8F0] p-8 md:p-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {stats.map((stat, index) => (
+                <div key={index} className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-[#12C8AD]/10 rounded-xl mb-4">
+                    <stat.icon className="w-6 h-6 text-[#12C8AD]" />
+                  </div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#06142A]">{stat.value}</div>
+                  <div className="text-sm text-[#64748B] mt-1">
+                    {stat.label}<br />{stat.sublabel}
+                  </div>
                 </div>
-                <div>
-                  <div className="text-2xl md:text-3xl font-bold text-[#0B1828]">{stat.value}</div>
-                  <div className="text-sm text-[#0B1828] font-medium">{stat.label}</div>
-                  <div className="text-xs text-[#5E6A78]">{stat.sublabel}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Vision & Mission */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-[#06142A] rounded-2xl p-8 md:p-10">
+              <div className="w-12 h-12 rounded-xl bg-[#12C8AD]/20 flex items-center justify-center mb-6">
+                <Target className="w-6 h-6 text-[#12C8AD]" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Vizyonumuz</h3>
+              <p className="text-[#94A3B8] leading-relaxed">
+                Profesyonellerin zamanını en değerli kaynak olarak gören, yapay zeka destekli çözümlerle iş süreçlerini dönüştüren küresel bir platform olmak. Her profesyonelin yanında akıllı bir asistan olmasını sağlamak.
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] rounded-2xl p-8 md:p-10">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6">
+                <Zap className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Misyonumuz</h3>
+              <p className="text-white/90 leading-relaxed">
+                Profesyonellerin randevu yönetiminden müşteri iletişimine, ekip koordinasyonundan raporlamaya kadar tüm operasyonel süreçlerini basitleştirmek ve onlara işlerini büyütmeleri için zaman kazandırmak.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Values */}
+      <section className="py-20 bg-[#F8FAFC]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
+              Değerlerimiz
+            </h2>
+            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
+              Bizi yönlendiren temel ilkeler
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((value, index) => (
+              <div 
+                key={index}
+                className="bg-white rounded-2xl p-6 border border-[#E2E8F0] hover:shadow-lg transition-shadow"
+              >
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                  style={{ backgroundColor: `${value.color}15` }}
+                >
+                  <value.icon className="w-6 h-6" style={{ color: value.color }} />
                 </div>
+                <h3 className="text-lg font-semibold text-[#06142A] mb-2">{value.title}</h3>
+                <p className="text-sm text-[#64748B] leading-relaxed">{value.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
-
-      {/* Values Section */}
-      <section className="py-20 bg-[#F9FAFB]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0B1828]">
-              Değerlerimiz
+      
+      {/* Timeline */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
+              Yolculuğumuz
             </h2>
+            <p className="text-lg text-[#64748B]">
+              Asistan'ın hikayesi
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {values.map((value, i) => (
-              <Card key={i} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6 text-center">
-                  <div className={`w-14 h-14 rounded-xl ${value.bg} flex items-center justify-center mx-auto mb-4`}>
-                    <value.icon className={`w-7 h-7 ${value.color}`} />
+          <div className="relative">
+            {/* Timeline Line */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-[#E2E8F0]" />
+            
+            <div className="space-y-12">
+              {timeline.map((item, index) => (
+                <div key={index} className={`relative flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
+                  <div className={`w-5/12 ${index % 2 === 0 ? 'text-right pr-8' : 'text-left pl-8'}`}>
+                    <div className="bg-white rounded-xl p-6 border border-[#E2E8F0] shadow-sm hover:shadow-lg transition-shadow">
+                      <div className="text-[#12C8AD] font-bold text-lg mb-2">{item.year}</div>
+                      <h3 className="font-semibold text-[#06142A] mb-1">{item.title}</h3>
+                      <p className="text-sm text-[#64748B]">{item.description}</p>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-[#0B1828] mb-2">
-                    {value.title}
-                  </h3>
-                  <p className="text-sm text-[#5E6A78] leading-relaxed">
-                    {value.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+                  
+                  {/* Center Dot */}
+                  <div className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-[#12C8AD] rounded-full border-4 border-white shadow" />
+                  
+                  <div className="w-5/12" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
-
+      
       {/* CTA Section */}
-      <section className="py-20 bg-[#0B1828]">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+      <section className="py-16 bg-[#06142A]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Siz de dijital dönüşüme katılın
+            Bizimle çalışmak ister misiniz?
           </h2>
-          <p className="text-[#8A9AAA] text-lg mb-10 max-w-2xl mx-auto">
-            Kliniğinizi geleceğe taşıyın. Asistan ile randevu yönetimini otomatikleştirin 
-            ve hastalarınıza daha iyi hizmet verin.
+          <p className="text-lg text-[#94A3B8] mb-8 max-w-2xl mx-auto">
+            Asistan ekibine katılın veya işbirliği fırsatlarını keşfedin.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/auth/sign-up">
-              <Button 
-                size="lg"
-                className="bg-[#1BD1B5] hover:bg-[#17b8a0] text-white font-semibold text-base px-8 py-6 rounded-full"
-              >
-                14 Gün Ücretsiz Dene
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/auth/login">
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-[#2A3F52] text-white hover:bg-[#152535] font-medium text-base px-8 py-6 rounded-full"
-              >
-                Giriş Yap
-              </Button>
-            </Link>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button 
+              size="lg" 
+              className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 text-base rounded-xl"
+            >
+              Kariyer Fırsatları
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="border-[#1E3A5F] text-white px-8 py-6 text-base rounded-xl hover:bg-[#0A1F3D]"
+            >
+              İletişime Geçin
+            </Button>
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-12 bg-[#0B1828] border-t border-[#1E3448]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <AsistanLogo variant="light" />
-            <p className="text-sm text-[#5E6A78]">
-              &copy; 2026 Asistan. Tüm hakları saklıdır.
-            </p>
-            <a href="https://asistan.com.tr" className="text-sm text-[#1BD1B5] hover:text-[#1BD1B5]/80 transition-colors font-medium">
-              asistan.com.tr
-            </a>
-          </div>
-        </div>
-      </footer>
+      
+      <Footer />
     </div>
   )
 }
