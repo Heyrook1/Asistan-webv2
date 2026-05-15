@@ -539,37 +539,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Banner Section */}
-      <section className="py-20 bg-[#06142A]">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-5">
-            İşinizi Asistan ile daha kolay yönetin.
-          </h2>
-          <p className="text-gray-400 mb-10 max-w-2xl mx-auto text-lg">
-            Zamandan tasarruf edin, kaçırılan randevuları azaltın ve günlük iş akışınızı 
-            tek bir akıllı platformdan yönetin.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/auth/sign-up">
-              <Button 
-                size="lg"
-                className="bg-[#12C8AD] hover:bg-[#10b89e] text-white font-semibold px-8 h-13 rounded-full shadow-lg shadow-[#12C8AD]/25"
-              >
-                Ücretsiz Dene
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-            <Button 
-              size="lg"
-              variant="outline"
-              className="border-gray-600 text-white hover:bg-white/10 font-semibold px-8 h-13 rounded-full"
-            >
-              Demo Talep Et
-            </Button>
-          </div>
-        </div>
-      </section>
-
       <Footer />
     </div>
   )
