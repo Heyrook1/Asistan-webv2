@@ -2,6 +2,15 @@
 
 export type UserRole = 'customer' | 'provider' | 'admin'
 
+export type TeamRole = 'Super Admin' | 'Isletme Sahibi' | 'Doktor' | 'Sekreter' | 'Personel'
+
+export type Capability =
+  | 'view_appointments'
+  | 'edit_appointments'
+  | 'manage_customers'
+  | 'access_analytics'
+  | 'manage_team'
+
 export type AppointmentStatus =
   | 'requested'
   | 'pending_provider_approval'
@@ -211,6 +220,32 @@ export interface AuditLog {
   new_data: Record<string, unknown> | null
   ip_address: string | null
   user_agent: string | null
+  created_at: string
+}
+
+export interface TeamMember {
+  id: string
+  provider_id: string
+  user_id: string | null
+  full_name: string
+  email: string
+  role: TeamRole
+  status: 'active' | 'inactive'
+  permissions: Capability[]
+  is_active: boolean
+  last_active_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ActivityLog {
+  id: string
+  provider_id: string
+  actor_id: string | null
+  action: string
+  entity_type: string
+  entity_id: string | null
+  details: Record<string, unknown> | null
   created_at: string
 }
 
