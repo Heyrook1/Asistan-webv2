@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'
+import { DashboardDataProvider } from '@/components/dashboard/dashboard-data-provider'
 import type { User, Provider, Notification } from '@/lib/types'
 
 export default async function DashboardLayout({
@@ -38,14 +39,16 @@ export default async function DashboardLayout({
   const unreadCount = notifications.filter((n) => !n.is_read).length || 5
 
   return (
-    <div className="min-h-screen bg-[#F7F8FB]">
-      <DashboardSidebar unreadNotifications={unreadCount} />
-      <div className="lg:pl-64">
-        <DashboardHeader user={user} provider={provider} notifications={notifications} />
-        <main className="p-4 lg:p-6">
-          {children}
-        </main>
+    <DashboardDataProvider>
+      <div className="min-h-screen bg-[#F4F8F9]">
+        <DashboardSidebar unreadNotifications={unreadCount} />
+        <div className="lg:pl-64">
+          <DashboardHeader user={user} provider={provider} notifications={notifications} />
+          <main className="p-4 lg:p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </DashboardDataProvider>
   )
 }

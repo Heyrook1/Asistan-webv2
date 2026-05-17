@@ -15,7 +15,7 @@ type TeamRole = 'Super Admin' | 'Isletme Sahibi' | 'Doktor' | 'Sekreter' | 'Pers
 
 type Member = TeamMember
 
-const permOptions = [
+const permOptions: Capability[] = [
   'view_appointments',
   'edit_appointments',
   'manage_customers',
@@ -80,7 +80,7 @@ export function TeamManagement({ providerId, initialMembers, initialLogs }: Team
     await supabase.from('team_members').update({ is_active: nextActive, status: nextActive ? 'active' : 'inactive' }).eq('id', id)
   }
 
-  async function togglePermission(id: string, perm: string) {
+  async function togglePermission(id: string, perm: Capability) {
     const supabase = createClient()
     let updatedPermissions: string[] = []
     setMembers((p) => p.map((m) => {

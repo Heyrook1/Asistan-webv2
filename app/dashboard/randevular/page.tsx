@@ -1,30 +1,19 @@
-import { AppointmentManagement } from '@/components/dashboard/appointment-management'
-import { getDashboardContext } from '@/lib/dashboard-context'
-import { enforceRouteAccess, hasCapability } from '@/lib/access'
-import type { Appointment } from '@/lib/types'
+'use client'
 
-export default async function RandevularPage() {
-  const { supabase, provider, teamMember } = await getDashboardContext()
-  enforceRouteAccess('/dashboard/randevular', teamMember)
+import { Card, CardContent } from '@/components/ui/card'
+import { QuickActionButtons } from '@/components/dashboard/quick-action-buttons'
+import { useDashboardData } from '@/components/dashboard/dashboard-data-provider'
+import { EmptyState } from '@/components/dashboard/empty-state'
 
-  const [{ data: appointments }, { data: customers }, { data: services }] = await Promise.all([
-    supabase
-      .from('appointments')
-      .select('*, customer:customers(*, user:users(*)), service:services(*)')
-      .eq('provider_id', provider.id)
-      .order('appointment_date', { ascending: false })
-      .limit(50),
-    supabase.from('customers').select('id').limit(1),
-    supabase.from('services').select('id').eq('provider_id', provider.id).limit(1),
-  ])
+export default function RandevularPage() {
+  const { db } = useDashboardData()
+  const patientById = new Map(db.patients.map((p) => [p.id, p.fullName]))
+  const serviceById = new Map(db.services.map((s) => [s.id, s.name]))
 
   return (
-    <AppointmentManagement
-      providerId={provider.id}
-      initialAppointments={(appointments || []) as Appointment[]}
-      canEdit={hasCapability(teamMember, 'edit_appointments')}
-      defaultCustomerId={customers?.[0]?.id ?? null}
-      defaultServiceId={services?.[0]?.id ?? null}
-    />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between"><h1 className="text-2xl font-bold text-[#0C1D36]">Randevular</h1><QuickActionButtons /></div>
+      <Card><CardContent className="p-4">{db.appointments.length === 0 ? <EmptyState title="Henüz randevu yok" description="İlk randevunuzu oluşturarak takviminizi başlatın." ctaLabel="Randevu Oluştur" onCta={() => {}} /> : <div className="space-y-2">{db.appointments.map((a) => <div key={a.id} className="rounded-xl border bg-white p-3"><p className="font-medium">{patientById.get(a.patientId) || 'Hasta'} - {serviceById.get(a.serviceId) || 'Hizmet'}</p><p className="text-xs text-muted-foreground">{a.date} {a.startTime} • {a.status}</p></div>)}</div>}</CardContent></Card>
+    </div>
   )
 }

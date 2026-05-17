@@ -1,5 +1,7 @@
 'use client'
 
+import { useId } from 'react'
+
 interface AsistanLogoProps {
   className?: string
   showText?: boolean
@@ -61,7 +63,8 @@ export function AsistanMark({
   size?: number
   className?: string
 }) {
-  const gradientId = `asistan-grad-${Math.random().toString(36).slice(2, 9)}`
+  const stableId = useId()
+  const gradientId = `asistan-grad-${stableId.replace(/[:]/g, '')}`
   return (
     <svg
       width={size}

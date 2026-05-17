@@ -287,6 +287,38 @@ export const appointmentStatusColors: Record<AppointmentStatus, string> = {
   expired: 'bg-gray-100 text-gray-800',
 }
 
+// KVKK compliance types
+export type ConsentType =
+  | 'terms_of_service'
+  | 'privacy_policy'
+  | 'kvkk_explicit'
+  | 'marketing_emails'
+  | 'marketing_sms'
+  | 'data_sharing_third_party'
+  | 'health_data_processing'
+
+export interface UserConsent {
+  id: string
+  user_id: string
+  consent_type: ConsentType
+  version: string
+  granted: boolean
+  ip_address: string | null
+  user_agent: string | null
+  granted_at: string
+  revoked_at: string | null
+}
+
+export interface DataDeletionRequest {
+  id: string
+  user_id: string
+  status: 'pending' | 'in_review' | 'completed' | 'rejected'
+  reason: string | null
+  requested_at: string
+  processed_at: string | null
+  processed_by: string | null
+}
+
 export const dayOfWeekLabels: Record<number, string> = {
   0: 'Pazar',
   1: 'Pazartesi',

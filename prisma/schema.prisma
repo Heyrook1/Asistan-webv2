@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Patient {
+  id                    String                 @id @default(uuid())
+  providerId            String
+  patientNumber         String
+  fullName              String
+  identityNumber        String?
+  birthDate             DateTime?
+  gender                String?
+  bloodType             String?
+  phone                 String
+  email                 String?
+  address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  allergies             String?
+  chronicDiseases       String?
+  tags                  String[]               @default([])
+  isArchived            Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  medications           Medication[]
+  treatments            Treatment[]
+  labResults            LabResult[]
+  files                 PatientFile[]
+  notes                 PatientNote[]
+  timeline              PatientTimelineEvent[]
+  appointments          PatientAppointment[]
+
+  @@unique([providerId, patientNumber])
+  @@index([providerId, fullName])
+  @@index([providerId, phone])
+  @@index([providerId, email])
+  @@index([providerId, identityNumber])
+}
+
+model Medication {
+  id              String   @id @default(uuid())
+  providerId      String
+  patientId       String
+  name            String
+  dosageMg        Int?
+  frequency       String?
+  startDate       DateTime?
+  endDate         DateTime?
+  notes           String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId])
+}
+
+model Treatment {
+  id          String   @id @default(uuid())
+  providerId  String
+  patientId   String
+  title       String
+  description String?
+  doctorName  String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId])
+}
+
+model LabResult {
+  id          String   @id @default(uuid())
+  providerId  String
+  patientId   String
+  title       String
+  description String?
+  resultDate  DateTime
+  fileUrl     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId])
+}
+
+model PatientFile {
+  id         String   @id @default(uuid())
+  providerId String
+  patientId  String
+  fileName   String
+  fileType   String
+  category   String
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId])
+}
+
+model PatientNote {
+  id        String   @id @default(uuid())
+  providerId String
+  patientId String
+  title     String
+  note      String
+  createdBy String
+  createdAt DateTime @default(now())
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId])
+}
+
+model PatientTimelineEvent {
+  id          String   @id @default(uuid())
+  providerId  String
+  patientId   String
+  type        String
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId, createdAt])
+}
+
+model PatientAppointment {
+  id        String   @id @default(uuid())
+  providerId String
+  patientId String
+  serviceId String
+  staffId   String
+  date      DateTime
+  startTime String
+  endTime   String
+  status    String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, patientId, date])
+}

@@ -25,7 +25,29 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 // Database schema definition
-const schemaGroups = [
+interface SchemaColumn {
+  name: string
+  type: string
+  pk?: boolean
+  fk?: string
+  unique?: boolean
+  nullable?: boolean
+  description?: string
+}
+interface SchemaTable {
+  name: string
+  description: string
+  columns: SchemaColumn[]
+}
+interface SchemaGroup {
+  name: string
+  icon: typeof Database
+  color: string
+  description: string
+  tables: SchemaTable[]
+}
+
+const schemaGroups: SchemaGroup[] = [
   {
     name: 'User Management',
     icon: Users,

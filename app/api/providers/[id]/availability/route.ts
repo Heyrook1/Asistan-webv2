@@ -1,6 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+interface AppointmentSlot {
+  start_time: string
+  end_time: string
+}
+
+interface CalendarBlock {
+  id: string
+  provider_id: string
+  block_date: string
+  start_time: string | null
+  end_time: string | null
+  is_full_day: boolean
+  reason: string | null
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -12,7 +27,6 @@ export async function GET(
 
     const supabase = await createClient()
 
-    // Get weekly availability
     const { data: availability, error: availabilityError } = await supabase
       .from('calendar_availability')
       .select('*')
@@ -25,9 +39,8 @@ export async function GET(
       return NextResponse.json({ error: availabilityError.message }, { status: 500 })
     }
 
-    // If date is provided, also get existing appointments and blocks
-    let appointments = []
-    let blocks = []
+    let appointments: AppointmentSlot[] = []
+    let blocks: CalendarBlock[] = []
 
     if (date) {
       const { data: appointmentsData } = await supabase
@@ -37,7 +50,7 @@ export async function GET(
         .eq('appointment_date', date)
         .in('status', ['confirmed', 'pending_provider_approval'])
 
-      appointments = appointmentsData || []
+      appointments = (appointmentsData ?? []) as AppointmentSlot[]
 
       const { data: blocksData } = await supabase
         .from('calendar_blocks')
@@ -45,14 +58,10 @@ export async function GET(
         .eq('provider_id', id)
         .eq('block_date', date)
 
-      blocks = blocksData || []
+      blocks = (blocksData ?? []) as CalendarBlock[]
     }
 
-    return NextResponse.json({
-      availability,
-      appointments,
-      blocks,
-    })
+    return NextResponse.json({ availability, appointments, blocks })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
