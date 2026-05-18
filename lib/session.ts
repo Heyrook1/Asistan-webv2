@@ -2,7 +2,7 @@ import 'server-only'
 
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
-import { TeamRole } from '@prisma/client'
+import { Prisma, TeamRole } from '@prisma/client'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import {
@@ -44,16 +44,36 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     (authUser.user_metadata?.name as string | undefined) ||
     authUser.email.split('@')[0]
 
-  const user = await prisma.user.upsert({
-    where: { id: authUser.id },
-    create: {
-      id: authUser.id,
-      email: authUser.email,
-      fullName,
-      avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
-    },
-    update: { email: authUser.email },
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ id: authUser.id }, { email: authUser.email }] },
   })
+
+  if (!user) {
+    try {
+      user = await prisma.user.create({
+        data: {
+          id: authUser.id,
+          email: authUser.email,
+          fullName,
+          avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
+        },
+      })
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        user = await prisma.user.findUnique({ where: { email: authUser.email } })
+      }
+      if (!user) throw error
+    }
+  } else {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        email: authUser.email,
+        fullName: user.fullName || fullName,
+        avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? user.avatarUrl,
+      },
+    })
+  }
 
   // Bootstrap a Business for this user if they don't have one yet.
   let business = await prisma.business.findUnique({ where: { ownerUserId: user.id } })
