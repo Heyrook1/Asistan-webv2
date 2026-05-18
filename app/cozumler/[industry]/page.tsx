@@ -436,39 +436,6 @@ export default function IndustryPage({ params }: { params: Promise<{ industry: s
         </div>
       </section>
       
-      {/* CTA Section */}
-      <section className="py-20 bg-[#06142A]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            {industry.title} ile tanışmaya hazır mısınız?
-          </h2>
-          <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
-            Hemen ücretsiz hesap oluşturun ve işinizi dijitalleştirmeye başlayın.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/auth/sign-up">
-              <Button 
-                size="lg" 
-                className="text-white px-8 py-6 text-base rounded-xl"
-                style={{ backgroundColor: industry.color }}
-              >
-                Ücretsiz Başla
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/cozumler">
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-gray-600 text-white px-8 py-6 text-base rounded-xl hover:bg-white/10"
-              >
-                Diğer Çözümler
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-      
       <Footer />
     </div>
   )
