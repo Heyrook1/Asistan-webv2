@@ -1,33 +1,168 @@
-'use client'
-
+import Link from 'next/link'
+import {
+  Calendar, Clock, HeartPulse, Wallet, CheckCircle2, XCircle,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { QuickActionButtons } from '@/components/dashboard/quick-action-buttons'
-import { useDashboardData } from '@/components/dashboard/dashboard-data-provider'
-import { Calendar, Clock, HeartPulse, Star, Wallet } from 'lucide-react'
+import { QuickActions } from '@/components/dashboard/quick-actions'
+import { requireSession, can } from '@/lib/session'
+import { prisma } from '@/lib/prisma'
+import { getDashboardStats } from '@/lib/queries'
+import { trMoney, formatTime, formatRelativeDate, APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS } from '@/lib/format'
+import { EmptyState } from '@/components/dashboard/empty-state'
 
-const trMoney = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
+export default async function DashboardPage() {
+  const session = await requireSession()
 
-export default function DashboardPage() {
-  const { db, stats } = useDashboardData()
-  const patientById = new Map(db.patients.map((p) => [p.id, p.fullName]))
-  const serviceById = new Map(db.services.map((s) => [s.id, s.name]))
+  const [stats, patients, services, staff, business] = await Promise.all([
+    getDashboardStats(session.businessId),
+    prisma.patient.findMany({
+      where: { businessId: session.businessId, isArchived: false },
+      orderBy: { fullName: 'asc' },
+      select: { id: true, fullName: true, patientNumber: true },
+      take: 200,
+    }),
+    prisma.service.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, durationMin: true },
+    }),
+    prisma.teamMember.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: { fullName: 'asc' },
+      select: { id: true, fullName: true },
+    }),
+    prisma.business.findUnique({
+      where: { id: session.businessId },
+      select: { slug: true },
+    }),
+  ])
+
+  const lookups = {
+    patients: patients.map((p) => ({ id: p.id, label: `${p.fullName} (#${p.patientNumber})` })),
+    services: services.map((s) => ({ id: s.id, label: s.name, durationMin: s.durationMin })),
+    staff: staff.map((s) => ({ id: s.id, label: s.fullName })),
+    bookingSlug: business?.slug ?? 'klinik',
+  }
 
   const cards = [
-    { title: 'Bugünkü Randevular', value: stats.todayAppointments, hint: stats.todayAppointments === 0 ? 'Henüz randevu yok. İlk randevunuzu oluşturun.' : 'Takvime göre hesaplandı', icon: Calendar },
-    { title: 'Bekleyen Onay', value: stats.pending, hint: stats.pending === 0 ? 'Onay bekleyen kayıt yok.' : 'Durumu pending olan randevular', icon: Clock },
-    { title: 'Aktif Hasta', value: stats.activePatients, hint: stats.activePatients === 0 ? 'Henüz hasta yok. İlk hastayı ekleyin.' : 'Toplam hasta kaydı', icon: HeartPulse },
-    { title: 'Ortalama Puan', value: stats.averageReview ? stats.averageReview.toFixed(1) : '0', hint: stats.averageReview ? 'Değerlendirmelerden hesaplandı' : 'Henüz değerlendirme yok', icon: Star },
-    { title: 'Aylık Ciro', value: trMoney.format(stats.monthlyRevenue), hint: stats.monthlyRevenue === 0 ? 'Tamamlanan randevu olmadığından 0' : 'Tamamlanan randevu fiyat toplamı', icon: Wallet },
+    {
+      title: 'Bugünkü Randevular',
+      value: stats.todayAppointments,
+      hint: stats.todayAppointments === 0 ? 'Bugün için randevu yok.' : 'Bugüne planlanan randevular',
+      icon: Calendar,
+    },
+    {
+      title: 'Bekleyen Onay',
+      value: stats.pendingAppointments,
+      hint: stats.pendingAppointments === 0 ? 'Onay bekleyen randevu yok.' : 'Onaylanmamış randevular',
+      icon: Clock,
+    },
+    {
+      title: 'Aktif Hasta',
+      value: stats.activePatients,
+      hint: stats.activePatients === 0 ? 'Henüz hasta yok.' : 'Toplam aktif hasta',
+      icon: HeartPulse,
+    },
+    {
+      title: 'Aylık Ciro',
+      value: trMoney.format(stats.monthlyRevenue),
+      hint: stats.monthlyRevenue === 0 ? 'Bu ay tamamlanan randevu yok.' : 'Tamamlanan randevular toplamı',
+      icon: Wallet,
+    },
+    {
+      title: 'Tamamlanan',
+      value: stats.completedAppointments,
+      hint: 'Tüm zamanlar',
+      icon: CheckCircle2,
+    },
+    {
+      title: 'İptal Oranı',
+      value: `${(stats.cancellationRate * 100).toFixed(1)}%`,
+      hint: stats.cancellationRate === 0 ? 'İptal kaydı yok.' : 'Toplam içindeki iptal/no-show',
+      icon: XCircle,
+    },
   ]
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div><h1 className="text-[26px] font-bold tracking-tight text-[#0C1D36]">Genel Bakış</h1><p className="mt-1 text-sm text-muted-foreground">Tüm metrikler canlı durum verinizden hesaplanır.</p></div>
-        <QuickActionButtons />
+        <div>
+          <h1 className="text-[26px] font-bold tracking-tight text-[#0C1D36]">
+            Hoş geldiniz, {session.fullName.split(' ')[0]}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {session.businessName} • Tüm metrikler canlı veritabanından hesaplanır.
+          </p>
+        </div>
+        <QuickActions
+          lookups={lookups}
+          canCreatePatient={can(session, 'patient.edit')}
+          canCreateAppointment={can(session, 'appointment.manage')}
+          canManageService={can(session, 'service.manage')}
+        />
       </div>
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">{cards.map((s) => <Card key={s.title} className="border-border/40"><CardContent className="p-4"><s.icon className="mb-2 h-5 w-5 text-[#12C8AD]" /><p className="text-xs text-muted-foreground">{s.title}</p><p className="text-2xl font-bold text-[#0C1D36]">{s.value}</p><p className="mt-1 text-[11px] text-muted-foreground">{s.hint}</p></CardContent></Card>)}</div>
-      <Card><CardContent className="p-5"><h3 className="mb-3 text-sm font-semibold text-[#0C1D36]">Yaklaşan Randevular</h3>{db.appointments.length === 0 ? <p className="text-sm text-muted-foreground">Henüz randevu yok. İlk randevunuzu oluşturun.</p> : <div className="space-y-2">{db.appointments.slice(0, 6).map((a) => <div key={a.id} className="rounded-xl border p-3"><p className="text-sm font-medium">{patientById.get(a.patientId) || 'Hasta'} - {serviceById.get(a.serviceId) || 'Hizmet'}</p><p className="text-xs text-muted-foreground">{a.date} {a.startTime} • {a.status}</p></div>)}</div>}</CardContent></Card>
+
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+        {cards.map((c) => (
+          <Card key={c.title} className="border-border/40">
+            <CardContent className="p-4">
+              <c.icon className="mb-2 h-5 w-5 text-[#12C8AD]" />
+              <p className="text-xs text-muted-foreground">{c.title}</p>
+              <p className="text-2xl font-bold text-[#0C1D36]">{c.value}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{c.hint}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[#0C1D36]">Yaklaşan Randevular</h3>
+            <Link href="/dashboard/randevular" className="text-xs text-[#12C8AD] font-medium">
+              Tümünü Gör →
+            </Link>
+          </div>
+          {stats.upcomingAppointments.length === 0 ? (
+            <EmptyState
+              title="Henüz randevu yok"
+              description="İlk randevunuzu oluşturarak takviminizi başlatın."
+              ctaLabel="Randevu Oluştur"
+              ctaHref="/dashboard/randevular"
+            />
+          ) : (
+            <div className="space-y-2">
+              {stats.upcomingAppointments.map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/dashboard/hastalar/${a.patientId}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border bg-white p-3 hover:border-[#12C8AD]/40 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="h-9 w-1.5 rounded-full"
+                      style={{ background: a.service.color || '#12C8AD' }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#0C1D36] truncate">{a.patient.fullName}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {a.service.name}{a.staff ? ` • ${a.staff.fullName}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-medium text-[#0C1D36]">{formatRelativeDate(a.date)}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatTime(a.startTime)} - {formatTime(a.endTime)}</p>
+                    <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] ${APPOINTMENT_STATUS_COLORS[a.status]}`}>
+                      {APPOINTMENT_STATUS_LABELS[a.status]}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

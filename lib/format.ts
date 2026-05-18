@@ -1,61 +1,25 @@
-// Date and time formatting utilities for Turkish locale
+// Date, money, and label formatting utilities — Turkish locale.
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('tr-TR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
+export const trMoney = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'TRY',
+  maximumFractionDigits: 0,
+})
 
-export function formatShortDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('tr-TR', {
-    day: 'numeric',
-    month: 'short',
-  })
-}
+export const trMoneyPrecise = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'TRY',
+})
 
-export function formatTime(timeString: string): string {
-  // Handle both "HH:MM:SS" and "HH:MM" formats
-  const [hours, minutes] = timeString.split(':')
-  return `${hours}:${minutes}`
-}
+export const trNumber = new Intl.NumberFormat('tr-TR')
 
-export function formatDateTime(dateString: string, timeString: string): string {
-  return `${formatDate(dateString)} ${formatTime(timeString)}`
-}
+const dfDate = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' })
+const dfDateShort = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const dfDateTime = new Intl.DateTimeFormat('tr-TR', {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+})
 
-export function formatRelativeDate(dateString: string): string {
-  const date = new Date(dateString)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-
-  // Reset time for comparison
-  today.setHours(0, 0, 0, 0)
-  tomorrow.setHours(0, 0, 0, 0)
-  date.setHours(0, 0, 0, 0)
-
-  if (date.getTime() === today.getTime()) {
-    return 'Bugün'
-  }
-
-  if (date.getTime() === tomorrow.getTime()) {
-    return 'Yarın'
-  }
-
-  const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-
-  if (diffDays > 0 && diffDays <= 7) {
-    return `${diffDays} gün sonra`
-  }
-
-  return formatShortDate(dateString)
-}
-
-export function formatCurrency(amount: number, currency: string = 'TRY'): string {
+export function formatCurrency(amount: number, currency = 'TRY') {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
@@ -64,59 +28,142 @@ export function formatCurrency(amount: number, currency: string = 'TRY'): string
   }).format(amount)
 }
 
-export function formatDuration(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes} dk`
-  }
-
+export function formatDuration(minutes: number) {
+  if (minutes < 60) return `${minutes} dk`
   const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-
-  if (remainingMinutes === 0) {
-    return `${hours} saat`
-  }
-
-  return `${hours} saat ${remainingMinutes} dk`
+  const rest = minutes % 60
+  return rest === 0 ? `${hours} saat` : `${hours} sa ${rest} dk`
 }
 
-export function formatPhone(phone: string): string {
-  // Format Turkish phone numbers
+export function formatTime(time: string | null | undefined) {
+  if (!time) return '—'
+  const [h, m] = time.split(':')
+  return `${h}:${m}`
+}
+
+export function formatDate(date: Date | string | null | undefined) {
+  if (!date) return '—'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (Number.isNaN(d.getTime())) return '—'
+  return dfDate.format(d)
+}
+
+export function formatShortDate(date: Date | string | null | undefined) {
+  if (!date) return '—'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (Number.isNaN(d.getTime())) return '—'
+  return dfDateShort.format(d)
+}
+
+export function formatDateTime(date: Date | string | null | undefined) {
+  if (!date) return '—'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (Number.isNaN(d.getTime())) return '—'
+  return dfDateTime.format(d)
+}
+
+export function formatRelativeDate(input: Date | string | null | undefined) {
+  if (!input) return '—'
+  const d = typeof input === 'string' ? new Date(input) : new Date(input)
+  if (Number.isNaN(d.getTime())) return '—'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const compare = new Date(d)
+  compare.setHours(0, 0, 0, 0)
+  if (compare.getTime() === today.getTime()) return 'Bugün'
+  if (compare.getTime() === tomorrow.getTime()) return 'Yarın'
+  const diff = Math.round((compare.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  if (diff > 0 && diff <= 7) return `${diff} gün sonra`
+  if (diff < 0 && diff >= -7) return `${Math.abs(diff)} gün önce`
+  return formatShortDate(d)
+}
+
+export function formatTimeAgo(input: Date | string | null | undefined) {
+  if (!input) return '—'
+  const d = typeof input === 'string' ? new Date(input) : input
+  if (Number.isNaN(d.getTime())) return '—'
+  const diffMs = Date.now() - d.getTime()
+  const mins = Math.floor(diffMs / 60_000)
+  if (mins < 1) return 'az önce'
+  if (mins < 60) return `${mins} dk önce`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} saat önce`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days} gün önce`
+  return formatDate(d)
+}
+
+export function toIsoDate(date: Date | string | null | undefined) {
+  if (!date) return ''
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export function formatPhone(phone: string | null | undefined) {
+  if (!phone) return '—'
   const cleaned = phone.replace(/\D/g, '')
-  
   if (cleaned.startsWith('90') && cleaned.length === 12) {
     return `+90 ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 10)} ${cleaned.slice(10)}`
   }
-  
+  if (cleaned.length === 11 && cleaned.startsWith('0')) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 9)} ${cleaned.slice(9)}`
+  }
   if (cleaned.length === 10) {
     return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6, 8)} ${cleaned.slice(8)}`
   }
-
   return phone
 }
 
-export function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
+export function ageFromBirthDate(date: Date | string | null | undefined) {
+  if (!date) return null
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (Number.isNaN(d.getTime())) return null
   const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / (1000 * 60))
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  let age = now.getFullYear() - d.getFullYear()
+  const m = now.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+  return age
+}
 
-  if (diffMins < 1) {
-    return 'Az önce'
-  }
+export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
+  SCHEDULED: 'Planlandı',
+  CONFIRMED: 'Onaylandı',
+  COMPLETED: 'Tamamlandı',
+  CANCELLED: 'İptal',
+  NO_SHOW: 'Gelmedi',
+}
 
-  if (diffMins < 60) {
-    return `${diffMins} dakika önce`
-  }
+export const APPOINTMENT_STATUS_COLORS: Record<string, string> = {
+  SCHEDULED: 'bg-amber-100 text-amber-800 border-amber-200',
+  CONFIRMED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  COMPLETED: 'bg-sky-100 text-sky-800 border-sky-200',
+  CANCELLED: 'bg-rose-100 text-rose-800 border-rose-200',
+  NO_SHOW: 'bg-slate-100 text-slate-700 border-slate-200',
+}
 
-  if (diffHours < 24) {
-    return `${diffHours} saat önce`
-  }
+export const APPOINTMENT_STATUS_DOT: Record<string, string> = {
+  SCHEDULED: '#f59e0b',
+  CONFIRMED: '#10b981',
+  COMPLETED: '#0ea5e9',
+  CANCELLED: '#ef4444',
+  NO_SHOW: '#64748b',
+}
 
-  if (diffDays < 7) {
-    return `${diffDays} gün önce`
-  }
+export const TREATMENT_STATUS_LABELS: Record<string, string> = {
+  PLANLANDI: 'Planlandı',
+  DEVAM_EDIYOR: 'Devam ediyor',
+  TAMAMLANDI: 'Tamamlandı',
+  IPTAL: 'İptal',
+}
 
-  return formatDate(dateString)
+export const FILE_CATEGORY_LABELS: Record<string, string> = {
+  TAHLIL: 'Tahlil',
+  GORUNTU: 'Görüntü',
+  RECETE: 'Reçete',
+  RAPOR: 'Rapor',
+  KIMLIK: 'Kimlik',
+  DIGER: 'Diğer',
 }

@@ -2,69 +2,65 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { NotificationType } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
 
-const sendNotificationSchema = z.object({
-  recipient_user_id: z.string().uuid().optional(),
-  recipient_phone: z.string().optional(),
-  channel: z.enum(['app', 'sms', 'email', 'whatsapp']).default('app'),
-  title: z.string().trim().min(2).max(120),
+const createSchema = z.object({
+  title: z.string().trim().min(2).max(160),
   message: z.string().trim().min(2).max(1000),
+  type: z.enum(['APPOINTMENT', 'PATIENT', 'TEAM', 'SYSTEM']).default('SYSTEM'),
+  link: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().optional()),
+  userId: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().uuid().optional()),
 })
 
-export type SendNotificationInput = z.infer<typeof sendNotificationSchema>
-
-export async function sendNotification(
-  rawInput: unknown
-): Promise<ActionResult<{ id: string }>> {
-  const parsed = sendNotificationSchema.safeParse(rawInput)
-  if (!parsed.success) return err('Form bilgileri hatalı', parsed.error.issues)
-  const input = parsed.data
-
-  if (!input.recipient_user_id && !input.recipient_phone) {
-    return err('Alıcı belirtilmeli')
-  }
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return err('Oturum gerekli')
-
-  // Resolve recipient user_id from phone if needed
-  let recipientUserId = input.recipient_user_id || null
-  if (!recipientUserId && input.recipient_phone) {
-    const { data: foundUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('phone', input.recipient_phone)
-      .maybeSingle()
-    recipientUserId = foundUser?.id ?? null
-  }
-
-  if (!recipientUserId) {
-    return err('Alıcı bulunamadı (telefon ile kayıtlı kullanıcı yok)')
-  }
-
-  const { data: notification, error: insertError } = await supabase
-    .from('notifications')
-    .insert({
-      user_id: recipientUserId,
-      type: 'system',
-      title: input.title,
-      message: input.message,
-      data: { channel: input.channel, sent_by: user.id },
-      is_read: false,
-    })
-    .select('id')
-    .single()
-
-  if (insertError || !notification) {
-    return err(insertError?.message || 'Bildirim oluşturulamadı')
-  }
-
-  // Note: actual SMS/email delivery would be triggered here via edge function
-  // For now we only create the in-app notification row.
-
+export async function createNotification(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const parsed = createSchema.safeParse(input)
+  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
+  const session = await requireSession()
+  const created = await prisma.notification.create({
+    data: {
+      businessId: session.businessId,
+      userId: parsed.data.userId ?? null,
+      type: parsed.data.type as NotificationType,
+      title: parsed.data.title,
+      message: parsed.data.message,
+      link: parsed.data.link ?? null,
+    },
+  })
   revalidatePath('/dashboard/bildirimler')
-  return ok({ id: notification.id })
+  revalidatePath('/dashboard')
+  return ok({ id: created.id })
+}
+
+export async function markNotificationRead(input: unknown): Promise<ActionResult> {
+  const schema = z.object({ id: z.string().uuid() })
+  const parsed = schema.safeParse(input)
+  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
+  const session = await requireSession()
+  await prisma.notification.updateMany({
+    where: {
+      id: parsed.data.id,
+      businessId: session.businessId,
+      OR: [{ userId: session.userId }, { userId: null }],
+    },
+    data: { isRead: true, readAt: new Date() },
+  })
+  revalidatePath('/dashboard/bildirimler')
+  return ok(undefined)
+}
+
+export async function markAllNotificationsRead(): Promise<ActionResult> {
+  const session = await requireSession()
+  await prisma.notification.updateMany({
+    where: {
+      businessId: session.businessId,
+      OR: [{ userId: session.userId }, { userId: null }],
+      isRead: false,
+    },
+    data: { isRead: true, readAt: new Date() },
+  })
+  revalidatePath('/dashboard/bildirimler')
+  return ok(undefined)
 }

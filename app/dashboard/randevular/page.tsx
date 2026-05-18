@@ -1,19 +1,62 @@
-'use client'
+import { requirePermission, can } from '@/lib/session'
+import { prisma } from '@/lib/prisma'
+import { getAppointmentsList } from '@/lib/queries'
+import { AppointmentsBoard } from './appointments-board'
 
-import { Card, CardContent } from '@/components/ui/card'
-import { QuickActionButtons } from '@/components/dashboard/quick-action-buttons'
-import { useDashboardData } from '@/components/dashboard/dashboard-data-provider'
-import { EmptyState } from '@/components/dashboard/empty-state'
+export const dynamic = 'force-dynamic'
 
-export default function RandevularPage() {
-  const { db } = useDashboardData()
-  const patientById = new Map(db.patients.map((p) => [p.id, p.fullName]))
-  const serviceById = new Map(db.services.map((s) => [s.id, s.name]))
+export default async function RandevularPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>
+}) {
+  const sp = await searchParams
+  const session = await requirePermission('appointment.manage')
+
+  const [appointments, patients, services, staff] = await Promise.all([
+    getAppointmentsList(session.businessId, { status: sp.status }),
+    prisma.patient.findMany({
+      where: { businessId: session.businessId, isArchived: false },
+      orderBy: { fullName: 'asc' },
+      select: { id: true, fullName: true, patientNumber: true },
+      take: 500,
+    }),
+    prisma.service.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, durationMin: true },
+    }),
+    prisma.teamMember.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: { fullName: 'asc' },
+      select: { id: true, fullName: true },
+    }),
+  ])
+
+  const plain = appointments.map((a) => ({
+    id: a.id,
+    patientId: a.patientId,
+    patientName: a.patient.fullName,
+    serviceId: a.serviceId,
+    serviceName: a.service.name,
+    serviceColor: a.service.color,
+    staffId: a.staffId,
+    staffName: a.staff?.fullName ?? null,
+    date: a.date.toISOString().slice(0, 10),
+    startTime: a.startTime,
+    endTime: a.endTime,
+    status: a.status,
+    notes: a.notes,
+  }))
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between"><h1 className="text-2xl font-bold text-[#0C1D36]">Randevular</h1><QuickActionButtons /></div>
-      <Card><CardContent className="p-4">{db.appointments.length === 0 ? <EmptyState title="Henüz randevu yok" description="İlk randevunuzu oluşturarak takviminizi başlatın." ctaLabel="Randevu Oluştur" onCta={() => {}} /> : <div className="space-y-2">{db.appointments.map((a) => <div key={a.id} className="rounded-xl border bg-white p-3"><p className="font-medium">{patientById.get(a.patientId) || 'Hasta'} - {serviceById.get(a.serviceId) || 'Hizmet'}</p><p className="text-xs text-muted-foreground">{a.date} {a.startTime} • {a.status}</p></div>)}</div>}</CardContent></Card>
-    </div>
+    <AppointmentsBoard
+      initialStatus={sp.status ?? 'ALL'}
+      appointments={plain}
+      patients={patients.map((p) => ({ id: p.id, label: `${p.fullName} (#${p.patientNumber})` }))}
+      services={services.map((s) => ({ id: s.id, label: s.name, durationMin: s.durationMin }))}
+      staff={staff.map((s) => ({ id: s.id, label: s.fullName }))}
+      canManage={can(session, 'appointment.manage')}
+    />
   )
 }

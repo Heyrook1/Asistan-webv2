@@ -1,35 +1,114 @@
-# Asistan-webv2
+# Asistan Health
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+AI destekli klinik, randevu, hasta, ekip, tedavi, dosya ve iş akışı yönetim
+platformu. Next.js 16 + TypeScript + Prisma + PostgreSQL (Supabase) +
+Tailwind/shadcn üzerine kuruludur.
 
-## Built with v0
-
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
-
-[Continue working on v0 →](https://v0.app/chat/projects/prj_7kJGEGmbja8VI7tZF18MiDMDBgwg)
-
-## Getting Started
-
-First, run the development server:
+## Çalıştırma
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) adresinden açabilirsiniz.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Ortam Değişkenleri
 
-## Learn More
+`.env` dosyasında:
 
-To learn more, take a look at the following resources:
+```
+DATABASE_URL="postgresql://...pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require"
+DIRECT_URL="postgresql://...:5432/postgres?sslmode=require"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+`.env.local` dosyasında:
 
-<a href="https://v0.app/chat/api/kiro/clone/Heyrook1/Asistan-webv2" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon>
+SUPABASE_SERVICE_ROLE_KEY=<service-role>
+```
+
+## Veritabanı Kurulumu
+
+Tek bir konsolide migrasyon dosyası vardır:
+
+```
+supabase/migrations/20260518_0000_asistan_health_core.sql
+```
+
+Supabase SQL Editor’dan veya `prisma db push` ile uygulanabilir:
+
+```bash
+# Tercih edilen: ilk kurulum / dev
+pnpm prisma db push
+
+# Alternatif: Supabase Dashboard → SQL Editor → migrasyon SQL'ini yapıştır → Run
+```
+
+Sonra Prisma client’ı üretin:
+
+```bash
+pnpm prisma generate
+```
+
+## Demo Verisi
+
+```bash
+pnpm db:seed
+```
+
+Bu komut:
+- `demo@asistan.health` kullanıcısı
+- "Asistan Demo Kliniği"
+- 3 takım üyesi, 4 hizmet, 4 hasta
+- Notlar, ilaç, alerji, tedavi, tahlil, dosya ve randevular
+oluşturur.
+
+İlk kez giriş yapan bir kullanıcı için sistem otomatik olarak yeni bir
+`Business` oluşturur — yani gerçek bir Supabase Auth kullanıcısı ile de
+sistem çalışır.
+
+## Mimari
+
+- `app/dashboard/*` — Next.js App Router sayfaları (sunucu bileşenleri)
+- `components/dashboard/*` — yeniden kullanılabilir UI bileşenleri
+- `lib/session.ts` — RBAC, oturum çözümleyici, yetki kontrolü
+- `lib/actions/*` — `'use server'` ile işaretlenmiş Server Action’lar
+- `lib/queries.ts` — Sunucu tarafı veri getirme yardımcıları
+- `lib/storage.ts` — Dosya yükleme yardımcısı (Supabase Storage / S3 entegrasyonu için TODO içerir)
+- `prisma/schema.prisma` — tüm modeller (User, Business, Patient, Service, Appointment, vd.)
+- `prisma/seed.ts` — demo veri seed scripti
+
+## Roller
+
+| Rol             | Varsayılan Yetkiler                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Super Admin     | tümü                                                                                                              |
+| İşletme Sahibi  | tümü                                                                                                              |
+| Doktor          | hasta görüntüle/düzenle, randevu yönet, dosya görüntüle, tıbbi not görüntüle, analitik görüntüle                    |
+| Sekreter        | hasta görüntüle, randevu yönet, dosya görüntüle                                                                   |
+| Personel        | hasta görüntüle                                                                                                   |
+
+Sahip/ahmin kullanıcılar dışındakiler için yetkileri **Takım** sayfasından
+açıp kapatabilirsiniz.
+
+## Modüller
+
+- **Genel Bakış** — bugünkü randevular, bekleyen onay, aktif hasta, aylık ciro, tamamlanan, iptal oranı
+- **Hastalar** — listeleme, arama, etiket filtre, drawer ile detaylı kayıt
+- **Hasta Detayı** — Genel Bilgi / Randevular / Notlar / İlaçlar / Alerjiler / Tedaviler / Tahliller / Dosyalar / Hasta Hikayesi sekmeleri
+- **Randevular** — tüm durum filtreleri, onayla / tamamla / iptal / yeniden planla
+- **Takvim** — günlük / haftalık / aylık görünüm, personel ve hizmet filtreleri, boş slota tıklayarak randevu oluşturma
+- **Hizmetler** — CRUD, aktif/pasif toggle
+- **Takım** — üye ekle, rol ata, izinleri toggle ile yönet
+- **Bildirimler** — okundu işaretleme + toplu işaretleme
+- **Analitik** — son 6 ay ciro grafiği, randevu adetleri, iptal oranı
+- **Ayarlar** — işletme bilgileri, para birimi, marka rengi (sahip tarafından)
+
+## Yapılacaklar (entegrasyon notları)
+
+- **Supabase Storage / S3** — `lib/storage.ts` içinde TODO. Şu anda dosyalar base64 olarak `PatientFile.fileUrl` alanına yazılıyor; üretimde bunu `patient-files` bucket'ına yönlendirin.
+- **RLS** — şu anda yetki kontrolü Server Action katmanında yapılıyor. Üretim için Postgres RLS politikaları eklemeniz önerilir.
+- **E-posta / SMS gönderimi** — bildirim oluşturulduğunda dış servise gönderim eklemek için Supabase Edge Function ya da bir webhook ekleyin.

@@ -1,8 +1,7 @@
 'use client'
 
-import { Bell, Search, ChevronDown, User, Building2, HelpCircle, LogOut } from 'lucide-react'
+import { Bell, ChevronDown, User, Building2, HelpCircle, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,27 +10,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import type { User as UserType, Provider, Notification } from '@/lib/types'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import type { SessionContext } from '@/lib/rbac'
+import { ROLE_LABELS } from '@/lib/rbac'
+import { PatientSearch } from '@/components/dashboard/patient-search'
 
-interface DashboardHeaderProps {
-  user: UserType | null
-  provider: Provider | null
-  notifications: Notification[]
-}
-
-export function DashboardHeader({ user, provider, notifications }: DashboardHeaderProps) {
+export function DashboardHeader({
+  session,
+  unreadCount,
+}: {
+  session: SessionContext
+  unreadCount: number
+}) {
   const router = useRouter()
-  const unreadCount = notifications.filter((n) => !n.is_read).length || 5
-
-  const displayName = user?.full_name || 'Ersan Altun'
-  const displayRole = provider?.business_name || 'İşletme Sahibi'
-  const initials = displayName
+  const initials = session.fullName
     .split(' ')
     .map((n) => n[0])
     .join('')
@@ -48,24 +45,13 @@ export function DashboardHeader({ user, provider, notifications }: DashboardHead
 
   return (
     <header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-border/50 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 px-4 lg:px-6">
-      {/* Mobile spacer */}
       <div className="w-12 lg:hidden" />
 
-      {/* Search */}
-      <div className="flex flex-1 max-w-md">
-        <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-          <Input
-            type="search"
-            placeholder="Randevu, müşteri veya hizmet ara..."
-            className="pl-10 h-10 bg-[#F7F8FB] border-border/40 text-sm rounded-xl focus-visible:ring-[#12C8AD]/40 focus-visible:border-[#12C8AD]/40"
-          />
-        </div>
+      <div className="flex flex-1 max-w-xl">
+        <PatientSearch />
       </div>
 
-      {/* Right side */}
       <div className="flex items-center gap-2 ml-auto">
-        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-[#F7F8FB]">
@@ -87,56 +73,34 @@ export function DashboardHeader({ user, provider, notifications }: DashboardHead
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <Bell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Bildirim bulunmuyor</p>
-              </div>
-            ) : (
-              <>
-                {notifications.slice(0, 5).map((n) => (
-                  <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-0.5 px-4 py-3 cursor-pointer">
-                    <div className="flex items-center gap-2 w-full">
-                      {!n.is_read && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#12C8AD] shrink-0" />
-                      )}
-                      <span className={`text-sm font-medium truncate ${!n.is_read ? '' : 'pl-3.5'}`}>
-                        {n.title}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-1 pl-3.5">{n.message}</p>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/bildirimler" className="w-full justify-center text-sm font-medium text-[#12C8AD] py-2.5">
-                    Tümünü Gör →
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
+            <DropdownMenuItem asChild>
+              <Link
+                href="/dashboard/bildirimler"
+                className="w-full justify-center text-sm font-medium text-[#12C8AD] py-2.5"
+              >
+                Tümünü Gör →
+              </Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-10 gap-2.5 pl-1.5 pr-2.5 rounded-xl hover:bg-[#F7F8FB]">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatar_url || undefined} />
                 <AvatarFallback
                   className="text-xs font-bold text-white"
                   style={{ background: 'linear-gradient(135deg, #12C8AD, #16A9E8)' }}
                 >
-                  {initials}
+                  {initials || 'AS'}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start text-left md:flex">
                 <span className="text-[13px] font-semibold leading-tight text-foreground">
-                  {displayName}
+                  {session.fullName}
                 </span>
                 <span className="text-[11px] text-muted-foreground leading-tight">
-                  {displayRole}
+                  {ROLE_LABELS[session.role]}
                 </span>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden md:block ml-1" />
@@ -144,8 +108,8 @@ export function DashboardHeader({ user, provider, notifications }: DashboardHead
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border/40">
             <div className="px-3 py-2.5">
-              <p className="text-sm font-semibold">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{user?.email || 'er.sanaltun91@gmail.com'}</p>
+              <p className="text-sm font-semibold">{session.fullName}</p>
+              <p className="text-xs text-muted-foreground truncate">{session.email}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
