@@ -56,6 +56,14 @@ export async function createAppointment(rawInput: unknown): Promise<ActionResult
   if (!patient) return err('Hasta bulunamadı')
   if (!service) return err('Hizmet bulunamadı')
 
+  if (input.staffId) {
+    const staff = await prisma.teamMember.findFirst({
+      where: { id: input.staffId, businessId: session.businessId, isActive: true },
+      select: { id: true },
+    })
+    if (!staff) return err('Personel bulunamadÄ±')
+  }
+
   const endTime = input.endTime ?? addMinutes(input.startTime, service.durationMin)
   if (endTime <= input.startTime) return err('Bitiş saati başlangıçtan sonra olmalı')
 
@@ -217,4 +225,3 @@ export async function deleteAppointment(rawInput: unknown): Promise<ActionResult
   revalidatePath('/dashboard/takvim')
   return ok(undefined)
 }
-

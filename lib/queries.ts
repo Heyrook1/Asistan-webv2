@@ -1,7 +1,9 @@
 import 'server-only'
 
-import { Prisma } from '@prisma/client'
+import type { PatientFile, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
+import { PATIENT_FILES_BUCKET, PATIENT_FILE_SIGNED_URL_TTL_SECONDS } from '@/lib/storage-constants'
 
 function dateOnly(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -104,7 +106,7 @@ export async function getPatientsList(
 }
 
 export async function getPatientDetail(businessId: string, patientId: string) {
-  return prisma.patient.findFirst({
+  const patient = await prisma.patient.findFirst({
     where: { id: patientId, businessId },
     include: {
       assignedDoctor: { select: { id: true, fullName: true, color: true } },
@@ -125,6 +127,37 @@ export async function getPatientDetail(businessId: string, patientId: string) {
       timeline: { orderBy: { createdAt: 'desc' }, take: 50 },
     },
   })
+
+  if (!patient) return null
+
+  return {
+    ...patient,
+    files: await signPatientFiles(patient.files),
+  }
+}
+
+async function signPatientFiles(files: PatientFile[]) {
+  if (files.length === 0) return files
+
+  const supabase = await createClient()
+  const signed = await Promise.all(
+    files.map(async (file) => {
+      if (!file.storageKey.startsWith(`${file.businessId}/${file.patientId}/`)) {
+        return { ...file, fileUrl: '' }
+      }
+
+      const { data, error } = await supabase.storage
+        .from(PATIENT_FILES_BUCKET)
+        .createSignedUrl(file.storageKey, PATIENT_FILE_SIGNED_URL_TTL_SECONDS)
+
+      return {
+        ...file,
+        fileUrl: error ? '' : data.signedUrl,
+      }
+    })
+  )
+
+  return signed
 }
 
 export async function getServicesList(businessId: string) {

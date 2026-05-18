@@ -174,7 +174,7 @@ async function main() {
           fileSize: 142_000,
           category: FileCategory.TAHLIL,
           storageKey: `${business.id}/${patient.id}/kan-tahlili-mart.pdf`,
-          fileUrl: 'data:application/pdf;base64,JVBERi0=',
+          fileUrl: `storage://patient-files/${business.id}/${patient.id}/kan-tahlili-mart.pdf`,
           uploadedBy: DEMO_OWNER.fullName,
         },
       })

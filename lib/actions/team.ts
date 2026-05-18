@@ -21,6 +21,9 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
   const parsed = memberSchema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('team.manage')
+  if (!session.isOwner && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(parsed.data.role)) {
+    return err('Bu rol yalnÄ±zca iÅŸletme sahibi tarafÄ±ndan atanabilir.')
+  }
   const role = parsed.data.role as TeamRole
   const permissions =
     parsed.data.permissions && parsed.data.permissions.length
@@ -56,6 +59,9 @@ export async function updateTeamMember(input: unknown): Promise<ActionResult> {
   const { id, ...patch } = parsed.data
   const owned = await prisma.teamMember.findFirst({ where: { id, businessId: session.businessId } })
   if (!owned) return err('Üye bulunamadı')
+  if (!session.isOwner && patch.role && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(patch.role)) {
+    return err('Bu rol yalnÄ±zca iÅŸletme sahibi tarafÄ±ndan atanabilir.')
+  }
   await prisma.teamMember.update({
     where: { id },
     data: {

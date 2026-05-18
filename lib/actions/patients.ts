@@ -73,8 +73,8 @@ const fileInput = z.object({
   fileType: z.string().trim().min(1).max(120),
   fileSize: z.number().int().min(0).optional(),
   category: z.enum(['TAHLIL', 'GORUNTU', 'RECETE', 'RAPOR', 'KIMLIK', 'DIGER']).default('DIGER'),
-  storageKey: z.string().min(1),
-  fileUrl: z.string().min(1),
+  storageKey: z.string().min(1).max(1000),
+  fileUrl: z.string().regex(/^storage:\/\/patient-files\/.+$/, 'Geçersiz dosya referansı'),
   description: optionalString,
 })
 
@@ -119,6 +119,14 @@ async function nextPatientNumber(businessId: string) {
   // For hot multi-tenant inserts, switch to a Postgres sequence per-business.
   const count = await prisma.patient.count({ where: { businessId } })
   return `HST-${1000 + count + 1}`
+}
+
+async function isPatientOwned(patientId: string, businessId: string) {
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, businessId },
+    select: { id: true },
+  })
+  return Boolean(patient)
 }
 
 export async function createPatient(rawInput: unknown): Promise<ActionResult<{ id: string }>> {
@@ -361,6 +369,7 @@ export async function addMedication(input: unknown): Promise<ActionResult<{ id: 
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
   const med = await prisma.medication.create({
     data: {
       businessId: session.businessId,
@@ -394,6 +403,7 @@ export async function addAllergy(input: unknown): Promise<ActionResult<{ id: str
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
   const created = await prisma.allergy.create({
     data: {
       businessId: session.businessId,
@@ -425,6 +435,7 @@ export async function addTreatment(input: unknown): Promise<ActionResult<{ id: s
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
   const created = await prisma.treatment.create({
     data: {
       businessId: session.businessId,
@@ -460,6 +471,7 @@ export async function addLabResult(input: unknown): Promise<ActionResult<{ id: s
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
   const created = await prisma.labResult.create({
     data: {
       businessId: session.businessId,
@@ -488,14 +500,23 @@ export async function addLabResult(input: unknown): Promise<ActionResult<{ id: s
 }
 
 export async function addPatientFile(input: unknown): Promise<ActionResult<{ id: string }>> {
-  // NOTE: this records a row only. Storage upload should happen client-side
-  // against Supabase Storage / S3, then this action receives the resulting
-  // storageKey/fileUrl. See `lib/storage.ts` for the upload helpers.
   const schema = fileInput.extend({ patientId: z.string().uuid() })
   const parsed = schema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
+  const patient = await prisma.patient.findFirst({
+    where: { id: data.patientId, businessId: session.businessId },
+    select: { id: true },
+  })
+  if (!patient) return err('Hasta bulunamadı')
+  if (!data.storageKey.startsWith(`${session.businessId}/${data.patientId}/`)) {
+    return err('Dosya yolu bu işletmeye veya hastaya ait değil')
+  }
+  if (data.fileUrl !== `storage://patient-files/${data.storageKey}`) {
+    return err('Dosya referansı geçersiz')
+  }
+
   const created = await prisma.patientFile.create({
     data: {
       businessId: session.businessId,
@@ -579,6 +600,7 @@ export async function addTreatmentPlanItem(input: unknown): Promise<ActionResult
   const session = await requirePermission('patient.edit')
   const data = parsed.data
 
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
   const count = await prisma.treatmentPlanItem.count({
     where: { businessId: session.businessId, patientId: data.patientId },
   })
