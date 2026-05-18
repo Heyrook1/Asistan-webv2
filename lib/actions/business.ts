@@ -13,6 +13,7 @@ const businessSchema = z.object({
   email: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().email().optional()),
   address: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().max(400).optional()),
   city: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().max(80).optional()),
+  logoUrl: z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().url().max(2000).optional()),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#12C8AD'),
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
   timezone: z.string().default('Europe/Istanbul'),

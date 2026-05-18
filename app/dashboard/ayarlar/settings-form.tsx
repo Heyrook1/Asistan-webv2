@@ -21,6 +21,7 @@ type BusinessForm = {
   email: string
   address: string
   city: string
+  logoUrl: string
   primaryColor: string
   currency: 'TRY' | 'USD' | 'EUR'
   timezone: string
@@ -94,6 +95,18 @@ export function SettingsForm({
             <Field label="Şehir">
               <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} disabled={!session.isOwner} />
             </Field>
+            <Field label="Logo URL">
+              <Input
+                type="url"
+                value={form.logoUrl}
+                onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+                placeholder="https://..."
+                disabled={!session.isOwner}
+              />
+            </Field>
+            <Field label="Marka Rengi">
+              <Input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} disabled={!session.isOwner} />
+            </Field>
             <div className="sm:col-span-2">
               <Field label="Adres">
                 <Textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} rows={2} disabled={!session.isOwner} />
@@ -114,8 +127,16 @@ export function SettingsForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Marka Rengi">
-              <Input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} disabled={!session.isOwner} />
+            <Field label="Zaman Dilimi">
+              <Select value={form.timezone} onValueChange={(v) => setForm({ ...form, timezone: v })} disabled={!session.isOwner}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Europe/Istanbul">Europe/Istanbul</SelectItem>
+                  <SelectItem value="Europe/Bucharest">Europe/Bucharest</SelectItem>
+                  <SelectItem value="Europe/London">Europe/London</SelectItem>
+                  <SelectItem value="Europe/Berlin">Europe/Berlin</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <div className="sm:col-span-2 flex justify-end">
               <Button type="submit" disabled={pending || !session.isOwner} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
@@ -123,9 +144,6 @@ export function SettingsForm({
               </Button>
             </div>
           </form>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            ⓘ Logo yükleme alanı Supabase Storage entegrasyonu sonrası aktif edilecek.
-          </p>
         </CardContent>
       </Card>
     </div>

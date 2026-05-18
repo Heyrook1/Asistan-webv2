@@ -20,12 +20,14 @@ type Modal = 'note' | 'medication' | 'allergy' | 'treatment' | 'lab' | 'file' | 
 
 export function PatientActionButtons({
   patientId,
+  businessId,
   isArchived,
   services,
   staff,
   patientLabel,
 }: {
   patientId: string
+  businessId: string
   isArchived: boolean
   services: { id: string; name: string; durationMin: number }[]
   staff: { id: string; fullName: string }[]
@@ -274,7 +276,7 @@ export function PatientActionButtons({
               withTransition(async () => {
                 try {
                   const uploaded = await uploadPatientFile(fileRef.current.file!, {
-                    businessId: 'local',
+                    businessId,
                     patientId,
                   })
                   const result = await addPatientFile({
@@ -319,7 +321,7 @@ export function PatientActionButtons({
             </Field>
             <Field label="Açıklama"><Textarea rows={2} onChange={(e) => (fileRef.current.description = e.target.value)} /></Field>
             <p className="text-[11px] text-muted-foreground">
-              ⓘ Şu anda dosyalar geçici olarak base64 olarak saklanıyor. Üretimde Supabase Storage / S3 yönlendirmesi yapılmalı.
+              Dosya kaydı, kategori ve önizleme bağlantısı hasta kartına eklenecek.
             </p>
             <DialogFooter pending={pending} />
           </form>

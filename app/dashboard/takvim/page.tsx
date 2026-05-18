@@ -9,10 +9,10 @@ export default async function TakvimPage() {
   const session = await requirePermission('appointment.manage')
 
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const to = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+  const from = new Date(now.getFullYear(), now.getMonth() - 12, 1)
+  const to = new Date(now.getFullYear(), now.getMonth() + 13, 0)
 
-  const [appointments, patients, services, staff] = await Promise.all([
+  const [appointments, patients, services, staff, business] = await Promise.all([
     getAppointmentsRange(session.businessId, { from, to }),
     prisma.patient.findMany({
       where: { businessId: session.businessId, isArchived: false },
@@ -29,6 +29,10 @@ export default async function TakvimPage() {
       where: { businessId: session.businessId, isActive: true },
       orderBy: { fullName: 'asc' },
       select: { id: true, fullName: true, color: true },
+    }),
+    prisma.business.findUnique({
+      where: { id: session.businessId },
+      select: { slug: true },
     }),
   ])
 
@@ -52,6 +56,7 @@ export default async function TakvimPage() {
       services={services.map((s) => ({ id: s.id, name: s.name, durationMin: s.durationMin, color: s.color }))}
       staff={staff.map((s) => ({ id: s.id, name: s.fullName, color: s.color }))}
       canCreate={can(session, 'appointment.manage')}
+      bookingSlug={business?.slug ?? 'klinik'}
     />
   )
 }

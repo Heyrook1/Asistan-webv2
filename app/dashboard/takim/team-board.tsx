@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -187,6 +187,16 @@ function MemberDialog({ open, initial, onClose }: { open: boolean; initial?: Mem
     role: (initial?.role ?? 'PERSONEL') as keyof typeof ROLE_LABELS,
     color: initial?.color ?? '#16A9E8',
   })
+
+  useEffect(() => {
+    setForm({
+      fullName: initial?.fullName ?? '',
+      email: initial?.email ?? '',
+      phone: initial?.phone ?? '',
+      role: (initial?.role ?? 'PERSONEL') as keyof typeof ROLE_LABELS,
+      color: initial?.color ?? '#16A9E8',
+    })
+  }, [initial, open])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

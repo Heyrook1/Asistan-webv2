@@ -19,6 +19,7 @@ export default async function AyarlarPage() {
         email: business.email ?? '',
         address: business.address ?? '',
         city: business.city ?? '',
+        logoUrl: business.logoUrl ?? '',
         primaryColor: business.primaryColor,
         currency: business.currency as 'TRY' | 'USD' | 'EUR',
         timezone: business.timezone,

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import {
   ChevronLeft, Phone, Mail, MapPin, AlertTriangle, HeartPulse,
   ShieldAlert, Sparkles, TrendingUp, Calendar as CalendarIcon, ShieldCheck,
-  FileText, Image as ImageIcon, ClipboardCheck, Eye, Download,
+  FileText, ClipboardCheck, Eye, Download,
 } from 'lucide-react'
 import { requirePermission, can } from '@/lib/session'
 import { getPatientDetail } from '@/lib/queries'
@@ -57,7 +57,6 @@ export default async function PatientDetailPage({
   const lastAppointment = patient.appointments.find((a) => a.status === 'COMPLETED') ?? patient.appointments[0]
   const allergyNames = patient.allergies.slice(0, 3).map((a) => a.name).join(', ')
   const activeMedications = patient.medications.filter((m) => m.active)
-  const imageFiles = patient.files.filter((f) => f.fileType.startsWith('image/'))
   const pdfFiles = patient.files.filter((f) => !f.fileType.startsWith('image/'))
 
   return (
@@ -146,6 +145,7 @@ export default async function PatientDetailPage({
             <div className="mt-5 border-t pt-4">
               <PatientActionButtons
                 patientId={patient.id}
+                businessId={session.businessId}
                 isArchived={patient.isArchived}
                 services={services}
                 staff={staff}
@@ -161,13 +161,14 @@ export default async function PatientDetailPage({
           <CardContent className="p-2">
             <TabsList className="bg-transparent h-auto p-1 flex flex-wrap gap-1">
               <TabsTrigger value="genel">Genel Bilgi</TabsTrigger>
-              <TabsTrigger value="gecmis">Klinik Geçmişi</TabsTrigger>
+              <TabsTrigger value="randevular">Randevular ({patient.appointments.length})</TabsTrigger>
+              <TabsTrigger value="not">Notlar ({patient.notes.length})</TabsTrigger>
               <TabsTrigger value="ilac">İlaçlar ({patient.medications.length})</TabsTrigger>
+              <TabsTrigger value="alerji">Alerjiler ({patient.allergies.length})</TabsTrigger>
               <TabsTrigger value="tedavi">Tedaviler ({patient.treatments.length})</TabsTrigger>
               <TabsTrigger value="tahlil">Tahliller ({patient.labResults.length})</TabsTrigger>
-              <TabsTrigger value="goruntu">Görüntüler ({imageFiles.length})</TabsTrigger>
               <TabsTrigger value="dosya">Dosyalar ({patient.files.length})</TabsTrigger>
-              <TabsTrigger value="not">Notlar ({patient.notes.length})</TabsTrigger>
+              <TabsTrigger value="hikaye">Hasta Hikayesi</TabsTrigger>
             </TabsList>
           </CardContent>
         </Card>
@@ -336,7 +337,7 @@ export default async function PatientDetailPage({
         </TabsContent>
 
         {/* KLINIK GEÇMIŞI */}
-        <TabsContent value="gecmis">
+        <TabsContent value="randevular">
           <Card>
             <CardContent className="p-5">
               {patient.appointments.length === 0 ? (
@@ -393,6 +394,41 @@ export default async function PatientDetailPage({
           </Card>
         </TabsContent>
 
+        {/* ALERJILER */}
+        <TabsContent value="alerji">
+          <Card>
+            <CardContent className="p-5">
+              {patient.allergies.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Kayıtlı alerji yok.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {patient.allergies.map((a) => (
+                    <li key={a.id} className="rounded-xl border bg-white p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[#0C1D36]">{a.name}</p>
+                        <Badge
+                          variant="outline"
+                          className={
+                            a.severity === 'SIDDETLI'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : a.severity === 'ORTA'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }
+                        >
+                          {a.severity === 'SIDDETLI' ? 'Şiddetli' : a.severity === 'ORTA' ? 'Orta' : 'Hafif'}
+                        </Badge>
+                      </div>
+                      {a.reaction && <p className="mt-1 text-xs text-muted-foreground">Reaksiyon: {a.reaction}</p>}
+                      {a.notes && <p className="mt-1 text-xs whitespace-pre-line">{a.notes}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* TEDAVILER */}
         <TabsContent value="tedavi">
           <Card>
@@ -439,33 +475,40 @@ export default async function PatientDetailPage({
         </TabsContent>
 
         {/* GÖRÜNTÜLER */}
-        <TabsContent value="goruntu">
+        <TabsContent value="hikaye">
           <Card>
-            <CardContent className="p-5">
-              {imageFiles.length === 0 ? (
-                <div className="rounded-2xl border border-dashed bg-white p-10 text-center text-sm text-muted-foreground">
-                  Henüz görüntü yok. Dosya Yükle ile röntgen, ultrason gibi görüntüleri yükleyebilirsiniz.
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {imageFiles.map((f) => (
-                    <a key={f.id} href={f.fileUrl} target="_blank" rel="noreferrer" className="block rounded-xl border bg-white overflow-hidden hover:border-[#12C8AD]/40">
-                      <div className="aspect-square bg-[#F7F9FB] flex items-center justify-center">
-                        {f.fileType.startsWith('image/') ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={f.fileUrl} alt={f.fileName} className="h-full w-full object-cover" />
-                        ) : (
-                          <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-                        )}
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-[#0C1D36] truncate">{f.fileName}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatShortDate(f.uploadedAt)}</p>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              )}
+            <CardContent className="p-5 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-[#0C1D36]">Anamnez ve Hasta Hikayesi</h3>
+                {patient.patientStory ? (
+                  <p className="whitespace-pre-line text-sm leading-6 text-[#0C1D36]">{patient.patientStory}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Hasta hikayesi henüz girilmedi.</p>
+                )}
+              </div>
+              <div>
+                <h3 className="mb-3 text-sm font-semibold text-[#0C1D36]">Zaman Çizelgesi</h3>
+                {patient.timeline.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
+                ) : (
+                  <ul className="space-y-3 relative pl-1">
+                    <span className="absolute left-3 top-1 bottom-1 w-px bg-border" />
+                    {patient.timeline.map((ev, idx) => (
+                      <li key={ev.id} className="relative pl-7">
+                        <span
+                          className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-full text-white"
+                          style={{ background: timelineColor(idx) }}
+                        >
+                          {timelineIcon(ev.type)}
+                        </span>
+                        <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
+                        <p className="text-sm text-[#0C1D36]">{ev.title}</p>
+                        {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

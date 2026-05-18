@@ -1,11 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_DOT, formatTime } from '@/lib/format'
 
@@ -27,6 +30,14 @@ type Event = {
 type View = 'day' | 'week' | 'month'
 
 const VIEW_LABEL: Record<View, string> = { day: 'Gün', week: 'Hafta', month: 'Ay' }
+const STATUS_FILTERS = [
+  { value: 'all', label: 'Tüm durumlar' },
+  { value: 'SCHEDULED', label: APPOINTMENT_STATUS_LABELS.SCHEDULED },
+  { value: 'CONFIRMED', label: APPOINTMENT_STATUS_LABELS.CONFIRMED },
+  { value: 'COMPLETED', label: APPOINTMENT_STATUS_LABELS.COMPLETED },
+  { value: 'CANCELLED', label: APPOINTMENT_STATUS_LABELS.CANCELLED },
+  { value: 'NO_SHOW', label: APPOINTMENT_STATUS_LABELS.NO_SHOW },
+]
 const HOUR_START = 8
 const HOUR_END = 21
 
@@ -61,12 +72,14 @@ export function CalendarBoard({
   services,
   staff,
   canCreate,
+  bookingSlug,
 }: {
   events: Event[]
   patients: { id: string; label: string }[]
   services: { id: string; name: string; durationMin: number; color: string }[]
   staff: { id: string; name: string; color: string }[]
   canCreate: boolean
+  bookingSlug: string
 }) {
   const [view, setView] = useState<View>('week')
   const [cursor, setCursor] = useState<Date>(() => {
@@ -76,16 +89,24 @@ export function CalendarBoard({
   })
   const [staffFilter, setStaffFilter] = useState<string>('all')
   const [serviceFilter, setServiceFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [create, setCreate] = useState<{ open: boolean; date?: string; startTime?: string }>({ open: false })
+  const [shareOpen, setShareOpen] = useState(false)
+
+  const bookingLink = useMemo(() => {
+    if (typeof window === 'undefined') return `/randevu/${bookingSlug}`
+    return `${window.location.origin}/randevu/${bookingSlug}`
+  }, [bookingSlug])
 
   const filtered = useMemo(
     () =>
       events.filter(
         (e) =>
           (staffFilter === 'all' || e.staffId === staffFilter) &&
-          (serviceFilter === 'all' || e.serviceId === serviceFilter)
+          (serviceFilter === 'all' || e.serviceId === serviceFilter) &&
+          (statusFilter === 'all' || e.status === statusFilter)
       ),
-    [events, staffFilter, serviceFilter]
+    [events, staffFilter, serviceFilter, statusFilter]
   )
 
   const days: Date[] = useMemo(() => {
@@ -161,11 +182,15 @@ export function CalendarBoard({
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="gap-2">
+            <Share2 className="h-4 w-4" />
+            Takvimi Paylaş
+          </Button>
         </div>
       </div>
 
       <Card>
-        <CardContent className="p-3 grid gap-2 md:grid-cols-2">
+        <CardContent className="p-3 grid gap-2 md:grid-cols-3">
           <Select value={staffFilter} onValueChange={setStaffFilter}>
             <SelectTrigger><SelectValue placeholder="Personel filtrele" /></SelectTrigger>
             <SelectContent>
@@ -181,6 +206,14 @@ export function CalendarBoard({
               <SelectItem value="all">Tüm hizmetler</SelectItem>
               {services.map((s) => (
                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger><SelectValue placeholder="Durum filtrele" /></SelectTrigger>
+            <SelectContent>
+              {STATUS_FILTERS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -215,6 +248,30 @@ export function CalendarBoard({
         defaultDate={create.date}
         defaultStartTime={create.startTime}
       />
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Takvimi Paylaş</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <Input readOnly value={bookingLink} />
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(bookingLink)
+                toast.success('Bağlantı kopyalandı')
+              }}
+              className="bg-[#12C8AD] hover:bg-[#10b49c] text-white"
+            >
+              Bağlantıyı Kopyala
+            </Button>
+            <Button variant="outline" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(bookingLink)}`, '_blank')}>
+              WhatsApp ile Paylaş
+            </Button>
+            <Button variant="outline" onClick={() => window.open(`mailto:?subject=Online Randevu&body=${encodeURIComponent(bookingLink)}`)}>
+              E-posta ile Paylaş
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -312,7 +369,7 @@ function DayWeekGrid({
         })}
 
         {Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i).map((hour) => (
-          <>
+          <Fragment key={hour}>
             <div key={`h${hour}`} className="text-[10px] text-muted-foreground border-b border-r px-2 py-3 text-right">
               {String(hour).padStart(2, '0')}:00
             </div>
@@ -347,7 +404,7 @@ function DayWeekGrid({
                 </button>
               )
             })}
-          </>
+          </Fragment>
         ))}
       </div>
     </div>

@@ -66,7 +66,7 @@ export function AppointmentFormDrawer({
       const result = await createAppointment({
         patientId: form.patientId,
         serviceId: form.serviceId,
-        staffId: form.staffId || undefined,
+        staffId: form.staffId && form.staffId !== 'none' ? form.staffId : undefined,
         date: form.date,
         startTime: form.startTime,
         notes: form.notes || undefined,
@@ -134,9 +134,10 @@ export function AppointmentFormDrawer({
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Personel</Label>
-              <Select value={form.staffId || undefined} onValueChange={(v) => setForm({ ...form, staffId: v })}>
+              <Select value={form.staffId || 'none'} onValueChange={(v) => setForm({ ...form, staffId: v })}>
                 <SelectTrigger><SelectValue placeholder="Personel (opsiyonel)" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Atanmadı</SelectItem>
                   {staff.map((t) => (
                     <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
                   ))}

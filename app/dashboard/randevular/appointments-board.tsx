@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -238,6 +238,11 @@ function RescheduleDialog({
   const [pending, startTransition] = useTransition()
   const [date, setDate] = useState(appointment?.date ?? '')
   const [startTime, setStartTime] = useState(appointment?.startTime ?? '')
+
+  useEffect(() => {
+    setDate(appointment?.date ?? '')
+    setStartTime(appointment?.startTime ?? '')
+  }, [appointment])
 
   if (!appointment) return null
 
