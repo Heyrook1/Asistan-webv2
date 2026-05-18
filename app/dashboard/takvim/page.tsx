@@ -38,7 +38,7 @@ export default async function TakvimPage() {
 
   return (
     <CalendarBoard
-      events={appointments.map((a) => ({
+      events={appointments.filter((a) => a.status === 'CONFIRMED' || a.status === 'COMPLETED').map((a) => ({
         id: a.id,
         patientId: a.patientId,
         patientName: a.patient.fullName,

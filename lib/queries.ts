@@ -24,7 +24,7 @@ export async function getDashboardStats(businessId: string) {
     cancelledAppointments,
     upcomingAppointments,
   ] = await Promise.all([
-    prisma.appointment.count({ where: { businessId, date: today } }),
+    prisma.appointment.count({ where: { businessId, date: today, status: { in: ['CONFIRMED', 'COMPLETED'] } } }),
     prisma.appointment.count({ where: { businessId, status: 'SCHEDULED' } }),
     prisma.patient.count({ where: { businessId, isArchived: false } }),
     prisma.appointment.findMany({
@@ -38,7 +38,7 @@ export async function getDashboardStats(businessId: string) {
     prisma.appointment.count({ where: { businessId, status: 'COMPLETED' } }),
     prisma.appointment.count({ where: { businessId, status: { in: ['CANCELLED', 'NO_SHOW'] } } }),
     prisma.appointment.findMany({
-      where: { businessId, date: { gte: today }, status: { in: ['SCHEDULED', 'CONFIRMED'] } },
+      where: { businessId, date: { gte: today }, status: 'CONFIRMED' },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
       take: 6,
       include: {

@@ -17,6 +17,28 @@ function addMinutes(time: string, minutes: number) {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
 }
 
+async function hasConfirmedStaffConflict(input: {
+  businessId: string
+  staffId: string
+  date: Date
+  startTime: string
+  endTime: string
+  excludeAppointmentId?: string
+}) {
+  const conflicts = await prisma.appointment.findMany({
+    where: {
+      businessId: input.businessId,
+      staffId: input.staffId,
+      date: input.date,
+      status: 'CONFIRMED',
+      id: input.excludeAppointmentId ? { not: input.excludeAppointmentId } : undefined,
+    },
+    select: { startTime: true, endTime: true },
+  })
+
+  return conflicts.some((c) => c.startTime < input.endTime && c.endTime > input.startTime)
+}
+
 const createSchema = z.object({
   patientId: z.string().uuid('Geçersiz hasta'),
   serviceId: z.string().uuid('Geçersiz hizmet'),
@@ -67,20 +89,14 @@ export async function createAppointment(rawInput: unknown): Promise<ActionResult
   const endTime = input.endTime ?? addMinutes(input.startTime, service.durationMin)
   if (endTime <= input.startTime) return err('Bitiş saati başlangıçtan sonra olmalı')
 
-  // Conflict check on same staff/business and overlapping slot.
-  if (input.staffId) {
-    const conflicts = await prisma.appointment.findMany({
-      where: {
-        businessId: session.businessId,
-        staffId: input.staffId,
-        date: new Date(input.date),
-        status: { in: ['SCHEDULED', 'CONFIRMED'] },
-      },
-      select: { startTime: true, endTime: true },
+  if (input.staffId && input.status === 'CONFIRMED') {
+    const overlap = await hasConfirmedStaffConflict({
+      businessId: session.businessId,
+      staffId: input.staffId,
+      date: new Date(input.date),
+      startTime: input.startTime,
+      endTime,
     })
-    const overlap = conflicts.some(
-      (c) => c.startTime < endTime && c.endTime > input.startTime
-    )
     if (overlap) return err('Seçilen personel için çakışan bir randevu var')
   }
 
@@ -135,6 +151,18 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
   })
   if (!existing) return err('Randevu bulunamadı')
 
+  if (parsed.data.status === 'CONFIRMED' && existing.staffId) {
+    const overlap = await hasConfirmedStaffConflict({
+      businessId: session.businessId,
+      staffId: existing.staffId,
+      date: existing.date,
+      startTime: existing.startTime,
+      endTime: existing.endTime,
+      excludeAppointmentId: existing.id,
+    })
+    if (overlap) return err('Bu saat iÃ§in onaylanmÄ±ÅŸ baÅŸka bir randevu var')
+  }
+
   await prisma.appointment.update({
     where: { id: parsed.data.id },
     data: { status: parsed.data.status, notes: parsed.data.notes ?? existing.notes },
@@ -186,6 +214,8 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
   })
   if (!existing) return err('Randevu bulunamadı')
   const endTime = parsed.data.endTime ?? addMinutes(parsed.data.startTime, existing.service.durationMin)
+  if (endTime <= parsed.data.startTime) return err('BitiÅŸ saati baÅŸlangÄ±Ã§tan sonra olmalÄ±')
+
   await prisma.appointment.update({
     where: { id: parsed.data.id },
     data: {
