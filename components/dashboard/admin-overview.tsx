@@ -117,6 +117,7 @@ export function AdminOverview({
   canCreatePatient,
   canCreateAppointment,
   canManageService,
+  canViewAnalytics,
 }: {
   businessName: string
   stats: OverviewStats
@@ -129,6 +130,7 @@ export function AdminOverview({
   canCreatePatient: boolean
   canCreateAppointment: boolean
   canManageService: boolean
+  canViewAnalytics: boolean
 }) {
   const router = useRouter()
   const [modal, setModal] = useState<Modal>(null)
@@ -150,6 +152,7 @@ export function AdminOverview({
 
   const completedSteps = setupSteps.filter((step) => step.done).length
   const setupProgress = setupSteps.length ? Math.round((completedSteps / setupSteps.length) * 100) : 0
+  const setupComplete = setupSteps.length > 0 && completedSteps === setupSteps.length
 
   const days = useMemo(() => {
     const start = startOfWeek(cursor)
@@ -194,14 +197,16 @@ export function AdminOverview({
       tone: 'amber' as const,
       hint: 'Tüm zamanlar',
     },
-    {
+    canViewAnalytics
+      ? {
       title: 'Aylık Ciro',
       value: trMoney.format(stats.monthlyRevenue),
       icon: Wallet,
       tone: 'green' as const,
       hint: 'Bu ay',
-    },
-  ]
+        }
+      : null,
+  ].filter((card): card is NonNullable<typeof card> => Boolean(card))
 
   return (
     <div className="space-y-4 lg:space-y-5">
@@ -262,39 +267,46 @@ export function AdminOverview({
       <RemindersCard initialReminders={reminders} />
 
       {/* Setup steps + calendar + suggestions */}
-      <div className="grid gap-4 xl:grid-cols-[1fr_1.25fr_1.55fr]">
-        <Card className="shadow-sm">
-          <CardContent className="p-4 lg:p-5">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-bold text-[#0C1D36]">Kurulumu tamamlayın</h2>
-                <p className="mt-1 text-[12px] text-muted-foreground">İlk randevuya hazırlanmak için adımlar.</p>
+      <div
+        className={cn(
+          'grid gap-4',
+          setupComplete ? 'xl:grid-cols-[1.25fr_1.55fr]' : 'xl:grid-cols-[1fr_1.25fr_1.55fr]'
+        )}
+      >
+        {!setupComplete && (
+          <Card className="shadow-sm">
+            <CardContent className="p-4 lg:p-5">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-[#0C1D36]">Kurulumu tamamlayın</h2>
+                  <p className="mt-1 text-[12px] text-muted-foreground">İlk randevuya hazırlanmak için adımlar.</p>
+                </div>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-[#12C8AD] text-xs font-bold text-[#0C1D36]">
+                  {completedSteps}/{setupSteps.length}
+                </div>
               </div>
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-[#12C8AD] text-xs font-bold text-[#0C1D36]">
-                {completedSteps}/{setupSteps.length}
+              <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-[#12C8AD] transition-[width]" style={{ width: `${setupProgress}%` }} />
               </div>
-            </div>
-            <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-[#12C8AD] transition-[width]" style={{ width: `${setupProgress}%` }} />
-            </div>
-            <ul className="space-y-2.5">
-              {setupSteps.map((step, index) => (
-                <li key={step.title} className="flex items-center gap-3 text-sm">
-                  <span className={cn(
-                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                    step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                  )}>
-                    {step.done ? <Check className="h-3.5 w-3.5" /> : index + 1}
-                  </span>
-                  <span className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-[#0C1D36]')}>
-                    {step.title}
-                  </span>
-                  {!step.done && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+              <ul className="space-y-2.5">
+                {setupSteps.map((step, index) => (
+                  <li key={step.title} className="flex items-center gap-3 text-sm">
+                    <span className={cn(
+                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                      step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                    )}>
+                      {step.done ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                    </span>
+                    <span className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-[#0C1D36]')}>
+                      {step.title}
+                    </span>
+                    {!step.done && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Calendar — collapsible on mobile, always visible on desktop */}
         <Card className="shadow-sm">
@@ -402,9 +414,11 @@ export function AdminOverview({
                 </Link>
               ))}
             </div>
-            <Link href="/dashboard/analitik" className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-[#08AFC0]">
-              Tüm önerileri görüntüle <ChevronRight className="h-4 w-4" />
-            </Link>
+            {canViewAnalytics && (
+              <Link href="/dashboard/analitik" className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-[#08AFC0]">
+                Tüm önerileri görüntüle <ChevronRight className="h-4 w-4" />
+              </Link>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -518,7 +532,7 @@ export function AdminOverview({
               )}
               <QuickAction icon={<Clock />} label="Müsaitlik Düzenle" href="/dashboard/takvim" />
               <QuickAction icon={<Send />} label="Toplu Mesaj Gönder" onClick={() => toast.info('Toplu mesaj özelliği sonraki entegrasyon adımında bağlanacak.')} />
-              <QuickAction icon={<BarChart3 />} label="Rapor Oluştur" href="/dashboard/analitik" />
+              {canViewAnalytics && <QuickAction icon={<BarChart3 />} label="Rapor Oluştur" href="/dashboard/analitik" />}
             </div>
           </CardContent>
         </Card>

@@ -2,28 +2,125 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { TeamRole } from '@prisma/client'
+import { headers } from 'next/headers'
+import { NotificationType, TeamRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requirePermission, ROLE_DEFAULT_PERMISSIONS, PERMISSIONS } from '@/lib/session'
+import { requirePermission, ROLE_DEFAULT_PERMISSIONS, PERMISSIONS, ROLE_LABELS } from '@/lib/session'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ok, err, type ActionResult } from './result'
+import { createNotification } from '@/lib/notifications/service'
 
 const memberSchema = z.object({
   fullName: z.string().trim().min(2, 'Ad soyad en az 2 karakter').max(120),
-  email: z.string().trim().email('Geçersiz e-posta'),
-  phone: z
-    .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().min(7).max(40).optional()),
+  email: z.string().trim().email('Gecersiz e-posta'),
+  phone: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().min(7).max(40).optional()
+  ),
   role: z.enum(['SUPER_ADMIN', 'ISLETME_SAHIBI', 'DOKTOR', 'SEKRETER', 'PERSONEL']),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Geçersiz renk').default('#16A9E8'),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Gecersiz renk').default('#16A9E8'),
   permissions: z.array(z.enum([...PERMISSIONS])).optional(),
+  sendInvite: z.boolean().optional().default(true),
+  password: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().min(6, 'Sifre en az 6 karakter olmali').max(128).optional()
+  ),
 })
 
-export async function createTeamMember(input: unknown): Promise<ActionResult<{ id: string }>> {
+async function getSiteOrigin() {
+  const h = await headers()
+  const origin = h.get('origin')
+  if (origin) return origin
+
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  if (!host) return null
+  const protocol = h.get('x-forwarded-proto') ?? 'http'
+  return `${protocol}://${host}`
+}
+
+async function findAuthUserByEmail(email: string) {
+  const admin = createAdminClient()
+  if (!admin) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured')
+
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error) throw error
+    const user = data.users.find((u) => u.email?.toLowerCase() === email)
+    if (user) return user
+    if (data.users.length < 1000) return null
+  }
+
+  return null
+}
+
+function authUserMetadata(input: {
+  fullName: string
+  role: TeamRole
+  businessId: string
+}) {
+  return {
+    full_name: input.fullName,
+    role: 'provider',
+    team_role: input.role,
+    business_id: input.businessId,
+  }
+}
+
+async function inviteAuthUser(input: {
+  email: string
+  fullName: string
+  role: TeamRole
+  businessId: string
+  password?: string
+}) {
+  const admin = createAdminClient()
+  if (!admin) return null
+
+  const existing = await findAuthUserByEmail(input.email)
+  if (existing) {
+    await admin.auth.admin.updateUserById(existing.id, {
+      user_metadata: {
+        ...existing.user_metadata,
+        ...authUserMetadata(input),
+      },
+      password: input.password,
+      email_confirm: input.password ? true : undefined,
+    })
+    return { id: existing.id, invitationSent: false }
+  }
+
+  if (input.password) {
+    const { data, error } = await admin.auth.admin.createUser({
+      email: input.email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: authUserMetadata(input),
+    })
+    if (error) throw error
+    if (!data.user?.id) throw new Error('Supabase did not return a created user')
+
+    return { id: data.user.id, invitationSent: false }
+  }
+
+  const origin = await getSiteOrigin()
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
+    redirectTo: origin ? `${origin}/auth/setup-password` : undefined,
+    data: authUserMetadata(input),
+  })
+  if (error) throw error
+  if (!data.user?.id) throw new Error('Supabase did not return an invited user')
+
+  return { id: data.user.id, invitationSent: true }
+}
+
+export async function createTeamMember(input: unknown): Promise<ActionResult<{ id: string; invitationSent: boolean }>> {
   const parsed = memberSchema.safeParse(input)
-  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
+  if (!parsed.success) return err('Form hatali', parsed.error.issues)
   const session = await requirePermission('team.manage')
   if (!session.isOwner && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(parsed.data.role)) {
-    return err('Bu rol yalnÄ±zca iÅŸletme sahibi tarafÄ±ndan atanabilir.')
+    return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
   }
+
   const role = parsed.data.role as TeamRole
   const permissions =
     parsed.data.permissions && parsed.data.permissions.length
@@ -31,36 +128,117 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
       : ROLE_DEFAULT_PERMISSIONS[role]
 
   try {
+    const email = parsed.data.email.toLowerCase()
+    const existingMember = await prisma.teamMember.findUnique({
+      where: { businessId_email: { businessId: session.businessId, email } },
+      select: { id: true },
+    })
+    if (existingMember) {
+      return err('Bu e-posta ile kayitli bir ekip uyesi zaten var.')
+    }
+
+    let authUser: { id: string; invitationSent: boolean } | null = null
+    if (parsed.data.password || parsed.data.sendInvite) {
+      try {
+        authUser = await inviteAuthUser({
+          email,
+          fullName: parsed.data.fullName,
+          role,
+          businessId: session.businessId,
+          password: parsed.data.password,
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : ''
+        if (parsed.data.password && message.includes('invalid api key')) {
+          return err('Yonetici tarafindan sifre belirlemek icin gecerli Supabase admin anahtari gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY degerini duzeltin.')
+        }
+        if (!message.includes('invalid api key')) throw error
+      }
+    }
+
+    let user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: authUser?.id,
+          email,
+          fullName: parsed.data.fullName,
+          phone: parsed.data.phone ?? null,
+        },
+      })
+    } else {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          fullName: parsed.data.fullName,
+          phone: parsed.data.phone ?? user.phone,
+          isActive: true,
+        },
+      })
+    }
+
     const created = await prisma.teamMember.create({
       data: {
         businessId: session.businessId,
+        userId: user.id,
         fullName: parsed.data.fullName,
-        email: parsed.data.email.toLowerCase(),
+        email,
         phone: parsed.data.phone ?? null,
         role,
         permissions,
         color: parsed.data.color,
       },
     })
+
+    const business = await prisma.business.findUnique({
+      where: { id: session.businessId },
+      select: { ownerUserId: true },
+    })
+    await createNotification({
+      businessId: session.businessId,
+      recipientUserIds: [business?.ownerUserId],
+      roles: ['ISLETME_SAHIBI'],
+      excludeUserId: session.userId,
+      actorUserId: session.userId,
+      type: NotificationType.TEAM,
+      subtype: 'team_member_added',
+      title: 'Yeni ekip üyesi eklendi',
+      message: `${parsed.data.fullName} (${ROLE_LABELS[role]}) ekibe katıldı.`,
+      entityType: 'team_member',
+      entityId: created.id,
+      link: '/dashboard/takim',
+      metadata: {
+        teamMemberId: created.id,
+        fullName: parsed.data.fullName,
+        email,
+        role,
+        invitationSent: authUser?.invitationSent ?? false,
+        addedBy: session.fullName,
+      },
+    })
+
     revalidatePath('/dashboard/takim')
-    return ok({ id: created.id })
+    revalidatePath('/dashboard/bildirimler')
+    return ok({ id: created.id, invitationSent: authUser?.invitationSent ?? false })
   } catch (e) {
-    // Unique constraint (businessId, email)
-    return err('Bu e-posta ile kayıtlı bir ekip üyesi zaten var.')
+    if (e instanceof Error && e.message === 'SUPABASE_SERVICE_ROLE_KEY is not configured') {
+      return err('Ekip uyesi girisi olusturmak icin SUPABASE_SERVICE_ROLE_KEY ayarlanmali.')
+    }
+    return err(e instanceof Error ? e.message : 'Ekip uyesi olusturulamadi.')
   }
 }
 
-const updateSchema = memberSchema.partial().extend({ id: z.string().uuid() })
+const updateSchema = memberSchema.omit({ password: true, sendInvite: true }).partial().extend({ id: z.string().uuid() })
 
 export async function updateTeamMember(input: unknown): Promise<ActionResult> {
   const parsed = updateSchema.safeParse(input)
-  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
+  if (!parsed.success) return err('Form hatali', parsed.error.issues)
   const session = await requirePermission('team.manage')
   const { id, ...patch } = parsed.data
   const owned = await prisma.teamMember.findFirst({ where: { id, businessId: session.businessId } })
-  if (!owned) return err('Üye bulunamadı')
+  if (!owned) return err('Uye bulunamadi')
   if (!session.isOwner && patch.role && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(patch.role)) {
-    return err('Bu rol yalnÄ±zca iÅŸletme sahibi tarafÄ±ndan atanabilir.')
+    return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
   }
   await prisma.teamMember.update({
     where: { id },
@@ -70,15 +248,66 @@ export async function updateTeamMember(input: unknown): Promise<ActionResult> {
       permissions: patch.permissions ?? undefined,
     },
   })
+
+  const roleChanged = patch.role && patch.role !== owned.role
+  const permissionsChanged =
+    patch.permissions &&
+    JSON.stringify([...patch.permissions].sort()) !==
+      JSON.stringify([...(owned.permissions as string[])].sort())
+
+  if ((roleChanged || permissionsChanged) && owned.userId) {
+    await createNotification({
+      businessId: session.businessId,
+      recipientUserId: owned.userId,
+      actorUserId: session.userId,
+      type: NotificationType.TEAM,
+      subtype: 'permission_changed',
+      title: 'Yetkileriniz güncellendi',
+      message: roleChanged
+        ? `Rolünüz ${ROLE_LABELS[patch.role as TeamRole]} olarak güncellendi.`
+        : 'Hesabınıza tanımlı yetkiler güncellendi.',
+      entityType: 'team_member',
+      entityId: id,
+      link: '/dashboard/takim',
+      metadata: {
+        teamMemberId: id,
+        previousRole: owned.role,
+        newRole: patch.role ?? owned.role,
+        changedBy: session.fullName,
+      },
+    })
+  }
+
   revalidatePath('/dashboard/takim')
+  revalidatePath('/dashboard/bildirimler')
   return ok(undefined)
+}
+
+const rolePermissionsSchema = z.object({
+  role: z.enum(['DOKTOR', 'SEKRETER', 'PERSONEL']),
+  permissions: z.array(z.enum([...PERMISSIONS])),
+})
+
+export async function updateRolePermissions(input: unknown): Promise<ActionResult<{ updated: number }>> {
+  const parsed = rolePermissionsSchema.safeParse(input)
+  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
+  const session = await requirePermission('team.permission.edit')
+  const result = await prisma.teamMember.updateMany({
+    where: {
+      businessId: session.businessId,
+      role: parsed.data.role as TeamRole,
+    },
+    data: { permissions: parsed.data.permissions },
+  })
+  revalidatePath('/dashboard/takim')
+  return ok({ updated: result.count })
 }
 
 const toggleSchema = z.object({ id: z.string().uuid(), isActive: z.boolean() })
 
 export async function setTeamMemberActive(input: unknown): Promise<ActionResult> {
   const parsed = toggleSchema.safeParse(input)
-  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
+  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.manage')
   await prisma.teamMember.updateMany({
     where: { id: parsed.data.id, businessId: session.businessId },
@@ -88,16 +317,103 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
   return ok(undefined)
 }
 
+const resetPasswordSchema = z.object({
+  id: z.string().uuid(),
+  password: z.string().min(6, 'Sifre en az 6 karakter olmali').max(128),
+})
+
+export async function resetTeamMemberPassword(input: unknown): Promise<ActionResult> {
+  const parsed = resetPasswordSchema.safeParse(input)
+  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
+  const session = await requirePermission('team.manage')
+  const target = await prisma.teamMember.findFirst({
+    where: { id: parsed.data.id, businessId: session.businessId },
+    include: { user: true },
+  })
+  if (!target) return err('Uye bulunamadi')
+  if (target.userId === session.userId) return err('Kendi sifrenizi buradan sifirlayamazsiniz')
+
+  const admin = createAdminClient()
+  if (!admin) {
+    return err('Sifre sifirlama icin Supabase admin anahtari gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY ayarlanmali.')
+  }
+
+  try {
+    const existingAuthUser = await findAuthUserByEmail(target.email.toLowerCase())
+    let authUserId = existingAuthUser?.id ?? null
+
+    if (!authUserId) {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: target.email.toLowerCase(),
+        password: parsed.data.password,
+        email_confirm: true,
+        user_metadata: authUserMetadata({
+          fullName: target.fullName,
+          role: target.role,
+          businessId: target.businessId,
+        }),
+      })
+      if (error) throw error
+      authUserId = data.user?.id ?? null
+    } else {
+      const { error } = await admin.auth.admin.updateUserById(authUserId, {
+        password: parsed.data.password,
+        email_confirm: true,
+        user_metadata: {
+          ...(target.user ? { full_name: target.user.fullName } : {}),
+          ...authUserMetadata({
+            fullName: target.fullName,
+            role: target.role,
+            businessId: target.businessId,
+          }),
+        },
+      })
+      if (error) throw error
+    }
+
+    if (!authUserId) return err('Supabase kullanicisi olusturulamadi')
+
+    let user = await prisma.user.findUnique({ where: { email: target.email.toLowerCase() } })
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: authUserId,
+          email: target.email.toLowerCase(),
+          fullName: target.fullName,
+          phone: target.phone,
+        },
+      })
+    } else if (user.id !== authUserId) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { fullName: target.fullName, phone: target.phone ?? user.phone, isActive: true },
+      })
+    }
+
+    await prisma.teamMember.update({
+      where: { id: target.id },
+      data: { userId: user.id },
+    })
+
+    revalidatePath('/dashboard/takim')
+    return ok(undefined)
+  } catch (e) {
+    if (e instanceof Error && e.message.toLowerCase().includes('invalid api key')) {
+      return err('Supabase admin anahtari gecersiz. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY degerini duzeltin.')
+    }
+    return err(e instanceof Error ? e.message : 'Sifre sifirlanamadi.')
+  }
+}
+
 export async function deleteTeamMember(input: unknown): Promise<ActionResult> {
   const schema = z.object({ id: z.string().uuid() })
   const parsed = schema.safeParse(input)
-  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
+  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.manage')
-  // Don't allow deleting yourself (owner) — guard at UI but enforce here too.
   const target = await prisma.teamMember.findFirst({
     where: { id: parsed.data.id, businessId: session.businessId },
   })
-  if (!target) return err('Üye bulunamadı')
+  if (!target) return err('Uye bulunamadi')
   if (target.userId && target.userId === session.userId) return err('Kendinizi silemezsiniz')
   await prisma.teamMember.delete({ where: { id: parsed.data.id } })
   revalidatePath('/dashboard/takim')

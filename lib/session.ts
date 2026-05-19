@@ -75,8 +75,22 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     })
   }
 
-  // Bootstrap a Business for this user if they don't have one yet.
-  let business = await prisma.business.findUnique({ where: { ownerUserId: user.id } })
+  if (!user.isActive) return null
+
+  const ownedBusiness = await prisma.business.findUnique({ where: { ownerUserId: user.id } })
+  const membership = await prisma.teamMember.findFirst({
+    where: {
+      OR: [{ userId: user.id }, { email: user.email }],
+      isActive: true,
+      business: { isActive: true },
+    },
+    include: { business: true },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  let business = ownedBusiness ?? membership?.business ?? null
+
+  // Bootstrap a Business only for brand-new owner signups, not invited team members.
   if (!business) {
     const baseSlug = slugify(fullName || 'klinik') || 'klinik'
     let slug = baseSlug
@@ -104,19 +118,31 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
       },
     })
   } else {
+    if (membership && !membership.userId) {
+      await prisma.teamMember.update({
+        where: { id: membership.id },
+        data: { userId: user.id },
+      })
+    }
     await prisma.teamMember.updateMany({
       where: { businessId: business.id, userId: user.id },
       data: { lastSeenAt: new Date() },
     })
   }
 
-  const membership = await prisma.teamMember.findFirst({
-    where: { businessId: business.id, OR: [{ userId: user.id }, { email: user.email }] },
+  const currentMembership = await prisma.teamMember.findFirst({
+    where: {
+      businessId: business.id,
+      isActive: true,
+      OR: [{ userId: user.id }, { email: user.email }],
+    },
   })
 
   const isOwner = business.ownerUserId === user.id
-  const role = (membership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
-  const explicit = (membership?.permissions ?? []) as Permission[]
+  if (!isOwner && !currentMembership) return null
+
+  const role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
+  const explicit = (currentMembership?.permissions ?? []) as Permission[]
   const permissions = Array.from(
     new Set<Permission>([...(ROLE_DEFAULT_PERMISSIONS[role] ?? []), ...explicit])
   )

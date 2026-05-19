@@ -4,6 +4,8 @@ import type { PatientFile, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { PATIENT_FILES_BUCKET, PATIENT_FILE_SIGNED_URL_TTL_SECONDS } from '@/lib/storage-constants'
+import type { NotificationListItem } from '@/lib/notifications/types'
+import { deriveStatus } from '@/lib/notifications/types'
 
 function dateOnly(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -106,7 +108,11 @@ export async function getPatientsList(
   })
 }
 
-export async function getPatientDetail(businessId: string, patientId: string) {
+export async function getPatientDetail(
+  businessId: string,
+  patientId: string,
+  options: { includeMedicalNotes?: boolean; includeFiles?: boolean } = {}
+) {
   const patient = await prisma.patient.findFirst({
     where: { id: patientId, businessId },
     include: {
@@ -131,9 +137,21 @@ export async function getPatientDetail(businessId: string, patientId: string) {
 
   if (!patient) return null
 
+  const includeMedicalNotes = options.includeMedicalNotes ?? true
+  const includeFiles = options.includeFiles ?? true
+
   return {
     ...patient,
-    files: await signPatientFiles(patient.files),
+    riskNote: includeMedicalNotes ? patient.riskNote : null,
+    summary: includeMedicalNotes ? patient.summary : null,
+    patientStory: includeMedicalNotes ? patient.patientStory : null,
+    familyHistory: includeMedicalNotes ? patient.familyHistory : null,
+    notes: includeMedicalNotes ? patient.notes : [],
+    aiSuggestions: includeMedicalNotes ? patient.aiSuggestions : null,
+    timeline: includeMedicalNotes
+      ? patient.timeline
+      : patient.timeline.filter((event) => event.type !== 'NOTE_ADDED').map((event) => ({ ...event, description: null })),
+    files: includeFiles ? await signPatientFiles(patient.files) : [],
   }
 }
 
@@ -219,15 +237,70 @@ export async function getAppointmentsList(
   })
 }
 
-export async function getNotificationsList(businessId: string, userId: string) {
+export async function getNotificationsList(businessId: string, userId: string, take = 100) {
   return prisma.notification.findMany({
     where: {
       businessId,
       OR: [{ userId }, { userId: null }],
+      archivedAt: null,
     },
     orderBy: { createdAt: 'desc' },
-    take: 50,
+    take,
+    include: {
+      actor: { select: { id: true, fullName: true } },
+      actions: { orderBy: { createdAt: 'asc' } },
+    },
   })
+}
+
+export async function getNotificationById(notificationId: string, businessId: string, userId: string) {
+  return prisma.notification.findFirst({
+    where: {
+      id: notificationId,
+      businessId,
+      OR: [{ userId }, { userId: null }],
+    },
+    include: {
+      actor: { select: { id: true, fullName: true } },
+      actions: { orderBy: { createdAt: 'asc' } },
+    },
+  })
+}
+
+/**
+ * Serializes a notification row (with its actor + actions) into a
+ * client-safe shape. Centralized so every UI consumer reads the same data.
+ */
+export function serializeNotification(
+  row: Awaited<ReturnType<typeof getNotificationsList>>[number]
+): NotificationListItem {
+  return {
+    id: row.id,
+    type: row.type,
+    subtype: row.subtype,
+    title: row.title,
+    message: row.message,
+    link: row.link,
+    entityType: row.entityType,
+    entityId: row.entityId,
+    priority: row.priority,
+    actionRequired: row.actionRequired,
+    metadata: (row.metadata ?? null) as Record<string, unknown> | null,
+    isRead: row.isRead,
+    status: deriveStatus({ isRead: row.isRead, archivedAt: row.archivedAt }),
+    readAt: row.readAt ? row.readAt.toISOString() : null,
+    archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
+    actor: row.actor ? { id: row.actor.id, fullName: row.actor.fullName } : null,
+    actions: row.actions.map((a) => ({
+      id: a.id,
+      label: a.label,
+      actionType: a.actionType,
+      payload: (a.payload ?? null) as Record<string, unknown> | null,
+      status: a.status,
+      completedAt: a.completedAt ? a.completedAt.toISOString() : null,
+    })),
+  }
 }
 
 export async function getUnreadNotificationCount(businessId: string, userId: string) {
@@ -236,6 +309,7 @@ export async function getUnreadNotificationCount(businessId: string, userId: str
       businessId,
       OR: [{ userId }, { userId: null }],
       isRead: false,
+      archivedAt: null,
     },
   })
 }
@@ -265,6 +339,134 @@ export async function getAnalyticsSnapshot(businessId: string) {
     if (a.status === 'CANCELLED' || a.status === 'NO_SHOW') bucket.cancelled += 1
   }
   return Array.from(buckets.entries()).map(([month, stats]) => ({ month, ...stats }))
+}
+
+// ── Messaging ──────────────────────────────────────────────────────────────
+
+export type ConversationSummary = {
+  id: string
+  isGroup: boolean
+  title: string | null
+  lastMessageAt: string | null
+  partner: { id: string; fullName: string; avatarUrl: string | null } | null
+  lastMessage: { body: string; senderUserId: string; createdAt: string } | null
+  unreadCount: number
+}
+
+export async function getMyConversations(
+  businessId: string,
+  userId: string
+): Promise<ConversationSummary[]> {
+  const rows = await prisma.conversation.findMany({
+    where: {
+      businessId,
+      participants: { some: { userId, isActive: true } },
+    },
+    orderBy: [{ lastMessageAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+    include: {
+      participants: {
+        include: { user: { select: { id: true, fullName: true, avatarUrl: true } } },
+      },
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { body: true, senderUserId: true, createdAt: true },
+      },
+    },
+  })
+
+  return Promise.all(
+    rows.map(async (c) => {
+      const me = c.participants.find((p) => p.userId === userId)
+      const partner = c.participants.find((p) => p.userId !== userId)?.user ?? null
+      const unreadCount = me
+        ? await prisma.message.count({
+            where: {
+              conversationId: c.id,
+              senderUserId: { not: userId },
+              createdAt: me.lastReadAt ? { gt: me.lastReadAt } : undefined,
+              deletedAt: null,
+            },
+          })
+        : 0
+      const last = c.messages[0] ?? null
+      return {
+        id: c.id,
+        isGroup: c.isGroup,
+        title: c.title,
+        lastMessageAt: c.lastMessageAt ? c.lastMessageAt.toISOString() : null,
+        partner,
+        lastMessage: last
+          ? {
+              body: last.body,
+              senderUserId: last.senderUserId,
+              createdAt: last.createdAt.toISOString(),
+            }
+          : null,
+        unreadCount,
+      }
+    })
+  )
+}
+
+export async function getConversationThread(
+  conversationId: string,
+  userId: string,
+  limit = 100
+) {
+  const participant = await prisma.conversationParticipant.findFirst({
+    where: { conversationId, userId, isActive: true },
+    select: { id: true },
+  })
+  if (!participant) return null
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: {
+      participants: {
+        include: { user: { select: { id: true, fullName: true, avatarUrl: true } } },
+      },
+    },
+  })
+  if (!conversation) return null
+
+  const messages = await prisma.message.findMany({
+    where: { conversationId, deletedAt: null },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    include: {
+      sender: { select: { id: true, fullName: true, avatarUrl: true } },
+    },
+  })
+
+  return { conversation, messages }
+}
+
+export async function getUnreadMessageCount(businessId: string, userId: string) {
+  const participants = await prisma.conversationParticipant.findMany({
+    where: {
+      userId,
+      isActive: true,
+      conversation: { businessId },
+    },
+    select: { conversationId: true, lastReadAt: true },
+  })
+  if (participants.length === 0) return 0
+
+  // Sum unread per conversation in one query — group-by would also work.
+  const counts = await Promise.all(
+    participants.map((p) =>
+      prisma.message.count({
+        where: {
+          conversationId: p.conversationId,
+          senderUserId: { not: userId },
+          createdAt: p.lastReadAt ? { gt: p.lastReadAt } : undefined,
+          deletedAt: null,
+        },
+      })
+    )
+  )
+  return counts.reduce((acc, n) => acc + n, 0)
 }
 
 export async function getReminders(businessId: string, userId: string) {

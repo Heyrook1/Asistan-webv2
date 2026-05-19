@@ -197,6 +197,7 @@ export default async function DashboardPage() {
       canCreatePatient={can(session, 'patient.edit')}
       canCreateAppointment={can(session, 'appointment.manage')}
       canManageService={can(session, 'service.manage')}
+      canViewAnalytics={can(session, 'analytics.view')}
     />
   )
 }

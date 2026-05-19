@@ -2,10 +2,36 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { Prisma, TimelineEventType } from '@prisma/client'
+import {
+  NotificationPriority,
+  NotificationType,
+  Prisma,
+  TimelineEventType,
+} from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission, requireSession } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
+import { createNotification } from '@/lib/notifications/service'
+
+async function getPatientNotificationContext(businessId: string, patientId: string) {
+  const [business, patient] = await Promise.all([
+    prisma.business.findUnique({
+      where: { id: businessId },
+      select: { ownerUserId: true },
+    }),
+    prisma.patient.findUnique({
+      where: { id: patientId },
+      select: {
+        fullName: true,
+        patientNumber: true,
+        phone: true,
+        tags: true,
+        assignedDoctor: { select: { userId: true, fullName: true } },
+      },
+    }),
+  ])
+  return { business, patient }
+}
 
 const optionalString = z.preprocess(
   (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
@@ -135,6 +161,9 @@ export async function createPatient(rawInput: unknown): Promise<ActionResult<{ i
   const input = parsed.data
 
   const session = await requirePermission('patient.edit')
+  if (input.notes.length > 0 && !session.permissions.includes('medical_note.view')) {
+    return err('Tibbi not ekleme yetkiniz yok')
+  }
   const businessId = session.businessId
   const patientNumber = await nextPatientNumber(businessId)
 
@@ -264,8 +293,33 @@ export async function createPatient(rawInput: unknown): Promise<ActionResult<{ i
       return created
     })
 
+    const { business } = await getPatientNotificationContext(businessId, patient.id)
+    await createNotification({
+      businessId,
+      recipientUserIds: [business?.ownerUserId],
+      roles: ['DOKTOR'],
+      excludeUserId: session.userId,
+      actorUserId: session.userId,
+      type: NotificationType.PATIENT,
+      subtype: 'patient_created',
+      title: 'Yeni hasta kartı oluşturuldu.',
+      message: `${patient.fullName} (#${patient.patientNumber}) ${session.fullName} tarafından eklendi.`,
+      entityType: 'patient',
+      entityId: patient.id,
+      link: `/dashboard/hastalar/${patient.id}`,
+      metadata: {
+        patientId: patient.id,
+        patientNumber: patient.patientNumber,
+        patientName: patient.fullName,
+        phone: input.phone,
+        tags: input.tags ?? [],
+        createdBy: session.fullName,
+      },
+    })
+
     revalidatePath('/dashboard')
     revalidatePath('/dashboard/hastalar')
+    revalidatePath('/dashboard/bildirimler')
     return ok({ id: patient.id })
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Hasta oluşturulamadı')
@@ -295,6 +349,10 @@ export async function updatePatient(rawInput: unknown): Promise<ActionResult> {
     },
   })
 
+  const changedFields = Object.entries(patch)
+    .filter(([_, value]) => value !== undefined)
+    .map(([key]) => key)
+
   await prisma.timelineEvent.create({
     data: {
       businessId: session.businessId,
@@ -306,8 +364,31 @@ export async function updatePatient(rawInput: unknown): Promise<ActionResult> {
     },
   })
 
+  const { business, patient } = await getPatientNotificationContext(session.businessId, id)
+  await createNotification({
+    businessId: session.businessId,
+    recipientUserIds: [business?.ownerUserId, patient?.assignedDoctor?.userId],
+    excludeUserId: session.userId,
+    actorUserId: session.userId,
+    type: NotificationType.PATIENT,
+    subtype: 'patient_updated',
+    title: 'Hasta kartı güncellendi.',
+    message: `${existing.fullName} (#${existing.patientNumber}) ${session.fullName} tarafından güncellendi.`,
+    entityType: 'patient',
+    entityId: id,
+    link: `/dashboard/hastalar/${id}`,
+    metadata: {
+      patientId: id,
+      patientNumber: existing.patientNumber,
+      patientName: existing.fullName,
+      changedFields,
+      updatedBy: session.fullName,
+    },
+  })
+
   revalidatePath(`/dashboard/hastalar/${id}`)
   revalidatePath('/dashboard/hastalar')
+  revalidatePath('/dashboard/bildirimler')
   return ok(undefined)
 }
 
@@ -332,6 +413,7 @@ export async function addPatientNote(input: unknown): Promise<ActionResult<{ id:
   const parsed = schema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
+  if (!session.permissions.includes('medical_note.view')) return err('Tibbi not ekleme yetkiniz yok')
   const data = parsed.data
   const ownership = await prisma.patient.findFirst({
     where: { id: data.patientId, businessId: session.businessId },
@@ -359,7 +441,30 @@ export async function addPatientNote(input: unknown): Promise<ActionResult<{ id:
       actorId: session.userId,
     },
   })
+
+  const { business, patient } = await getPatientNotificationContext(session.businessId, data.patientId)
+  await createNotification({
+    businessId: session.businessId,
+    recipientUserIds: [business?.ownerUserId, patient?.assignedDoctor?.userId],
+    excludeUserId: session.userId,
+    actorUserId: session.userId,
+    type: NotificationType.PATIENT,
+    subtype: 'patient_note_added',
+    title: 'Yeni not eklendi',
+    message: `${patient?.fullName ?? 'Hasta'} kartına ${session.fullName} not ekledi: ${data.title}`,
+    entityType: 'patient',
+    entityId: data.patientId,
+    link: `/dashboard/hastalar/${data.patientId}`,
+    metadata: {
+      patientId: data.patientId,
+      patientName: patient?.fullName,
+      noteTitle: data.title,
+      createdBy: session.fullName,
+    },
+  })
+
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
+  revalidatePath('/dashboard/bildirimler')
   return ok({ id: note.id })
 }
 
@@ -461,7 +566,34 @@ export async function addTreatment(input: unknown): Promise<ActionResult<{ id: s
       actorId: session.userId,
     },
   })
+
+  const treatmentContext = await getPatientNotificationContext(session.businessId, data.patientId)
+  await createNotification({
+    businessId: session.businessId,
+    recipientUserIds: [
+      treatmentContext.business?.ownerUserId,
+      treatmentContext.patient?.assignedDoctor?.userId,
+    ],
+    excludeUserId: session.userId,
+    actorUserId: session.userId,
+    type: NotificationType.PATIENT,
+    subtype: 'treatment_added',
+    title: 'Yeni tedavi eklendi',
+    message: `${treatmentContext.patient?.fullName ?? 'Hasta'} için tedavi planı: ${data.title}`,
+    entityType: 'patient',
+    entityId: data.patientId,
+    link: `/dashboard/hastalar/${data.patientId}`,
+    metadata: {
+      patientId: data.patientId,
+      patientName: treatmentContext.patient?.fullName,
+      treatmentTitle: data.title,
+      doctorName: data.doctorName ?? null,
+      status: data.status,
+    },
+  })
+
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
+  revalidatePath('/dashboard/bildirimler')
   return ok({ id: created.id })
 }
 
@@ -495,7 +627,35 @@ export async function addLabResult(input: unknown): Promise<ActionResult<{ id: s
       actorId: session.userId,
     },
   })
+
+  const labContext = await getPatientNotificationContext(session.businessId, data.patientId)
+  await createNotification({
+    businessId: session.businessId,
+    recipientUserIds: [
+      labContext.business?.ownerUserId,
+      labContext.patient?.assignedDoctor?.userId,
+    ],
+    excludeUserId: session.userId,
+    actorUserId: session.userId,
+    type: NotificationType.PATIENT,
+    subtype: 'lab_result_added',
+    title: 'Yeni tahlil sonucu',
+    message: `${labContext.patient?.fullName ?? 'Hasta'} için tahlil sonucu: ${data.title}`,
+    entityType: 'patient',
+    entityId: data.patientId,
+    link: `/dashboard/hastalar/${data.patientId}`,
+    priority: NotificationPriority.HIGH,
+    metadata: {
+      patientId: data.patientId,
+      patientName: labContext.patient?.fullName,
+      labTitle: data.title,
+      labName: data.labName ?? null,
+      resultDate: data.resultDate,
+    },
+  })
+
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
+  revalidatePath('/dashboard/bildirimler')
   return ok({ id: created.id })
 }
 
@@ -542,7 +702,34 @@ export async function addPatientFile(input: unknown): Promise<ActionResult<{ id:
       actorId: session.userId,
     },
   })
+
+  const fileContext = await getPatientNotificationContext(session.businessId, data.patientId)
+  await createNotification({
+    businessId: session.businessId,
+    recipientUserIds: [
+      fileContext.business?.ownerUserId,
+      fileContext.patient?.assignedDoctor?.userId,
+    ],
+    excludeUserId: session.userId,
+    actorUserId: session.userId,
+    type: NotificationType.PATIENT,
+    subtype: 'patient_file_uploaded',
+    title: 'Yeni dosya yüklendi',
+    message: `${fileContext.patient?.fullName ?? 'Hasta'} kartına ${data.fileName} dosyası eklendi.`,
+    entityType: 'patient',
+    entityId: data.patientId,
+    link: `/dashboard/hastalar/${data.patientId}`,
+    metadata: {
+      patientId: data.patientId,
+      patientName: fileContext.patient?.fullName,
+      fileName: data.fileName,
+      category: data.category,
+      uploadedBy: session.fullName,
+    },
+  })
+
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
+  revalidatePath('/dashboard/bildirimler')
   return ok({ id: created.id })
 }
 
@@ -564,6 +751,7 @@ export async function updatePatientMeta(input: unknown): Promise<ActionResult> {
   const parsed = metaSchema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
+  if (!session.permissions.includes('medical_note.view')) return err('Tibbi not duzenleme yetkiniz yok')
   const owned = await prisma.patient.findFirst({
     where: { id: parsed.data.patientId, businessId: session.businessId },
     select: { id: true },

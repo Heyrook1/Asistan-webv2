@@ -200,18 +200,22 @@ export function MobileShell({
                   tone="blue"
                 />
               )}
+              {can('medical_note.view') && (
               <FabAction
                 icon={<StickyNote className="h-6 w-6" />}
                 label="Not Ekle"
                 onClick={() => handleFabAction('note')}
                 tone="amber"
               />
+              )}
+              {can('file.view') && (
               <FabAction
                 icon={<Upload className="h-6 w-6" />}
                 label="Dosya Yükle"
                 onClick={() => handleFabAction('upload')}
                 tone="violet"
               />
+              )}
             </div>
           </div>
         </SheetContent>

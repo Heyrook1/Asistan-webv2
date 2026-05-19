@@ -4,7 +4,12 @@ import { DashboardHeader } from '@/components/dashboard/header'
 import { MobileTopbar } from '@/components/dashboard/mobile-topbar'
 import { MobileShell } from '@/components/dashboard/mobile-shell'
 import { getSession } from '@/lib/session'
-import { getUnreadNotificationCount } from '@/lib/queries'
+import {
+  getNotificationsList,
+  getUnreadMessageCount,
+  getUnreadNotificationCount,
+  serializeNotification,
+} from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 
 export default async function DashboardLayout({
@@ -15,8 +20,10 @@ export default async function DashboardLayout({
   const session = await getSession()
   if (!session) redirect('/auth/login')
 
-  const [unreadCount, patients, services, staff] = await Promise.all([
+  const [unreadCount, unreadMessages, recentNotifications, patients, services, staff] = await Promise.all([
     getUnreadNotificationCount(session.businessId, session.userId),
+    getUnreadMessageCount(session.businessId, session.userId),
+    getNotificationsList(session.businessId, session.userId, 10),
     prisma.patient.findMany({
       where: { businessId: session.businessId, isArchived: false },
       orderBy: { fullName: 'asc' },
@@ -35,6 +42,8 @@ export default async function DashboardLayout({
     }),
   ])
 
+  const notificationPreview = recentNotifications.map(serializeNotification)
+
   const lookups = {
     patients: patients.map((p) => ({ id: p.id, label: `${p.fullName} (#${p.patientNumber})` })),
     services: services.map((s) => ({ id: s.id, label: s.name, durationMin: s.durationMin })),
@@ -45,8 +54,18 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-[#F4F8F9]">
       <DashboardSidebar unreadNotifications={unreadCount} session={session} />
       <div className="lg:pl-64">
-        <MobileTopbar session={session} unreadCount={unreadCount} />
-        <DashboardHeader session={session} unreadCount={unreadCount} />
+        <MobileTopbar
+          session={session}
+          unreadCount={unreadCount}
+          unreadMessages={unreadMessages}
+          notifications={notificationPreview}
+        />
+        <DashboardHeader
+          session={session}
+          unreadCount={unreadCount}
+          unreadMessages={unreadMessages}
+          notifications={notificationPreview}
+        />
         <main className="px-4 pb-28 pt-3 lg:px-6 lg:pb-6 lg:pt-6">{children}</main>
       </div>
       <MobileShell session={session} unreadCount={unreadCount} lookups={lookups} />

@@ -1,17 +1,15 @@
 'use client'
 
-import { Bell, ChevronDown, User, Building2, HelpCircle, LogOut } from 'lucide-react'
+import { ChevronDown, User, Building2, HelpCircle, LogOut, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -19,13 +17,19 @@ import { toast } from 'sonner'
 import type { SessionContext } from '@/lib/rbac'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { PatientSearch } from '@/components/dashboard/patient-search'
+import { NotificationBell } from '@/components/dashboard/notification-bell'
+import type { NotificationListItem } from '@/lib/notifications/types'
 
 export function DashboardHeader({
   session,
   unreadCount,
+  unreadMessages,
+  notifications,
 }: {
   session: SessionContext
   unreadCount: number
+  unreadMessages: number
+  notifications: NotificationListItem[]
 }) {
   const router = useRouter()
   const initials = session.fullName
@@ -50,37 +54,24 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-[#F7F8FB]">
-              <Bell className="h-[18px] w-[18px] text-foreground/70" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#12C8AD] text-[#06142A] text-[9px] font-bold flex items-center justify-center leading-none ring-2 ring-white">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 rounded-xl shadow-lg border-border/40">
-            <DropdownMenuLabel className="flex items-center justify-between py-3 px-4">
-              <span className="font-semibold">Bildirimler</span>
-              {unreadCount > 0 && (
-                <Badge variant="secondary" className="text-[10px] bg-[#12C8AD]/10 text-[#0b7f6f] border-0">
-                  {unreadCount} yeni
-                </Badge>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link
-                href="/dashboard/bildirimler"
-                className="w-full justify-center text-sm font-medium text-[#12C8AD] py-2.5"
-              >
-                Tümünü Gör →
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Link
+          href="/dashboard/mesajlar"
+          aria-label="Mesajlar"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 transition hover:bg-[#F7F8FB]"
+        >
+          <MessageCircle className="h-[18px] w-[18px]" />
+          {unreadMessages > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FF4D4F] px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </span>
+          )}
+        </Link>
+        <NotificationBell
+          businessId={session.businessId}
+          userId={session.userId}
+          notifications={notifications}
+          unreadCount={unreadCount}
+        />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

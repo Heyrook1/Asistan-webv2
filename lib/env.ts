@@ -31,10 +31,15 @@ const envSchema = z
     SUPABASE_URL: optionalUrl,
     SUPABASE_ANON_KEY: optionalSecret,
     SUPABASE_PUBLISHABLE_KEY: optionalSecret,
+    SUPABASE_SERVICE_ROLE_KEY: optionalSecret,
+    SUPABASE_SECRET_KEY: optionalSecret,
     EMAIL_PROVIDER_WEBHOOK_URL: optionalUrl,
     SMS_PROVIDER_WEBHOOK_URL: optionalUrl,
     WHATSAPP_PROVIDER_WEBHOOK_URL: optionalUrl,
     NOTIFICATION_PROVIDER_TOKEN: optionalSecret,
+    NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY: optionalSecret,
+    WEB_PUSH_VAPID_PRIVATE_KEY: optionalSecret,
+    WEB_PUSH_CONTACT_EMAIL: optionalSecret,
   })
   .superRefine((env, ctx) => {
     if (!env.DATABASE_URL && !env.POSTGRES_PRISMA_URL && !env.POSTGRES_URL && !env.POSTGRES_URL_NON_POOLING) {
@@ -88,4 +93,8 @@ export const env = {
     parsed.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     parsed.data.SUPABASE_ANON_KEY ??
     parsed.data.SUPABASE_PUBLISHABLE_KEY!,
+  supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY ?? parsed.data.SUPABASE_SECRET_KEY,
+  webPushVapidPublic: parsed.data.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY,
+  webPushVapidPrivate: parsed.data.WEB_PUSH_VAPID_PRIVATE_KEY,
+  webPushContactEmail: parsed.data.WEB_PUSH_CONTACT_EMAIL,
 }

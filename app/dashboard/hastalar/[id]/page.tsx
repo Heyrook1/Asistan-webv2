@@ -28,10 +28,15 @@ export default async function PatientDetailPage({
 }) {
   const { id } = await params
   const session = await requirePermission('patient.view')
-  const patient = await getPatientDetail(session.businessId, id)
+  const canEdit = can(session, 'patient.edit')
+  const canViewMedicalNotes = can(session, 'medical_note.view')
+  const canViewFiles = can(session, 'file.view')
+  const patient = await getPatientDetail(session.businessId, id, {
+    includeMedicalNotes: canViewMedicalNotes,
+    includeFiles: canViewFiles,
+  })
   if (!patient) notFound()
 
-  const canEdit = can(session, 'patient.edit')
   const age = ageFromBirthDate(patient.birthDate)
 
   const [services, staff] = await Promise.all([
@@ -164,13 +169,19 @@ export default async function PatientDetailPage({
                 <TabsList className="inline-flex h-auto w-max items-stretch gap-1 bg-transparent p-0 md:flex md:w-auto md:flex-wrap md:gap-1 md:p-1">
                   <TabsTrigger value="genel" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Genel Bilgi</TabsTrigger>
                   <TabsTrigger value="randevular" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Randevular ({patient.appointments.length})</TabsTrigger>
-                  <TabsTrigger value="not" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Notlar ({patient.notes.length})</TabsTrigger>
+                  {canViewMedicalNotes && (
+                    <TabsTrigger value="not" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Notlar ({patient.notes.length})</TabsTrigger>
+                  )}
                   <TabsTrigger value="ilac" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">İlaçlar ({patient.medications.length})</TabsTrigger>
                   <TabsTrigger value="alerji" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Alerjiler ({patient.allergies.length})</TabsTrigger>
                   <TabsTrigger value="tedavi" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Tedaviler ({patient.treatments.length})</TabsTrigger>
                   <TabsTrigger value="tahlil" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Tahliller ({patient.labResults.length})</TabsTrigger>
-                  <TabsTrigger value="dosya" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Dosyalar ({patient.files.length})</TabsTrigger>
-                  <TabsTrigger value="hikaye" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Hasta Hikayesi</TabsTrigger>
+                  {canViewFiles && (
+                    <TabsTrigger value="dosya" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Dosyalar ({patient.files.length})</TabsTrigger>
+                  )}
+                  {canViewMedicalNotes && (
+                    <TabsTrigger value="hikaye" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Hasta Hikayesi</TabsTrigger>
+                  )}
                 </TabsList>
               </div>
             </CardContent>
@@ -333,7 +344,11 @@ export default async function PatientDetailPage({
                     <Sparkles className="h-4 w-4 text-violet-600" />
                     <h3 className="text-sm font-semibold text-[#0C1D36]">AI Klinik Önerileri</h3>
                   </div>
-                  <AISuggestionsList suggestions={(patient.aiSuggestions as Suggestion[] | null) ?? defaultSuggestions(patient)} />
+                  {canViewMedicalNotes ? (
+                    <AISuggestionsList suggestions={(patient.aiSuggestions as Suggestion[] | null) ?? defaultSuggestions(patient)} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Bu bolum tibbi not yetkisi gerektirir.</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -479,6 +494,7 @@ export default async function PatientDetailPage({
         </TabsContent>
 
         {/* GÖRÜNTÜLER */}
+        {canViewMedicalNotes && (
         <TabsContent value="hikaye">
           <Card>
             <CardContent className="p-5 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
@@ -516,8 +532,10 @@ export default async function PatientDetailPage({
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
         {/* DOSYALAR */}
+        {canViewFiles && (
         <TabsContent value="dosya">
           <Card>
             <CardContent className="p-5">
@@ -537,8 +555,10 @@ export default async function PatientDetailPage({
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
         {/* NOTLAR */}
+        {canViewMedicalNotes && (
         <TabsContent value="not">
           <Card>
             <CardContent className="p-5">
@@ -561,6 +581,7 @@ export default async function PatientDetailPage({
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   )

@@ -2,10 +2,17 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { AppointmentStatus, TimelineEventType } from '@prisma/client'
+import {
+  AppointmentStatus,
+  NotificationActionType,
+  NotificationPriority,
+  NotificationType,
+  TimelineEventType,
+} from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
+import { createNotification } from '@/lib/notifications/service'
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -127,9 +134,105 @@ export async function createAppointment(rawInput: unknown): Promise<ActionResult
     },
   })
 
+  // Pending-approval workflow: when an appointment lands in SCHEDULED status,
+  // the assigned doctor (or — when none — every doctor) needs to approve it.
+  // The owner gets a copy for awareness.
+  if (created.status === AppointmentStatus.SCHEDULED) {
+    const assignedUserId = input.staffId
+      ? (await prisma.teamMember.findFirst({
+          where: { id: input.staffId, businessId: session.businessId },
+          select: { userId: true },
+        }))?.userId ?? null
+      : null
+
+    const ownerUserId = (
+      await prisma.business.findUnique({
+        where: { id: session.businessId },
+        select: { ownerUserId: true },
+      })
+    )?.ownerUserId
+
+    await createNotification({
+      businessId: session.businessId,
+      recipientUserId: assignedUserId,
+      recipientUserIds: [ownerUserId],
+      roles: assignedUserId ? undefined : ['DOKTOR', 'ISLETME_SAHIBI'],
+      excludeUserId: session.userId,
+      actorUserId: session.userId,
+      type: NotificationType.APPOINTMENT,
+      subtype: 'appointment_pending_approval',
+      title: 'Onay bekleyen randevu',
+      message: `${patient.fullName} için ${service.name} randevusu oluşturuldu (${input.date} ${input.startTime}). Onay bekliyor.`,
+      entityType: 'appointment',
+      entityId: created.id,
+      link: `/dashboard/randevular?id=${created.id}`,
+      priority: NotificationPriority.HIGH,
+      actionRequired: true,
+      metadata: {
+        appointmentId: created.id,
+        patientId: patient.id,
+        patientName: patient.fullName,
+        serviceName: service.name,
+        date: input.date,
+        startTime: input.startTime,
+        endTime,
+      },
+      actions: [
+        {
+          label: 'Onayla',
+          actionType: NotificationActionType.APPOINTMENT_APPROVE,
+          payload: { appointmentId: created.id },
+        },
+        {
+          label: 'İptal Et',
+          actionType: NotificationActionType.APPOINTMENT_CANCEL,
+          payload: { appointmentId: created.id },
+        },
+        {
+          label: 'Ertele',
+          actionType: NotificationActionType.APPOINTMENT_RESCHEDULE,
+          payload: { appointmentId: created.id },
+        },
+      ],
+    })
+  } else if (input.staffId) {
+    // Already-confirmed appointments still trigger an `appointment_assigned`
+    // ping so the doctor knows a slot is on their calendar.
+    const assignedUserId = (
+      await prisma.teamMember.findFirst({
+        where: { id: input.staffId, businessId: session.businessId },
+        select: { userId: true },
+      })
+    )?.userId
+    if (assignedUserId) {
+      await createNotification({
+        businessId: session.businessId,
+        recipientUserId: assignedUserId,
+        excludeUserId: session.userId,
+        actorUserId: session.userId,
+        type: NotificationType.APPOINTMENT,
+        subtype: 'appointment_assigned',
+        title: 'Yeni randevu atandı',
+        message: `${patient.fullName} • ${service.name} • ${input.date} ${input.startTime}`,
+        entityType: 'appointment',
+        entityId: created.id,
+        link: `/dashboard/randevular?id=${created.id}`,
+        metadata: {
+          appointmentId: created.id,
+          patientId: patient.id,
+          patientName: patient.fullName,
+          serviceName: service.name,
+          date: input.date,
+          startTime: input.startTime,
+        },
+      })
+    }
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
+  revalidatePath('/dashboard/bildirimler')
   revalidatePath(`/dashboard/hastalar/${input.patientId}`)
   return ok({ id: created.id })
 }
@@ -187,9 +290,97 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
     },
   })
 
+  // Fan a notification out to the other interested parties (owner + assigned
+  // doctor), skipping the actor.
+  const [patient, service, staff, business] = await Promise.all([
+    prisma.patient.findUnique({
+      where: { id: existing.patientId },
+      select: { fullName: true },
+    }),
+    prisma.service.findUnique({
+      where: { id: existing.serviceId },
+      select: { name: true },
+    }),
+    existing.staffId
+      ? prisma.teamMember.findUnique({
+          where: { id: existing.staffId },
+          select: { userId: true, fullName: true },
+        })
+      : Promise.resolve(null),
+    prisma.business.findUnique({
+      where: { id: existing.businessId },
+      select: { ownerUserId: true },
+    }),
+  ])
+
+  const dateStr = existing.date.toISOString().slice(0, 10)
+  const detail = `${service?.name ?? 'Hizmet'} • ${dateStr} ${existing.startTime}`
+  const recipients = [staff?.userId, business?.ownerUserId].filter(
+    (id): id is string => Boolean(id)
+  )
+
+  const status = parsed.data.status
+  const meta = {
+    appointmentId: existing.id,
+    patientId: existing.patientId,
+    patientName: patient?.fullName,
+    serviceName: service?.name,
+    date: dateStr,
+    startTime: existing.startTime,
+  }
+
+  if (status === AppointmentStatus.CONFIRMED) {
+    await createNotification({
+      businessId: existing.businessId,
+      recipientUserIds: recipients,
+      excludeUserId: session.userId,
+      actorUserId: session.userId,
+      type: NotificationType.APPOINTMENT,
+      subtype: 'appointment_approved',
+      title: 'Randevu onaylandı',
+      message: `${patient?.fullName ?? 'Hasta'} için randevu onaylandı. ${detail}`,
+      entityType: 'appointment',
+      entityId: existing.id,
+      link: `/dashboard/randevular?id=${existing.id}`,
+      metadata: meta,
+    })
+  } else if (status === AppointmentStatus.CANCELLED || status === AppointmentStatus.NO_SHOW) {
+    await createNotification({
+      businessId: existing.businessId,
+      recipientUserIds: recipients,
+      excludeUserId: session.userId,
+      actorUserId: session.userId,
+      type: NotificationType.APPOINTMENT,
+      subtype: 'appointment_cancelled',
+      title: status === AppointmentStatus.NO_SHOW ? 'Randevuya gelinmedi' : 'Randevu iptal edildi',
+      message: `${patient?.fullName ?? 'Hasta'} için randevu iptal edildi. ${detail}`,
+      entityType: 'appointment',
+      entityId: existing.id,
+      link: `/dashboard/randevular?id=${existing.id}`,
+      priority: NotificationPriority.HIGH,
+      metadata: meta,
+    })
+  } else if (status === AppointmentStatus.COMPLETED) {
+    await createNotification({
+      businessId: existing.businessId,
+      recipientUserIds: recipients,
+      excludeUserId: session.userId,
+      actorUserId: session.userId,
+      type: NotificationType.APPOINTMENT,
+      subtype: 'appointment_updated',
+      title: 'Randevu tamamlandı',
+      message: `${patient?.fullName ?? 'Hasta'} için randevu tamamlandı. ${detail}`,
+      entityType: 'appointment',
+      entityId: existing.id,
+      link: `/dashboard/randevular?id=${existing.id}`,
+      metadata: meta,
+    })
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
+  revalidatePath('/dashboard/bildirimler')
   revalidatePath(`/dashboard/hastalar/${existing.patientId}`)
   return ok(undefined)
 }
@@ -236,9 +427,55 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
       actorId: session.userId,
     },
   })
+
+  const [patient, service, staff, business] = await Promise.all([
+    prisma.patient.findUnique({
+      where: { id: existing.patientId },
+      select: { fullName: true },
+    }),
+    prisma.service.findUnique({
+      where: { id: existing.serviceId },
+      select: { name: true },
+    }),
+    existing.staffId
+      ? prisma.teamMember.findUnique({
+          where: { id: existing.staffId },
+          select: { userId: true },
+        })
+      : Promise.resolve(null),
+    prisma.business.findUnique({
+      where: { id: existing.businessId },
+      select: { ownerUserId: true },
+    }),
+  ])
+
+  await createNotification({
+    businessId: existing.businessId,
+    recipientUserIds: [staff?.userId, business?.ownerUserId],
+    excludeUserId: session.userId,
+    actorUserId: session.userId,
+    type: NotificationType.APPOINTMENT,
+    subtype: 'appointment_rescheduled',
+    title: 'Randevu ertelendi',
+    message: `${patient?.fullName ?? 'Hasta'} için randevu ${parsed.data.date} ${parsed.data.startTime} saatine alındı.`,
+    entityType: 'appointment',
+    entityId: existing.id,
+    link: `/dashboard/randevular?id=${existing.id}`,
+    priority: NotificationPriority.HIGH,
+    metadata: {
+      appointmentId: existing.id,
+      patientId: existing.patientId,
+      patientName: patient?.fullName,
+      serviceName: service?.name,
+      date: parsed.data.date,
+      startTime: parsed.data.startTime,
+    },
+  })
+
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
+  revalidatePath('/dashboard/bildirimler')
   revalidatePath(`/dashboard/hastalar/${existing.patientId}`)
   return ok(undefined)
 }
