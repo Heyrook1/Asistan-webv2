@@ -54,6 +54,7 @@ export default async function MesajlarPage({ searchParams }: { searchParams: Sea
   return (
     <MesajlarBoard
       session={{ userId: session.userId, fullName: session.fullName }}
+      businessId={session.businessId}
       conversations={conversations}
       activeConversationId={activeId}
       teammates={teammates
@@ -81,6 +82,19 @@ export default async function MesajlarPage({ searchParams }: { searchParams: Sea
                 body: m.body,
                 createdAt: m.createdAt.toISOString(),
                 sender: m.sender,
+                attachments: m.attachments.map((a) => ({
+                  id: a.id,
+                  fileName: a.fileName,
+                  fileType: a.fileType,
+                  fileSize: a.fileSize,
+                  fileUrl: a.fileUrl,
+                })),
+                reactions: m.reactions.map((r) => ({
+                  id: r.id,
+                  emoji: r.emoji,
+                  userId: r.userId,
+                  user: r.user,
+                })),
               })),
             }
           : null

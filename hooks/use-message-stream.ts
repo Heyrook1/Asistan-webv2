@@ -21,6 +21,7 @@ type Options = {
   pollMs?: number
   latestCreatedAt?: string | null
   onIncoming?: (m: IncomingMessage) => void
+  onThreadChanged?: () => void
 }
 
 /**
@@ -33,10 +34,13 @@ export function useMessageStream({
   pollMs = 8_000,
   latestCreatedAt,
   onIncoming,
+  onThreadChanged,
 }: Options) {
   const router = useRouter()
   const onIncomingRef = useRef(onIncoming)
+  const onThreadChangedRef = useRef(onThreadChanged)
   onIncomingRef.current = onIncoming
+  onThreadChangedRef.current = onThreadChanged
 
   const watermarkRef = useRef<string>(latestCreatedAt ?? new Date(0).toISOString())
   useEffect(() => {
@@ -63,6 +67,22 @@ export function useMessageStream({
               watermarkRef.current = row.createdAt
               onIncomingRef.current?.(row)
             }
+            router.refresh()
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'MessageReaction' },
+          () => {
+            onThreadChangedRef.current?.()
+            router.refresh()
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'ConversationParticipant' },
+          () => {
+            onThreadChangedRef.current?.()
             router.refresh()
           }
         )

@@ -25,9 +25,8 @@ function urlBase64ToUint8Array(base64: string) {
 
 /**
  * Surfaces a button that registers the browser for Web Push. Subscription rows
- * are stored server-side; actual *delivery* is gated on a VAPID-enabled backend
- * (see TODOs in `public/sw.js`). Until then this still saves the subscription
- * for later use without breaking the UI.
+ * are stored server-side. Delivery uses the configured VAPID keys when they
+ * are present, while local setups without keys can still keep the UI working.
  */
 export function PushPermissionToggle() {
   const [permission, setPermission] = useState<Permission>('default')

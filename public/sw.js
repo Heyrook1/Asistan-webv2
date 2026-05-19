@@ -1,13 +1,8 @@
-// Asistan Health — Web Push service worker (placeholder).
+// Asistan Health web push service worker.
 //
-// Real Web Push delivery requires a VAPID key pair plus a backend that signs
-// POSTs to each subscription's endpoint. This file is the browser-side piece;
-// it stays passive until the backend starts sending notifications.
-//
-// TODO(backend): when external VAPID keys land, wire a server action to
-// dispatch payloads via `web-push` (Node) and store the VAPID public key in
-// `NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY`. Do **not** commit the private key —
-// it must be a server-only env var.
+// Delivery is handled by the server-side notification pipeline when VAPID
+// environment variables are configured. This worker renders incoming payloads
+// and deep-links users back into the dashboard.
 
 self.addEventListener('install', () => {
   self.skipWaiting()

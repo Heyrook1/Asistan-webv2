@@ -3,7 +3,12 @@ import 'server-only'
 import type { PatientFile, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
-import { PATIENT_FILES_BUCKET, PATIENT_FILE_SIGNED_URL_TTL_SECONDS } from '@/lib/storage-constants'
+import {
+  MESSAGE_MEDIA_BUCKET,
+  MESSAGE_MEDIA_SIGNED_URL_TTL_SECONDS,
+  PATIENT_FILES_BUCKET,
+  PATIENT_FILE_SIGNED_URL_TTL_SECONDS,
+} from '@/lib/storage-constants'
 import type { NotificationListItem } from '@/lib/notifications/types'
 import { deriveStatus } from '@/lib/notifications/types'
 
@@ -365,12 +370,13 @@ export async function getMyConversations(
     orderBy: [{ lastMessageAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
     include: {
       participants: {
+        where: { isActive: true },
         include: { user: { select: { id: true, fullName: true, avatarUrl: true } } },
       },
       messages: {
         orderBy: { createdAt: 'desc' },
         take: 1,
-        select: { body: true, senderUserId: true, createdAt: true },
+        select: { body: true, senderUserId: true, createdAt: true, attachments: { select: { id: true } } },
       },
     },
   })
@@ -398,7 +404,7 @@ export async function getMyConversations(
         partner,
         lastMessage: last
           ? {
-              body: last.body,
+              body: last.body || (last.attachments.length ? 'Dosya gönderildi' : ''),
               senderUserId: last.senderUserId,
               createdAt: last.createdAt.toISOString(),
             }
@@ -424,6 +430,7 @@ export async function getConversationThread(
     where: { id: conversationId },
     include: {
       participants: {
+        where: { isActive: true },
         include: { user: { select: { id: true, fullName: true, avatarUrl: true } } },
       },
     },
@@ -436,10 +443,33 @@ export async function getConversationThread(
     take: limit,
     include: {
       sender: { select: { id: true, fullName: true, avatarUrl: true } },
+      attachments: { orderBy: { createdAt: 'asc' } },
+      reactions: {
+        orderBy: { createdAt: 'asc' },
+        include: { user: { select: { id: true, fullName: true } } },
+      },
     },
   })
 
-  return { conversation, messages }
+  const supabase = await createClient()
+  const signedMessages = await Promise.all(
+    messages.map(async (message) => ({
+      ...message,
+      attachments: await Promise.all(
+        message.attachments.map(async (attachment) => {
+          if (!attachment.storageKey.startsWith(`${conversation.businessId}/${conversation.id}/`)) {
+            return { ...attachment, fileUrl: '' }
+          }
+          const { data, error } = await supabase.storage
+            .from(MESSAGE_MEDIA_BUCKET)
+            .createSignedUrl(attachment.storageKey, MESSAGE_MEDIA_SIGNED_URL_TTL_SECONDS)
+          return { ...attachment, fileUrl: error ? '' : data.signedUrl }
+        })
+      ),
+    }))
+  )
+
+  return { conversation, messages: signedMessages }
 }
 
 export async function getUnreadMessageCount(businessId: string, userId: string) {

@@ -6,10 +6,15 @@ import {
   ArrowLeft,
   CheckCheck,
   MessageCircle,
+  Paperclip,
   Plus,
   Search,
   Send,
+  SmilePlus,
   UserCircle2,
+  UserMinus,
+  UserPlus,
+  Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -32,11 +37,16 @@ import { ROLE_LABELS } from '@/lib/rbac'
 import type { TeamRole } from '@prisma/client'
 import type { ConversationSummary } from '@/lib/queries'
 import {
+  addGroupParticipants,
+  createGroupConversation,
   getOrCreateDirectConversation,
   markConversationRead,
+  removeGroupParticipant,
   sendMessage,
+  toggleMessageReaction,
 } from '@/lib/actions/messages'
 import { useMessageStream } from '@/hooks/use-message-stream'
+import { uploadMessageMedia } from '@/lib/storage'
 
 type Teammate = {
   userId: string
@@ -52,6 +62,8 @@ type ThreadMessage = {
   body: string
   createdAt: string
   sender: { id: string; fullName: string; avatarUrl: string | null }
+  attachments: { id: string; fileName: string; fileType: string; fileSize: number; fileUrl: string }[]
+  reactions: { id: string; emoji: string; userId: string; user: { id: string; fullName: string } }[]
 }
 
 type ThreadData = {
@@ -64,6 +76,7 @@ type ThreadData = {
 
 type Props = {
   session: { userId: string; fullName: string }
+  businessId: string
   conversations: ConversationSummary[]
   activeConversationId: string | null
   teammates: Teammate[]
@@ -72,6 +85,7 @@ type Props = {
 
 export function MesajlarBoard({
   session,
+  businessId,
   conversations,
   activeConversationId,
   teammates,
@@ -81,7 +95,12 @@ export function MesajlarBoard({
   const [pending, startTransition] = useTransition()
   const [searchTerm, setSearchTerm] = useState('')
   const [composeOpen, setComposeOpen] = useState(false)
+  const [membersOpen, setMembersOpen] = useState(false)
+  const [groupMode, setGroupMode] = useState(false)
+  const [groupTitle, setGroupTitle] = useState('')
+  const [groupUsers, setGroupUsers] = useState<string[]>([])
   const [draft, setDraft] = useState('')
+  const [attachments, setAttachments] = useState<File[]>([])
   const [streamMessages, setStreamMessages] = useState<ThreadMessage[]>([])
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
@@ -93,6 +112,9 @@ export function MesajlarBoard({
     latestCreatedAt: latestMsg,
     onIncoming: () => {
       toast('Yeni mesaj geldi')
+    },
+    onThreadChanged: () => {
+      router.refresh()
     },
   })
 
@@ -141,16 +163,88 @@ export function MesajlarBoard({
   const totalUnread = conversations.reduce((acc, c) => acc + c.unreadCount, 0)
 
   function handleSend() {
-    if (!thread || !draft.trim()) return
+    if (!thread || (!draft.trim() && attachments.length === 0)) return
     const body = draft.trim()
+    const files = [...attachments]
     setDraft('')
+    setAttachments([])
     startTransition(async () => {
-      const result = await sendMessage({ conversationId: thread.id, body })
+      try {
+        const uploaded = await Promise.all(
+          files.map((file) => uploadMessageMedia(file, { businessId, conversationId: thread.id }))
+        )
+        const result = await sendMessage({ conversationId: thread.id, body, attachments: uploaded })
+        if (!result.ok) {
+          toast.error(result.error)
+          setDraft(body)
+          setAttachments(files)
+          return
+        }
+        router.refresh()
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Dosya yüklenemedi')
+        setDraft(body)
+        setAttachments(files)
+      }
+    })
+  }
+
+  function handleToggleReaction(messageId: string, emoji: string) {
+    startTransition(async () => {
+      const result = await toggleMessageReaction({ messageId, emoji })
       if (!result.ok) {
         toast.error(result.error)
-        setDraft(body)
         return
       }
+      router.refresh()
+    })
+  }
+
+  function handleCreateGroup() {
+    if (!groupTitle.trim() || groupUsers.length === 0) return
+    startTransition(async () => {
+      const result = await createGroupConversation({
+        title: groupTitle.trim(),
+        participantUserIds: groupUsers,
+      })
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      setComposeOpen(false)
+      setGroupMode(false)
+      setGroupTitle('')
+      setGroupUsers([])
+      router.push(`/dashboard/mesajlar?conversation=${result.data.conversationId}`)
+      router.refresh()
+    })
+  }
+
+  function handleAddGroupMember(userId: string) {
+    if (!thread?.isGroup) return
+    startTransition(async () => {
+      const result = await addGroupParticipants({
+        conversationId: thread.id,
+        participantUserIds: [userId],
+      })
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Katılımcı eklendi')
+      router.refresh()
+    })
+  }
+
+  function handleRemoveGroupMember(userId: string) {
+    if (!thread?.isGroup) return
+    startTransition(async () => {
+      const result = await removeGroupParticipant({ conversationId: thread.id, userId })
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Katılımcı çıkarıldı')
       router.refresh()
     })
   }
@@ -169,6 +263,8 @@ export function MesajlarBoard({
   }
 
   const partner = thread?.participants.find((p) => p.userId !== session.userId)?.user ?? null
+  const activeParticipantIds = new Set(thread?.participants.map((p) => p.userId) ?? [])
+  const addableTeammates = teammates.filter((t) => !activeParticipantIds.has(t.userId))
 
   return (
     <div className="space-y-5">
@@ -295,6 +391,18 @@ export function MesajlarBoard({
                       {thread.isGroup ? 'Grup sohbeti' : 'Bire bir mesaj'}
                     </p>
                   </div>
+                  {thread.isGroup && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMembersOpen(true)}
+                      className="gap-1"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Üyeler
+                    </Button>
+                  )}
                 </div>
 
                 <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
@@ -340,7 +448,26 @@ export function MesajlarBoard({
                                   {m.sender.fullName}
                                 </p>
                               )}
-                              <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                              {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                              {m.attachments.length > 0 && (
+                                <div className={cn('mt-2 space-y-1', !m.body && 'mt-0')}>
+                                  {m.attachments.map((a) => (
+                                    <a
+                                      key={a.id}
+                                      href={a.fileUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className={cn(
+                                        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs',
+                                        mine ? 'bg-white/15 text-white' : 'bg-[#F4F8F9] text-[#0C1D36]'
+                                      )}
+                                    >
+                                      <Paperclip className="h-3.5 w-3.5" />
+                                      <span className="min-w-0 flex-1 truncate">{a.fileName}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                               <p
                                 className={cn(
                                   'mt-1 text-[10px]',
@@ -350,6 +477,34 @@ export function MesajlarBoard({
                                 {formatTimeAgo(m.createdAt)}
                                 {mine && <CheckCheck className="ml-1 inline h-3 w-3" />}
                               </p>
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                {m.reactions.map((r) => (
+                                  <button
+                                    key={r.id}
+                                    type="button"
+                                    onClick={() => handleToggleReaction(m.id, r.emoji)}
+                                    className={cn(
+                                      'rounded-full px-1.5 py-0.5 text-[11px]',
+                                      r.userId === session.userId
+                                        ? 'bg-white/25'
+                                        : mine
+                                          ? 'bg-white/10'
+                                          : 'bg-[#EAF6F4]'
+                                    )}
+                                    title={r.user.fullName}
+                                  >
+                                    {r.emoji}
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleReaction(m.id, '👍')}
+                                  className={cn('rounded-full p-0.5', mine ? 'text-white/80' : 'text-muted-foreground')}
+                                  title="Tepki ekle"
+                                >
+                                  <SmilePlus className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
                           </li>
                         )
@@ -359,7 +514,36 @@ export function MesajlarBoard({
                 </div>
 
                 <div className="border-t bg-white p-3">
+                  {attachments.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {attachments.map((file, index) => (
+                        <button
+                          key={`${file.name}-${index}`}
+                          type="button"
+                          onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+                          className="inline-flex max-w-[220px] items-center gap-1 rounded-full bg-[#F4F8F9] px-2 py-1 text-xs text-[#0C1D36]"
+                          title="Kaldır"
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          <span className="truncate">{file.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-end gap-2">
+                    <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border text-muted-foreground hover:bg-[#F7F9FB]" title="Dosya ekle">
+                      <Paperclip className="h-4 w-4" />
+                      <input
+                        type="file"
+                        multiple
+                        className="sr-only"
+                        onChange={(event) => {
+                          const files = Array.from(event.target.files ?? []).slice(0, 5)
+                          setAttachments((prev) => [...prev, ...files].slice(0, 5))
+                          event.target.value = ''
+                        }}
+                      />
+                    </label>
                     <Textarea
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
@@ -375,7 +559,7 @@ export function MesajlarBoard({
                     />
                     <Button
                       onClick={handleSend}
-                      disabled={pending || !draft.trim()}
+                      disabled={pending || (!draft.trim() && attachments.length === 0)}
                       className="h-11 bg-[#12C8AD] text-white hover:bg-[#10b49c]"
                     >
                       <Send className="h-4 w-4" />
@@ -394,6 +578,17 @@ export function MesajlarBoard({
             <SheetTitle className="text-[#0C1D36]">Yeni sohbet</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant={!groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(false)} className={!groupMode ? 'bg-[#12C8AD] text-white hover:bg-[#10b49c]' : ''}>
+                <UserCircle2 className="mr-1.5 h-4 w-4" />
+                Bire bir
+              </Button>
+              <Button type="button" variant={groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(true)} className={groupMode ? 'bg-[#12C8AD] text-white hover:bg-[#10b49c]' : ''}>
+                <Users className="mr-1.5 h-4 w-4" />
+                Grup
+              </Button>
+            </div>
+            {groupMode && <Input value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} placeholder="Grup adı" />}
             <p className="text-xs text-muted-foreground">
               Sohbet başlatmak istediğiniz ekip üyesini seçin.
             </p>
@@ -411,7 +606,17 @@ export function MesajlarBoard({
                   <li key={t.userId}>
                     <button
                       type="button"
-                      onClick={() => handleStartConversation(t.userId)}
+                      onClick={() => {
+                        if (!groupMode) {
+                          handleStartConversation(t.userId)
+                          return
+                        }
+                        setGroupUsers((prev) =>
+                          prev.includes(t.userId)
+                            ? prev.filter((id) => id !== t.userId)
+                            : [...prev, t.userId]
+                        )
+                      }}
                       disabled={pending}
                       className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-[#F7F9FB] disabled:opacity-60"
                     >
@@ -420,11 +625,93 @@ export function MesajlarBoard({
                         <p className="truncate text-sm font-semibold text-[#0C1D36]">{t.fullName}</p>
                         <p className="text-[11px] text-muted-foreground">{ROLE_LABELS[t.role]}</p>
                       </div>
+                      {groupMode && (
+                        <span
+                          className={cn(
+                            'h-5 w-5 rounded-full border',
+                            groupUsers.includes(t.userId) && 'border-[#12C8AD] bg-[#12C8AD]'
+                          )}
+                        />
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             )}
+            {groupMode && teammates.length > 0 && (
+              <Button
+                type="button"
+                disabled={pending || !groupTitle.trim() || groupUsers.length === 0}
+                onClick={handleCreateGroup}
+                className="w-full bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+              >
+                Grup Sohbeti Oluştur
+              </Button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={membersOpen} onOpenChange={setMembersOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader className="border-b pb-3">
+            <SheetTitle className="text-[#0C1D36]">Grup üyeleri</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Aktif üyeler</p>
+              <ul className="divide-y divide-border/40 rounded-2xl border bg-white">
+                {(thread?.participants ?? []).map((p) => (
+                  <li key={p.userId} className="flex items-center gap-3 px-3 py-3">
+                    <UserAvatar fullName={p.user.fullName} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[#0C1D36]">{p.user.fullName}</p>
+                    </div>
+                    {p.userId !== session.userId && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => handleRemoveGroupMember(p.userId)}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-[#C22326]"
+                        title="Gruptan çıkar"
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Ekle</p>
+              {addableTeammates.length === 0 ? (
+                <p className="rounded-2xl border border-dashed bg-white p-4 text-sm text-muted-foreground">
+                  Eklenebilecek başka ekip üyesi yok.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border/40 rounded-2xl border bg-white">
+                  {addableTeammates.map((t) => (
+                    <li key={t.userId}>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => handleAddGroupMember(t.userId)}
+                        className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-[#F7F9FB] disabled:opacity-60"
+                      >
+                        <UserAvatar fullName={t.fullName} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[#0C1D36]">{t.fullName}</p>
+                          <p className="text-[11px] text-muted-foreground">{ROLE_LABELS[t.role]}</p>
+                        </div>
+                        <UserPlus className="h-4 w-4 text-[#12C8AD]" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </SheetContent>
       </Sheet>

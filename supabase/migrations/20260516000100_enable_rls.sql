@@ -18,6 +18,35 @@
 -- Helper functions (security definer so they can read providers/team_members)
 -- ----------------------------------------------------------------------------
 
+create table if not exists public.team_members (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid not null references public.providers(id) on delete cascade,
+  user_id uuid null references public.users(id) on delete set null,
+  full_name text not null,
+  email text not null,
+  role text not null check (role in ('Super Admin','Isletme Sahibi','Doktor','Sekreter','Personel')),
+  status text not null default 'active' check (status in ('active','inactive')),
+  permissions jsonb not null default '[]'::jsonb,
+  is_active boolean not null default true,
+  last_active_at timestamptz null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists team_members_provider_email_uidx
+  on public.team_members(provider_id, email);
+
+create table if not exists public.activity_logs (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid not null references public.providers(id) on delete cascade,
+  actor_id uuid null references public.users(id) on delete set null,
+  action text not null,
+  entity_type text not null,
+  entity_id uuid null,
+  details jsonb null,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.is_provider_owner(target_provider_id uuid)
 returns boolean
 language sql

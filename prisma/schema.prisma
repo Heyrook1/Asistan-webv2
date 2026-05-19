@@ -127,6 +127,7 @@ model User {
   reminders                Reminder[]
   conversationParticipants ConversationParticipant[]
   sentMessages             Message[]                 @relation("MessageSender")
+  messageReactions         MessageReaction[]
 
   @@index([email])
 }
@@ -579,14 +580,46 @@ model Message {
   id             String    @id @default(uuid())
   conversationId String
   senderUserId   String
-  body           String    @db.Text
+  body           String    @default("") @db.Text
   createdAt      DateTime  @default(now())
   editedAt       DateTime?
   deletedAt      DateTime?
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("MessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  conversation Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                 @relation("MessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
+  reactions    MessageReaction[]
 
   @@index([conversationId, createdAt])
   @@index([senderUserId])
+}
+
+model MessageAttachment {
+  id         String   @id @default(uuid())
+  messageId  String
+  fileName   String
+  fileType   String
+  fileSize   Int
+  storageKey String
+  fileUrl    String
+  createdAt  DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
 }
