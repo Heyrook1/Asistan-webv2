@@ -98,9 +98,10 @@ export async function getPatientsList(
       gender: true,
       birthDate: true,
       tags: true,
+      riskNote: true,
       createdAt: true,
       updatedAt: true,
-      _count: { select: { appointments: true, files: true, notes: true } },
+      _count: { select: { appointments: true, files: true, notes: true, allergies: true } },
     },
   })
 }
@@ -264,4 +265,32 @@ export async function getAnalyticsSnapshot(businessId: string) {
     if (a.status === 'CANCELLED' || a.status === 'NO_SHOW') bucket.cancelled += 1
   }
   return Array.from(buckets.entries()).map(([month, stats]) => ({ month, ...stats }))
+}
+
+export async function getReminders(businessId: string, userId: string) {
+  // Defensive: if the Prisma client hasn't been regenerated, or the underlying table
+  // hasn't been pushed yet (`npx prisma db push`), don't crash the dashboard.
+  const delegate = (prisma as unknown as { reminder?: { findMany: Function } }).reminder
+  if (!delegate || typeof delegate.findMany !== 'function') {
+    console.warn('[getReminders] prisma.reminder is undefined — run `npx prisma generate` to refresh the client.')
+    return []
+  }
+  try {
+    return await prisma.reminder.findMany({
+      where: { businessId, userId },
+      orderBy: [
+        { isDone: 'asc' },
+        { dueAt: { sort: 'asc', nulls: 'last' } },
+        { createdAt: 'desc' },
+      ],
+      take: 30,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('does not exist') || message.includes('P2021')) {
+      console.warn('[getReminders] Reminder table missing — run `npx prisma db push`.')
+      return []
+    }
+    throw error
+  }
 }

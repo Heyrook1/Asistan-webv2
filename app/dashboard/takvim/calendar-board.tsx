@@ -1,16 +1,17 @@
 'use client'
 
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Share2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_DOT, formatTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 type Event = {
   id: string
@@ -47,8 +48,8 @@ function toISODate(date: Date) {
 
 function startOfWeek(date: Date) {
   const d = new Date(date)
-  const day = d.getDay() // 0..6, Sunday=0
-  const diff = (day + 6) % 7 // make Monday = 0
+  const day = d.getDay()
+  const diff = (day + 6) % 7
   d.setDate(d.getDate() - diff)
   d.setHours(0, 0, 0, 0)
   return d
@@ -65,6 +66,7 @@ function addDays(date: Date, days: number) {
 }
 
 const WEEK_DAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
+const FULL_WEEK_DAY_LABELS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar']
 
 export function CalendarBoard({
   events,
@@ -151,34 +153,35 @@ export function CalendarBoard({
   }, [view, cursor])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-3 lg:space-y-4">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#0C1D36]">Takvim</h1>
-          <p className="text-sm text-muted-foreground">{title}</p>
+          <h1 className="text-xl font-bold text-[#0C1D36] lg:text-2xl">Takvim</h1>
+          <p className="text-[12px] text-muted-foreground lg:text-sm">{title}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden flex-wrap items-center gap-2 md:flex">
           <div className="flex rounded-xl border bg-white p-1">
             {(['day', 'week', 'month'] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-medium',
                   view === v ? 'bg-[#12C8AD] text-white' : 'text-muted-foreground hover:text-[#0C1D36]'
-                }`}
+                )}
               >
                 {VIEW_LABEL[v]}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
+            <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="h-9 w-9" aria-label="Önceki">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={() => setCursor(new Date(new Date().setHours(0, 0, 0, 0)))}>
               Bugün
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigate(1)} className="h-9 w-9">
+            <Button variant="outline" size="icon" onClick={() => navigate(1)} className="h-9 w-9" aria-label="Sonraki">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -189,7 +192,17 @@ export function CalendarBoard({
         </div>
       </div>
 
-      <Card>
+      {/* Mobile-only agenda view */}
+      <MobileAgenda
+        cursor={cursor}
+        setCursor={setCursor}
+        events={eventsByDate.get(toISODate(cursor)) ?? []}
+        canCreate={canCreate}
+        onCreate={(date, startTime) => setCreate({ open: true, date, startTime })}
+      />
+
+      {/* Tablet+/desktop view */}
+      <Card className="hidden md:block">
         <CardContent className="p-3 grid gap-2 md:grid-cols-3">
           <Select value={staffFilter} onValueChange={setStaffFilter}>
             <SelectTrigger><SelectValue placeholder="Personel filtrele" /></SelectTrigger>
@@ -220,7 +233,7 @@ export function CalendarBoard({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           {view === 'month' ? (
             <MonthGrid
@@ -272,6 +285,213 @@ export function CalendarBoard({
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function MobileAgenda({
+  cursor,
+  setCursor,
+  events,
+  canCreate,
+  onCreate,
+}: {
+  cursor: Date
+  setCursor: (date: Date) => void
+  events: Event[]
+  canCreate: boolean
+  onCreate: (date: string, startTime?: string) => void
+}) {
+  const touch = useRef<{ x: number; y: number } | null>(null)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+  const todayIso = toISODate(new Date())
+  const cursorIso = toISODate(cursor)
+  const isToday = cursorIso === todayIso
+  const weekdayIndex = (cursor.getDay() + 6) % 7
+
+  function handleTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0]
+    touch.current = { x: t.clientX, y: t.clientY }
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!touch.current) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - touch.current.x
+    const dy = t.clientY - touch.current.y
+    touch.current = null
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      setCursor(addDays(cursor, dx < 0 ? 1 : -1))
+    }
+  }
+
+  function openDatePicker() {
+    const input = dateInputRef.current
+    if (!input) return
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker()
+        return
+      } catch {
+        // fall back to click
+      }
+    }
+    input.click()
+  }
+
+  function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value
+    if (!value) return
+    const [y, m, d] = value.split('-').map(Number)
+    if (!y || !m || !d) return
+    const next = new Date(y, m - 1, d)
+    next.setHours(0, 0, 0, 0)
+    setCursor(next)
+  }
+
+  const hourSlots = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
+
+  return (
+    <div className="md:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <div className="sticky top-14 z-20 -mx-4 flex items-center justify-between gap-2 border-b border-border/40 bg-[#F4F8F9]/95 px-4 py-2 backdrop-blur">
+        <button
+          type="button"
+          onClick={() => setCursor(addDays(cursor, -1))}
+          className="tap-target flex items-center justify-center rounded-xl border bg-white text-muted-foreground"
+          aria-label="Önceki gün"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={openDatePicker}
+          className="flex flex-col items-center rounded-lg px-3 py-1 transition-colors hover:bg-white/60 active:bg-white/80"
+          aria-label="Tarih seç"
+        >
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {FULL_WEEK_DAY_LABELS[weekdayIndex]}
+          </span>
+          <span className="text-sm font-bold text-[#0C1D36]">
+            {new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(cursor)}
+          </span>
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCursor(addDays(cursor, 1))}
+            className="tap-target flex items-center justify-center rounded-xl border bg-white text-muted-foreground"
+            aria-label="Sonraki gün"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={openDatePicker}
+            className="tap-target flex items-center justify-center rounded-xl border border-[#12C8AD]/40 bg-[#12C8AD]/10 text-[#12C8AD]"
+            aria-label="Takvimden tarih seç"
+          >
+            <CalendarDays className="h-5 w-5" />
+          </button>
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={cursorIso}
+            onChange={handleDateChange}
+            className="pointer-events-none absolute h-0 w-0 opacity-0"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        </div>
+      </div>
+
+      {!isToday && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              const d = new Date()
+              d.setHours(0, 0, 0, 0)
+              setCursor(d)
+            }}
+            className="rounded-full bg-[#12C8AD] px-4 py-1.5 text-xs font-bold text-white shadow-sm"
+          >
+            Bugüne Dön
+          </button>
+        </div>
+      )}
+
+      {events.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed bg-white py-10 text-center">
+          <p className="text-sm font-semibold text-[#0C1D36]">Bu gün için randevu yok</p>
+          <p className="mt-1 text-xs text-muted-foreground">Boş saate dokunarak randevu oluşturabilirsiniz.</p>
+        </div>
+      ) : null}
+
+      <ul className="mt-4 space-y-px overflow-hidden rounded-2xl border bg-white">
+        {hourSlots.map((hour) => {
+          const hourLabel = `${String(hour).padStart(2, '0')}:00`
+          const hourEvents = events.filter((e) => Number(e.startTime.slice(0, 2)) === hour)
+          return (
+            <li key={hour}>
+              <button
+                type="button"
+                onClick={() => canCreate && onCreate(cursorIso, hourLabel)}
+                disabled={!canCreate}
+                className={cn(
+                  'flex w-full items-start gap-3 px-3 py-2 text-left transition-colors',
+                  hourEvents.length === 0 && canCreate && 'hover:bg-slate-50 active:bg-slate-100',
+                  hourEvents.length === 0 && !canCreate && 'cursor-default'
+                )}
+              >
+                <span className="w-12 shrink-0 pt-1 text-[11px] font-semibold text-muted-foreground">
+                  {hourLabel}
+                </span>
+                <span className="min-w-0 flex-1 border-l border-dashed border-slate-200 pl-3">
+                  {hourEvents.length === 0 ? (
+                    <span className="block py-3 text-[12px] text-slate-400">Müsait</span>
+                  ) : (
+                    <span className="block space-y-2 py-1">
+                      {hourEvents.map((ev) => (
+                        <Link
+                          key={ev.id}
+                          href={`/dashboard/hastalar/${ev.patientId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="block rounded-xl border bg-white px-3 py-2.5 text-[13px] active:bg-slate-50"
+                          style={{
+                            borderLeftColor: APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor,
+                            borderLeftWidth: 3,
+                          }}
+                        >
+                          <span className="block font-semibold text-[#0C1D36]">{ev.patientName}</span>
+                          <span className="mt-0.5 block text-[12px] text-muted-foreground">
+                            {ev.serviceName}{ev.staffName ? ` • ${ev.staffName}` : ''}
+                          </span>
+                          <span className="mt-1 inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span className="font-semibold text-[#0C1D36]">
+                              {formatTime(ev.startTime)} - {formatTime(ev.endTime)}
+                            </span>
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                              style={{
+                                background: `${APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor}22`,
+                                color: APPOINTMENT_STATUS_DOT[ev.status] ?? '#0C1D36',
+                              }}
+                            >
+                              {APPOINTMENT_STATUS_LABELS[ev.status]}
+                            </span>
+                          </span>
+                        </Link>
+                      ))}
+                    </span>
+                  )}
+                </span>
+                {hourEvents.length === 0 && canCreate && (
+                  <Plus className="mt-1 h-4 w-4 shrink-0 text-slate-300" />
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

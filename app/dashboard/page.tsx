@@ -1,6 +1,6 @@
 import { requireSession, can } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import { getDashboardStats } from '@/lib/queries'
+import { getDashboardStats, getReminders } from '@/lib/queries'
 import { AdminOverview } from '@/components/dashboard/admin-overview'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +29,7 @@ export default async function DashboardPage() {
     confirmedAppointments,
     calendarAppointments,
     upcomingAppointments,
+    reminders,
   ] = await Promise.all([
     getDashboardStats(session.businessId),
     prisma.patient.findMany({
@@ -89,6 +90,7 @@ export default async function DashboardPage() {
         staff: { select: { fullName: true } },
       },
     }),
+    getReminders(session.businessId, session.userId),
   ])
 
   const lookups = {
@@ -182,6 +184,15 @@ export default async function DashboardPage() {
       suggestions={suggestions}
       calendarEvents={calendarAppointments.map(serializeAppointment)}
       upcomingAppointments={upcomingAppointments.map(serializeAppointment)}
+      reminders={reminders.map((r) => ({
+        id: r.id,
+        title: r.title,
+        note: r.note,
+        dueAt: r.dueAt ? r.dueAt.toISOString() : null,
+        isDone: r.isDone,
+        priority: r.priority,
+        createdAt: r.createdAt.toISOString(),
+      }))}
       lookups={lookups}
       canCreatePatient={can(session, 'patient.edit')}
       canCreateAppointment={can(session, 'appointment.manage')}

@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input'
 import { AppointmentFormDrawer, type AppointmentOption } from '@/components/dashboard/appointment-form-drawer'
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
 import { ServiceFormDialog } from '@/components/dashboard/service-form-dialog'
+import { RemindersCard, type ReminderItem } from '@/components/dashboard/reminders-card'
 import { formatTime, trMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -111,6 +112,7 @@ export function AdminOverview({
   suggestions,
   calendarEvents,
   upcomingAppointments,
+  reminders,
   lookups,
   canCreatePatient,
   canCreateAppointment,
@@ -122,6 +124,7 @@ export function AdminOverview({
   suggestions: Suggestion[]
   calendarEvents: CalendarEvent[]
   upcomingAppointments: CalendarEvent[]
+  reminders: ReminderItem[]
   lookups: LookupData
   canCreatePatient: boolean
   canCreateAppointment: boolean
@@ -133,6 +136,7 @@ export function AdminOverview({
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
+  const [calendarOpen, setCalendarOpen] = useState(true)
 
   useEffect(() => {
     const timer = window.setInterval(() => router.refresh(), 30_000)
@@ -166,49 +170,50 @@ export function AdminOverview({
       title: 'Bugünkü Randevular',
       value: stats.todayAppointments,
       icon: Calendar,
-      tone: 'teal',
-      hint: 'Onaylanan ajanda kayıtları',
+      tone: 'teal' as const,
+      hint: 'Onaylı ajanda',
     },
     {
       title: 'Bekleyen Onay',
       value: stats.pendingAppointments,
       icon: Clock,
-      tone: 'orange',
-      hint: 'Doktor veya sahip onayı bekliyor',
+      tone: 'orange' as const,
+      hint: 'Onay bekliyor',
     },
     {
       title: 'Toplam Müşteri',
       value: stats.activePatients,
       icon: Users,
-      tone: 'violet',
-      hint: 'Aktif hasta/müşteri kaydı',
+      tone: 'violet' as const,
+      hint: 'Aktif kayıt',
     },
     {
       title: 'Onaylanan',
       value: stats.confirmedAppointments,
       icon: CalendarCheck,
-      tone: 'amber',
-      hint: 'Ajandaya eklenen randevular',
+      tone: 'amber' as const,
+      hint: 'Tüm zamanlar',
     },
     {
-      title: 'Toplam Gelir',
+      title: 'Aylık Ciro',
       value: trMoney.format(stats.monthlyRevenue),
       icon: Wallet,
-      tone: 'green',
-      hint: 'Bu ay tamamlanan randevular',
+      tone: 'green' as const,
+      hint: 'Bu ay',
     },
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+    <div className="space-y-4 lg:space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-[#0C1D36]">Genel Bakış</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {businessName} için güncel durum, onay bekleyen randevular ve ajanda.
+          <h1 className="text-xl font-bold tracking-tight text-[#0C1D36] lg:text-[26px]">Genel Bakış</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground lg:text-sm">
+            {businessName}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="hidden flex-wrap gap-2 lg:flex">
           {canCreateAppointment && (
             <Button onClick={() => setModal('appointment')} className="h-11 gap-2 bg-[#08AFC0] text-white shadow-lg shadow-cyan-600/20 hover:bg-[#079CAE]">
               <CalendarPlus className="h-4 w-4" />
@@ -228,70 +233,93 @@ export function AdminOverview({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      {/* Stats: 2-col grid on mobile, expands on desktop */}
+      <div className="grid grid-cols-2 gap-2.5 md:gap-3 xl:grid-cols-5">
         {statCards.map((card) => (
           <Card key={card.title} className="border-border/50 shadow-sm">
-            <CardContent className="flex items-center gap-4 p-4">
+            <CardContent className="flex items-start gap-2.5 p-3 md:items-center md:gap-3 md:p-4">
               <div className={cn(
-                'flex h-12 w-12 shrink-0 items-center justify-center rounded-full',
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-12 md:w-12',
                 card.tone === 'teal' && 'bg-cyan-50 text-cyan-600',
                 card.tone === 'orange' && 'bg-orange-50 text-orange-600',
                 card.tone === 'violet' && 'bg-violet-50 text-violet-600',
                 card.tone === 'amber' && 'bg-amber-50 text-amber-600',
                 card.tone === 'green' && 'bg-emerald-50 text-emerald-600'
               )}>
-                <card.icon className="h-6 w-6" />
+                <card.icon className="h-5 w-5 md:h-6 md:w-6" />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">{card.title}</p>
-                <p className="mt-0.5 text-2xl font-bold text-[#0C1D36]">{card.value}</p>
-                <p className="mt-1 text-[11px] text-emerald-600 line-clamp-1">{card.hint}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground line-clamp-1 md:text-[11px]">{card.title}</p>
+                <p className="mt-0.5 text-xl font-bold text-[#0C1D36] md:text-2xl">{card.value}</p>
+                <p className="mt-0.5 hidden text-[11px] text-muted-foreground line-clamp-1 md:block">{card.hint}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Reminders & quick notes */}
+      <RemindersCard initialReminders={reminders} />
+
+      {/* Setup steps + calendar + suggestions */}
       <div className="grid gap-4 xl:grid-cols-[1fr_1.25fr_1.55fr]">
         <Card className="shadow-sm">
-          <CardContent className="p-5">
-            <div className="mb-4 flex items-start justify-between gap-3">
+          <CardContent className="p-4 lg:p-5">
+            <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-[#0C1D36]">Kurulumu tamamlayın</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Asistan'dan en iyi şekilde yararlanmak için adımları tamamlayın.</p>
+                <p className="mt-1 text-[12px] text-muted-foreground">İlk randevuya hazırlanmak için adımlar.</p>
               </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-[#12C8AD] text-xs font-bold text-[#0C1D36]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-[#12C8AD] text-xs font-bold text-[#0C1D36]">
                 {completedSteps}/{setupSteps.length}
               </div>
             </div>
-            <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-[#12C8AD]" style={{ width: `${setupProgress}%` }} />
+            <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-[#12C8AD] transition-[width]" style={{ width: `${setupProgress}%` }} />
             </div>
-            <div className="space-y-3">
+            <ul className="space-y-2.5">
               {setupSteps.map((step, index) => (
-                <div key={step.title} className="flex items-center gap-3 text-sm">
+                <li key={step.title} className="flex items-center gap-3 text-sm">
                   <span className={cn(
                     'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
                     step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
                   )}>
                     {step.done ? <Check className="h-3.5 w-3.5" /> : index + 1}
                   </span>
-                  <span className={cn(step.done ? 'text-muted-foreground' : 'font-semibold text-[#0C1D36]')}>
+                  <span className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-[#0C1D36]')}>
                     {step.title}
                   </span>
-                  {!step.done && <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />}
-                </div>
+                  {!step.done && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                </li>
               ))}
-            </div>
+            </ul>
           </CardContent>
         </Card>
 
+        {/* Calendar — collapsible on mobile, always visible on desktop */}
         <Card className="shadow-sm">
-          <CardContent className="p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-[#0C1D36]">Takvim</h2>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+          <CardContent className="p-4 lg:p-5">
+            <button
+              type="button"
+              onClick={() => setCalendarOpen((open) => !open)}
+              className="flex w-full items-center justify-between gap-2 xl:cursor-default"
+              aria-expanded={calendarOpen}
+            >
+              <h2 className="text-sm font-bold text-[#0C1D36]">Aylık Takvim</h2>
+              <span className="flex items-center gap-2">
+                <span className="text-xs font-medium capitalize text-muted-foreground">{monthFormatter.format(cursor)}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-muted-foreground transition-transform xl:hidden',
+                    calendarOpen && 'rotate-180'
+                  )}
+                />
+              </span>
+            </button>
+
+            <div className={cn('mt-3', !calendarOpen && 'hidden xl:block')}>
+              <div className="mb-3 flex items-center justify-end gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} aria-label="Önceki ay">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button variant="outline" size="sm" className="h-8" onClick={() => {
@@ -300,61 +328,53 @@ export function AdminOverview({
                 }}>
                   Bugün
                 </Button>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} aria-label="Sonraki ay">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-            <div className="mb-3 flex items-center justify-between">
-              <p className="font-semibold text-[#0C1D36] capitalize">{monthFormatter.format(cursor)}</p>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="grid grid-cols-7 gap-y-2 text-center text-xs">
-              {weekdayLabels.map((day) => (
-                <span key={day} className="pb-1 text-[11px] font-medium text-muted-foreground">{day}</span>
-              ))}
-              {days.map((day) => {
-                const iso = toIsoDate(day)
-                const dayEvents = eventsByDate.get(iso) ?? []
-                const inMonth = day.getMonth() === cursor.getMonth()
-                const isToday = iso === toIsoDate(new Date())
-                return (
-                  <Link
-                    key={iso}
-                    href={`/dashboard/takvim?date=${iso}`}
-                    className={cn(
-                      'mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition-colors hover:bg-cyan-50',
-                      !inMonth && 'text-slate-300',
-                      isToday && 'bg-[#08AFC0] text-white hover:bg-[#08AFC0]'
-                    )}
-                    title={dayEvents.length ? `${dayEvents.length} onaylı randevu` : 'Randevu yok'}
-                  >
-                    <span>{day.getDate()}</span>
-                    {dayEvents.length > 0 && (
-                      <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-[#08AFC0]')} />
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-            <div className="mt-4 flex gap-5 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#08AFC0]" />Onaylı</span>
-              <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-orange-500" />Bekleyen</span>
-              <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-violet-600" />Müsait</span>
+              <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
+                {weekdayLabels.map((day) => (
+                  <span key={day} className="pb-1 text-[10px] font-medium text-muted-foreground">{day}</span>
+                ))}
+                {days.map((day) => {
+                  const iso = toIsoDate(day)
+                  const dayEvents = eventsByDate.get(iso) ?? []
+                  const inMonth = day.getMonth() === cursor.getMonth()
+                  const isToday = iso === toIsoDate(new Date())
+                  return (
+                    <Link
+                      key={iso}
+                      href={`/dashboard/takvim?date=${iso}`}
+                      className={cn(
+                        'mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition-colors hover:bg-cyan-50',
+                        !inMonth && 'text-slate-300',
+                        isToday && 'bg-[#08AFC0] text-white hover:bg-[#08AFC0]'
+                      )}
+                      title={dayEvents.length ? `${dayEvents.length} onaylı randevu` : 'Randevu yok'}
+                    >
+                      <span>{day.getDate()}</span>
+                      {dayEvents.length > 0 && (
+                        <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-[#08AFC0]')} />
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Suggestions: swipe cards on mobile, list on desktop */}
         <Card className="shadow-sm">
-          <CardContent className="p-5">
-            <div className="mb-4 flex items-center justify-between">
+          <CardContent className="p-4 lg:p-5">
+            <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-violet-600" />
                 <h2 className="text-sm font-bold text-[#0C1D36]">Asistan AI Önerileri</h2>
               </div>
               <span className="rounded-full bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700">AI</span>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {suggestions.map((suggestion) => (
                 <Link
                   key={suggestion.title}
@@ -375,86 +395,115 @@ export function AdminOverview({
                     {suggestion.tone === 'teal' ? <CalendarCheck className="h-5 w-5" /> : suggestion.tone === 'orange' ? <Clock className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-[#0C1D36]">{suggestion.title}</span>
-                    <span className="block text-xs text-muted-foreground">{suggestion.description}</span>
+                    <span className="block text-sm font-semibold text-[#0C1D36] line-clamp-1">{suggestion.title}</span>
+                    <span className="block text-xs text-muted-foreground line-clamp-2">{suggestion.description}</span>
                   </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </Link>
               ))}
             </div>
-            <Link href="/dashboard/analitik" className="mt-4 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground hover:text-[#08AFC0]">
+            <Link href="/dashboard/analitik" className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-[#08AFC0]">
               Tüm önerileri görüntüle <ChevronRight className="h-4 w-4" />
             </Link>
           </CardContent>
         </Card>
       </div>
 
+      {/* Upcoming + quick actions */}
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
         <Card className="shadow-sm">
-          <CardContent className="p-5">
-            <div className="mb-4 flex items-center justify-between">
+          <CardContent className="p-4 lg:p-5">
+            <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold text-[#0C1D36]">Yaklaşan Randevular</h2>
               <Link href="/dashboard/randevular" className="inline-flex items-center gap-1 text-xs font-medium text-[#08AFC0]">
-                Tümünü Görüntüle <ChevronRight className="h-4 w-4" />
+                Tümü <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-[11px] font-medium text-muted-foreground">
-                    <th className="pb-3">Saat</th>
-                    <th className="pb-3">Müşteri</th>
-                    <th className="pb-3">Hizmet</th>
-                    <th className="pb-3">Çalışan</th>
-                    <th className="pb-3">Durum</th>
-                    <th className="pb-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {upcomingAppointments.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                        Yaklaşan randevu yok.
-                      </td>
-                    </tr>
-                  ) : (
-                    upcomingAppointments.map((appointment) => (
-                      <tr key={appointment.id} className="hover:bg-[#F7F9FB]">
-                        <td className="py-3 font-semibold text-[#0C1D36]">{formatTime(appointment.startTime)}</td>
-                        <td className="py-3">
-                          <Link href={`/dashboard/hastalar/${appointment.patientId}`} className="flex items-center gap-2">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-[11px] font-bold text-violet-700">
-                              {initials(appointment.patientName)}
-                            </span>
-                            <span>
-                              <span className="block font-medium text-[#0C1D36]">{appointment.patientName}</span>
-                              <span className="block text-[11px] text-muted-foreground">{appointment.date}</span>
-                            </span>
-                          </Link>
-                        </td>
-                        <td className="py-3 text-[#0C1D36]">{appointment.serviceName}</td>
-                        <td className="py-3 text-muted-foreground">{appointment.staffName ?? 'Atanmadı'}</td>
-                        <td className="py-3">
+
+            {upcomingAppointments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Yaklaşan randevu yok.</p>
+            ) : (
+              <>
+                {/* Mobile: card list */}
+                <ul className="space-y-2 md:hidden">
+                  {upcomingAppointments.map((appointment) => (
+                    <li key={appointment.id}>
+                      <Link
+                        href={`/dashboard/hastalar/${appointment.patientId}`}
+                        className="flex items-center gap-3 rounded-xl border bg-white p-3 active:bg-slate-50"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[12px] font-bold text-violet-700">
+                          {initials(appointment.patientName)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-[#0C1D36]">{appointment.patientName}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {appointment.serviceName}{appointment.staffName ? ` • ${appointment.staffName}` : ''}
+                          </span>
+                        </span>
+                        <span className="text-right">
+                          <span className="block text-sm font-semibold text-[#0C1D36]">{formatTime(appointment.startTime)}</span>
                           <span className={cn(
-                            'rounded-full px-2 py-1 text-[11px] font-semibold',
+                            'mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold',
                             appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
                           )}>
-                            {appointment.status === 'CONFIRMED' ? 'Onaylandı' : 'Onay Bekliyor'}
+                            {appointment.status === 'CONFIRMED' ? 'Onaylı' : 'Bekliyor'}
                           </span>
-                        </td>
-                        <td className="py-3 text-right">
-                          <Link href="/dashboard/randevular" className="text-muted-foreground hover:text-[#08AFC0]">...</Link>
-                        </td>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Tablet+: table */}
+                <div className="hidden md:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] font-medium text-muted-foreground">
+                        <th className="pb-3">Saat</th>
+                        <th className="pb-3">Müşteri</th>
+                        <th className="pb-3">Hizmet</th>
+                        <th className="pb-3">Çalışan</th>
+                        <th className="pb-3">Durum</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody className="divide-y">
+                      {upcomingAppointments.map((appointment) => (
+                        <tr key={appointment.id} className="hover:bg-[#F7F9FB]">
+                          <td className="py-3 font-semibold text-[#0C1D36]">{formatTime(appointment.startTime)}</td>
+                          <td className="py-3">
+                            <Link href={`/dashboard/hastalar/${appointment.patientId}`} className="flex items-center gap-2">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-[11px] font-bold text-violet-700">
+                                {initials(appointment.patientName)}
+                              </span>
+                              <span>
+                                <span className="block font-medium text-[#0C1D36]">{appointment.patientName}</span>
+                                <span className="block text-[11px] text-muted-foreground">{appointment.date}</span>
+                              </span>
+                            </Link>
+                          </td>
+                          <td className="py-3 text-[#0C1D36]">{appointment.serviceName}</td>
+                          <td className="py-3 text-muted-foreground">{appointment.staffName ?? 'Atanmadı'}</td>
+                          <td className="py-3">
+                            <span className={cn(
+                              'rounded-full px-2 py-1 text-[11px] font-semibold',
+                              appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
+                            )}>
+                              {appointment.status === 'CONFIRMED' ? 'Onaylandı' : 'Onay Bekliyor'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        {/* Quick Actions — desktop only, mobile uses FAB */}
+        <Card className="hidden shadow-sm xl:block">
           <CardContent className="p-5">
             <h2 className="mb-4 text-sm font-bold text-[#0C1D36]">Hızlı İşlemler</h2>
             <div className="grid grid-cols-2 gap-3">

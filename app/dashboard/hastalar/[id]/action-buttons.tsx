@@ -53,33 +53,39 @@ export function PatientActionButtons({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => setOpen('appointment')} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+      <div className="space-y-2">
+        <Button
+          onClick={() => setOpen('appointment')}
+          className="h-11 w-full bg-[#12C8AD] text-white hover:bg-[#10b49c] md:h-9 md:w-auto"
+        >
           <CalendarPlus className="mr-2 h-4 w-4" /> Randevu Oluştur
         </Button>
-        <Button variant="outline" onClick={() => setOpen('note')}><NotebookPen className="mr-2 h-4 w-4" /> Not Ekle</Button>
-        <Button variant="outline" onClick={() => setOpen('medication')}><Pill className="mr-2 h-4 w-4" /> İlaç Ekle</Button>
-        <Button variant="outline" onClick={() => setOpen('allergy')}><ShieldAlert className="mr-2 h-4 w-4" /> Alerji Ekle</Button>
-        <Button variant="outline" onClick={() => setOpen('treatment')}><ClipboardList className="mr-2 h-4 w-4" /> Tedavi Ekle</Button>
-        <Button variant="outline" onClick={() => setOpen('lab')}><FlaskConical className="mr-2 h-4 w-4" /> Tahlil Ekle</Button>
-        <Button variant="outline" onClick={() => setOpen('file')}><FilePlus className="mr-2 h-4 w-4" /> Dosya Yükle</Button>
-        <Button
-          variant="outline"
-          onClick={() =>
-            withTransition(async () => {
-              const result = await archivePatient({ id: patientId, archived: !isArchived })
-              if (!result.ok) {
-                toast.error(result.error)
-                return
-              }
-              toast.success(isArchived ? 'Hasta aktifleştirildi' : 'Hasta arşivlendi')
-              router.refresh()
-            })
-          }
-        >
-          {isArchived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
-          {isArchived ? 'Aktifleştir' : 'Arşivle'}
-        </Button>
+        <div className="grid grid-cols-2 gap-2 md:inline-flex md:flex-wrap md:gap-2">
+          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('note')}><NotebookPen className="mr-2 h-4 w-4" /> Not</Button>
+          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('medication')}><Pill className="mr-2 h-4 w-4" /> İlaç</Button>
+          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('allergy')}><ShieldAlert className="mr-2 h-4 w-4" /> Alerji</Button>
+          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('treatment')}><ClipboardList className="mr-2 h-4 w-4" /> Tedavi</Button>
+          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('lab')}><FlaskConical className="mr-2 h-4 w-4" /> Tahlil</Button>
+          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('file')}><FilePlus className="mr-2 h-4 w-4" /> Dosya</Button>
+          <Button
+            variant="outline"
+            className="col-span-2 h-11 justify-start md:col-span-1 md:h-9"
+            onClick={() =>
+              withTransition(async () => {
+                const result = await archivePatient({ id: patientId, archived: !isArchived })
+                if (!result.ok) {
+                  toast.error(result.error)
+                  return
+                }
+                toast.success(isArchived ? 'Hasta aktifleştirildi' : 'Hasta arşivlendi')
+                router.refresh()
+              })
+            }
+          >
+            {isArchived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
+            {isArchived ? 'Aktifleştir' : 'Arşivle'}
+          </Button>
+        </div>
       </div>
 
       <AppointmentFormDrawer

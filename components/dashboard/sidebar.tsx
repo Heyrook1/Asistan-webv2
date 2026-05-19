@@ -2,10 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
 import {
   LayoutDashboard, Calendar, CalendarDays, Users, Briefcase,
-  Bell, BarChart3, Settings, Menu, X, Sparkles, HelpCircle,
+  Bell, BarChart3, Settings, Sparkles, HelpCircle,
   UserCog, LogOut,
 } from 'lucide-react'
 import { AsistanLogo } from '@/components/asistan-logo'
@@ -45,7 +44,6 @@ export function DashboardSidebar({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileOpen, setMobileOpen] = useState(false)
 
   const visibleItems = navItems.filter(
     (item) => !item.permission || session.permissions.includes(item.permission)
@@ -66,8 +64,8 @@ export function DashboardSidebar({
         <div className="absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-[#16A9E8]/5 blur-3xl pointer-events-none" />
 
         <div className="relative flex h-[68px] shrink-0 items-center px-5 border-b border-[#1A3050]">
-          <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-            <AsistanLogo variant="light" />
+          <Link href="/dashboard">
+            <AsistanLogo variant="light" size="lg" />
           </Link>
         </div>
 
@@ -81,7 +79,6 @@ export function DashboardSidebar({
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
                   className={cn(
                     'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group',
                     active
@@ -153,34 +150,8 @@ export function DashboardSidebar({
   }
 
   return (
-    <>
-      <button
-        className="fixed left-4 top-[14px] z-50 lg:hidden flex h-10 w-10 items-center justify-center rounded-xl bg-[#06142A] text-white shadow-lg border border-[#1A3050]"
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Menüyü aç/kapat"
-      >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
-
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 transition-transform duration-300 ease-in-out lg:hidden',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        <SidebarContent />
-      </aside>
-
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col">
-        <SidebarContent />
-      </aside>
-    </>
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col">
+      <SidebarContent />
+    </aside>
   )
 }

@@ -9,9 +9,21 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Plus, Trash2, UserPlus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createPatient } from '@/lib/actions/patients'
+
+const STEPS = [
+  { value: 'kimlik', label: 'Kimlik' },
+  { value: 'iletisim', label: 'İletişim' },
+  { value: 'saglik', label: 'Sağlık' },
+  { value: 'alerji', label: 'Alerji' },
+  { value: 'ilac', label: 'İlaç' },
+  { value: 'tedavi', label: 'Tedavi' },
+  { value: 'tahlil', label: 'Tahlil' },
+  { value: 'not', label: 'Not' },
+  { value: 'hikaye', label: 'Hikaye' },
+] as const
 
 type AllergyDraft = { name: string; severity: 'HAFIF' | 'ORTA' | 'SIDDETLI'; reaction: string; notes: string }
 type MedicationDraft = { name: string; dosage: string; frequency: string; startDate: string; endDate: string; notes: string }
@@ -148,36 +160,45 @@ export function PatientFormDrawer({
     })
   }
 
+  const stepIndex = Math.max(0, STEPS.findIndex((s) => s.value === tab))
+  const currentStep = STEPS[stepIndex] ?? STEPS[0]
+  const isFirst = stepIndex === 0
+  const isLast = stepIndex === STEPS.length - 1
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+      <SheetContent
+        side="right"
+        className="w-full max-w-full overflow-y-auto p-0 sm:max-w-2xl"
+      >
         <form onSubmit={onSubmit} className="flex h-full flex-col">
-          <SheetHeader className="border-b px-6 py-5 bg-gradient-to-r from-[#06142A] to-[#0E2D52] text-white">
-            <SheetTitle className="text-white flex items-center gap-2">
+          <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-[#06142A] to-[#0E2D52] px-5 py-4 text-white pt-safe">
+            <SheetTitle className="flex items-center gap-2 text-white">
               <UserPlus className="h-5 w-5 text-[#12C8AD]" />
               Yeni Hasta Kaydı
             </SheetTitle>
             <SheetDescription className="text-white/60">
-              Tüm sekmeleri doldurabilirsiniz; sadece kimlik ve iletişim zorunludur.
+              <span className="md:hidden">Adım {stepIndex + 1} / {STEPS.length} • {currentStep.label}</span>
+              <span className="hidden md:inline">Tüm sekmeleri doldurabilirsiniz; sadece kimlik ve iletişim zorunludur.</span>
             </SheetDescription>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 md:hidden">
+              <div
+                className="h-full rounded-full bg-[#12C8AD] transition-[width]"
+                style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
+              />
+            </div>
           </SheetHeader>
 
-          <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col">
-            <div className="border-b px-6 pt-3 bg-white sticky top-0 z-10 overflow-x-auto">
-              <TabsList className="bg-transparent h-auto p-0 gap-1 inline-flex">
-                <TabsTrigger value="kimlik">Kimlik</TabsTrigger>
-                <TabsTrigger value="iletisim">İletişim</TabsTrigger>
-                <TabsTrigger value="saglik">Sağlık</TabsTrigger>
-                <TabsTrigger value="alerji">Alerji</TabsTrigger>
-                <TabsTrigger value="ilac">İlaç</TabsTrigger>
-                <TabsTrigger value="tedavi">Tedavi</TabsTrigger>
-                <TabsTrigger value="tahlil">Tahlil</TabsTrigger>
-                <TabsTrigger value="not">Not</TabsTrigger>
-                <TabsTrigger value="hikaye">Hikaye</TabsTrigger>
+          <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
+            <div className="sticky top-0 z-10 hidden overflow-x-auto border-b bg-white px-6 pt-3 md:block">
+              <TabsList className="inline-flex h-auto gap-1 bg-transparent p-0">
+                {STEPS.map((step) => (
+                  <TabsTrigger key={step.value} value={step.value}>{step.label}</TabsTrigger>
+                ))}
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 bg-[#F7F9FB]">
+            <div className="flex-1 overflow-y-auto bg-[#F7F9FB] px-4 py-4 space-y-4 md:px-6 md:py-5 md:space-y-5">
               <TabsContent value="kimlik" className="m-0 space-y-3">
                 <Section title="Kimlik Bilgileri">
                   <Field label="Ad Soyad *">
@@ -417,11 +438,65 @@ export function PatientFormDrawer({
             </div>
           </Tabs>
 
-          <div className="flex items-center justify-end gap-2 border-t bg-white px-6 py-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
-              {pending ? 'Kaydediliyor...' : 'Hasta Kaydet'}
-            </Button>
+          <div className="shrink-0 border-t bg-white px-4 py-3 pb-safe md:px-6 md:py-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+              <div className="flex gap-2 md:hidden">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={isFirst}
+                  onClick={() => setTab(STEPS[Math.max(0, stepIndex - 1)].value)}
+                  className="h-11 flex-1"
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Geri
+                </Button>
+                {!isLast ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    onClick={() => setTab(STEPS[Math.min(STEPS.length - 1, stepIndex + 1)].value)}
+                    className="h-11 flex-1 bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+                  >
+                    İleri <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={pending}
+                    className="h-11 flex-1 bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+                  >
+                    {pending ? 'Kaydediliyor...' : 'Kaydet'}
+                  </Button>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={pending}
+                className="hidden h-11 bg-[#12C8AD] text-white hover:bg-[#10b49c] md:inline-flex md:order-2"
+              >
+                {pending ? 'Kaydediliyor...' : 'Hasta Kaydet'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => onOpenChange(false)}
+                className="hidden h-11 md:inline-flex md:order-1"
+              >
+                İptal
+              </Button>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="mt-2 block w-full text-center text-xs text-muted-foreground underline-offset-2 hover:underline md:hidden"
+            >
+              İptal
+            </button>
           </div>
         </form>
       </SheetContent>

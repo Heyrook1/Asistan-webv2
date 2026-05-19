@@ -60,19 +60,19 @@ export default async function PatientDetailPage({
   const pdfFiles = patient.files.filter((f) => !f.fileType.startsWith('image/'))
 
   return (
-    <div className="space-y-4">
-      <Link href="/dashboard/hastalar" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-[#12C8AD]">
+    <div className="space-y-3 lg:space-y-4">
+      <Link href="/dashboard/hastalar" className="tap-target inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-[#12C8AD]">
         <ChevronLeft className="h-4 w-4" /> Hasta listesine dön
       </Link>
 
-      <div>
+      <div className="hidden lg:block">
         <h1 className="text-2xl font-bold text-[#0C1D36]">Hasta Kartı</h1>
         <p className="text-sm text-muted-foreground">Hastanın tüm klinik geçmişi, ilaçları, notları, dosyaları ve tedavi süreci tek ekranda.</p>
       </div>
 
       {/* Header card */}
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-4 lg:p-5">
           <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] text-white text-xl font-bold">
@@ -156,22 +156,26 @@ export default async function PatientDetailPage({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="genel" className="space-y-4">
-        <Card>
-          <CardContent className="p-2">
-            <TabsList className="bg-transparent h-auto p-1 flex flex-wrap gap-1">
-              <TabsTrigger value="genel">Genel Bilgi</TabsTrigger>
-              <TabsTrigger value="randevular">Randevular ({patient.appointments.length})</TabsTrigger>
-              <TabsTrigger value="not">Notlar ({patient.notes.length})</TabsTrigger>
-              <TabsTrigger value="ilac">İlaçlar ({patient.medications.length})</TabsTrigger>
-              <TabsTrigger value="alerji">Alerjiler ({patient.allergies.length})</TabsTrigger>
-              <TabsTrigger value="tedavi">Tedaviler ({patient.treatments.length})</TabsTrigger>
-              <TabsTrigger value="tahlil">Tahliller ({patient.labResults.length})</TabsTrigger>
-              <TabsTrigger value="dosya">Dosyalar ({patient.files.length})</TabsTrigger>
-              <TabsTrigger value="hikaye">Hasta Hikayesi</TabsTrigger>
-            </TabsList>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="genel" className="space-y-3 lg:space-y-4">
+        <div className="-mx-4 sticky top-14 z-10 bg-[#F4F8F9]/95 px-4 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0 md:backdrop-blur-none lg:top-[68px]">
+          <Card className="overflow-hidden">
+            <CardContent className="p-1.5 md:p-2">
+              <div className="overflow-x-auto no-scrollbar md:overflow-visible">
+                <TabsList className="inline-flex h-auto w-max items-stretch gap-1 bg-transparent p-0 md:flex md:w-auto md:flex-wrap md:gap-1 md:p-1">
+                  <TabsTrigger value="genel" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Genel Bilgi</TabsTrigger>
+                  <TabsTrigger value="randevular" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Randevular ({patient.appointments.length})</TabsTrigger>
+                  <TabsTrigger value="not" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Notlar ({patient.notes.length})</TabsTrigger>
+                  <TabsTrigger value="ilac" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">İlaçlar ({patient.medications.length})</TabsTrigger>
+                  <TabsTrigger value="alerji" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Alerjiler ({patient.allergies.length})</TabsTrigger>
+                  <TabsTrigger value="tedavi" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Tedaviler ({patient.treatments.length})</TabsTrigger>
+                  <TabsTrigger value="tahlil" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Tahliller ({patient.labResults.length})</TabsTrigger>
+                  <TabsTrigger value="dosya" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Dosyalar ({patient.files.length})</TabsTrigger>
+                  <TabsTrigger value="hikaye" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Hasta Hikayesi</TabsTrigger>
+                </TabsList>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* GENEL BİLGİ */}
         <TabsContent value="genel">

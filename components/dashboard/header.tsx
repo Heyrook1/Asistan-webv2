@@ -44,9 +44,7 @@ export function DashboardHeader({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-border/50 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 px-4 lg:px-6">
-      <div className="w-12 lg:hidden" />
-
+    <header className="sticky top-0 z-30 hidden h-[68px] items-center gap-3 border-b border-border/50 bg-white/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-white/70 lg:flex lg:px-6">
       <div className="flex flex-1 max-w-xl">
         <PatientSearch />
       </div>

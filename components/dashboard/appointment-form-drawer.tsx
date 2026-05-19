@@ -88,10 +88,10 @@ export function AppointmentFormDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md p-0 overflow-y-auto">
+      <SheetContent side="right" className="w-full max-w-full overflow-y-auto p-0 sm:max-w-md">
         <form onSubmit={submit} className="flex h-full flex-col">
-          <SheetHeader className="border-b px-6 py-5 bg-gradient-to-r from-[#06142A] to-[#0E2D52] text-white">
-            <SheetTitle className="text-white flex items-center gap-2">
+          <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-[#06142A] to-[#0E2D52] px-5 py-4 text-white pt-safe">
+            <SheetTitle className="flex items-center gap-2 text-white">
               <CalendarPlus className="h-5 w-5 text-[#12C8AD]" /> Yeni Randevu
             </SheetTitle>
             <SheetDescription className="text-white/60">
@@ -99,7 +99,7 @@ export function AppointmentFormDrawer({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 bg-[#F7F9FB]">
+          <div className="flex-1 overflow-y-auto bg-[#F7F9FB] px-4 py-4 space-y-4 md:px-6 md:py-5">
             {noPatients && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                 Henüz hasta yok. Önce <strong>Hasta Ekle</strong> ile bir hasta oluşturmalısınız.
@@ -160,11 +160,26 @@ export function AppointmentFormDrawer({
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 border-t bg-white px-6 py-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-            <Button type="submit" disabled={pending || noPatients || noServices} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
-              {pending ? 'Kaydediliyor...' : 'Randevu Oluştur'}
-            </Button>
+          <div className="shrink-0 border-t bg-white px-4 py-3 pb-safe md:px-6 md:py-4">
+            <div className="flex gap-2 md:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => onOpenChange(false)}
+                className="h-11 flex-1 md:flex-none"
+              >
+                İptal
+              </Button>
+              <Button
+                type="submit"
+                size="lg"
+                disabled={pending || noPatients || noServices}
+                className="h-11 flex-[2] bg-[#12C8AD] text-white hover:bg-[#10b49c] md:flex-none"
+              >
+                {pending ? 'Kaydediliyor...' : 'Randevu Oluştur'}
+              </Button>
+            </div>
           </div>
         </form>
       </SheetContent>
