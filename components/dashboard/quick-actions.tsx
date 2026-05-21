@@ -43,7 +43,7 @@ export function QuickActions({
     <>
       <div className="flex flex-wrap gap-2">
         {canCreateAppointment && (
-          <Button onClick={() => setOpen('appointment')} className="bg-[#12C8AD] text-white hover:bg-[#10b49c]">
+          <Button onClick={() => setOpen('appointment')} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
             <CalendarPlus className="mr-2 h-4 w-4" />
             Randevu Oluştur
           </Button>
@@ -93,7 +93,7 @@ export function QuickActions({
                 navigator.clipboard.writeText(bookingLink)
                 toast.success('Bağlantı kopyalandı')
               }}
-              className="bg-[#12C8AD] hover:bg-[#10b49c] text-white"
+              className="bg-[#0B7F6F] hover:bg-[#09685C] text-white"
             >
               Bağlantıyı Kopyala
             </Button>

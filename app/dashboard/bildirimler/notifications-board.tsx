@@ -336,7 +336,7 @@ export function NotificationsBoard({ businessId, userId, notifications }: Props)
                 <TabsTrigger
                   key={t.value}
                   value={t.value}
-                  className="rounded-full border border-transparent bg-[#F4F8F9] px-3 py-1.5 text-xs data-[state=active]:border-[#12C8AD]/40 data-[state=active]:bg-[#12C8AD]/10 data-[state=active]:text-[#0b7f6f]"
+                  className="rounded-full border border-transparent bg-[#F4F8F9] px-3 py-1.5 text-xs data-[state=active]:border-[#0B7F6F]/40 data-[state=active]:bg-[#0B7F6F]/10 data-[state=active]:text-[#0b7f6f]"
                 >
                   {t.label}
                 </TabsTrigger>
@@ -388,7 +388,7 @@ export function NotificationsBoard({ businessId, userId, notifications }: Props)
 function EmptyView() {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-white px-6 py-16 text-center">
-      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#12C8AD]/10 text-[#0b7f6f]">
+      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
         <Inbox className="h-6 w-6" />
       </div>
       <p className="text-base font-semibold text-[#0C1D36]">Henüz bildiriminiz yok.</p>
@@ -417,8 +417,8 @@ function NotificationRow({
         type="button"
         onClick={() => onOpen(n.id)}
         className={cn(
-          'group flex w-full items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-left transition hover:border-[#12C8AD]/40 hover:shadow-sm',
-          !n.isRead ? 'border-[#12C8AD]/30 bg-[#12C8AD]/[0.03]' : 'border-border/50'
+          'group flex w-full items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-left transition hover:border-[#0B7F6F]/40 hover:shadow-sm',
+          !n.isRead ? 'border-[#0B7F6F]/30 bg-[#0B7F6F]/[0.03]' : 'border-border/50'
         )}
       >
         <div
@@ -428,7 +428,7 @@ function NotificationRow({
               ? 'bg-rose-100 text-rose-600'
               : n.priority === 'HIGH'
                 ? 'bg-amber-100 text-amber-700'
-                : 'bg-[#12C8AD]/10 text-[#0b7f6f]'
+                : 'bg-[#0B7F6F]/10 text-[#0b7f6f]'
           )}
         >
           <Icon className="h-5 w-5" />
@@ -532,7 +532,7 @@ function NotificationDetail({
                 ? 'bg-rose-100 text-rose-600'
                 : n.priority === 'HIGH'
                   ? 'bg-amber-100 text-amber-700'
-                  : 'bg-[#12C8AD]/10 text-[#0b7f6f]'
+                  : 'bg-[#0B7F6F]/10 text-[#0b7f6f]'
             )}
           >
             <Icon className="h-6 w-6" />
@@ -622,7 +622,7 @@ function NotificationDetail({
                     <span className="w-24 shrink-0 text-xs text-muted-foreground">Etiketler</span>
                     <div className="flex flex-wrap gap-1">
                       {tags.map((t) => (
-                        <Badge key={t} variant="secondary" className="border-0 bg-[#12C8AD]/10 text-[10px] text-[#0b7f6f]">
+                        <Badge key={t} variant="secondary" className="border-0 bg-[#0B7F6F]/10 text-[10px] text-[#0b7f6f]">
                           {t}
                         </Badge>
                       ))}
@@ -689,7 +689,7 @@ function NotificationDetail({
                       onClick={() => onRunAction(a.id, a.label)}
                       className={cn(
                         'gap-1',
-                        isApprove && 'bg-[#12C8AD] text-white hover:bg-[#0fb39c]'
+                        isApprove && 'bg-[#0B7F6F] text-white hover:bg-[#0fb39c]'
                       )}
                     >
                       <Icon className="h-4 w-4" />

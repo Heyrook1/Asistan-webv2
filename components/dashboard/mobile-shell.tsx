@@ -127,14 +127,14 @@ export function MobileShell({
                 href={item.href}
                 className={cn(
                   'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-                  active ? 'text-[#12C8AD]' : 'text-muted-foreground'
+                  active ? 'text-[#0B7F6F]' : 'text-muted-foreground'
                 )}
                 aria-current={active ? 'page' : undefined}
               >
                 <span className="relative">
                   <item.icon className="h-[22px] w-[22px]" />
                   {active && (
-                    <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-[#12C8AD]" />
+                    <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-[#0B7F6F]" />
                   )}
                 </span>
                 {item.name}
@@ -146,7 +146,7 @@ export function MobileShell({
             onClick={() => setMenuOpen(true)}
             className={cn(
               'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-              menuOpen || isSecondaryActive ? 'text-[#12C8AD]' : 'text-muted-foreground'
+              menuOpen || isSecondaryActive ? 'text-[#0B7F6F]' : 'text-muted-foreground'
             )}
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
@@ -154,7 +154,7 @@ export function MobileShell({
             <span className="relative">
               <Menu className="h-[22px] w-[22px]" />
               {unreadCount > 0 && !isSecondaryActive && (
-                <span className="absolute -right-1.5 -top-1 min-w-[16px] h-4 rounded-full bg-[#12C8AD] text-[#06142A] text-[9px] font-bold flex items-center justify-center px-1 leading-none ring-2 ring-white">
+                <span className="absolute -right-1.5 -top-1 min-w-[16px] h-4 rounded-full bg-[#0B7F6F] text-[#06142A] text-[9px] font-bold flex items-center justify-center px-1 leading-none ring-2 ring-white">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -168,7 +168,7 @@ export function MobileShell({
         type="button"
         onClick={() => setFabOpen(true)}
         aria-label="Hızlı işlemler"
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#12C8AD] text-white shadow-xl shadow-teal-500/40 transition-transform active:scale-95 lg:hidden"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#0B7F6F] text-white shadow-xl shadow-teal-500/40 transition-transform active:scale-95 lg:hidden"
         style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
       >
         <Plus className="h-7 w-7" />
@@ -255,19 +255,19 @@ export function MobileShell({
                         className={cn(
                           'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
                           active
-                            ? 'bg-[#12C8AD]/15 text-white'
+                            ? 'bg-[#0B7F6F]/15 text-white'
                             : 'text-white/70 hover:bg-white/5'
                         )}
                       >
                         <item.icon
                           className={cn(
                             'h-5 w-5 shrink-0',
-                            active ? 'text-[#12C8AD]' : 'text-white/55'
+                            active ? 'text-[#0B7F6F]' : 'text-white/55'
                           )}
                         />
                         <span className="flex-1">{item.name}</span>
                         {item.badge && unreadCount > 0 && (
-                          <span className="min-w-[20px] h-5 rounded-full bg-[#12C8AD] text-[#06142A] text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
+                          <span className="min-w-[20px] h-5 rounded-full bg-[#0B7F6F] text-[#06142A] text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}

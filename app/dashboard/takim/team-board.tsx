@@ -152,7 +152,8 @@ function memberPermissions(member: Member) {
   if (member.role === 'ISLETME_SAHIBI' || member.role === 'SUPER_ADMIN') {
     return ROLE_DEFAULT_PERMISSIONS.ISLETME_SAHIBI
   }
-  return uniquePermissions([...(ROLE_DEFAULT_PERMISSIONS[member.role] ?? []), ...(member.permissions as Permission[])])
+  const explicit = member.permissions as Permission[]
+  return explicit.length > 0 ? uniquePermissions(explicit) : roleDefaults(member.role)
 }
 
 function roleLevel(role: RoleId) {
@@ -349,7 +350,7 @@ export function TeamBoard({
     <div className="space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#12C8AD]/25 bg-[#12C8AD]/10 px-3 py-1 text-xs font-semibold text-[#0b7f6f]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0B7F6F]/25 bg-[#0B7F6F]/10 px-3 py-1 text-xs font-semibold text-[#0b7f6f]">
             <Shield className="h-3.5 w-3.5" />
             Kurumsal erişim yönetimi
           </div>
@@ -361,7 +362,7 @@ export function TeamBoard({
         <Button
           onClick={() => setAddOpen(true)}
           disabled={!canManage}
-          className="h-11 bg-[#12C8AD] px-5 text-white shadow-lg shadow-teal-500/20 hover:bg-[#10b49c]"
+          className="h-11 bg-[#0B7F6F] px-5 text-white shadow-lg shadow-teal-500/20 hover:bg-[#09685C]"
         >
           <Plus className="mr-2 h-4 w-4" /> Kullanıcıyı davet et
         </Button>
@@ -390,7 +391,7 @@ export function TeamBoard({
               <Card key={role.id} className="border-border/70 shadow-sm">
                 <CardContent className="flex h-full flex-col gap-4 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#12C8AD]/10 text-[#0b7f6f]">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
                       <Shield className="h-5 w-5" />
                     </span>
                     <Badge variant="outline" className="bg-white text-[10px]">{roleLevel(role.id)}</Badge>
@@ -559,7 +560,7 @@ export function TeamBoard({
                           <td className="px-4 py-3 text-muted-foreground">{formatLastSeen(member.lastSeenAt)}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="rounded-full bg-[#12C8AD]/10 px-2 py-1 text-xs font-semibold text-[#0b7f6f]">
+                              <span className="rounded-full bg-[#0B7F6F]/10 px-2 py-1 text-xs font-semibold text-[#0b7f6f]">
                                 {permissions.length} yetki
                               </span>
                               {criticalCount > 0 && (
@@ -628,7 +629,7 @@ export function TeamBoard({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeactivate} className="bg-[#12C8AD] text-white hover:bg-[#10b49c]">
+            <AlertDialogAction onClick={confirmDeactivate} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
               Onayla
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -642,7 +643,7 @@ function SummaryCard({ icon, label, value, detail }: { icon: React.ReactNode; la
   return (
     <Card className="border-border/70 shadow-sm">
       <CardContent className="flex items-center gap-4 p-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#12C8AD]/10 text-[#0b7f6f] [&_svg]:h-5 [&_svg]:w-5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f] [&_svg]:h-5 [&_svg]:w-5">
           {icon}
         </span>
         <div>
@@ -810,7 +811,7 @@ function AddUserDialog({
           </label>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={close}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#12C8AD] text-white hover:bg-[#10b49c]">
+            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
               {pending ? 'Kaydediliyor...' : 'Kullanıcı ekle'}
             </Button>
           </div>
@@ -854,7 +855,7 @@ function PermissionDrawer({
                 <div>
                   <p className="font-bold text-[#0C1D36]">{member.fullName}</p>
                   <p className="text-xs text-muted-foreground">{member.email}</p>
-                  <Badge className="mt-2 border-0 bg-[#12C8AD]/10 text-[#0b7f6f]">{ROLE_LABELS[member.role]}</Badge>
+                  <Badge className="mt-2 border-0 bg-[#0B7F6F]/10 text-[#0b7f6f]">{ROLE_LABELS[member.role]}</Badge>
                 </div>
               </div>
             </div>
@@ -887,7 +888,7 @@ function PermissionDrawer({
               <Button type="button" variant="outline" className="flex-1" onClick={onReset}>
                 <RotateCcw className="mr-2 h-4 w-4" /> Varsayılan Role Sıfırla
               </Button>
-              <Button type="button" className="flex-1 bg-[#12C8AD] text-white hover:bg-[#10b49c]" disabled={pending} onClick={onSave}>
+              <Button type="button" className="flex-1 bg-[#0B7F6F] text-white hover:bg-[#09685C]" disabled={pending} onClick={onSave}>
                 Değişiklikleri Kaydet
               </Button>
             </div>
@@ -954,7 +955,7 @@ function ResetPasswordDialog({
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={close}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#12C8AD] text-white hover:bg-[#10b49c]">
+            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
               {pending ? 'Kaydediliyor...' : 'Şifreyi sıfırla'}
             </Button>
           </div>

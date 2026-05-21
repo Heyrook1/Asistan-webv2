@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
@@ -24,7 +24,7 @@ function addMinutes(time: string, minutes: number) {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
 }
 
-async function hasConfirmedStaffConflict(input: {
+async function hasActiveStaffConflict(input: {
   businessId: string
   staffId: string
   date: Date
@@ -37,7 +37,7 @@ async function hasConfirmedStaffConflict(input: {
       businessId: input.businessId,
       staffId: input.staffId,
       date: input.date,
-      status: 'CONFIRMED',
+      status: { in: ['SCHEDULED', 'CONFIRMED'] },
       id: input.excludeAppointmentId ? { not: input.excludeAppointmentId } : undefined,
     },
     select: { startTime: true, endTime: true },
@@ -90,14 +90,14 @@ export async function createAppointment(rawInput: unknown): Promise<ActionResult
       where: { id: input.staffId, businessId: session.businessId, isActive: true },
       select: { id: true },
     })
-    if (!staff) return err('Personel bulunamadÄ±')
+    if (!staff) return err('Personel bulunamadı')
   }
 
   const endTime = input.endTime ?? addMinutes(input.startTime, service.durationMin)
   if (endTime <= input.startTime) return err('Bitiş saati başlangıçtan sonra olmalı')
 
-  if (input.staffId && input.status === 'CONFIRMED') {
-    const overlap = await hasConfirmedStaffConflict({
+  if (input.staffId && (input.status === 'SCHEDULED' || input.status === 'CONFIRMED')) {
+    const overlap = await hasActiveStaffConflict({
       businessId: session.businessId,
       staffId: input.staffId,
       date: new Date(input.date),
@@ -255,7 +255,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
   if (!existing) return err('Randevu bulunamadı')
 
   if (parsed.data.status === 'CONFIRMED' && existing.staffId) {
-    const overlap = await hasConfirmedStaffConflict({
+    const overlap = await hasActiveStaffConflict({
       businessId: session.businessId,
       staffId: existing.staffId,
       date: existing.date,
@@ -263,7 +263,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       endTime: existing.endTime,
       excludeAppointmentId: existing.id,
     })
-    if (overlap) return err('Bu saat iÃ§in onaylanmÄ±ÅŸ baÅŸka bir randevu var')
+    if (overlap) return err('Bu saat için bekleyen veya onaylanmış başka bir randevu var')
   }
 
   await prisma.appointment.update({
@@ -405,14 +405,29 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
   })
   if (!existing) return err('Randevu bulunamadı')
   const endTime = parsed.data.endTime ?? addMinutes(parsed.data.startTime, existing.service.durationMin)
-  if (endTime <= parsed.data.startTime) return err('BitiÅŸ saati baÅŸlangÄ±Ã§tan sonra olmalÄ±')
+  if (endTime <= parsed.data.startTime) return err('Bitiş saati başlangıçtan sonra olmalı')
+  const rescheduledDate = new Date(parsed.data.date)
+
+  if (existing.staffId) {
+    const overlap = await hasActiveStaffConflict({
+      businessId: session.businessId,
+      staffId: existing.staffId,
+      date: rescheduledDate,
+      startTime: parsed.data.startTime,
+      endTime,
+      excludeAppointmentId: existing.id,
+    })
+    if (overlap) return err('Bu saat için bekleyen veya onaylanmış başka bir randevu var')
+  }
 
   await prisma.appointment.update({
     where: { id: parsed.data.id },
     data: {
-      date: new Date(parsed.data.date),
+      date: rescheduledDate,
       startTime: parsed.data.startTime,
       endTime,
+      // Rescheduling invalidates a previous confirmation: the new slot needs
+      // staff review and sends an appointment_rescheduled notification.
       status: AppointmentStatus.SCHEDULED,
     },
   })
@@ -467,6 +482,9 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
       patientId: existing.patientId,
       patientName: patient?.fullName,
       serviceName: service?.name,
+      previousStatus: existing.status,
+      newStatus: AppointmentStatus.SCHEDULED,
+      requiresConfirmation: true,
       date: parsed.data.date,
       startTime: parsed.data.startTime,
     },

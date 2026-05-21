@@ -77,7 +77,7 @@ export function MobileTopbar({
             <Avatar className="h-9 w-9">
               <AvatarFallback
                 className="text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #12C8AD, #16A9E8)' }}
+                style={{ background: 'linear-gradient(135deg, #0B7F6F, #16A9E8)' }}
               >
                 {initials || 'AS'}
               </AvatarFallback>

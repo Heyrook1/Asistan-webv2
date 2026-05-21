@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, ArrowRight, ChevronRight, Phone, Mail } from 'lucide-react'
-import { requirePermission, can } from '@/lib/session'
+import { requirePagePermission, can } from '@/lib/session'
 import { getPatientsList } from '@/lib/queries'
 import { ageFromBirthDate, formatPhone, formatRelativeDate } from '@/lib/format'
 import { EmptyState } from '@/components/dashboard/empty-state'
@@ -26,7 +26,7 @@ export default async function HastalarPage({
   searchParams: Promise<{ q?: string; archived?: string }>
 }) {
   const sp = await searchParams
-  const session = await requirePermission('patient.view')
+  const session = await requirePagePermission('patient.view')
   const archived = sp.archived === '1'
   const patients = await getPatientsList(session.businessId, { query: sp.q, archived })
 
@@ -66,7 +66,7 @@ export default async function HastalarPage({
                     href={`/dashboard/hastalar/${p.id}`}
                     className="flex items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm active:bg-slate-50"
                   >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#12C8AD]/15 to-[#16A9E8]/15 text-sm font-bold text-[#0C1D36]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0B7F6F]/15 to-[#16A9E8]/15 text-sm font-bold text-[#0C1D36]">
                       {initials(p.fullName)}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -85,7 +85,7 @@ export default async function HastalarPage({
                           <Badge className="bg-rose-100 text-rose-700 border-0 text-[10px]">Riskli</Badge>
                         )}
                         {p.tags.slice(0, 2).map((tag) => (
-                          <Badge key={tag} variant="secondary" className="bg-[#12C8AD]/10 text-[#0b7f6f] border-0 text-[10px]">
+                          <Badge key={tag} variant="secondary" className="bg-[#0B7F6F]/10 text-[#0b7f6f] border-0 text-[10px]">
                             {tag}
                           </Badge>
                         ))}
@@ -128,7 +128,7 @@ export default async function HastalarPage({
                           <td className="px-4 py-3">
                             <Link
                               href={`/dashboard/hastalar/${p.id}`}
-                              className="flex items-center gap-1.5 font-medium text-[#0C1D36] hover:text-[#12C8AD]"
+                              className="flex items-center gap-1.5 font-medium text-[#0C1D36] hover:text-[#0B7F6F]"
                             >
                               {p.fullName}
                               {hasAllergy && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
@@ -156,7 +156,7 @@ export default async function HastalarPage({
                                 <span className="text-[11px] text-muted-foreground">—</span>
                               ) : (
                                 p.tags.slice(0, 3).map((t) => (
-                                  <Badge key={t} variant="secondary" className="bg-[#12C8AD]/10 text-[#0b7f6f] text-[10px]">
+                                  <Badge key={t} variant="secondary" className="bg-[#0B7F6F]/10 text-[#0b7f6f] text-[10px]">
                                     {t}
                                   </Badge>
                                 ))
@@ -170,7 +170,7 @@ export default async function HastalarPage({
                           <td className="px-4 py-3 text-right">
                             <Link
                               href={`/dashboard/hastalar/${p.id}`}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-[#12C8AD]"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-[#0B7F6F]"
                             >
                               Aç <ArrowRight className="h-3.5 w-3.5" />
                             </Link>

@@ -4,9 +4,11 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { NotificationType, TeamRole } from '@prisma/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
-import { requirePermission, ROLE_DEFAULT_PERMISSIONS, PERMISSIONS, ROLE_LABELS } from '@/lib/session'
+import { requirePermission, requireSession, can, ROLE_DEFAULT_PERMISSIONS, PERMISSIONS, ROLE_LABELS } from '@/lib/session'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { env } from '@/lib/env'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
 
@@ -38,19 +40,44 @@ async function getSiteOrigin() {
   return `${protocol}://${host}`
 }
 
+function isAuthUserNotFound(error: Error) {
+  const authError = error as Error & { status?: number; code?: string }
+  const message = error.message.toLowerCase()
+  return authError.status === 404 || authError.code === 'user_not_found' || message.includes('user not found')
+}
+
 async function findAuthUserByEmail(email: string) {
   const admin = createAdminClient()
   if (!admin) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured')
 
-  for (let page = 1; page <= 10; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error) throw error
-    const user = data.users.find((u) => u.email?.toLowerCase() === email)
-    if (user) return user
-    if (data.users.length < 1000) return null
+  const normalizedEmail = email.toLowerCase()
+  const adminWithEmailLookup = admin.auth.admin as typeof admin.auth.admin & {
+    getUserByEmail?: (email: string) => Promise<{ data: { user: SupabaseUser | null }; error: Error | null }>
   }
 
-  return null
+  if (typeof adminWithEmailLookup.getUserByEmail === 'function') {
+    const { data, error } = await adminWithEmailLookup.getUserByEmail(normalizedEmail)
+    if (error && isAuthUserNotFound(error)) return null
+    if (error) throw error
+    return data.user
+  }
+
+  const url = new URL('/auth/v1/admin/users', env.supabaseUrl)
+  url.searchParams.set('email', normalizedEmail)
+
+  const response = await fetch(url, {
+    headers: {
+      apikey: env.supabaseServiceRoleKey!,
+      Authorization: `Bearer ${env.supabaseServiceRoleKey}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Supabase auth email lookup failed: HTTP ${response.status}`)
+  }
+
+  const payload = (await response.json()) as { user?: SupabaseUser | null; users?: SupabaseUser[] }
+  return payload.user ?? payload.users?.find((user) => user.email?.toLowerCase() === normalizedEmail) ?? null
 }
 
 function authUserMetadata(input: {
@@ -116,7 +143,7 @@ async function inviteAuthUser(input: {
 export async function createTeamMember(input: unknown): Promise<ActionResult<{ id: string; invitationSent: boolean }>> {
   const parsed = memberSchema.safeParse(input)
   if (!parsed.success) return err('Form hatali', parsed.error.issues)
-  const session = await requirePermission('team.manage')
+  const session = await requirePermission('team.create')
   if (!session.isOwner && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(parsed.data.role)) {
     return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
   }
@@ -233,10 +260,20 @@ const updateSchema = memberSchema.omit({ password: true, sendInvite: true }).par
 export async function updateTeamMember(input: unknown): Promise<ActionResult> {
   const parsed = updateSchema.safeParse(input)
   if (!parsed.success) return err('Form hatali', parsed.error.issues)
-  const session = await requirePermission('team.manage')
+  const session = await requireSession()
   const { id, ...patch } = parsed.data
   const owned = await prisma.teamMember.findFirst({ where: { id, businessId: session.businessId } })
   if (!owned) return err('Uye bulunamadi')
+  if (patch.role && patch.role !== owned.role && !can(session, 'team.role.edit')) {
+    return err('Rol duzenleme yetkiniz yok')
+  }
+  if (patch.permissions && !can(session, 'team.permission.edit')) {
+    return err('Yetki duzenleme yetkiniz yok')
+  }
+  const profileChanged = patch.fullName !== undefined || patch.email !== undefined || patch.phone !== undefined || patch.color !== undefined
+  if (profileChanged && !can(session, 'team.manage')) {
+    return err('Ekip uyesi duzenleme yetkiniz yok')
+  }
   if (!session.isOwner && patch.role && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(patch.role)) {
     return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
   }

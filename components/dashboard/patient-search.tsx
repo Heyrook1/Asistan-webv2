@@ -87,7 +87,7 @@ export function PatientSearch() {
             }
           }}
           placeholder="Hasta adı, telefon, e-posta, hasta no veya etiket ara..."
-          className="pl-10 h-10 bg-[#F7F8FB] border-border/40 text-sm rounded-xl focus-visible:ring-[#12C8AD]/40 focus-visible:border-[#12C8AD]/40"
+          className="pl-10 h-10 bg-[#F7F8FB] border-border/40 text-sm rounded-xl focus-visible:ring-[#0B7F6F]/40 focus-visible:border-[#0B7F6F]/40"
         />
       </div>
 
@@ -116,7 +116,7 @@ export function PatientSearch() {
                       </p>
                     </div>
                     {r.tags.length > 0 && (
-                      <span className="hidden md:inline-flex shrink-0 rounded-full bg-[#12C8AD]/10 text-[#0b7f6f] text-[10px] px-2 py-0.5">
+                      <span className="hidden md:inline-flex shrink-0 rounded-full bg-[#0B7F6F]/10 text-[#0b7f6f] text-[10px] px-2 py-0.5">
                         {r.tags[0]}
                       </span>
                     )}

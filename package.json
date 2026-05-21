@@ -8,8 +8,10 @@
     "postinstall": "node scripts/prisma-generate.mjs",
     "start": "next start",
     "lint": "eslint .",
+    "check:production": "tsx scripts/verify-production-readiness.ts",
     "check:supabase-admin": "node scripts/check-supabase-admin-key.mjs",
     "db:push": "prisma db push",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "node scripts/prisma-generate.mjs",
     "db:seed": "tsx prisma/seed.ts"
   },

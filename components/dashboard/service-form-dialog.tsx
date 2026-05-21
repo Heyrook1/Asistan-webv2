@@ -29,7 +29,7 @@ const empty: ServiceDraft = {
   durationMin: 30,
   price: 0,
   currency: 'TRY',
-  color: '#12C8AD',
+  color: '#0B7F6F',
   isActive: true,
 }
 
@@ -132,7 +132,7 @@ export function ServiceFormDialog({
           </label>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
               {pending ? 'Kaydediliyor...' : draft.id ? 'Güncelle' : 'Kaydet'}
             </Button>
           </div>

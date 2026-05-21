@@ -78,7 +78,7 @@ export function PatientsToolbar({ canCreate }: { canCreate: boolean }) {
           <Button
             type="button"
             onClick={() => setDrawer(true)}
-            className="hidden h-10 bg-[#12C8AD] text-white hover:bg-[#10b49c] lg:inline-flex"
+            className="hidden h-10 bg-[#0B7F6F] text-white hover:bg-[#09685C] lg:inline-flex"
           >
             <UserPlus className="mr-2 h-4 w-4" /> Hasta Ekle
           </Button>
@@ -96,8 +96,8 @@ export function PatientsToolbar({ canCreate }: { canCreate: boolean }) {
               className={cn(
                 'tap-target inline-flex items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors',
                 active
-                  ? 'border-[#12C8AD] bg-[#12C8AD] text-white'
-                  : 'border-border bg-white text-muted-foreground hover:border-[#12C8AD]/40'
+                  ? 'border-[#0B7F6F] bg-[#0B7F6F] text-white'
+                  : 'border-border bg-white text-muted-foreground hover:border-[#0B7F6F]/40'
               )}
               aria-pressed={active}
             >

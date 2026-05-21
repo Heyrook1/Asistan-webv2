@@ -28,7 +28,7 @@ export default function AppError({
             Hata kodu: {error.digest}
           </p>
         )}
-        <Button onClick={reset} className="mt-4 bg-[#12C8AD] text-white hover:bg-[#10b49c]">
+        <Button onClick={reset} className="mt-4 bg-[#0B7F6F] text-white hover:bg-[#09685C]">
           Tekrar dene
         </Button>
       </div>

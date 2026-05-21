@@ -8,6 +8,16 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -167,6 +177,7 @@ export function AppointmentsBoard({
   const [pending, startTransition] = useTransition()
   const [createOpen, setCreateOpen] = useState(false)
   const [reschedule, setReschedule] = useState<PlainAppointment | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<PlainAppointment | null>(null)
 
   const filtered = useMemo(
     () => (status === 'ALL' ? appointments : appointments.filter((a) => a.status === status)),
@@ -183,11 +194,11 @@ export function AppointmentsBoard({
   }
 
   function remove(id: string) {
-    if (!confirm('Bu randevuyu silmek istediğinize emin misiniz?')) return
     startTransition(async () => {
       const result = await deleteAppointment({ id })
       if (!result.ok) { toast.error(result.error); return }
       toast.success('Randevu silindi')
+      setDeleteTarget(null)
       router.refresh()
     })
   }
@@ -205,7 +216,7 @@ export function AppointmentsBoard({
         {canManage && (
           <Button
             onClick={() => setCreateOpen(true)}
-            className="hidden h-11 gap-2 bg-[#12C8AD] text-white shadow-sm hover:bg-[#10b49c] md:inline-flex"
+            className="hidden h-11 gap-2 bg-[#0B7F6F] text-white shadow-sm hover:bg-[#09685C] md:inline-flex"
           >
             <CalendarPlus className="h-4 w-4" />
             Randevu Oluştur
@@ -228,8 +239,8 @@ export function AppointmentsBoard({
                 className={cn(
                   'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition-colors md:h-10',
                   active
-                    ? 'border-[#12C8AD] bg-[#12C8AD] text-white shadow-sm'
-                    : 'border-border bg-white text-[#0C1D36] hover:border-[#12C8AD]/40'
+                    ? 'border-[#0B7F6F] bg-[#0B7F6F] text-white shadow-sm'
+                    : 'border-border bg-white text-[#0C1D36] hover:border-[#0B7F6F]/40'
                 )}
               >
                 <FilterIcon className={cn('h-4 w-4', active ? 'text-white' : filter.iconClass)} />
@@ -240,7 +251,7 @@ export function AppointmentsBoard({
         </div>
         <button
           type="button"
-          className="hidden h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 text-[13px] font-semibold text-[#0C1D36] transition-colors hover:border-[#12C8AD]/40 md:inline-flex"
+          className="hidden h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 text-[13px] font-semibold text-[#0C1D36] transition-colors hover:border-[#0B7F6F]/40 md:inline-flex"
           onClick={() => toast.info('Gelişmiş filtreleme yakında.')}
         >
           <SlidersHorizontal className="h-4 w-4" />
@@ -267,7 +278,7 @@ export function AppointmentsBoard({
                 onCancel={() => changeStatus(appointment.id, 'CANCELLED')}
                 onNoShow={() => changeStatus(appointment.id, 'NO_SHOW')}
                 onReschedule={() => setReschedule(appointment)}
-                onDelete={() => remove(appointment.id)}
+                onDelete={() => setDeleteTarget(appointment)}
               />
             </li>
           ))}
@@ -289,6 +300,27 @@ export function AppointmentsBoard({
         onClose={() => setReschedule(null)}
         onSuccess={() => router.refresh()}
       />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Randevuyu sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? `${deleteTarget.patientName} - ${deleteTarget.serviceName} randevusu silinecek. Bu işlem geri alınamaz.` : 'Bu randevu silinecek.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending}
+              onClick={() => deleteTarget && remove(deleteTarget.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -354,7 +386,7 @@ function AppointmentRow({
         <div className="hidden shrink-0 items-center md:flex">
           <span
             className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white"
-            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || '#12C8AD'}, #16A9E8)` }}
+            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || '#0B7F6F'}, #16A9E8)` }}
           >
             {initialsOf(appointment.patientName)}
           </span>
@@ -365,21 +397,21 @@ function AppointmentRow({
           <div className="flex items-start gap-3">
             <span
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white md:hidden"
-              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || '#12C8AD'}, #16A9E8)` }}
+              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || '#0B7F6F'}, #16A9E8)` }}
             >
               {initialsOf(appointment.patientName)}
             </span>
             <div className="min-w-0 flex-1">
               <Link
                 href={`/dashboard/hastalar/${appointment.patientId}`}
-                className="block truncate text-[15px] font-bold text-[#0C1D36] hover:text-[#12C8AD] md:text-base"
+                className="block truncate text-[15px] font-bold text-[#0C1D36] hover:text-[#0B7F6F] md:text-base"
               >
                 {appointment.patientName}
               </Link>
               <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground md:text-[13px]">
                 <span
                   className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: appointment.serviceColor || '#12C8AD' }}
+                  style={{ background: appointment.serviceColor || '#0B7F6F' }}
                 />
                 <span className="truncate">{appointment.serviceName}</span>
               </p>
@@ -520,7 +552,7 @@ function RescheduleDialog({
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
               {pending ? 'Kaydediliyor...' : 'Güncelle'}
             </Button>
           </div>

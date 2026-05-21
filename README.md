@@ -32,19 +32,39 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role>
 
 ## Veritabanı Kurulumu
 
-Tek bir konsolide migrasyon dosyası vardır:
+Supabase SQL migrasyonları bu dizindedir:
 
 ```
-supabase/migrations/20260518_0000_asistan_health_core.sql
+supabase/migrations/*.sql
 ```
 
-Supabase SQL Editor’dan veya `prisma db push` ile uygulanabilir:
+Tek bir eski SQL dosyasini tek basina calistirmayin; semanin tek kaynak kabul
+edilen hali `prisma/schema.prisma` + sirali `supabase/migrations/*.sql`
+zinciridir.
+
+Gelistirme ortaminda hizli senkronizasyon icin Prisma schema push kullanilabilir:
 
 ```bash
-# Tercih edilen: ilk kurulum / dev
-pnpm prisma db push
+pnpm db:push
+pnpm db:generate
+```
 
-# Alternatif: Supabase Dashboard → SQL Editor → migrasyon SQL'ini yapıştır → Run
+Production'da `prisma db push` kullanmayin. Prisma migration gecmisi kullanilan
+ortamlarda deploy komutu:
+
+```bash
+pnpm db:migrate:deploy
+pnpm db:generate
+pnpm check:production
+```
+
+Bu projedeki RLS, Storage ve Realtime hardening SQL'leri `supabase/migrations`
+altinda tutuldugu icin production Supabase veritabanina bu SQL dosyalari da
+sira ile uygulanmalidir:
+
+```bash
+# Supabase Dashboard -> SQL Editor -> migrasyon SQL'lerini sirayla calistir
+# veya Supabase CLI kullanan pipeline'inizla supabase/migrations dizinini deploy edin.
 ```
 
 Sonra Prisma client’ı üretin:
@@ -77,7 +97,7 @@ sistem çalışır.
 - `lib/session.ts` — RBAC, oturum çözümleyici, yetki kontrolü
 - `lib/actions/*` — `'use server'` ile işaretlenmiş Server Action’lar
 - `lib/queries.ts` — Sunucu tarafı veri getirme yardımcıları
-- `lib/storage.ts` — Dosya yükleme yardımcısı (Supabase Storage / S3 entegrasyonu için TODO içerir)
+- `lib/storage.ts` — Supabase Storage yükleme yardımcısı (`patient-files` ve `message-media`)
 - `prisma/schema.prisma` — tüm modeller (User, Business, Patient, Service, Appointment, vd.)
 - `prisma/seed.ts` — demo veri seed scripti
 
@@ -107,8 +127,15 @@ açıp kapatabilirsiniz.
 - **Analitik** — son 6 ay ciro grafiği, randevu adetleri, iptal oranı
 - **Ayarlar** — işletme bilgileri, para birimi, marka rengi (sahip tarafından)
 
-## Yapılacaklar (entegrasyon notları)
+## Is Kurallari
 
-- **Supabase Storage / S3** — `lib/storage.ts` içinde TODO. Şu anda dosyalar base64 olarak `PatientFile.fileUrl` alanına yazılıyor; üretimde bunu `patient-files` bucket'ına yönlendirin.
-- **RLS** — şu anda yetki kontrolü Server Action katmanında yapılıyor. Üretim için Postgres RLS politikaları eklemeniz önerilir.
+- **Randevu yeniden planlama** - Onaylanmis bir randevu yeni tarih/saat araligina tasindiginda durum tekrar `SCHEDULED` olur. Yeni slot personel tarafindan tekrar onaylanmalidir ve ilgili kullanicilara `appointment_rescheduled` bildirimi gider.
+
+## Uretim Guvenligi
+
+- **Postgres RLS** - Supabase/Prisma tablolarinin RLS migrasyonlari `supabase/migrations` altindadir. Hasta, randevu, dosya, not, bildirim, mesajlasma, hatirlatma ve push aboneligi tablolari dogrudan Supabase client/API erisiminde de `auth.uid()` + isletme uyeligi/yetki politikalariyla korunur.
+- **Private Storage** - `patient-files` ve `message-media` bucket'lari private olarak olusturulur; DB'de base64 payload yerine sadece `storage://...` referansi tutulur. Storage object politikalari isletme, hasta ve sohbet katilimciligini kontrol eder.
+- **Production kontrolu** - canliya cikmadan once `pnpm check:production` calistirin; RLS, storage policy, realtime publication ve signed URL smoke testlerini denetler.
+
+## Yapılacaklar (entegrasyon notları)
 - **E-posta / SMS gönderimi** — bildirim oluşturulduğunda dış servise gönderim eklemek için Supabase Edge Function ya da bir webhook ekleyin.

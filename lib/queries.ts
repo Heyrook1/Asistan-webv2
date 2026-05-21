@@ -11,6 +11,16 @@ import {
 } from '@/lib/storage-constants'
 import type { NotificationListItem } from '@/lib/notifications/types'
 import { deriveStatus } from '@/lib/notifications/types'
+import { can, type SessionContext } from '@/lib/rbac'
+
+function applyAppointmentViewScope(where: Prisma.AppointmentWhereInput, viewer: SessionContext) {
+  if (can(viewer, 'appointment.view') || can(viewer, 'appointment.manage')) return
+  if (viewer.staffMemberId) {
+    where.staffId = viewer.staffMemberId
+  } else {
+    where.id = { in: [] }
+  }
+}
 
 function dateOnly(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -122,7 +132,10 @@ export async function getPatientDetail(
     where: { id: patientId, businessId },
     include: {
       assignedDoctor: { select: { id: true, fullName: true, color: true } },
-      notes: { orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }] },
+      notes: {
+        orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+        include: { creator: { select: { fullName: true, email: true } } },
+      },
       medications: { orderBy: { createdAt: 'desc' } },
       allergies: { orderBy: { createdAt: 'desc' } },
       treatments: { orderBy: { createdAt: 'desc' } },
@@ -160,28 +173,38 @@ export async function getPatientDetail(
   }
 }
 
+async function batchSignStorageKeys(
+  bucket: string,
+  storageKeys: string[],
+  ttlSeconds: number
+): Promise<Map<string, string>> {
+  if (storageKeys.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(storageKeys, ttlSeconds)
+  if (error || !data) return new Map()
+  const result = new Map<string, string>()
+  for (const item of data) {
+    if (item.path && !item.error && item.signedUrl) {
+      result.set(item.path, item.signedUrl)
+    }
+  }
+  return result
+}
+
 async function signPatientFiles(files: PatientFile[]) {
   if (files.length === 0) return files
-
-  const supabase = await createClient()
-  const signed = await Promise.all(
-    files.map(async (file) => {
-      if (!file.storageKey.startsWith(`${file.businessId}/${file.patientId}/`)) {
-        return { ...file, fileUrl: '' }
-      }
-
-      const { data, error } = await supabase.storage
-        .from(PATIENT_FILES_BUCKET)
-        .createSignedUrl(file.storageKey, PATIENT_FILE_SIGNED_URL_TTL_SECONDS)
-
-      return {
-        ...file,
-        fileUrl: error ? '' : data.signedUrl,
-      }
-    })
+  const validKeys = files
+    .filter((f) => f.storageKey.startsWith(`${f.businessId}/${f.patientId}/`))
+    .map((f) => f.storageKey)
+  const urlMap = await batchSignStorageKeys(
+    PATIENT_FILES_BUCKET,
+    validKeys,
+    PATIENT_FILE_SIGNED_URL_TTL_SECONDS
   )
-
-  return signed
+  return files.map((file) => ({
+    ...file,
+    fileUrl: urlMap.get(file.storageKey) ?? '',
+  }))
 }
 
 export async function getServicesList(businessId: string) {
@@ -200,7 +223,8 @@ export async function getTeamList(businessId: string) {
 
 export async function getAppointmentsRange(
   businessId: string,
-  range: { from: Date; to: Date; staffId?: string; serviceId?: string }
+  range: { from: Date; to: Date; staffId?: string; serviceId?: string },
+  viewer: SessionContext
 ) {
   const where: Prisma.AppointmentWhereInput = {
     businessId,
@@ -208,6 +232,7 @@ export async function getAppointmentsRange(
   }
   if (range.staffId) where.staffId = range.staffId
   if (range.serviceId) where.serviceId = range.serviceId
+  applyAppointmentViewScope(where, viewer)
   return prisma.appointment.findMany({
     where,
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
@@ -221,7 +246,8 @@ export async function getAppointmentsRange(
 
 export async function getAppointmentsList(
   businessId: string,
-  options: { status?: string; from?: Date; to?: Date } = {}
+  options: { status?: string; from?: Date; to?: Date } = {},
+  viewer: SessionContext
 ) {
   const where: Prisma.AppointmentWhereInput = { businessId }
   if (options.status) where.status = options.status as Prisma.AppointmentWhereInput['status']
@@ -230,6 +256,7 @@ export async function getAppointmentsList(
     if (options.from) where.date.gte = options.from
     if (options.to) where.date.lte = options.to
   }
+  applyAppointmentViewScope(where, viewer)
   return prisma.appointment.findMany({
     where,
     orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
@@ -322,9 +349,11 @@ export async function getUnreadNotificationCount(businessId: string, userId: str
 export async function getAnalyticsSnapshot(businessId: string) {
   const now = new Date()
   const start = new Date(now.getFullYear(), now.getMonth() - 5, 1)
-  const appointments = await prisma.appointment.findMany({
+  const grouped = await prisma.appointment.groupBy({
+    by: ['date', 'status'],
     where: { businessId, date: { gte: start } },
-    select: { date: true, status: true, price: true },
+    _count: { _all: true },
+    _sum: { price: true },
   })
   const buckets = new Map<string, { revenue: number; total: number; completed: number; cancelled: number }>()
   for (let i = 5; i >= 0; i--) {
@@ -332,16 +361,19 @@ export async function getAnalyticsSnapshot(businessId: string) {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     buckets.set(key, { revenue: 0, total: 0, completed: 0, cancelled: 0 })
   }
-  for (const a of appointments) {
-    const key = `${a.date.getFullYear()}-${String(a.date.getMonth() + 1).padStart(2, '0')}`
+  for (const g of grouped) {
+    const key = `${g.date.getFullYear()}-${String(g.date.getMonth() + 1).padStart(2, '0')}`
     const bucket = buckets.get(key)
     if (!bucket) continue
-    bucket.total += 1
-    if (a.status === 'COMPLETED') {
-      bucket.completed += 1
-      bucket.revenue += a.price ? Number(a.price) : 0
+    const count = g._count._all
+    bucket.total += count
+    if (g.status === 'COMPLETED') {
+      bucket.completed += count
+      bucket.revenue += g._sum.price ? Number(g._sum.price) : 0
     }
-    if (a.status === 'CANCELLED' || a.status === 'NO_SHOW') bucket.cancelled += 1
+    if (g.status === 'CANCELLED' || g.status === 'NO_SHOW') {
+      bucket.cancelled += count
+    }
   }
   return Array.from(buckets.entries()).map(([month, stats]) => ({ month, ...stats }))
 }
@@ -356,6 +388,26 @@ export type ConversationSummary = {
   partner: { id: string; fullName: string; avatarUrl: string | null } | null
   lastMessage: { body: string; senderUserId: string; createdAt: string } | null
   unreadCount: number
+}
+
+async function countUnreadByConversation(
+  userId: string,
+  participants: { conversationId: string; lastReadAt: Date | null }[]
+): Promise<Map<string, number>> {
+  if (participants.length === 0) return new Map()
+  const grouped = await prisma.message.groupBy({
+    by: ['conversationId'],
+    where: {
+      OR: participants.map((p) => ({
+        conversationId: p.conversationId,
+        senderUserId: { not: userId },
+        deletedAt: null,
+        ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
+      })),
+    },
+    _count: { _all: true },
+  })
+  return new Map(grouped.map((g) => [g.conversationId, g._count._all]))
 }
 
 export async function getMyConversations(
@@ -381,38 +433,33 @@ export async function getMyConversations(
     },
   })
 
-  return Promise.all(
-    rows.map(async (c) => {
-      const me = c.participants.find((p) => p.userId === userId)
-      const partner = c.participants.find((p) => p.userId !== userId)?.user ?? null
-      const unreadCount = me
-        ? await prisma.message.count({
-            where: {
-              conversationId: c.id,
-              senderUserId: { not: userId },
-              createdAt: me.lastReadAt ? { gt: me.lastReadAt } : undefined,
-              deletedAt: null,
-            },
-          })
-        : 0
-      const last = c.messages[0] ?? null
-      return {
-        id: c.id,
-        isGroup: c.isGroup,
-        title: c.title,
-        lastMessageAt: c.lastMessageAt ? c.lastMessageAt.toISOString() : null,
-        partner,
-        lastMessage: last
-          ? {
-              body: last.body || (last.attachments.length ? 'Dosya gönderildi' : ''),
-              senderUserId: last.senderUserId,
-              createdAt: last.createdAt.toISOString(),
-            }
-          : null,
-        unreadCount,
-      }
-    })
+  const enriched = rows.map((c) => {
+    const me = c.participants.find((p) => p.userId === userId) ?? null
+    const partner = c.participants.find((p) => p.userId !== userId)?.user ?? null
+    const last = c.messages[0] ?? null
+    return { c, me, partner, last }
+  })
+
+  const unreadByConv = await countUnreadByConversation(
+    userId,
+    enriched.flatMap((e) => (e.me ? [{ conversationId: e.c.id, lastReadAt: e.me.lastReadAt }] : []))
   )
+
+  return enriched.map(({ c, me, partner, last }) => ({
+    id: c.id,
+    isGroup: c.isGroup,
+    title: c.title,
+    lastMessageAt: c.lastMessageAt ? c.lastMessageAt.toISOString() : null,
+    partner,
+    lastMessage: last
+      ? {
+          body: last.body || (last.attachments.length ? 'Dosya gönderildi' : ''),
+          senderUserId: last.senderUserId,
+          createdAt: last.createdAt.toISOString(),
+        }
+      : null,
+    unreadCount: me ? unreadByConv.get(c.id) ?? 0 : 0,
+  }))
 }
 
 export async function getConversationThread(
@@ -451,23 +498,24 @@ export async function getConversationThread(
     },
   })
 
-  const supabase = await createClient()
-  const signedMessages = await Promise.all(
-    messages.map(async (message) => ({
-      ...message,
-      attachments: await Promise.all(
-        message.attachments.map(async (attachment) => {
-          if (!attachment.storageKey.startsWith(`${conversation.businessId}/${conversation.id}/`)) {
-            return { ...attachment, fileUrl: '' }
-          }
-          const { data, error } = await supabase.storage
-            .from(MESSAGE_MEDIA_BUCKET)
-            .createSignedUrl(attachment.storageKey, MESSAGE_MEDIA_SIGNED_URL_TTL_SECONDS)
-          return { ...attachment, fileUrl: error ? '' : data.signedUrl }
-        })
-      ),
-    }))
+  const prefix = `${conversation.businessId}/${conversation.id}/`
+  const validKeys = messages
+    .flatMap((m) => m.attachments)
+    .filter((a) => a.storageKey.startsWith(prefix))
+    .map((a) => a.storageKey)
+  const urlMap = await batchSignStorageKeys(
+    MESSAGE_MEDIA_BUCKET,
+    validKeys,
+    MESSAGE_MEDIA_SIGNED_URL_TTL_SECONDS
   )
+
+  const signedMessages = messages.map((message) => ({
+    ...message,
+    attachments: message.attachments.map((attachment) => ({
+      ...attachment,
+      fileUrl: urlMap.get(attachment.storageKey) ?? '',
+    })),
+  }))
 
   return { conversation, messages: signedMessages }
 }
@@ -481,22 +529,10 @@ export async function getUnreadMessageCount(businessId: string, userId: string) 
     },
     select: { conversationId: true, lastReadAt: true },
   })
-  if (participants.length === 0) return 0
-
-  // Sum unread per conversation in one query — group-by would also work.
-  const counts = await Promise.all(
-    participants.map((p) =>
-      prisma.message.count({
-        where: {
-          conversationId: p.conversationId,
-          senderUserId: { not: userId },
-          createdAt: p.lastReadAt ? { gt: p.lastReadAt } : undefined,
-          deletedAt: null,
-        },
-      })
-    )
-  )
-  return counts.reduce((acc, n) => acc + n, 0)
+  const counts = await countUnreadByConversation(userId, participants)
+  let total = 0
+  for (const n of counts.values()) total += n
+  return total
 }
 
 export async function getReminders(businessId: string, userId: string) {

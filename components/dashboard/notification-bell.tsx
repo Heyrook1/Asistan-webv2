@@ -140,7 +140,7 @@ export function NotificationBell({
           <Bell
             className={cn(
               'h-[18px] w-[18px] transition-colors',
-              pulse && 'text-[#12C8AD]'
+              pulse && 'text-[#0B7F6F]'
             )}
           />
           {safeUnread > 0 && (
@@ -154,7 +154,7 @@ export function NotificationBell({
             </span>
           )}
           {pulse && (
-            <span className="pointer-events-none absolute inset-0 rounded-xl bg-[#12C8AD]/15 animate-ping" />
+            <span className="pointer-events-none absolute inset-0 rounded-xl bg-[#0B7F6F]/15 animate-ping" />
           )}
         </button>
       </DropdownMenuTrigger>
@@ -177,7 +177,7 @@ export function NotificationBell({
               size="sm"
               onClick={handleReadAll}
               disabled={pending}
-              className="h-8 gap-1 px-2 text-xs text-[#12C8AD] hover:bg-[#12C8AD]/10 hover:text-[#0b7f6f]"
+              className="h-8 gap-1 px-2 text-xs text-[#0B7F6F] hover:bg-[#0B7F6F]/10 hover:text-[#0b7f6f]"
             >
               <CheckCheck className="h-3.5 w-3.5" />
               Tümünü okundu yap
@@ -188,7 +188,7 @@ export function NotificationBell({
 
         {preview.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#12C8AD]/10 text-[#0b7f6f]">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
               <Bell className="h-5 w-5" />
             </div>
             <p className="text-sm font-semibold text-[#0C1D36]">Henüz bildiriminiz yok.</p>
@@ -213,7 +213,7 @@ export function NotificationBell({
                     }}
                     className={cn(
                       'flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[#F7F9FB]',
-                      !n.isRead && 'bg-[#12C8AD]/[0.04]'
+                      !n.isRead && 'bg-[#0B7F6F]/[0.04]'
                     )}
                   >
                     <div
@@ -223,7 +223,7 @@ export function NotificationBell({
                           ? 'bg-rose-100 text-rose-600'
                           : n.priority === 'HIGH'
                             ? 'bg-amber-100 text-amber-700'
-                            : 'bg-[#12C8AD]/10 text-[#0b7f6f]'
+                            : 'bg-[#0B7F6F]/10 text-[#0b7f6f]'
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -274,7 +274,7 @@ export function NotificationBell({
         <Link
           href="/dashboard/bildirimler"
           onClick={() => setOpen(false)}
-          className="block px-4 py-3 text-center text-sm font-semibold text-[#12C8AD] transition hover:bg-[#12C8AD]/5"
+          className="block px-4 py-3 text-center text-sm font-semibold text-[#0B7F6F] transition hover:bg-[#0B7F6F]/5"
         >
           Tüm Bildirimleri Gör →
         </Link>

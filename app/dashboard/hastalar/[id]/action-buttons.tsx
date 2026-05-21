@@ -56,7 +56,7 @@ export function PatientActionButtons({
       <div className="space-y-2">
         <Button
           onClick={() => setOpen('appointment')}
-          className="h-11 w-full bg-[#12C8AD] text-white hover:bg-[#10b49c] md:h-9 md:w-auto"
+          className="h-11 w-full bg-[#0B7F6F] text-white hover:bg-[#09685C] md:h-9 md:w-auto"
         >
           <CalendarPlus className="mr-2 h-4 w-4" /> Randevu Oluştur
         </Button>
@@ -349,7 +349,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function DialogFooter({ pending }: { pending: boolean }) {
   return (
     <div className="flex justify-end pt-2">
-      <Button type="submit" disabled={pending} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+      <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
         {pending ? 'Kaydediliyor...' : 'Kaydet'}
       </Button>
     </div>

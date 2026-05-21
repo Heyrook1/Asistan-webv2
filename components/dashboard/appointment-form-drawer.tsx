@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CalendarPlus } from 'lucide-react'
+import { CalendarPlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createAppointment } from '@/lib/actions/appointments'
 
@@ -35,6 +35,7 @@ export function AppointmentFormDrawer({
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [form, setForm] = useState({
     patientId: defaultPatientId ?? '',
     serviceId: '',
@@ -57,10 +58,16 @@ export function AppointmentFormDrawer({
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.patientId) { toast.error('Hasta seçiniz'); return }
-    if (!form.serviceId) { toast.error('Hizmet seçiniz'); return }
-    if (!form.date) { toast.error('Tarih giriniz'); return }
-    if (!form.startTime) { toast.error('Başlangıç saatini giriniz'); return }
+    const nextErrors: Record<string, string> = {}
+    if (!form.patientId) nextErrors.patientId = 'Randevu oluşturmak için hasta seçin.'
+    if (!form.serviceId) nextErrors.serviceId = 'Randevu süresini ve ücretini belirlemek için hizmet seçin.'
+    if (!form.date) nextErrors.date = 'Randevu tarihini girin.'
+    if (!form.startTime) nextErrors.startTime = 'Başlangıç saatini girin.'
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error('Eksik alanları kontrol edin')
+      return
+    }
 
     startTransition(async () => {
       const result = await createAppointment({
@@ -78,8 +85,19 @@ export function AppointmentFormDrawer({
       }
       toast.success('Randevu oluşturuldu')
       onOpenChange(false)
+      setErrors({})
       setForm({ patientId: '', serviceId: '', staffId: '', date: '', startTime: '', notes: '' })
       router.refresh()
+    })
+  }
+
+  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((current) => ({ ...current, [key]: value }))
+    setErrors((current) => {
+      if (!current[key]) return current
+      const next = { ...current }
+      delete next[key]
+      return next
     })
   }
 
@@ -92,7 +110,7 @@ export function AppointmentFormDrawer({
         <form onSubmit={submit} className="flex h-full flex-col">
           <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-[#06142A] to-[#0E2D52] px-5 py-4 text-white pt-safe">
             <SheetTitle className="flex items-center gap-2 text-white">
-              <CalendarPlus className="h-5 w-5 text-[#12C8AD]" /> Yeni Randevu
+              <CalendarPlus className="h-5 w-5 text-[#0B7F6F]" /> Yeni Randevu
             </SheetTitle>
             <SheetDescription className="text-white/60">
               Hasta, hizmet ve saat bilgilerini girin.
@@ -112,29 +130,31 @@ export function AppointmentFormDrawer({
             )}
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Hasta *</Label>
-              <Select value={form.patientId || undefined} onValueChange={(v) => setForm({ ...form, patientId: v })}>
-                <SelectTrigger><SelectValue placeholder="Hasta seç" /></SelectTrigger>
+              <Select value={form.patientId || undefined} onValueChange={(v) => update('patientId', v)}>
+                <SelectTrigger aria-invalid={Boolean(errors.patientId)}><SelectValue placeholder="Hasta seç" /></SelectTrigger>
                 <SelectContent>
                   {patients.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.patientId && <p className="mt-1 text-xs text-destructive">{errors.patientId}</p>}
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Hizmet *</Label>
-              <Select value={form.serviceId || undefined} onValueChange={(v) => setForm({ ...form, serviceId: v })}>
-                <SelectTrigger><SelectValue placeholder="Hizmet seç" /></SelectTrigger>
+              <Select value={form.serviceId || undefined} onValueChange={(v) => update('serviceId', v)}>
+                <SelectTrigger aria-invalid={Boolean(errors.serviceId)}><SelectValue placeholder="Hizmet seç" /></SelectTrigger>
                 <SelectContent>
                   {services.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.label} • {s.durationMin} dk</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.serviceId && <p className="mt-1 text-xs text-destructive">{errors.serviceId}</p>}
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Personel</Label>
-              <Select value={form.staffId || 'none'} onValueChange={(v) => setForm({ ...form, staffId: v })}>
+              <Select value={form.staffId || 'none'} onValueChange={(v) => update('staffId', v)}>
                 <SelectTrigger><SelectValue placeholder="Personel (opsiyonel)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Atanmadı</SelectItem>
@@ -147,16 +167,18 @@ export function AppointmentFormDrawer({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Tarih *</Label>
-                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+                <Input type="date" value={form.date} onChange={(e) => update('date', e.target.value)} required aria-invalid={Boolean(errors.date)} />
+                {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Saat *</Label>
-                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} required />
+                <Input type="time" value={form.startTime} onChange={(e) => update('startTime', e.target.value)} required aria-invalid={Boolean(errors.startTime)} />
+                {errors.startTime && <p className="mt-1 text-xs text-destructive">{errors.startTime}</p>}
               </div>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Not</Label>
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} />
+              <Textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} rows={3} />
             </div>
           </div>
 
@@ -175,8 +197,9 @@ export function AppointmentFormDrawer({
                 type="submit"
                 size="lg"
                 disabled={pending || noPatients || noServices}
-                className="h-11 flex-[2] bg-[#12C8AD] text-white hover:bg-[#10b49c] md:flex-none"
+                className="h-11 flex-[2] bg-[#0B7F6F] text-white hover:bg-[#09685C] md:flex-none"
               >
+                {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {pending ? 'Kaydediliyor...' : 'Randevu Oluştur'}
               </Button>
             </div>

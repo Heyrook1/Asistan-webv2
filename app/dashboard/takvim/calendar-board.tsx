@@ -167,7 +167,7 @@ export function CalendarBoard({
                 onClick={() => setView(v)}
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-medium',
-                  view === v ? 'bg-[#12C8AD] text-white' : 'text-muted-foreground hover:text-[#0C1D36]'
+                  view === v ? 'bg-[#0B7F6F] text-white' : 'text-muted-foreground hover:text-[#0C1D36]'
                 )}
               >
                 {VIEW_LABEL[v]}
@@ -272,7 +272,7 @@ export function CalendarBoard({
                 navigator.clipboard.writeText(bookingLink)
                 toast.success('Bağlantı kopyalandı')
               }}
-              className="bg-[#12C8AD] hover:bg-[#10b49c] text-white"
+              className="bg-[#0B7F6F] hover:bg-[#09685C] text-white"
             >
               Bağlantıyı Kopyala
             </Button>
@@ -386,7 +386,7 @@ function MobileAgenda({
           <button
             type="button"
             onClick={openDatePicker}
-            className="tap-target flex items-center justify-center rounded-xl border border-[#12C8AD]/40 bg-[#12C8AD]/10 text-[#12C8AD]"
+            className="tap-target flex items-center justify-center rounded-xl border border-[#0B7F6F]/40 bg-[#0B7F6F]/10 text-[#0B7F6F]"
             aria-label="Takvimden tarih seç"
           >
             <CalendarDays className="h-5 w-5" />
@@ -412,7 +412,7 @@ function MobileAgenda({
               d.setHours(0, 0, 0, 0)
               setCursor(d)
             }}
-            className="rounded-full bg-[#12C8AD] px-4 py-1.5 text-xs font-bold text-white shadow-sm"
+            className="rounded-full bg-[#0B7F6F] px-4 py-1.5 text-xs font-bold text-white shadow-sm"
           >
             Bugüne Dön
           </button>
@@ -528,7 +528,7 @@ function MonthGrid({
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <span className={`text-xs font-medium ${iso === today ? 'rounded-full bg-[#12C8AD] text-white px-2' : ''}`}>
+              <span className={`text-xs font-medium ${iso === today ? 'rounded-full bg-[#0B7F6F] text-white px-2' : ''}`}>
                 {day.getDate()}
               </span>
               {dayEvents.length > 0 && (
@@ -579,7 +579,7 @@ function DayWeekGrid({
             <div
               key={iso}
               className={`px-3 py-3 text-center border-b border-r bg-[#F7F9FB] ${
-                iso === today ? 'text-[#12C8AD]' : 'text-[#0C1D36]'
+                iso === today ? 'text-[#0B7F6F]' : 'text-[#0C1D36]'
               }`}
             >
               <p className="text-[11px] uppercase text-muted-foreground">{WEEK_DAY_LABELS[(d.getDay() + 6) % 7]}</p>

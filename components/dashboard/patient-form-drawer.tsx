@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { ChevronLeft, ChevronRight, Plus, Trash2, UserPlus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Plus, Trash2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createPatient } from '@/lib/actions/patients'
 
@@ -47,6 +47,7 @@ export function PatientFormDrawer({
   const router = useRouter()
   const [tab, setTab] = useState('kimlik')
   const [pending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [identity, setIdentity] = useState({
     fullName: '',
@@ -87,19 +88,24 @@ export function PatientFormDrawer({
     setTreatments([])
     setLabResults([])
     setNotes([])
+    setErrors({})
     setTab('kimlik')
   }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const nextErrors: Record<string, string> = {}
     if (!identity.fullName.trim()) {
-      toast.error('Ad soyad zorunlu')
-      setTab('kimlik')
-      return
+      nextErrors.fullName = 'Hasta kartı oluşturmak için ad soyad girin.'
     }
     if (!contact.phone.trim()) {
-      toast.error('Telefon zorunlu')
-      setTab('iletisim')
+      nextErrors.phone = 'Randevu ve hatırlatma akışı için telefon girin.'
+    }
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error('Eksik alanları kontrol edin')
+      if (nextErrors.fullName) setTab('kimlik')
+      else if (nextErrors.phone) setTab('iletisim')
       return
     }
 
@@ -174,7 +180,7 @@ export function PatientFormDrawer({
         <form onSubmit={onSubmit} className="flex h-full flex-col">
           <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-[#06142A] to-[#0E2D52] px-5 py-4 text-white pt-safe">
             <SheetTitle className="flex items-center gap-2 text-white">
-              <UserPlus className="h-5 w-5 text-[#12C8AD]" />
+              <UserPlus className="h-5 w-5 text-[#0B7F6F]" />
               Yeni Hasta Kaydı
             </SheetTitle>
             <SheetDescription className="text-white/60">
@@ -183,7 +189,7 @@ export function PatientFormDrawer({
             </SheetDescription>
             <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 md:hidden">
               <div
-                className="h-full rounded-full bg-[#12C8AD] transition-[width]"
+                className="h-full rounded-full bg-[#0B7F6F] transition-[width]"
                 style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
               />
             </div>
@@ -201,8 +207,23 @@ export function PatientFormDrawer({
             <div className="flex-1 overflow-y-auto bg-[#F7F9FB] px-4 py-4 space-y-4 md:px-6 md:py-5 md:space-y-5">
               <TabsContent value="kimlik" className="m-0 space-y-3">
                 <Section title="Kimlik Bilgileri">
-                  <Field label="Ad Soyad *">
-                    <Input value={identity.fullName} onChange={(e) => setIdentity({ ...identity, fullName: e.target.value })} placeholder="Ahmet Yılmaz" required />
+                  <Field label="Ad Soyad *" error={errors.fullName}>
+                    <Input
+                      value={identity.fullName}
+                      onChange={(e) => {
+                        setIdentity({ ...identity, fullName: e.target.value })
+                        if (errors.fullName) {
+                          setErrors((current) => {
+                            const next = { ...current }
+                            delete next.fullName
+                            return next
+                          })
+                        }
+                      }}
+                      placeholder="Ahmet Yılmaz"
+                      required
+                      aria-invalid={Boolean(errors.fullName)}
+                    />
                   </Field>
                   <Field label="TC Kimlik No">
                     <Input value={identity.identityNumber} onChange={(e) => setIdentity({ ...identity, identityNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })} placeholder="11 haneli" inputMode="numeric" />
@@ -237,8 +258,23 @@ export function PatientFormDrawer({
 
               <TabsContent value="iletisim" className="m-0 space-y-3">
                 <Section title="İletişim Bilgileri">
-                  <Field label="Telefon *">
-                    <Input value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} placeholder="05XX XXX XX XX" required />
+                  <Field label="Telefon *" error={errors.phone}>
+                    <Input
+                      value={contact.phone}
+                      onChange={(e) => {
+                        setContact({ ...contact, phone: e.target.value })
+                        if (errors.phone) {
+                          setErrors((current) => {
+                            const next = { ...current }
+                            delete next.phone
+                            return next
+                          })
+                        }
+                      }}
+                      placeholder="05XX XXX XX XX"
+                      required
+                      aria-invalid={Boolean(errors.phone)}
+                    />
                   </Field>
                   <Field label="E-posta">
                     <Input type="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} placeholder="ornek@email.com" />
@@ -456,7 +492,7 @@ export function PatientFormDrawer({
                     type="button"
                     size="lg"
                     onClick={() => setTab(STEPS[Math.min(STEPS.length - 1, stepIndex + 1)].value)}
-                    className="h-11 flex-1 bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+                    className="h-11 flex-1 bg-[#0B7F6F] text-white hover:bg-[#09685C]"
                   >
                     İleri <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
@@ -465,8 +501,9 @@ export function PatientFormDrawer({
                     type="submit"
                     size="lg"
                     disabled={pending}
-                    className="h-11 flex-1 bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+                    className="h-11 flex-1 bg-[#0B7F6F] text-white hover:bg-[#09685C]"
                   >
+                    {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {pending ? 'Kaydediliyor...' : 'Kaydet'}
                   </Button>
                 )}
@@ -476,8 +513,9 @@ export function PatientFormDrawer({
                 type="submit"
                 size="lg"
                 disabled={pending}
-                className="hidden h-11 bg-[#12C8AD] text-white hover:bg-[#10b49c] md:inline-flex md:order-2"
+                className="hidden h-11 bg-[#0B7F6F] text-white hover:bg-[#09685C] md:inline-flex md:order-2"
               >
+                {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {pending ? 'Kaydediliyor...' : 'Hasta Kaydet'}
               </Button>
               <Button
@@ -513,11 +551,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <Label className="text-xs text-muted-foreground mb-1.5 block">{label}</Label>
       {children}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   )
 }

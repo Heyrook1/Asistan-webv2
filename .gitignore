@@ -31,3 +31,6 @@ next-env.d.ts
 
 # Claude Code workspace
 .claude/
+
+# v0.dev generated drafts/injection helpers
+.v0/

@@ -1,4 +1,4 @@
-import { requirePermission, can } from '@/lib/session'
+import { requirePageAnyPermission, can } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { getAppointmentsList } from '@/lib/queries'
 import { AppointmentsBoard } from './appointments-board'
@@ -11,10 +11,14 @@ export default async function RandevularPage({
   searchParams: Promise<{ status?: string }>
 }) {
   const sp = await searchParams
-  const session = await requirePermission('appointment.manage')
+  const session = await requirePageAnyPermission(
+    'appointment.manage',
+    'appointment.view',
+    'appointment.own.view',
+  )
 
   const [appointments, patients, services, staff] = await Promise.all([
-    getAppointmentsList(session.businessId, { status: sp.status }),
+    getAppointmentsList(session.businessId, { status: sp.status }, session),
     prisma.patient.findMany({
       where: { businessId: session.businessId, isArchived: false },
       orderBy: { fullName: 'asc' },

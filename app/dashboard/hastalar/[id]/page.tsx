@@ -5,7 +5,7 @@ import {
   ShieldAlert, Sparkles, TrendingUp, Calendar as CalendarIcon, ShieldCheck,
   FileText, ClipboardCheck, Eye, Download,
 } from 'lucide-react'
-import { requirePermission, can } from '@/lib/session'
+import { requirePagePermission, can } from '@/lib/session'
 import { getPatientDetail } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,7 +27,7 @@ export default async function PatientDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const session = await requirePermission('patient.view')
+  const session = await requirePagePermission('patient.view')
   const canEdit = can(session, 'patient.edit')
   const canViewMedicalNotes = can(session, 'medical_note.view')
   const canViewFiles = can(session, 'file.view')
@@ -66,7 +66,7 @@ export default async function PatientDetailPage({
 
   return (
     <div className="space-y-3 lg:space-y-4">
-      <Link href="/dashboard/hastalar" className="tap-target inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-[#12C8AD]">
+      <Link href="/dashboard/hastalar" className="tap-target inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-[#0B7F6F]">
         <ChevronLeft className="h-4 w-4" /> Hasta listesine dön
       </Link>
 
@@ -80,7 +80,7 @@ export default async function PatientDetailPage({
         <CardContent className="p-4 lg:p-5">
           <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] text-white text-xl font-bold">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0B7F6F] to-[#16A9E8] text-white text-xl font-bold">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ export default async function PatientDetailPage({
                     {patient.isArchived ? 'Arşivli' : 'Aktif Hasta'}
                   </Badge>
                 </div>
-                <p className="text-[13px] text-[#12C8AD] font-medium">#{patient.patientNumber}</p>
+                <p className="text-[13px] text-[#0B7F6F] font-medium">#{patient.patientNumber}</p>
 
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <StatPill label="Yaş" value={age != null ? String(age) : '—'} />
@@ -100,16 +100,16 @@ export default async function PatientDetailPage({
 
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-[#12C8AD]" /> {formatPhone(patient.phone)}
+                    <Phone className="h-3.5 w-3.5 text-[#0B7F6F]" /> {formatPhone(patient.phone)}
                   </span>
                   {patient.email && (
                     <span className="inline-flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-[#12C8AD]" /> {patient.email}
+                      <Mail className="h-3.5 w-3.5 text-[#0B7F6F]" /> {patient.email}
                     </span>
                   )}
                   {patient.city && (
                     <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-[#12C8AD]" /> {patient.city}
+                      <MapPin className="h-3.5 w-3.5 text-[#0B7F6F]" /> {patient.city}
                     </span>
                   )}
                 </div>
@@ -212,7 +212,7 @@ export default async function PatientDetailPage({
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-[#0C1D36] flex items-center gap-2">
-                      <ClipboardCheck className="h-4 w-4 text-[#12C8AD]" /> Tedavi Planı
+                      <ClipboardCheck className="h-4 w-4 text-[#0B7F6F]" /> Tedavi Planı
                     </h3>
                   </div>
                   <TreatmentPlanBoard
@@ -243,7 +243,7 @@ export default async function PatientDetailPage({
                     <ul className="space-y-2">
                       {patient.medications.slice(0, 6).map((m) => (
                         <li key={m.id} className="flex items-start gap-3 rounded-lg border bg-white p-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#12C8AD]/10 text-[#0b7f6f] text-[10px] font-bold">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0B7F6F]/10 text-[#0b7f6f] text-[10px] font-bold">
                             Rx
                           </div>
                           <div className="flex-1 min-w-0">
@@ -544,7 +544,7 @@ export default async function PatientDetailPage({
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {patient.files.map((f) => (
-                    <a key={f.id} href={f.fileUrl} target="_blank" rel="noreferrer" className="block rounded-xl border bg-white p-3 hover:border-[#12C8AD]/40">
+                    <a key={f.id} href={f.fileUrl} target="_blank" rel="noreferrer" className="block rounded-xl border bg-white p-3 hover:border-[#0B7F6F]/40">
                       <p className="text-sm font-medium text-[#0C1D36] truncate">{f.fileName}</p>
                       <p className="text-[11px] text-muted-foreground">{FILE_CATEGORY_LABELS[f.category] ?? f.category} • {f.fileType}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(f.uploadedAt)}</p>
@@ -573,7 +573,7 @@ export default async function PatientDetailPage({
                         {n.isPinned && <Badge className="bg-amber-100 text-amber-800 border-0">Sabit</Badge>}
                       </div>
                       <p className="mt-1 text-sm whitespace-pre-line text-[#0C1D36]">{n.note}</p>
-                      <p className="mt-2 text-[10px] text-muted-foreground">{formatDateTime(n.createdAt)} • {n.createdBy}</p>
+                      <p className="mt-2 text-[10px] text-muted-foreground">{formatDateTime(n.createdAt)} • {n.creator?.fullName ?? n.createdBy}</p>
                     </li>
                   ))}
                 </ul>
@@ -672,7 +672,7 @@ function defaultSuggestions(patient: {
 }
 
 function timelineColor(idx: number) {
-  const palette = ['#12C8AD', '#16A9E8', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4']
+  const palette = ['#0B7F6F', '#16A9E8', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4']
   return palette[idx % palette.length]
 }
 

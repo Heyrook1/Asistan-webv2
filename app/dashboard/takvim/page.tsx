@@ -1,4 +1,4 @@
-import { requirePermission, can } from '@/lib/session'
+import { requirePageAnyPermission, can } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { getAppointmentsRange } from '@/lib/queries'
 import { CalendarBoard } from './calendar-board'
@@ -6,14 +6,18 @@ import { CalendarBoard } from './calendar-board'
 export const dynamic = 'force-dynamic'
 
 export default async function TakvimPage() {
-  const session = await requirePermission('appointment.manage')
+  const session = await requirePageAnyPermission(
+    'appointment.manage',
+    'appointment.view',
+    'appointment.own.view',
+  )
 
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth() - 12, 1)
   const to = new Date(now.getFullYear(), now.getMonth() + 13, 0)
 
   const [appointments, patients, services, staff, business] = await Promise.all([
-    getAppointmentsRange(session.businessId, { from, to }),
+    getAppointmentsRange(session.businessId, { from, to }, session),
     prisma.patient.findMany({
       where: { businessId: session.businessId, isArchived: false },
       orderBy: { fullName: 'asc' },

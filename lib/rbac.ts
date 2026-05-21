@@ -85,8 +85,10 @@ export type SessionContext = {
   role: TeamRole
   permissions: Permission[]
   isOwner: boolean
+  staffMemberId: string | null
 }
 
 export function can(session: SessionContext | null, permission: Permission) {
+  if (session?.isOwner || session?.role === 'SUPER_ADMIN') return true
   return Boolean(session && session.permissions.includes(permission))
 }

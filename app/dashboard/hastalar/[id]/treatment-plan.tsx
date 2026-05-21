@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, CheckCircle2, Circle, Clock as ClockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -44,6 +54,7 @@ export function TreatmentPlanBoard({
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<PlanItem | null>(null)
   const [pending, startTransition] = useTransition()
   const [form, setForm] = useState({ title: '', frequency: '', status: 'PLANLANDI' as PlanItem['status'] })
 
@@ -58,11 +69,11 @@ export function TreatmentPlanBoard({
   }
 
   function remove(item: PlanItem) {
-    if (!confirm(`"${item.title}" kalemini silmek istediğinize emin misiniz?`)) return
     startTransition(async () => {
       const result = await deleteTreatmentPlanItem({ id: item.id })
       if (!result.ok) { toast.error(result.error); return }
       toast.success('Silindi')
+      setDeleteTarget(null)
       router.refresh()
     })
   }
@@ -120,10 +131,10 @@ export function TreatmentPlanBoard({
               {canEdit && (
                 <button
                   type="button"
-                  onClick={() => remove(item)}
-                  className="text-muted-foreground hover:text-rose-600"
+                  onClick={() => setDeleteTarget(item)}
+                  className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-rose-600 md:h-9 md:w-9"
                   disabled={pending}
-                  title="Sil"
+                  aria-label={`${item.title} plan kalemini sil`}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -171,13 +182,34 @@ export function TreatmentPlanBoard({
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>İptal</Button>
-              <Button type="submit" disabled={pending} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+              <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
                 {pending ? 'Kaydediliyor...' : 'Ekle'}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(next) => !next && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Plan kalemini sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? `"${deleteTarget.title}" kalemi silinecek. Bu işlem geri alınamaz.` : 'Bu plan kalemi silinecek.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending}
+              onClick={() => deleteTarget && remove(deleteTarget)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

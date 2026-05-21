@@ -62,7 +62,7 @@ export function PatientMetaEditor({
         type="button"
         variant="ghost"
         size="icon"
-        className="h-6 w-6 text-muted-foreground hover:text-[#12C8AD]"
+        className="h-6 w-6 text-muted-foreground hover:text-[#0B7F6F]"
         onClick={() => setOpen(true)}
         title="Hasta özetini düzenle"
       >
@@ -105,7 +105,7 @@ export function PatientMetaEditor({
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>İptal</Button>
-              <Button type="submit" disabled={pending} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+              <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
                 {pending ? 'Kaydediliyor...' : 'Kaydet'}
               </Button>
             </div>

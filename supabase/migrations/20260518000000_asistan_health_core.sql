@@ -2,10 +2,13 @@
 -- Asistan Health — production core schema (Prisma-managed)
 -- Date: 2026-05-18
 --
--- This migration creates every table required by prisma/schema.prisma.
--- Run it once on a fresh Supabase project (or anywhere you have Postgres + the
+-- Baseline only: apply every file in supabase/migrations in timestamp order to
+-- reach the current prisma/schema.prisma shape.
+--
+-- This migration creates the initial clinical/scheduling baseline tables.
+-- Run it as part of the full ordered migration chain on a fresh Supabase
+-- project or any Postgres database with the pgcrypto extension.
 -- pgcrypto extension). After this, mutations should be performed via Prisma —
--- but the SQL is here so the schema is reproducible and reviewable.
 -- ============================================================================
 
 create extension if not exists pgcrypto;

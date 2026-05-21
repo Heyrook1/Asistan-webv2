@@ -4,10 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Asistan Brand Colors - Premium SaaS Design */
-/* Deep Navy: #06142A - primary dark */
-/* Teal: #12C8AD - primary accent */
-/* Light Blue: #16A9E8 - secondary accent */
-/* White/Light Gray: backgrounds */
+/* Bright Teal: #12C8AD - decorative accent */
+/* Accessible Teal: #0B7F6F - text and primary actions */
+/* Accent Blue: #185FA5 - secondary accent */
+/* Dark Section: #0D1117 */
+/* Light Section: #F8FAFB */
 
 :root {
   --background: #FFFFFF;
@@ -16,13 +17,13 @@
   --card-foreground: #06142A;
   --popover: #FFFFFF;
   --popover-foreground: #06142A;
-  --primary: #12C8AD;
+  --primary: #0B7F6F;
   --primary-foreground: #FFFFFF;
   --secondary: #F9FAFB;
   --secondary-foreground: #06142A;
   --muted: #F3F4F6;
   --muted-foreground: #6B7280;
-  --accent: #16A9E8;
+  --accent: #185FA5;
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
@@ -30,7 +31,7 @@
   --input: #E5E7EB;
   --ring: #12C8AD;
   --chart-1: #12C8AD;
-  --chart-2: #16A9E8;
+  --chart-2: #185FA5;
   --chart-3: #06142A;
   --chart-4: #6B7280;
   --chart-5: #F9FAFB;
@@ -39,17 +40,23 @@
   /* Sidebar - Dark theme */
   --sidebar: #06142A;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #12C8AD;
+  --sidebar-primary: #0B7F6F;
   --sidebar-primary-foreground: #06142A;
   --sidebar-accent: #0A1F3D;
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #1A3050;
-  --sidebar-ring: #12C8AD;
+  --sidebar-ring: #0B7F6F;
   
   /* Brand specific */
   --deep-navy: #06142A;
-  --teal: #12C8AD;
-  --light-blue: #16A9E8;
+  --teal: #0B7F6F;
+  --light-blue: #185FA5;
+  --brand-teal-bright: #12C8AD;
+  --brand-teal-accessible: #0B7F6F;
+  --brand-teal-dark: #0F6E56;
+  --brand-blue: #185FA5;
+  --brand-dark: #0D1117;
+  --brand-light: #F8FAFB;
   --paper: #FFFFFF;
   --line: #6B7280;
 }
@@ -61,13 +68,13 @@
   --card-foreground: #FFFFFF;
   --popover: #0A1F3D;
   --popover-foreground: #FFFFFF;
-  --primary: #12C8AD;
-  --primary-foreground: #06142A;
+  --primary: #0B7F6F;
+  --primary-foreground: #FFFFFF;
   --secondary: #0A1F3D;
   --secondary-foreground: #FFFFFF;
   --muted: #0A1F3D;
   --muted-foreground: #9CA3AF;
-  --accent: #16A9E8;
+  --accent: #185FA5;
   --accent-foreground: #FFFFFF;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
@@ -75,18 +82,18 @@
   --input: #1A3050;
   --ring: #12C8AD;
   --chart-1: #12C8AD;
-  --chart-2: #16A9E8;
+  --chart-2: #185FA5;
   --chart-3: #FFFFFF;
   --chart-4: #9CA3AF;
   --chart-5: #0A1F3D;
   --sidebar: #040D1A;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #12C8AD;
-  --sidebar-primary-foreground: #06142A;
+  --sidebar-primary: #0B7F6F;
+  --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #0A1F3D;
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #0A1F3D;
-  --sidebar-ring: #12C8AD;
+  --sidebar-ring: #0B7F6F;
 }
 
 @theme inline {
@@ -133,20 +140,43 @@
   --color-deep-navy: var(--deep-navy);
   --color-teal: var(--teal);
   --color-light-blue: var(--light-blue);
+  --color-brand-teal-bright: var(--brand-teal-bright);
+  --color-brand-teal-accessible: var(--brand-teal-accessible);
+  --color-brand-teal-dark: var(--brand-teal-dark);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
   --color-paper: var(--paper);
   --color-line: var(--line);
 }
 
 /* Gradient utilities */
 .gradient-teal-blue {
-  background: linear-gradient(135deg, #12C8AD 0%, #16A9E8 100%);
+  background: linear-gradient(135deg, #12C8AD 0%, #185FA5 100%);
 }
 
 .text-gradient-teal-blue {
-  background: linear-gradient(135deg, #12C8AD 0%, #16A9E8 100%);
+  background: linear-gradient(135deg, #0B7F6F 0%, #185FA5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.animated-gradient-text {
+  background: linear-gradient(90deg, #0B7F6F, #12C8AD, #185FA5, #0B7F6F);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+
+.mesh-hero {
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 12%, rgb(18 200 173 / 0.18), transparent 64%),
+    radial-gradient(ellipse 55% 42% at 86% 24%, rgb(24 95 165 / 0.14), transparent 68%),
+    radial-gradient(ellipse 45% 38% at 50% 100%, rgb(18 200 173 / 0.10), transparent 72%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
 }
 
 @layer base {
@@ -158,6 +188,11 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--brand-teal-bright);
+    outline-offset: 3px;
   }
 }
 
@@ -176,4 +211,30 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
 
   .tap-target { min-height: 44px; min-width: 44px; }
+
+  .glass-panel {
+    background: rgb(255 255 255 / 0.78);
+    border: 1px solid rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 24px 80px rgb(15 23 42 / 0.12);
+  }
+
+  .brand-glow {
+    box-shadow: 0 18px 48px rgb(18 200 173 / 0.24);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animated-gradient-text {
+      animation: none;
+    }
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }

@@ -1,11 +1,11 @@
-import { requirePermission, can } from '@/lib/session'
+import { requirePagePermission, can } from '@/lib/session'
 import { getTeamList } from '@/lib/queries'
 import { TeamBoard } from './team-board'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TakimPage() {
-  const session = await requirePermission('team.manage')
+  const session = await requirePagePermission('team.view')
   const team = await getTeamList(session.businessId)
 
   return (

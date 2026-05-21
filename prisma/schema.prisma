@@ -128,6 +128,7 @@ model User {
   conversationParticipants ConversationParticipant[]
   sentMessages             Message[]                 @relation("MessageSender")
   messageReactions         MessageReaction[]
+  patientNotesCreated      PatientNote[]             @relation("PatientNoteCreator")
 
   @@index([email])
 }
@@ -253,20 +254,23 @@ model Patient {
 }
 
 model PatientNote {
-  id         String   @id @default(uuid())
-  businessId String
-  patientId  String
-  title      String
-  note       String   @db.Text
-  createdBy  String // user id or display name
-  isPinned   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String   @id @default(uuid())
+  businessId      String
+  patientId       String
+  title           String
+  note            String   @db.Text
+  createdBy       String // display snapshot for legacy rows/fallback
+  createdByUserId String?
+  isPinned        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  creator  User?    @relation("PatientNoteCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([businessId, patientId])
+  @@index([createdByUserId])
 }
 
 model Medication {
@@ -550,6 +554,7 @@ model Conversation {
   businessId    String
   title         String? // null for DMs, set for group chats
   isGroup       Boolean   @default(false)
+  directKey     String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   lastMessageAt DateTime?
@@ -559,6 +564,7 @@ model Conversation {
   messages     Message[]
 
   @@index([businessId, lastMessageAt])
+  @@index([businessId, directKey])
 }
 
 model ConversationParticipant {

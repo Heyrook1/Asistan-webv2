@@ -1,6 +1,9 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { type NextRequest } from 'next/server'
 
+// Next.js proxy entrypoint. This is not a development HTTP proxy.
+// It must stay at the project root so Next can run Supabase session refresh
+// before matched requests; implementation details live under lib/supabase.
 export async function proxy(request: NextRequest) {
   return await updateSession(request)
 }

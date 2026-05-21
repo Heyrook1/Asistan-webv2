@@ -140,11 +140,13 @@ function toDate(value?: string) {
   return value ? new Date(`${value}T00:00:00`) : null
 }
 
-async function nextPatientNumber(businessId: string) {
-  // Format: HST-1024. Starts from 1000 so the number reads like a real chart id.
-  // For hot multi-tenant inserts, switch to a Postgres sequence per-business.
-  const count = await prisma.patient.count({ where: { businessId } })
-  return `HST-${1000 + count + 1}`
+async function nextPatientNumber(tx: Prisma.TransactionClient, businessId: string) {
+  const rows = await tx.$queryRaw<Array<{ next_patient_number: string }>>`
+    select public.next_patient_number(${businessId}::uuid) as next_patient_number
+  `
+  const patientNumber = rows[0]?.next_patient_number
+  if (!patientNumber) throw new Error('Hasta numarası üretilemedi')
+  return patientNumber
 }
 
 async function isPatientOwned(patientId: string, businessId: string) {
@@ -155,20 +157,50 @@ async function isPatientOwned(patientId: string, businessId: string) {
   return Boolean(patient)
 }
 
+function expectedPatientStoragePrefix(businessId: string, patientId: string) {
+  return `${businessId}/${patientId}/`
+}
+
+function validatePatientFileReference(
+  file: { storageKey: string; fileUrl: string },
+  businessId: string,
+  patientId: string
+) {
+  if (!file.storageKey.startsWith(expectedPatientStoragePrefix(businessId, patientId))) {
+    return 'Dosya yolu bu işletmeye veya hastaya ait değil'
+  }
+  if (file.fileUrl !== `storage://patient-files/${file.storageKey}`) {
+    return 'Dosya referansı geçersiz'
+  }
+  return null
+}
+
+function validateLabResultFileUrl(fileUrl: string | undefined, businessId: string, patientId: string) {
+  if (!fileUrl) return null
+  const expectedPrefix = `storage://patient-files/${expectedPatientStoragePrefix(businessId, patientId)}`
+  if (!fileUrl.startsWith(expectedPrefix)) {
+    return 'Tahlil dosyası bu işletmeye veya hastaya ait değil'
+  }
+  return null
+}
+
 export async function createPatient(rawInput: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = createPatientSchema.safeParse(rawInput)
   if (!parsed.success) return err('Form bilgileri eksik veya hatalı', parsed.error.issues)
   const input = parsed.data
 
-  const session = await requirePermission('patient.edit')
-  if (input.notes.length > 0 && !session.permissions.includes('medical_note.view')) {
+  const session = await requirePermission('patient.create')
+  if (input.notes.length > 0 && !session.permissions.includes('medical_note.create')) {
     return err('Tibbi not ekleme yetkiniz yok')
   }
+  if (input.files.length > 0 && !session.permissions.includes('file.upload')) {
+    return err('Dosya yukleme yetkiniz yok')
+  }
   const businessId = session.businessId
-  const patientNumber = await nextPatientNumber(businessId)
 
   try {
     const patient = await prisma.$transaction(async (tx) => {
+      const patientNumber = await nextPatientNumber(tx, businessId)
       const created = await tx.patient.create({
         data: {
           businessId,
@@ -192,6 +224,16 @@ export async function createPatient(rawInput: unknown): Promise<ActionResult<{ i
           tags: input.tags ?? [],
         },
       })
+
+      const invalidInitialFile = input.files
+        .map((file) => validatePatientFileReference(file, businessId, created.id))
+        .find(Boolean)
+      if (invalidInitialFile) throw new Error(invalidInitialFile)
+
+      const invalidInitialLabFile = input.labResults
+        .map((lab) => validateLabResultFileUrl(lab.fileUrl, businessId, created.id))
+        .find(Boolean)
+      if (invalidInitialLabFile) throw new Error(invalidInitialLabFile)
 
       if (input.allergies.length) {
         await tx.allergy.createMany({
@@ -258,6 +300,7 @@ export async function createPatient(rawInput: unknown): Promise<ActionResult<{ i
             note: n.note,
             isPinned: n.isPinned ?? false,
             createdBy: session.fullName,
+            createdByUserId: session.userId,
           })),
         })
       }
@@ -397,7 +440,7 @@ const archiveSchema = z.object({ id: z.string().uuid(), archived: z.boolean() })
 export async function archivePatient(rawInput: unknown): Promise<ActionResult> {
   const parsed = archiveSchema.safeParse(rawInput)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
-  const session = await requirePermission('patient.edit')
+  const session = await requirePermission('patient.archive')
   await prisma.patient.updateMany({
     where: { id: parsed.data.id, businessId: session.businessId },
     data: { isArchived: parsed.data.archived },
@@ -412,8 +455,7 @@ export async function addPatientNote(input: unknown): Promise<ActionResult<{ id:
   const schema = noteInput.extend({ patientId: z.string().uuid() })
   const parsed = schema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
-  const session = await requirePermission('patient.edit')
-  if (!session.permissions.includes('medical_note.view')) return err('Tibbi not ekleme yetkiniz yok')
+  const session = await requirePermission('medical_note.create')
   const data = parsed.data
   const ownership = await prisma.patient.findFirst({
     where: { id: data.patientId, businessId: session.businessId },
@@ -428,6 +470,7 @@ export async function addPatientNote(input: unknown): Promise<ActionResult<{ id:
       note: data.note,
       isPinned: data.isPinned ?? false,
       createdBy: session.fullName,
+      createdByUserId: session.userId,
     },
   })
   await prisma.timelineEvent.create({
@@ -474,7 +517,7 @@ export async function addMedication(input: unknown): Promise<ActionResult<{ id: 
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
-  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
   const med = await prisma.medication.create({
     data: {
       businessId: session.businessId,
@@ -508,7 +551,7 @@ export async function addAllergy(input: unknown): Promise<ActionResult<{ id: str
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
-  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
   const created = await prisma.allergy.create({
     data: {
       businessId: session.businessId,
@@ -540,7 +583,7 @@ export async function addTreatment(input: unknown): Promise<ActionResult<{ id: s
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
-  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
   const created = await prisma.treatment.create({
     data: {
       businessId: session.businessId,
@@ -603,7 +646,10 @@ export async function addLabResult(input: unknown): Promise<ActionResult<{ id: s
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('patient.edit')
   const data = parsed.data
-  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
+  const fileUrlError = validateLabResultFileUrl(data.fileUrl, session.businessId, data.patientId)
+  if (fileUrlError) return err(fileUrlError)
+
   const created = await prisma.labResult.create({
     data: {
       businessId: session.businessId,
@@ -663,19 +709,15 @@ export async function addPatientFile(input: unknown): Promise<ActionResult<{ id:
   const schema = fileInput.extend({ patientId: z.string().uuid() })
   const parsed = schema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
-  const session = await requirePermission('patient.edit')
+  const session = await requirePermission('file.upload')
   const data = parsed.data
   const patient = await prisma.patient.findFirst({
     where: { id: data.patientId, businessId: session.businessId },
     select: { id: true },
   })
   if (!patient) return err('Hasta bulunamadı')
-  if (!data.storageKey.startsWith(`${session.businessId}/${data.patientId}/`)) {
-    return err('Dosya yolu bu işletmeye veya hastaya ait değil')
-  }
-  if (data.fileUrl !== `storage://patient-files/${data.storageKey}`) {
-    return err('Dosya referansı geçersiz')
-  }
+  const fileReferenceError = validatePatientFileReference(data, session.businessId, data.patientId)
+  if (fileReferenceError) return err(fileReferenceError)
 
   const created = await prisma.patientFile.create({
     data: {
@@ -750,8 +792,7 @@ const metaSchema = z.object({
 export async function updatePatientMeta(input: unknown): Promise<ActionResult> {
   const parsed = metaSchema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
-  const session = await requirePermission('patient.edit')
-  if (!session.permissions.includes('medical_note.view')) return err('Tibbi not duzenleme yetkiniz yok')
+  const session = await requirePermission('medical_note.create')
   const owned = await prisma.patient.findFirst({
     where: { id: parsed.data.patientId, businessId: session.businessId },
     select: { id: true },
@@ -788,7 +829,7 @@ export async function addTreatmentPlanItem(input: unknown): Promise<ActionResult
   const session = await requirePermission('patient.edit')
   const data = parsed.data
 
-  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadÄ±')
+  if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
   const count = await prisma.treatmentPlanItem.count({
     where: { businessId: session.businessId, patientId: data.patientId },
   })

@@ -1,309 +1,238 @@
-"use client"
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import {
+  ArrowRight,
+  Bell,
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  FileText,
+  Lock,
+  MessageSquare,
+  Settings,
+  Sparkles,
+  UserCog,
+  Users,
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Navbar } from '@/components/marketing/navbar'
+import { Footer } from '@/components/marketing/footer'
 
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowRight, Play, Calendar, Bell, Users, Brain, Shield, Cloud, CheckCircle2, BarChart3, MessageSquare, CreditCard, FileText, Settings, Clock, Zap, Lock, Smartphone } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Navbar } from "@/components/marketing/navbar"
-import { Footer } from "@/components/marketing/footer"
+export const metadata: Metadata = {
+  title: 'Ürün | Asistan ile Randevu ve Hasta Takibi',
+  description:
+    'Asistan ile takvim, hasta/müşteri kartları, hatırlatmalar, ekip rolleri ve AI önerilerini tek panelden yönetin.',
+}
 
 const coreFeatures = [
   {
     icon: Calendar,
-    title: "Akıllı Takvim",
-    description: "Randevularınızı kolayca yönetin. Çakışmaları önleyin, doluluk oranınızı artırın.",
-    details: ["Sürükle-bırak ile randevu yönetimi", "Çoklu takvim görünümü", "Otomatik çakışma kontrolü", "Tekrarlayan randevular"],
-    color: "#12C8AD",
-    slug: "akilli-takvim",
-    linkTo: "/kaynaklar?ozellik=takvim"
+    title: 'Akıllı Takvim',
+    description: 'Doktor, sekreter ve yönetici aynı randevu düzenini görür.',
+    bullets: ['Bekleyen onaylar', 'Müsait saat takibi', 'Günlük randevu listesi'],
   },
   {
     icon: Bell,
-    title: "Otomatik Hatırlatmalar",
-    description: "SMS, e-posta ve WhatsApp üzerinden müşterilerinize zamanında hatırlatmalar gönderin. İptalleri azaltın.",
-    details: ["SMS hatırlatmaları", "E-posta bildirimleri", "WhatsApp entegrasyonu", "Özelleştirilebilir şablonlar"],
-    color: "#16A9E8",
-    slug: "otomatik-hatirlatmalar",
-    linkTo: "/kaynaklar?ozellik=hatirlatmalar"
+    title: 'Hatırlatmalar',
+    description: 'Randevu unutmalarını azaltmak için takip mesajlarını planlayın.',
+    bullets: ['Randevu öncesi bildirim', 'Takip hatırlatması', 'Geciken işler'],
   },
   {
-    icon: Users,
-    title: "Müşteri Kartları",
-    description: "Tüm müşteri bilgilerini tek yerde tutun. Geçmiş randevuları ve notları kolayca erişin.",
-    details: ["Detaylı müşteri profilleri", "Randevu geçmişi", "Notlar ve etiketler", "Özel alanlar"],
-    color: "#12C8AD",
-    slug: "musteri-kartlari",
-    linkTo: "/kaynaklar?ozellik=musteriler"
+    icon: FileText,
+    title: 'Hasta Kartları',
+    description: 'Hasta bilgisi, randevu geçmişi ve notlar aynı yerde kalsın.',
+    bullets: ['Hasta özeti', 'Klinik notlar', 'Dosya ve tahlil takibi'],
   },
   {
-    icon: Settings,
-    title: "Sekreter Hesabı",
-    description: "Sekreter veya iş ortaklarınızı ekleyin, müşteri yönetimi ve randevuları paylaşın.",
-    details: ["Rol bazlı erişim", "Yetki yönetimi", "Aktivite takibi", "Güvenli paylaşım"],
-    color: "#16A9E8",
-    slug: "sekreter-hesabi",
-    linkTo: "/kaynaklar?ozellik=ekip"
+    icon: UserCog,
+    title: 'Sekreter Hesabı',
+    description: 'Ekip üyelerine görevlerine göre erişim verin.',
+    bullets: ['Rol bazlı yetki', 'Ekip görünümü', 'İşletme kontrolü'],
   },
   {
-    icon: BarChart3,
-    title: "Ekip Yönetimi",
-    description: "Çalışanlarınızı ve terapistlerinizi yönetin, performansı takip edin, yetkileri düzenleyin.",
-    details: ["Ekip performans raporları", "Görev atama", "Çalışma saatleri", "İzin yönetimi"],
-    color: "#12C8AD",
-    slug: "ekip-yonetimi",
-    linkTo: "/kaynaklar?ozellik=ekip-yonetimi"
+    icon: Sparkles,
+    title: 'AI Önerileri',
+    description: 'Boş saat, bekleyen onay ve takip fırsatlarını daha hızlı görün.',
+    bullets: ['Boş saat önerisi', 'Bekleyen hasta takibi', 'Günlük özet'],
   },
   {
-    icon: Brain,
-    title: "AI Önerileri",
-    description: "AI destekli önerilerle doluluk oranınızı artırın, iptal risklerini azaltın ve gelirinizi optimize edin.",
-    details: ["Boş zaman optimizasyonu", "İptal riski tahmini", "Müşteri davranış analizi", "Gelir önerileri"],
-    color: "#16A9E8",
-    slug: "ai-onerileri",
-    linkTo: "/kaynaklar?ozellik=ai"
+    icon: Lock,
+    title: 'Gizlilik Odağı',
+    description: 'Hasta ve işletme verisini gizlilik prensipleriyle yönetin.',
+    bullets: ['Erişim kontrolü', 'Kayıt düzeni', 'Güvenli oturum'],
   },
 ]
 
-const additionalFeatures = [
-  { icon: CreditCard, title: "Online Ödeme", description: "Stripe ve iyzico entegrasyonu ile güvenli online ödeme" },
-  { icon: FileText, title: "Raporlama", description: "Detaylı analitik ve özelleştirilebilir raporlar" },
-  { icon: MessageSquare, title: "Mesajlaşma", description: "Müşterilerinizle uygulama içi mesajlaşma" },
-  { icon: Smartphone, title: "Mobil Uygulama", description: "iOS ve Android için native mobil uygulama" },
-  { icon: Lock, title: "Güvenlik", description: "KVKK uyumlu, şifreli veri depolama" },
-  { icon: Zap, title: "API Erişimi", description: "Özel entegrasyonlar için REST API" },
+const dailyFlow = [
+  {
+    time: 'Sabah',
+    title: 'Takvimi kontrol edin',
+    description: 'Bugünkü randevuları, bekleyen onayları ve boş saatleri görün.',
+  },
+  {
+    time: 'Gün içinde',
+    title: 'Sekreter akışı yönetsin',
+    description: 'Hasta ekleme, randevu planlama ve not alma aynı panelden ilerlesin.',
+  },
+  {
+    time: 'Randevu öncesi',
+    title: 'Hatırlatmaları takip edin',
+    description: 'Unutulan randevu riskini azaltmak için bildirimleri düzenleyin.',
+  },
+  {
+    time: 'Gün sonunda',
+    title: 'Özeti görün',
+    description: 'Tamamlanan randevuları, takip gerektiren hastaları ve ekip işlerini kontrol edin.',
+  },
 ]
 
-const trustBadges = [
-  { icon: Shield, text: "KVKK Uyumlu", description: "Güvenlik 45 yıla kadar" },
-  { icon: Cloud, text: "Bulut Tabanlı", description: "Her yerden erişim" },
-  { icon: Lock, text: "Verileriniz Güvende", description: "Şifreli & yedekli" },
+const personas = [
+  { icon: ClipboardList, title: 'Doktor', description: 'Hasta geçmişini ve takip notlarını hızlı görür.' },
+  { icon: Users, title: 'Klinik yöneticisi', description: 'Randevu yoğunluğunu ve ekip düzenini takip eder.' },
+  { icon: MessageSquare, title: 'Sekreter', description: 'Telefon, mesaj ve takvim akışını aynı yerden yönetir.' },
+  { icon: Settings, title: 'İşletme sahibi', description: 'Günlük operasyonu daha az dağınıklıkla kontrol eder.' },
+]
+
+const upcomingFeatures = [
+  'Online ödeme altyapısı',
+  'Mobil uygulama',
+  'Özel entegrasyonlar',
 ]
 
 export default function ProductPage() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F0FDFA] via-white to-[#F0F9FF] -z-10" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#12C8AD]/10 rounded-full">
-                <span className="text-xs font-semibold text-[#12C8AD] uppercase tracking-wider">Ürün</span>
-              </div>
-              
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#06142A] leading-tight">
-                İş akışınızı tek{" "}
-                <span className="text-[#12C8AD]">platformdan yönetin.</span>
+
+      <main>
+        <section className="bg-gradient-to-b from-[#F4FBFA] to-white pb-16 pt-28 lg:pb-24 lg:pt-32">
+          <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.95fr_1fr] lg:px-8">
+            <div>
+              <Badge className="mb-5 border-0 bg-white text-[#0B7F6F]">Ürün</Badge>
+              <h1 className="mb-6 text-4xl font-bold leading-[1.08] tracking-tight text-[#06142A] md:text-5xl lg:text-6xl">
+                Kliniğinizin günlük işlerini tek panelden yönetin.
               </h1>
-              
-              <p className="text-lg text-[#475569] max-w-xl leading-relaxed">
-                Randevularınızı düzenleyin, hatırlatmalarla iptalleri azaltın, müşterilerinizle etkili iletişim kurun, ekibinizi yönetin ve AI destekli önerilerle işinizi büyütün.
+              <p className="mb-8 max-w-xl text-lg leading-8 text-gray-600">
+                Asistan; takvim, hasta kartları, hatırlatmalar, ekip rolleri ve AI önerilerini sade bir iş akışında birleştirir.
               </p>
-              
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 text-base rounded-xl shadow-lg shadow-[#12C8AD]/25"
-                >
-                  Ücretsiz Dene
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-[#E2E8F0] text-[#06142A] px-8 py-6 text-base rounded-xl hover:bg-[#F8FAFC]"
-                >
-                  <Play className="w-5 h-5 mr-2 fill-[#06142A]" />
-                  Demo İzle
-                </Button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link href="/auth/sign-up">
+                  <Button size="lg" className="h-12 rounded-xl bg-[#0B7F6F] px-6 font-semibold text-white hover:bg-[#09685C]">
+                    Erken Erişime Katıl
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/cozumler/health">
+                  <Button size="lg" variant="outline" className="h-12 rounded-xl border-[#0B7F6F]/30 px-6 text-[#0B7F6F] hover:bg-[#0B7F6F]/5">
+                    Sağlık Çözümünü Gör
+                  </Button>
+                </Link>
               </div>
-              
-              {/* Trust Badges */}
-              <div className="flex flex-wrap items-center gap-6 pt-4">
-                {trustBadges.map((badge, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm text-[#64748B]">
-                    <badge.icon className="w-4 h-4 text-[#12C8AD]" />
-                    <span>{badge.text}</span>
+            </div>
+
+            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xl">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-[#06142A]">Günlük akış</p>
+                  <p className="text-xs text-gray-500">Örnek klinik görünümü</p>
+                </div>
+                <Clock className="h-5 w-5 text-[#0B7F6F]" />
+              </div>
+              <div className="space-y-3">
+                {dailyFlow.map((item) => (
+                  <div key={item.title} className="rounded-2xl bg-gray-50 p-4">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#0B7F6F]">{item.time}</p>
+                    <h3 className="font-bold text-[#06142A]">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-gray-600">{item.description}</p>
                   </div>
                 ))}
               </div>
             </div>
-            
-            {/* Right - Dashboard Preview */}
-            <div className="relative">
-              <div className="bg-[#06142A] rounded-2xl shadow-2xl p-6 border border-[#1E3A5F]">
-                {/* Dashboard Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#12C8AD] rounded-xl flex items-center justify-center text-white font-bold">A</div>
-                    <div>
-                      <div className="text-white font-semibold">asistan</div>
-                      <div className="text-[#64748B] text-xs">Takvim</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#1E3A5F] flex items-center justify-center">
-                      <Bell className="w-4 h-4 text-[#64748B]" />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="bg-[#0A1F3D] rounded-xl p-4">
-                    <div className="text-[#64748B] text-xs mb-1">Bugünkü</div>
-                    <div className="text-white text-2xl font-bold">24</div>
-                  </div>
-                  <div className="bg-[#0A1F3D] rounded-xl p-4">
-                    <div className="text-[#64748B] text-xs mb-1">Müşteri</div>
-                    <div className="text-white text-2xl font-bold">2.846</div>
-                  </div>
-                  <div className="bg-[#0A1F3D] rounded-xl p-4">
-                    <div className="text-[#64748B] text-xs mb-1">Gelir</div>
-                    <div className="text-[#12C8AD] text-2xl font-bold">₺125K</div>
-                  </div>
-                </div>
-                
-                {/* Calendar Grid Preview */}
-                <div className="bg-[#0A1F3D] rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-white font-medium">Mayıs 2025</span>
-                    <div className="flex gap-1">
-                      <div className="w-6 h-6 rounded bg-[#1E3A5F] flex items-center justify-center text-[#64748B] text-xs">&lt;</div>
-                      <div className="w-6 h-6 rounded bg-[#1E3A5F] flex items-center justify-center text-[#64748B] text-xs">&gt;</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-7 gap-2 text-center text-xs">
-                    {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
-                      <div key={day} className="text-[#64748B] py-1">{day}</div>
-                    ))}
-                    {Array.from({ length: 35 }, (_, i) => {
-                      const day = i - 3
-                      const isToday = day === 15
-                      const hasAppointment = [5, 8, 12, 15, 18, 22, 25].includes(day)
-                      return (
-                        <div 
-                          key={i} 
-                          className={`py-2 rounded-lg text-sm ${
-                            day < 1 || day > 31 ? 'text-[#1E3A5F]' :
-                            isToday ? 'bg-[#12C8AD] text-white font-semibold' :
-                            hasAppointment ? 'bg-[#12C8AD]/20 text-[#12C8AD]' :
-                            'text-[#94A3B8]'
-                          }`}
-                        >
-                          {day > 0 && day <= 31 ? day : ''}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="mx-auto mb-12 max-w-3xl text-center">
+              <h2 className="text-3xl font-bold text-[#06142A] md:text-4xl">Asistan ile neleri yönetebilirsiniz?</h2>
+              <p className="mt-4 text-lg leading-8 text-gray-600">
+                Her özellik tek bir amaca hizmet eder: günlük takip yükünü azaltmak.
+              </p>
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {coreFeatures.map((feature) => (
+                <Card key={feature.title} className="rounded-2xl border-gray-100 shadow-sm transition-shadow hover:shadow-md">
+                  <CardContent className="p-6">
+                    <feature.icon className="mb-4 h-8 w-8 text-[#0B7F6F]" />
+                    <h3 className="mb-2 text-xl font-bold text-[#06142A]">{feature.title}</h3>
+                    <p className="mb-4 text-sm leading-6 text-gray-600">{feature.description}</p>
+                    <ul className="space-y-2">
+                      {feature.bullets.map((bullet) => (
+                        <li key={bullet} className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-[#0B7F6F]" />
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#F8FAFC] py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div>
+                <h2 className="text-3xl font-bold text-[#06142A] md:text-4xl">Kimler kullanır?</h2>
+                <p className="mt-4 text-lg leading-8 text-gray-600">
+                  Asistan, sadece yöneticinin değil, randevu akışına dokunan herkesin işini sadeleştirir.
+                </p>
               </div>
-              
-              {/* Floating Cards */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-4 border border-[#E2E8F0]">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#12C8AD]/10 flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-[#12C8AD]" />
-                  </div>
-                  <span className="text-sm font-semibold text-[#06142A]">Hatırlatma</span>
-                </div>
-                <p className="text-xs text-[#64748B]">56 bildirim gönderildi</p>
-              </div>
-              
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-xl p-4 border border-[#E2E8F0]">
-                <div className="text-xs text-[#64748B] mb-1">Gelir Özeti</div>
-                <div className="text-xl font-bold text-[#12C8AD]">₺125.430</div>
-                <div className="text-xs text-[#12C8AD]">+%18 artış</div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {personas.map((persona) => (
+                  <Card key={persona.title} className="rounded-2xl border-gray-100 bg-white shadow-sm">
+                    <CardContent className="p-6">
+                      <persona.icon className="mb-4 h-7 w-7 text-[#0B7F6F]" />
+                      <h3 className="mb-2 font-bold text-[#06142A]">{persona.title}</h3>
+                      <p className="text-sm leading-6 text-gray-600">{persona.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-      </section>
-      
-      {/* Core Features Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Temel Özellikler
-            </h2>
-            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              İşinizi büyütmenize yardımcı olan güçlü araçlar
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {coreFeatures.map((feature, index) => (
-              <div 
-                key={index}
-                className="bg-white rounded-2xl p-6 border border-[#E2E8F0] hover:shadow-xl hover:border-[#12C8AD]/30 transition-all duration-300 group"
-              >
-                <div 
-                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-5"
-                  style={{ backgroundColor: `${feature.color}15` }}
-                >
-                  <feature.icon className="w-7 h-7" style={{ color: feature.color }} />
-                </div>
-                <h3 className="text-xl font-semibold text-[#06142A] mb-3">{feature.title}</h3>
-                <p className="text-[#64748B] mb-4 leading-relaxed">{feature.description}</p>
-                <ul className="space-y-2">
-                  {feature.details.map((detail, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-[#475569]">
-                      <CheckCircle2 className="w-4 h-4 text-[#12C8AD] flex-shrink-0" />
-                      {detail}
-                    </li>
-                  ))}
-                </ul>
-                <Link 
-                  href={feature.linkTo}
-                  className="inline-flex items-center text-sm font-medium mt-5 group-hover:text-[#12C8AD] transition-colors hover:underline underline-offset-4"
-                  style={{ color: feature.color }}
-                >
-                  Detayları İncele
-                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      
-      {/* Additional Features */}
-      <section className="py-20 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Daha Fazla Özellik
-            </h2>
-            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              İşinizi bir üst seviyeye taşıyacak ek özellikler
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {additionalFeatures.map((feature, index) => (
-              <div 
-                key={index}
-                className="flex items-start gap-4 bg-white rounded-xl p-5 border border-[#E2E8F0] hover:shadow-lg transition-shadow"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#12C8AD]/10 flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="w-6 h-6 text-[#12C8AD]" />
-                </div>
+        </section>
+
+        <section className="bg-white py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="rounded-3xl bg-[#06142A] p-8 text-white md:p-10">
+              <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <div>
-                  <h3 className="font-semibold text-[#06142A] mb-1">{feature.title}</h3>
-                  <p className="text-sm text-[#64748B]">{feature.description}</p>
+                  <Badge className="mb-4 border-0 bg-white/10 text-white">Daha sonra gelecekler</Badge>
+                  <h2 className="text-3xl font-bold md:text-4xl">Vaatleri sırayla yayına alıyoruz.</h2>
+                  <p className="mt-4 text-white/70">
+                    Henüz aktif olmayan özellikleri gerçek fiyat veya kesin tarih vermeden yol haritasında tutuyoruz.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {upcomingFeatures.map((feature) => (
+                    <div key={feature} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="font-semibold">{feature}</p>
+                      <p className="mt-1 text-xs text-white/55">Yakında</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
-      
+        </section>
+      </main>
+
       <Footer />
     </div>
   )

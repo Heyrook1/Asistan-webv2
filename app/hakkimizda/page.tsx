@@ -1,251 +1,202 @@
-"use client"
-
-import Image from "next/image"
+import type { Metadata } from "next"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Play, Shield, Users, Lightbulb, Heart, Target, Calendar, Clock, TrendingUp, Star, Zap } from "lucide-react"
-import { Navbar } from "@/components/marketing/navbar"
+import { ArrowRight, Building2, HeartHandshake, MapPin, ShieldCheck, Sparkles, Users } from "lucide-react"
+
 import { Footer } from "@/components/marketing/footer"
+import { Navbar } from "@/components/marketing/navbar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 
-const stats = [
-  { value: "500+", label: "Profesyonel", sublabel: "Bize güveniyor", icon: Users },
-  { value: "100.000+", label: "Randevu", sublabel: "Yönetildi", icon: Calendar },
-  { value: "%98", label: "Müşteri", sublabel: "Memnuniyeti", icon: TrendingUp },
-  { value: "10.000+", label: "Saat", sublabel: "Kazandırıldı", icon: Clock }
-]
+export const metadata: Metadata = {
+  title: "Hakkımızda",
+  description:
+    "Asistan, KKTC'deki klinikler ve hizmet işletmeleri için geliştirilen AI destekli iş yönetim platformudur.",
+}
 
-const values = [
+const principles = [
   {
-    icon: Shield,
-    title: "Güvenlik",
-    description: "Verilerinizin güvenliği bizim önceliğimizdir. KVKK uyumlu altyapı ve şifreli veri saklama.",
-    color: "#12C8AD"
+    icon: MapPin,
+    title: "Yerel ihtiyaç",
+    description: "Ürün kararlarını KKTC'deki işletmelerin gerçek operasyon sorunlarına göre şekillendiriyoruz.",
   },
   {
-    icon: Users,
-    title: "Kullanıcı Odaklılık",
-    description: "İhtiyaçlarınızı dinler, sizin için geliştiriz. Kullanıcı geri bildirimleri ürün yol haritamızı şekillendirir.",
-    color: "#16A9E8"
+    icon: HeartHandshake,
+    title: "Sade kullanım",
+    description: "Teknik bilgi gerektirmeyen, sekreter ve yönetici ekiplerinin hızlı kavrayacağı akışlar tasarlıyoruz.",
   },
   {
-    icon: Lightbulb,
-    title: "Yenilikçilik",
-    description: "Teknolojiyi yakından takip eder, sürekli daha iyisini üretiriz. AI destekli özelliklerle sektöre yön veririz.",
-    color: "#F59E0B"
+    icon: ShieldCheck,
+    title: "Gizlilik odağı",
+    description: "Hasta ve müşteri bilgisinin hassasiyetini ürün deneyiminin merkezinde tutuyoruz.",
   },
   {
-    icon: Heart,
-    title: "Şeffaflık",
-    description: "Açık iletişim ve dürüst fiyatlandırma ile güven inşa ederiz. Gizli maliyet yoktur.",
-    color: "#EF4444"
-  }
+    icon: Building2,
+    title: "Sektörel odak",
+    description: "Önce sağlık, ardından güzellik, hukuk ve emlak gibi dikeylerde net çözümler geliştiriyoruz.",
+  },
 ]
 
-const timeline = [
-  { year: "2022", title: "Kuruluş", description: "Asistan fikri doğdu ve ilk prototip geliştirildi." },
-  { year: "2023", title: "İlk Müşteriler", description: "Beta sürümü ile ilk 50 klinik Asistan kullanmaya başladı." },
-  { year: "2024", title: "Büyüme", description: "500+ profesyonel ve 100.000+ randevu yönetim sistemine ulaşıldı." },
-  { year: "2025", title: "AI Entegrasyonu", description: "Yapay zeka destekli öneriler ve akıllı otomasyon özellikleri eklendi." }
-]
-
-const team = [
-  { name: "Ahmet Yılmaz", role: "Kurucu & CEO", image: "/images/team-1.jpg" },
-  { name: "Elif Demir", role: "Ürün Direktörü", image: "/images/team-2.jpg" },
-  { name: "Mehmet Kaya", role: "Teknik Lider", image: "/images/team-3.jpg" },
-  { name: "Zeynep Şahin", role: "Müşteri Başarısı", image: "/images/team-4.jpg" }
+const roadmap = [
+  {
+    status: "Aktif odak",
+    title: "Asistan Health",
+    description: "Klinikler için randevu, hasta takibi, hatırlatma ve ekip rolleri.",
+  },
+  {
+    status: "Sırada",
+    title: "Beauty",
+    description: "Güzellik merkezleri ve salonlar için müşteri ve randevu akışları.",
+  },
+  {
+    status: "Planlanıyor",
+    title: "Hukuk ve Emlak",
+    description: "Danışan, dosya, portföy ve görüşme takibi için sektörlere özel sürümler.",
+  },
 ]
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white">
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F0FDFA] via-white to-[#F0F9FF] -z-10" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#12C8AD]/10 rounded-full">
-                <span className="text-xs font-semibold text-[#12C8AD] uppercase tracking-wider">Hakkımızda</span>
-              </div>
-              
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#06142A] leading-tight">
-                İşinizi kolaylaştırmak için{" "}
-                <span className="text-[#12C8AD]">buradayız.</span>
+
+      <section className="bg-[#F8FAFC] pt-32 pb-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+            <div>
+              <Badge className="mb-6 bg-[#0B7F6F]/10 text-[#0B7F6F] hover:bg-[#0B7F6F]/10">
+                Hakkımızda
+              </Badge>
+              <h1 className="text-4xl font-bold leading-tight text-[#06142A] sm:text-5xl lg:text-6xl">
+                KKTC'den başlayan iş yönetimi platformu.
               </h1>
-              
-              <p className="text-lg text-[#475569] max-w-xl leading-relaxed">
-                Asistan, profesyonellerin işlerini daha verimli yönetmeleri için tasarlandı. Randevu yönetiminden ekip koordinasyonuna, yapay zeka destekli önerilerden müşteri iletişimine kadar tüm süreçlerinizi tek platformda bir araya getiriyoruz.
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#475569]">
+                Asistan, küçük ve orta ölçekli işletmelerin randevu, müşteri, hasta ve ekip
+                yönetimini tek panelde toplamak için geliştiriliyor. İlk odağımız Asistan Health.
               </p>
-              
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 text-base rounded-xl shadow-lg shadow-[#12C8AD]/25"
-                >
-                  Bize Ulaşın
-                  <ArrowRight className="w-5 h-5 ml-2" />
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button asChild className="min-h-11 rounded-xl bg-[#0B7F6F] text-white hover:bg-[#09685C]">
+                  <Link href="/auth/sign-up" aria-label="Asistan erken erişim başvurusu yap">
+                    Erken Erişime Katıl
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                  </Link>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-[#E2E8F0] text-[#06142A] px-8 py-6 text-base rounded-xl hover:bg-[#F8FAFC]"
-                >
-                  <Play className="w-5 h-5 mr-2 fill-[#06142A]" />
-                  Hikayemizi İzle
+                <Button asChild variant="outline" className="min-h-11 rounded-xl border-[#CBD5E1] text-[#06142A]">
+                  <Link href="/cozumler/health" aria-label="Asistan Health çözümünü incele">
+                    Health'i İncele
+                  </Link>
                 </Button>
               </div>
             </div>
-            
-            {/* Right - Image */}
-            <div className="relative">
-              <Image
-                src="/images/medical-team.jpg"
-                alt="Asistan Ekibi"
-                width={600}
-                height={400}
-                className="rounded-2xl shadow-2xl"
-              />
-              
-              {/* Floating Card */}
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-5 border border-[#E2E8F0]">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#12C8AD]/10 flex items-center justify-center">
-                    <Target className="w-6 h-6 text-[#12C8AD]" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-[#06142A]">Misyonumuz</div>
-                    <div className="text-xs text-[#64748B]">Profesyonellere zaman kazandırmak</div>
-                  </div>
+
+            <Card className="rounded-3xl border-[#E2E8F0] bg-white shadow-xl shadow-slate-200/60">
+              <CardContent className="p-6 md:p-8">
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B7F6F]/10">
+                  <Sparkles className="h-7 w-7 text-[#0B7F6F]" aria-hidden="true" />
                 </div>
-              </div>
-            </div>
+                <h2 className="text-2xl font-bold text-[#06142A]">Neden buradan başlıyoruz?</h2>
+                <p className="mt-4 leading-relaxed text-[#64748B]">
+                  KKTC'deki birçok işletme randevu ve müşteri takibini hâlâ dağınık mesajlar,
+                  notlar ve tablolarla yürütüyor. Asistan, bu günlük yükü daha görünür ve yönetilir
+                  hale getirmek için tasarlanıyor.
+                </p>
+                <div className="mt-6 rounded-2xl bg-[#F8FAFC] p-5">
+                  <p className="text-sm font-semibold text-[#06142A]">İlk sektör</p>
+                  <p className="mt-1 text-sm text-[#64748B]">
+                    Sağlık ekipleri: doktorlar, klinik yöneticileri ve sekreterler.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
-      
-      {/* Stats Section */}
-      <section className="py-16 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl shadow-lg border border-[#E2E8F0] p-8 md:p-12">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 bg-[#12C8AD]/10 rounded-xl mb-4">
-                    <stat.icon className="w-6 h-6 text-[#12C8AD]" />
-                  </div>
-                  <div className="text-3xl md:text-4xl font-bold text-[#06142A]">{stat.value}</div>
-                  <div className="text-sm text-[#64748B] mt-1">
-                    {stat.label}<br />{stat.sublabel}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Vision & Mission */}
+
       <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-[#06142A] rounded-2xl p-8 md:p-10">
-              <div className="w-12 h-12 rounded-xl bg-[#12C8AD]/20 flex items-center justify-center mb-6">
-                <Target className="w-6 h-6 text-[#12C8AD]" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Vizyonumuz</h3>
-              <p className="text-[#94A3B8] leading-relaxed">
-                Profesyonellerin zamanını en değerli kaynak olarak gören, yapay zeka destekli çözümlerle iş süreçlerini dönüştüren küresel bir platform olmak. Her profesyonelin yanında akıllı bir asistan olmasını sağlamak.
-              </p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-[#12C8AD] to-[#16A9E8] rounded-2xl p-8 md:p-10">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Misyonumuz</h3>
-              <p className="text-white/90 leading-relaxed">
-                Profesyonellerin randevu yönetiminden müşteri iletişimine, ekip koordinasyonundan raporlamaya kadar tüm operasyonel süreçlerini basitleştirmek ve onlara işlerini büyütmeleri için zaman kazandırmak.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Values */}
-      <section className="py-20 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Değerlerimiz
-            </h2>
-            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              Bizi yönlendiren temel ilkeler
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <Badge className="mb-4 bg-[#185FA5]/10 text-[#185FA5] hover:bg-[#185FA5]/10">
+              Yaklaşımımız
+            </Badge>
+            <h2 className="text-3xl font-bold text-[#06142A]">Ürünü sahadaki iş akışına göre kuruyoruz.</h2>
+            <p className="mt-4 leading-relaxed text-[#64748B]">
+              Amaç, işletmeyi daha karmaşık bir sisteme taşımak değil; zaten yapılan işleri daha
+              düzenli, takip edilebilir ve güvenli hale getirmek.
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value, index) => (
-              <div 
-                key={index}
-                className="bg-white rounded-2xl p-6 border border-[#E2E8F0] hover:shadow-lg transition-shadow"
-              >
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                  style={{ backgroundColor: `${value.color}15` }}
-                >
-                  <value.icon className="w-6 h-6" style={{ color: value.color }} />
-                </div>
-                <h3 className="text-lg font-semibold text-[#06142A] mb-2">{value.title}</h3>
-                <p className="text-sm text-[#64748B] leading-relaxed">{value.description}</p>
-              </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {principles.map((principle) => (
+              <Card key={principle.title} className="rounded-2xl border-[#E2E8F0]">
+                <CardContent className="p-6">
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#0B7F6F]/10">
+                    <principle.icon className="h-6 w-6 text-[#0B7F6F]" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#06142A]">{principle.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-[#64748B]">{principle.description}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
-      
-      {/* Timeline */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Yolculuğumuz
-            </h2>
-            <p className="text-lg text-[#64748B]">
-              Asistan'ın hikayesi
-            </p>
-          </div>
-          
-          <div className="relative">
-            {/* Timeline Line */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-[#E2E8F0]" />
-            
-            <div className="space-y-12">
-              {timeline.map((item, index) => (
-                <div key={index} className={`relative flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
-                  <div className={`w-5/12 ${index % 2 === 0 ? 'text-right pr-8' : 'text-left pl-8'}`}>
-                    <div className="bg-white rounded-xl p-6 border border-[#E2E8F0] shadow-sm hover:shadow-lg transition-shadow">
-                      <div className="text-[#12C8AD] font-bold text-lg mb-2">{item.year}</div>
-                      <h3 className="font-semibold text-[#06142A] mb-1">{item.title}</h3>
-                      <p className="text-sm text-[#64748B]">{item.description}</p>
+
+      <section className="bg-[#F8FAFC] py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div>
+              <Badge className="mb-4 bg-[#0B7F6F]/10 text-[#0B7F6F] hover:bg-[#0B7F6F]/10">
+                Yol haritası
+              </Badge>
+              <h2 className="text-3xl font-bold text-[#06142A]">Önce sağlık, sonra diğer hizmet sektörleri.</h2>
+              <p className="mt-4 leading-relaxed text-[#64748B]">
+                Asistan tek bir genel araç olmak yerine, her sektörün diline ve günlük akışına göre
+                ayrı çözümler sunmayı hedefler.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {roadmap.map((item) => (
+                <Card key={item.title} className="rounded-2xl border-[#E2E8F0] bg-white">
+                  <CardContent className="flex gap-4 p-6">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0B7F6F]/10">
+                      <Users className="h-5 w-5 text-[#0B7F6F]" aria-hidden="true" />
                     </div>
-                  </div>
-                  
-                  {/* Center Dot */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-[#12C8AD] rounded-full border-4 border-white shadow" />
-                  
-                  <div className="w-5/12" />
-                </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#0B7F6F]">
+                        {item.status}
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold text-[#06142A]">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{item.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
         </div>
       </section>
-      
+
+      <section className="px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl rounded-3xl bg-[#06142A] p-8 text-white md:p-12">
+          <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <h2 className="text-3xl font-bold">Asistan Health'i kliniğinizde deneyin.</h2>
+              <p className="mt-4 max-w-2xl text-white/75">
+                İlk görüşmede mevcut randevu ve hasta takip akışınızı anlayıp en doğru başlangıcı önerelim.
+              </p>
+            </div>
+            <Button asChild className="min-h-11 rounded-xl bg-white text-[#06142A] hover:bg-white/90">
+              <Link href="/auth/sign-up" aria-label="Asistan Health için erken erişim başvurusu yap">
+                Erken Erişime Katıl
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <Footer />
-    </div>
+    </main>
   )
 }

@@ -1,11 +1,11 @@
-import { requirePermission, can } from '@/lib/session'
+import { requirePagePermission, can } from '@/lib/session'
 import { getServicesList } from '@/lib/queries'
 import { ServicesBoard } from './services-board'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HizmetlerPage() {
-  const session = await requirePermission('service.manage')
+  const session = await requirePagePermission('service.manage')
   const services = await getServicesList(session.businessId)
 
   return (

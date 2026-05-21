@@ -177,7 +177,7 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
             </div>
           </div>
           {totalActive > 0 && (
-            <span className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-[#12C8AD] px-2 text-[11px] font-bold text-white">
+            <span className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-[#0B7F6F] px-2 text-[11px] font-bold text-white">
               {totalActive}
             </span>
           )}
@@ -211,7 +211,7 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
               type="submit"
               size="icon"
               disabled={pending || !title.trim()}
-              className="h-9 w-9 shrink-0 rounded-xl bg-[#12C8AD] text-white shadow-sm hover:bg-[#10b49c] disabled:opacity-50"
+              className="h-9 w-9 shrink-0 rounded-xl bg-[#0B7F6F] text-white shadow-sm hover:bg-[#09685C] disabled:opacity-50"
               aria-label="Ekle"
             >
               <Plus className="h-4 w-4" />
@@ -317,7 +317,7 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
 function EmptyHint() {
   return (
     <div className="rounded-xl border border-dashed border-border/70 bg-slate-50/60 px-4 py-6 text-center">
-      <Sparkles className="mx-auto h-5 w-5 text-[#12C8AD]" />
+      <Sparkles className="mx-auto h-5 w-5 text-[#0B7F6F]" />
       <p className="mt-2 text-sm font-semibold text-[#0C1D36]">Henüz hatırlatma yok</p>
       <p className="mt-1 text-[12px] text-muted-foreground">
         Yukarıdan ilk notunuzu veya hatırlatmanızı ekleyin.
@@ -349,7 +349,7 @@ function ReminderRow({
     <li
       className={cn(
         'group flex items-start gap-2.5 rounded-xl border bg-white px-2.5 py-2 transition-colors',
-        item.isDone ? 'border-border/40 opacity-70' : 'border-border/60 hover:border-[#12C8AD]/40'
+        item.isDone ? 'border-border/40 opacity-70' : 'border-border/60 hover:border-[#0B7F6F]/40'
       )}
     >
       <button
@@ -358,8 +358,8 @@ function ReminderRow({
         className={cn(
           'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
           item.isDone
-            ? 'border-[#12C8AD] bg-[#12C8AD] text-white'
-            : 'border-border bg-white hover:border-[#12C8AD]'
+            ? 'border-[#0B7F6F] bg-[#0B7F6F] text-white'
+            : 'border-border bg-white hover:border-[#0B7F6F]'
         )}
         aria-label={item.isDone ? 'Tamamlanmadı olarak işaretle' : 'Tamamlandı olarak işaretle'}
         aria-pressed={item.isDone}

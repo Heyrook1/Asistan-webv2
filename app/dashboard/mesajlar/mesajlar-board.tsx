@@ -104,13 +104,41 @@ export function MesajlarBoard({
   const [streamMessages, setStreamMessages] = useState<ThreadMessage[]>([])
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
+  const participantUsers = useMemo(() => {
+    const users = new Map<string, ThreadMessage['sender']>()
+    for (const participant of thread?.participants ?? []) {
+      users.set(participant.userId, participant.user)
+    }
+    return users
+  }, [thread?.participants])
+
   // Realtime + polling for the open thread.
   const latestMsg = thread?.messages[thread.messages.length - 1]?.createdAt ?? null
   useMessageStream({
     conversationId: thread?.id,
     selfUserId: session.userId,
     latestCreatedAt: latestMsg,
-    onIncoming: () => {
+    onIncoming: (message) => {
+      const sender =
+        participantUsers.get(message.senderUserId) ??
+        ({
+          id: message.senderUserId,
+          fullName: 'Ekip üyesi',
+          avatarUrl: null,
+        } satisfies ThreadMessage['sender'])
+
+      setStreamMessages((current) => {
+        if (current.some((item) => item.id === message.id)) return current
+        return [
+          ...current,
+          {
+            ...message,
+            sender,
+            attachments: [],
+            reactions: [],
+          },
+        ]
+      })
       toast('Yeni mesaj geldi')
     },
     onThreadChanged: () => {
@@ -283,7 +311,7 @@ export function MesajlarBoard({
           )}
           <Button
             onClick={() => setComposeOpen(true)}
-            className="bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+            className="bg-[#0B7F6F] text-white hover:bg-[#09685C]"
           >
             <Plus className="mr-1.5 h-4 w-4" />
             Yeni Sohbet
@@ -325,7 +353,7 @@ export function MesajlarBoard({
                         }}
                         className={cn(
                           'flex w-full items-start gap-3 px-3 py-3 text-left transition hover:bg-[#F7F9FB]',
-                          activeConversationId === c.id && 'bg-[#12C8AD]/[0.06]'
+                          activeConversationId === c.id && 'bg-[#0B7F6F]/[0.06]'
                         )}
                       >
                         <UserAvatar fullName={c.partner?.fullName ?? c.title ?? '?'} />
@@ -439,7 +467,7 @@ export function MesajlarBoard({
                               className={cn(
                                 'max-w-[70%] rounded-2xl px-3 py-2 text-sm leading-relaxed shadow-sm',
                                 mine
-                                  ? 'rounded-br-sm bg-[#12C8AD] text-white'
+                                  ? 'rounded-br-sm bg-[#0B7F6F] text-white'
                                   : 'rounded-bl-sm bg-white text-[#0C1D36]'
                               )}
                             >
@@ -560,7 +588,7 @@ export function MesajlarBoard({
                     <Button
                       onClick={handleSend}
                       disabled={pending || (!draft.trim() && attachments.length === 0)}
-                      className="h-11 bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+                      className="h-11 bg-[#0B7F6F] text-white hover:bg-[#09685C]"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -579,11 +607,11 @@ export function MesajlarBoard({
           </SheetHeader>
           <div className="mt-4 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant={!groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(false)} className={!groupMode ? 'bg-[#12C8AD] text-white hover:bg-[#10b49c]' : ''}>
+              <Button type="button" variant={!groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(false)} className={!groupMode ? 'bg-[#0B7F6F] text-white hover:bg-[#09685C]' : ''}>
                 <UserCircle2 className="mr-1.5 h-4 w-4" />
                 Bire bir
               </Button>
-              <Button type="button" variant={groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(true)} className={groupMode ? 'bg-[#12C8AD] text-white hover:bg-[#10b49c]' : ''}>
+              <Button type="button" variant={groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(true)} className={groupMode ? 'bg-[#0B7F6F] text-white hover:bg-[#09685C]' : ''}>
                 <Users className="mr-1.5 h-4 w-4" />
                 Grup
               </Button>
@@ -629,7 +657,7 @@ export function MesajlarBoard({
                         <span
                           className={cn(
                             'h-5 w-5 rounded-full border',
-                            groupUsers.includes(t.userId) && 'border-[#12C8AD] bg-[#12C8AD]'
+                            groupUsers.includes(t.userId) && 'border-[#0B7F6F] bg-[#0B7F6F]'
                           )}
                         />
                       )}
@@ -643,7 +671,7 @@ export function MesajlarBoard({
                 type="button"
                 disabled={pending || !groupTitle.trim() || groupUsers.length === 0}
                 onClick={handleCreateGroup}
-                className="w-full bg-[#12C8AD] text-white hover:bg-[#10b49c]"
+                className="w-full bg-[#0B7F6F] text-white hover:bg-[#09685C]"
               >
                 Grup Sohbeti Oluştur
               </Button>
@@ -705,7 +733,7 @@ export function MesajlarBoard({
                           <p className="truncate text-sm font-semibold text-[#0C1D36]">{t.fullName}</p>
                           <p className="text-[11px] text-muted-foreground">{ROLE_LABELS[t.role]}</p>
                         </div>
-                        <UserPlus className="h-4 w-4 text-[#12C8AD]" />
+                        <UserPlus className="h-4 w-4 text-[#0B7F6F]" />
                       </button>
                     </li>
                   ))}
@@ -730,7 +758,7 @@ function UserAvatar({ fullName, size = 'md' }: { fullName: string; size?: 'sm' |
     <Avatar className={cn(size === 'sm' ? 'h-7 w-7 text-[10px]' : 'h-10 w-10')}>
       <AvatarFallback
         className="font-bold text-white"
-        style={{ background: 'linear-gradient(135deg, #12C8AD, #16A9E8)' }}
+        style={{ background: 'linear-gradient(135deg, #0B7F6F, #16A9E8)' }}
       >
         {initials || '?'}
       </AvatarFallback>
@@ -756,14 +784,14 @@ function RailEmpty({ onCompose }: { onCompose: () => void }) {
 function ThreadEmpty({ onCompose }: { onCompose: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#12C8AD]/10 text-[#0b7f6f]">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
         <MessageCircle className="h-6 w-6" />
       </div>
       <p className="text-base font-semibold text-[#0C1D36]">Bir sohbet seçin</p>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">
         Soldaki listeden bir sohbet açın veya yeni bir tane başlatın.
       </p>
-      <Button onClick={onCompose} className="mt-4 bg-[#12C8AD] text-white hover:bg-[#10b49c]">
+      <Button onClick={onCompose} className="mt-4 bg-[#0B7F6F] text-white hover:bg-[#09685C]">
         <Plus className="mr-1.5 h-4 w-4" />
         Yeni Sohbet
       </Button>

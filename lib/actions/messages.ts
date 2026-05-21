@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { MESSAGE_MEDIA_BUCKET } from '@/lib/storage-constants'
@@ -29,6 +30,10 @@ async function assertSameBusinessUser(businessId: string, otherUserId: string) {
 
 const directSchema = z.object({ partnerUserId: z.string().uuid() })
 
+function directConversationKey(userIdA: string, userIdB: string) {
+  return [userIdA, userIdB].sort().join(':')
+}
+
 export async function getOrCreateDirectConversation(
   input: unknown
 ): Promise<ActionResult<{ conversationId: string }>> {
@@ -40,35 +45,99 @@ export async function getOrCreateDirectConversation(
     return err('Bu kullanıcı ekipte bulunamadı')
   }
 
+  const directKey = directConversationKey(session.userId, parsed.data.partnerUserId)
+
   const existing = await prisma.conversation.findFirst({
     where: {
       businessId: session.businessId,
       isGroup: false,
-      participants: {
-        every: { userId: { in: [session.userId, parsed.data.partnerUserId] } },
-      },
-      AND: [
-        { participants: { some: { userId: session.userId } } },
-        { participants: { some: { userId: parsed.data.partnerUserId } } },
-      ],
+      directKey,
     },
     select: { id: true },
   })
   if (existing) return ok({ conversationId: existing.id })
 
-  const created = await prisma.conversation.create({
-    data: {
-      businessId: session.businessId,
-      isGroup: false,
-      participants: {
-        create: [{ userId: session.userId }, { userId: parsed.data.partnerUserId }],
+  const legacy = await prisma.$queryRaw<Array<{ id: string }>>`
+    select c.id
+    from "Conversation" c
+    where c."businessId" = ${session.businessId}
+      and c."isGroup" = false
+      and c."directKey" is null
+      and exists (
+        select 1
+        from "ConversationParticipant" cp
+        where cp."conversationId" = c.id
+          and cp."isActive" = true
+          and cp."userId" = ${session.userId}
+      )
+      and exists (
+        select 1
+        from "ConversationParticipant" cp
+        where cp."conversationId" = c.id
+          and cp."isActive" = true
+          and cp."userId" = ${parsed.data.partnerUserId}
+      )
+      and (
+        select count(*)
+        from "ConversationParticipant" cp
+        where cp."conversationId" = c.id
+          and cp."isActive" = true
+      ) = 2
+    order by c."createdAt" asc
+    limit 1
+  `
+  if (legacy[0]) {
+    try {
+      await prisma.conversation.update({
+        where: { id: legacy[0].id },
+        data: { directKey },
+      })
+      return ok({ conversationId: legacy[0].id })
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+        throw error
+      }
+    }
+    const raced = await prisma.conversation.findFirst({
+      where: {
+        businessId: session.businessId,
+        isGroup: false,
+        directKey,
       },
-    },
-    select: { id: true },
-  })
+      select: { id: true },
+    })
+    if (raced) return ok({ conversationId: raced.id })
+  }
 
-  revalidatePath('/dashboard/mesajlar')
-  return ok({ conversationId: created.id })
+  try {
+    const created = await prisma.conversation.create({
+      data: {
+        businessId: session.businessId,
+        isGroup: false,
+        directKey,
+        participants: {
+          create: [{ userId: session.userId }, { userId: parsed.data.partnerUserId }],
+        },
+      },
+      select: { id: true },
+    })
+
+    revalidatePath('/dashboard/mesajlar')
+    return ok({ conversationId: created.id })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const raced = await prisma.conversation.findFirst({
+        where: {
+          businessId: session.businessId,
+          isGroup: false,
+          directKey,
+        },
+        select: { id: true },
+      })
+      if (raced) return ok({ conversationId: raced.id })
+    }
+    throw error
+  }
 }
 
 const groupSchema = z.object({

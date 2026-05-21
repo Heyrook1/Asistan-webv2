@@ -6,6 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { ServiceFormDialog, type ServiceDraft } from '@/components/dashboard/service-form-dialog'
@@ -22,6 +32,7 @@ export function ServicesBoard({
 }) {
   const router = useRouter()
   const [dialog, setDialog] = useState<{ open: boolean; initial?: ServiceDraft }>({ open: false })
+  const [deleteTarget, setDeleteTarget] = useState<ServiceDraft | null>(null)
   const [pending, startTransition] = useTransition()
 
   function toggle(id: string, isActive: boolean) {
@@ -34,11 +45,11 @@ export function ServicesBoard({
   }
 
   function remove(id: string) {
-    if (!confirm('Bu hizmeti silmek istediğinize emin misiniz? (Mevcut randevular varsa pasifleştirilecek.)')) return
     startTransition(async () => {
       const result = await deleteService({ id })
       if (!result.ok) { toast.error(result.error); return }
       toast.success('Hizmet silindi')
+      setDeleteTarget(null)
       router.refresh()
     })
   }
@@ -53,7 +64,7 @@ export function ServicesBoard({
           </p>
         </div>
         {canManage && (
-          <Button onClick={() => setDialog({ open: true })} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+          <Button onClick={() => setDialog({ open: true })} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
             <Plus className="mr-2 h-4 w-4" /> Hizmet Ekle
           </Button>
         )}
@@ -90,10 +101,22 @@ export function ServicesBoard({
                       {s.isActive ? 'Aktif' : 'Pasif'}
                     </label>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDialog({ open: true, initial: s })}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-11 w-11 md:h-9 md:w-9"
+                        onClick={() => setDialog({ open: true, initial: s })}
+                        aria-label={`${s.name} hizmetini düzenle`}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-600" onClick={() => remove(s.id!)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-11 w-11 text-rose-600 md:h-9 md:w-9"
+                        onClick={() => setDeleteTarget(s)}
+                        aria-label={`${s.name} hizmetini sil`}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -111,6 +134,26 @@ export function ServicesBoard({
         initial={dialog.initial}
         onSaved={() => router.refresh()}
       />
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hizmeti sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.name} hizmetini silmek istediğinize emin misiniz? Bu hizmete bağlı randevular varsa hizmet pasifleştirilecek.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending}
+              onClick={() => deleteTarget?.id && remove(deleteTarget.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

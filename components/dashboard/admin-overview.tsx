@@ -29,7 +29,7 @@ import { AppointmentFormDrawer, type AppointmentOption } from '@/components/dash
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
 import { ServiceFormDialog } from '@/components/dashboard/service-form-dialog'
 import { RemindersCard, type ReminderItem } from '@/components/dashboard/reminders-card'
-import { formatTime, trMoney } from '@/lib/format'
+import { formatShortDate, formatTime, trMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -220,7 +220,7 @@ export function AdminOverview({
         </div>
         <div className="hidden flex-wrap gap-2 lg:flex">
           {canCreateAppointment && (
-            <Button onClick={() => setModal('appointment')} className="h-11 gap-2 bg-[#08AFC0] text-white shadow-lg shadow-cyan-600/20 hover:bg-[#079CAE]">
+            <Button onClick={() => setModal('appointment')} className="h-11 gap-2 bg-[#087C87] text-white shadow-lg shadow-cyan-600/20 hover:bg-[#066D77]">
               <CalendarPlus className="h-4 w-4" />
               Randevu Oluştur
             </Button>
@@ -281,12 +281,12 @@ export function AdminOverview({
                   <h2 className="text-sm font-bold text-[#0C1D36]">Kurulumu tamamlayın</h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">İlk randevuya hazırlanmak için adımlar.</p>
                 </div>
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-[#12C8AD] text-xs font-bold text-[#0C1D36]">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-[#0B7F6F] text-xs font-bold text-[#0C1D36]">
                   {completedSteps}/{setupSteps.length}
                 </div>
               </div>
               <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-[#12C8AD] transition-[width]" style={{ width: `${setupProgress}%` }} />
+                <div className="h-full rounded-full bg-[#0B7F6F] transition-[width]" style={{ width: `${setupProgress}%` }} />
               </div>
               <ul className="space-y-2.5">
                 {setupSteps.map((step, index) => (
@@ -360,13 +360,13 @@ export function AdminOverview({
                       className={cn(
                         'mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition-colors hover:bg-cyan-50',
                         !inMonth && 'text-slate-300',
-                        isToday && 'bg-[#08AFC0] text-white hover:bg-[#08AFC0]'
+                        isToday && 'bg-[#087C87] text-white hover:bg-[#087C87]'
                       )}
                       title={dayEvents.length ? `${dayEvents.length} onaylı randevu` : 'Randevu yok'}
                     >
                       <span>{day.getDate()}</span>
                       {dayEvents.length > 0 && (
-                        <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-[#08AFC0]')} />
+                        <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-[#087C87]')} />
                       )}
                     </Link>
                   )
@@ -415,7 +415,7 @@ export function AdminOverview({
               ))}
             </div>
             {canViewAnalytics && (
-              <Link href="/dashboard/analitik" className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-[#08AFC0]">
+              <Link href="/dashboard/analitik" className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-[#087C87]">
                 Tüm önerileri görüntüle <ChevronRight className="h-4 w-4" />
               </Link>
             )}
@@ -429,13 +429,28 @@ export function AdminOverview({
           <CardContent className="p-4 lg:p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold text-[#0C1D36]">Yaklaşan Randevular</h2>
-              <Link href="/dashboard/randevular" className="inline-flex items-center gap-1 text-xs font-medium text-[#08AFC0]">
+              <Link href="/dashboard/randevular" className="inline-flex items-center gap-1 text-xs font-medium text-[#087C87]">
                 Tümü <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
             {upcomingAppointments.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Yaklaşan randevu yok.</p>
+              <div className="rounded-2xl border border-dashed bg-slate-50/70 px-4 py-6 text-center">
+                <p className="text-sm font-semibold text-[#0C1D36]">Yaklaşan randevu yok</p>
+                <p className="mt-1 text-xs text-muted-foreground">Yeni bir randevu oluşturabilir veya online takvim bağlantısını paylaşabilirsiniz.</p>
+                <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
+                  {canCreateAppointment && (
+                    <Button size="sm" onClick={() => setModal('appointment')} className="bg-[#087C87] text-white hover:bg-[#066D77]">
+                      <CalendarPlus className="mr-2 h-4 w-4" />
+                      Randevu Oluştur
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => setModal('share')}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Takvimi Paylaş
+                  </Button>
+                </div>
+              </div>
             ) : (
               <>
                 {/* Mobile: card list */}
@@ -492,7 +507,7 @@ export function AdminOverview({
                               </span>
                               <span>
                                 <span className="block font-medium text-[#0C1D36]">{appointment.patientName}</span>
-                                <span className="block text-[11px] text-muted-foreground">{appointment.date}</span>
+                                <span className="block text-[11px] text-muted-foreground">{formatShortDate(appointment.date)}</span>
                               </span>
                             </Link>
                           </td>
@@ -563,7 +578,7 @@ export function AdminOverview({
                 navigator.clipboard.writeText(bookingLink)
                 toast.success('Bağlantı kopyalandı')
               }}
-              className="bg-[#08AFC0] text-white hover:bg-[#079CAE]"
+              className="bg-[#087C87] text-white hover:bg-[#066D77]"
             >
               Bağlantıyı Kopyala
             </Button>
@@ -586,8 +601,8 @@ function QuickAction({
   onClick?: () => void
 }) {
   const content = (
-    <span className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border bg-white p-3 text-center text-xs font-semibold text-[#0C1D36] shadow-sm transition-colors hover:border-[#08AFC0]/40 hover:bg-cyan-50/40">
-      <span className="text-[#08AFC0] [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
+    <span className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border bg-white p-3 text-center text-xs font-semibold text-[#0C1D36] shadow-sm transition-colors hover:border-[#087C87]/40 hover:bg-cyan-50/40">
+      <span className="text-[#087C87] [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
       {label}
     </span>
   )

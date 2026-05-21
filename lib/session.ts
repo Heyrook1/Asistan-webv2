@@ -25,6 +25,53 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, '')
 }
 
+async function createBootstrapBusiness(input: {
+  baseSlug: string
+  fullName: string
+  ownerUserId: string
+  email: string
+}) {
+  let slug = input.baseSlug
+  let suffix = 1
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    while (await prisma.business.findUnique({ where: { slug } })) {
+      suffix += 1
+      slug = `${input.baseSlug}-${suffix}`
+    }
+
+    try {
+      return await prisma.business.create({
+        data: {
+          name: `${input.fullName} Kliniği`,
+          slug,
+          ownerUserId: input.ownerUserId,
+          email: input.email,
+        },
+      })
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+        throw error
+      }
+
+      const owned = await prisma.business.findUnique({ where: { ownerUserId: input.ownerUserId } })
+      if (owned) return owned
+
+      suffix += 1
+      slug = `${input.baseSlug}-${suffix}-${Date.now().toString(36)}`
+    }
+  }
+
+  return prisma.business.create({
+    data: {
+      name: `${input.fullName} Kliniği`,
+      slug: `${input.baseSlug}-${Date.now().toString(36)}`,
+      ownerUserId: input.ownerUserId,
+      email: input.email,
+    },
+  })
+}
+
 /**
  * Resolves the current Supabase session into our domain session. Cached per
  * request so multiple Server Components can share the result.
@@ -93,19 +140,11 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
   // Bootstrap a Business only for brand-new owner signups, not invited team members.
   if (!business) {
     const baseSlug = slugify(fullName || 'klinik') || 'klinik'
-    let slug = baseSlug
-    let suffix = 1
-    while (await prisma.business.findUnique({ where: { slug } })) {
-      suffix += 1
-      slug = `${baseSlug}-${suffix}`
-    }
-    business = await prisma.business.create({
-      data: {
-        name: `${fullName} Kliniği`,
-        slug,
-        ownerUserId: user.id,
-        email: authUser.email,
-      },
+    business = await createBootstrapBusiness({
+      baseSlug,
+      fullName,
+      ownerUserId: user.id,
+      email: authUser.email,
     })
     await prisma.teamMember.create({
       data: {
@@ -124,10 +163,6 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
         data: { userId: user.id },
       })
     }
-    await prisma.teamMember.updateMany({
-      where: { businessId: business.id, userId: user.id },
-      data: { lastSeenAt: new Date() },
-    })
   }
 
   const currentMembership = await prisma.teamMember.findFirst({
@@ -141,11 +176,22 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
   const isOwner = business.ownerUserId === user.id
   if (!isOwner && !currentMembership) return null
 
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
+  if (currentMembership && (!currentMembership.lastSeenAt || currentMembership.lastSeenAt < fiveMinAgo)) {
+    await prisma.teamMember.update({
+      where: { id: currentMembership.id },
+      data: { lastSeenAt: new Date() },
+    })
+  }
+
   const role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
   const explicit = (currentMembership?.permissions ?? []) as Permission[]
-  const permissions = Array.from(
-    new Set<Permission>([...(ROLE_DEFAULT_PERMISSIONS[role] ?? []), ...explicit])
-  )
+  const permissions =
+    isOwner || role === TeamRole.SUPER_ADMIN
+      ? [...PERMISSIONS]
+      : explicit.length > 0
+        ? explicit
+        : [...(ROLE_DEFAULT_PERMISSIONS[role] ?? [])]
 
   return {
     userId: user.id,
@@ -156,6 +202,7 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     role,
     permissions,
     isOwner,
+    staffMemberId: currentMembership?.id ?? null,
   }
 })
 
@@ -167,6 +214,25 @@ export async function requireSession(): Promise<SessionContext> {
 
 export async function requirePermission(permission: Permission): Promise<SessionContext> {
   const session = await requireSession()
+  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
+  if (!session.permissions.includes(permission)) {
+    throw new Error('Bu işlem için yetkiniz yok')
+  }
+  return session
+}
+
+export async function requirePagePermission(permission: Permission): Promise<SessionContext> {
+  const session = await requireSession()
+  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
   if (!session.permissions.includes(permission)) redirect('/dashboard')
+  return session
+}
+
+export async function requirePageAnyPermission(
+  ...permissions: Permission[]
+): Promise<SessionContext> {
+  const session = await requireSession()
+  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
+  if (!permissions.some((p) => session.permissions.includes(p))) redirect('/dashboard')
   return session
 }

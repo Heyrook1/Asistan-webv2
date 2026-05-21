@@ -2,10 +2,9 @@
 
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ArrowRight, ArrowLeft, Calendar, Bell, Users, Heart, Sparkles, Scale, Briefcase, CheckCircle2, Clock, Star, MessageSquare, BarChart3, Shield, Zap } from "lucide-react"
+import { ArrowRight, ArrowLeft, Calendar, Users, Heart, Sparkles, Scale, Briefcase, CheckCircle2, Clock, Star, BarChart3, Shield, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/marketing/navbar"
 import { Footer } from "@/components/marketing/footer"
 import { use } from "react"
@@ -30,7 +29,7 @@ const industriesData: Record<string, {
     subtitle: "Sağlık Sektörü",
     description: "Klinik, hastane ve muayenehaneler için randevu ve hasta yönetimi.",
     longDescription: "Doktorlar, diş hekimleri, psikologlar, fizyoterapistler ve tüm sağlık profesyonelleri için tasarlandı. Hasta kayıtları, randevu yönetimi, hatırlatmalar ve raporlama tek platformda. KVKK uyumlu altyapı ile hasta verileriniz güvende.",
-    color: "#12C8AD",
+    color: "#0B7F6F",
     features: [
       "Hasta kartları ve tıbbi geçmiş",
       "Online randevu alma sistemi",
@@ -42,8 +41,8 @@ const industriesData: Record<string, {
       "Sigorta entegrasyonları"
     ],
     benefits: [
-      { icon: Clock, title: "Zaman Tasarrufu", description: "Günlük ortalama 2 saat idari iş yükünden kurtulun." },
-      { icon: CheckCircle2, title: "Azalan No-Show", description: "Otomatik hatırlatmalar ile randevu iptalleri %70 azalır." },
+      { icon: Clock, title: "Daha Net Takip", description: "Randevu, hasta ve ekip işlerini aynı panelde görün." },
+      { icon: CheckCircle2, title: "Daha Az Karışıklık", description: "Hatırlatma ve takip adımlarıyla günlük akışı düzenleyin." },
       { icon: Shield, title: "Veri Güvenliği", description: "KVKK uyumlu altyapı ile hasta verileriniz güvende." },
       { icon: BarChart3, title: "Detaylı Raporlar", description: "Klinik performansınızı anlık takip edin." }
     ],
@@ -56,9 +55,9 @@ const industriesData: Record<string, {
       "Estetik ve güzellik klinikleri"
     ],
     stats: [
-      { label: "Aktif Kullanıcı", value: "200+" },
-      { label: "Yönetilen Randevu", value: "50.000+" },
-      { label: "Müşteri Memnuniyeti", value: "%99" }
+      { label: "Durum", value: "Aktif" },
+      { label: "İlk Odak", value: "Klinik" },
+      { label: "Pazar", value: "KKTC" }
     ]
   },
   beauty: {
@@ -94,9 +93,9 @@ const industriesData: Record<string, {
       "Masaj salonları"
     ],
     stats: [
-      { label: "Aktif Kullanıcı", value: "150+" },
-      { label: "Yönetilen Randevu", value: "30.000+" },
-      { label: "Müşteri Memnuniyeti", value: "%98" }
+      { label: "Durum", value: "Yakında" },
+      { label: "Odak", value: "Salon" },
+      { label: "Pazar", value: "KKTC" }
     ]
   },
   legal: {
@@ -132,9 +131,9 @@ const industriesData: Record<string, {
       "Mali müşavirlik büroları"
     ],
     stats: [
-      { label: "Aktif Kullanıcı", value: "80+" },
-      { label: "Yönetilen Dosya", value: "15.000+" },
-      { label: "Müşteri Memnuniyeti", value: "%97" }
+      { label: "Durum", value: "Plan" },
+      { label: "Odak", value: "Hukuk" },
+      { label: "Pazar", value: "KKTC" }
     ]
   },
   pro: {
@@ -170,9 +169,9 @@ const industriesData: Record<string, {
       "Tercümanlar"
     ],
     stats: [
-      { label: "Aktif Kullanıcı", value: "100+" },
-      { label: "Yönetilen Randevu", value: "20.000+" },
-      { label: "Müşteri Memnuniyeti", value: "%98" }
+      { label: "Durum", value: "Plan" },
+      { label: "Odak", value: "Emlak" },
+      { label: "Pazar", value: "KKTC" }
     ]
   },
   saglik: {
@@ -182,7 +181,7 @@ const industriesData: Record<string, {
     subtitle: "Sağlık Sektörü",
     description: "Klinik, hastane ve muayenehaneler için randevu ve hasta yönetimi.",
     longDescription: "Doktorlar, diş hekimleri, psikologlar, fizyoterapistler ve tüm sağlık profesyonelleri için tasarlandı. Hasta kayıtları, randevu yönetimi, hatırlatmalar ve raporlama tek platformda. KVKK uyumlu altyapı ile hasta verileriniz güvende.",
-    color: "#12C8AD",
+    color: "#0B7F6F",
     features: [
       "Hasta kartları ve tıbbi geçmiş",
       "Online randevu alma sistemi",
@@ -194,8 +193,8 @@ const industriesData: Record<string, {
       "Sigorta entegrasyonları"
     ],
     benefits: [
-      { icon: Clock, title: "Zaman Tasarrufu", description: "Günlük ortalama 2 saat idari iş yükünden kurtulun." },
-      { icon: CheckCircle2, title: "Azalan No-Show", description: "Otomatik hatırlatmalar ile randevu iptalleri %70 azalır." },
+      { icon: Clock, title: "Daha Net Takip", description: "Randevu, hasta ve ekip işlerini aynı panelde görün." },
+      { icon: CheckCircle2, title: "Daha Az Karışıklık", description: "Hatırlatma ve takip adımlarıyla günlük akışı düzenleyin." },
       { icon: Shield, title: "Veri Güvenliği", description: "KVKK uyumlu altyapı ile hasta verileriniz güvende." },
       { icon: BarChart3, title: "Detaylı Raporlar", description: "Klinik performansınızı anlık takip edin." }
     ],
@@ -208,9 +207,9 @@ const industriesData: Record<string, {
       "Estetik ve güzellik klinikleri"
     ],
     stats: [
-      { label: "Aktif Kullanıcı", value: "200+" },
-      { label: "Yönetilen Randevu", value: "50.000+" },
-      { label: "Müşteri Memnuniyeti", value: "%99" }
+      { label: "Durum", value: "Aktif" },
+      { label: "İlk Odak", value: "Klinik" },
+      { label: "Pazar", value: "KKTC" }
     ]
   }
 }
@@ -241,7 +240,7 @@ export default function IndustryPage({ params }: { params: Promise<{ industry: s
           {/* Back Link */}
           <Link 
             href="/cozumler" 
-            className="inline-flex items-center text-sm text-gray-600 hover:text-[#12C8AD] mb-8 transition-colors"
+            className="inline-flex items-center text-sm text-gray-600 hover:text-[#0B7F6F] mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Tüm Çözümler
@@ -416,17 +415,17 @@ export default function IndustryPage({ params }: { params: Promise<{ industry: s
                   <IconComponent className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-[#06142A] mb-4">
-                  Hemen Başlayın
+                  Erken Erişime Katılın
                 </h3>
                 <p className="text-[#64748B] mb-6">
-                  14 gün ücretsiz deneyin. Kredi kartı gerekmez.
+                  Kısa bir görüşmede ihtiyacınızı anlayıp en doğru başlangıcı önerelim.
                 </p>
                 <Link href="/auth/sign-up">
                   <Button 
                     className="text-white px-8"
                     style={{ backgroundColor: industry.color }}
                   >
-                    Ücretsiz Dene
+                    Başvuru Yap
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>

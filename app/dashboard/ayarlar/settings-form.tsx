@@ -70,7 +70,7 @@ export function SettingsForm({
           <Field label="Rol">
             <div className="flex items-center gap-2">
               <Badge className="bg-[#06142A] text-white">{ROLE_LABELS[session.role]}</Badge>
-              {session.isOwner && <Badge variant="secondary" className="bg-[#12C8AD]/10 text-[#0b7f6f]">Sahip</Badge>}
+              {session.isOwner && <Badge variant="secondary" className="bg-[#0B7F6F]/10 text-[#0b7f6f]">Sahip</Badge>}
             </div>
           </Field>
           <Field label="Aktif İşletme">
@@ -139,7 +139,7 @@ export function SettingsForm({
               </Select>
             </Field>
             <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit" disabled={pending || !session.isOwner} className="bg-[#12C8AD] hover:bg-[#10b49c] text-white">
+              <Button type="submit" disabled={pending || !session.isOwner} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
                 {pending ? 'Kaydediliyor...' : 'Kaydet'}
               </Button>
             </div>

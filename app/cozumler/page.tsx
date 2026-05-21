@@ -1,301 +1,192 @@
-"use client"
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowRight, Briefcase, CalendarCheck, HeartPulse, Landmark, Scissors, Shield, Users } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Navbar } from '@/components/marketing/navbar'
+import { Footer } from '@/components/marketing/footer'
 
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowRight, Play, Calendar, Bell, Users, Heart, Sparkles, Scale, Briefcase, CheckCircle2, Clock, Star, MessageSquare, BarChart3 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Navbar } from "@/components/marketing/navbar"
-import { Footer } from "@/components/marketing/footer"
+export const metadata: Metadata = {
+  title: 'Çözümler | Asistan Health ve Sektör Yol Haritası',
+  description:
+    'Asistan ilk olarak sağlık profesyonelleri için geliştirildi. Güzellik, hukuk ve emlak çözümleri sıradaki sektörlerdir.',
+}
 
-const industries = [
+const sectors = [
   {
-    id: "health",
-    icon: Heart,
-    title: "Asistan Health",
-    subtitle: "Sağlık Sektörü",
-    description: "Klinik, hastane ve muayenehaneler için randevu ve hasta yönetimi kolaylaştırın.",
-    longDescription: "Doktorlar, diş hekimleri, psikologlar, fizyoterapistler ve tüm sağlık profesyonelleri için tasarlandı. Hasta kayıtları, randevu yönetimi, hatırlatmalar ve raporlama tek platformda.",
-    image: "/images/industry-health.jpg",
-    color: "#12C8AD",
-    features: ["Hasta kartları ve geçmişi", "Online randevu alma", "SMS/E-posta hatırlatmaları", "Reçete ve rapor yönetimi", "KVKK uyumlu veri saklama"],
-    stats: { users: "200+", appointments: "50.000+", satisfaction: "%99" },
-    featured: true
+    icon: HeartPulse,
+    title: 'Asistan Health',
+    subtitle: 'Aktif / İlk odak sektör',
+    description: 'Doktorlar, klinikler, diş hekimleri, psikologlar ve sağlık ekipleri için randevu ve hasta takibi.',
+    image: '/images/industry-health.jpg',
+    href: '/cozumler/health',
+    active: true,
   },
   {
-    id: "beauty",
-    icon: Sparkles,
-    title: "Asistan Beauty",
-    subtitle: "Güzellik & Wellness",
-    description: "Güzellik merkezleri ve salonlar için randevu, paket ve müşteri yönetimini optimize edin.",
-    longDescription: "Kuaförler, güzellik salonları, spa merkezleri ve wellness profesyonelleri için. Paket satışları, üyelik yönetimi ve müşteri sadakat programları.",
-    image: "/images/industry-beauty.jpg",
-    color: "#E879F9",
-    features: ["Hizmet ve paket yönetimi", "Müşteri sadakat programları", "Online rezervasyon", "Personel performans takibi", "Kampanya yönetimi"],
-    stats: { users: "150+", appointments: "30.000+", satisfaction: "%98" },
-    featured: false
+    icon: Scissors,
+    title: 'Asistan Beauty',
+    subtitle: 'Yakında',
+    description: 'Güzellik merkezleri, kuaförler ve wellness ekipleri için müşteri ve randevu düzeni.',
+    image: '/images/industry-beauty.jpg',
+    href: '/cozumler',
+    active: false,
   },
   {
-    id: "legal",
-    icon: Scale,
-    title: "Asistan Legal",
-    subtitle: "Hukuk Sektörü",
-    description: "Hukuk büroları için dava, görüşme ve müvekkil yönetimini düzenli hale getirin.",
-    longDescription: "Avukatlar, hukuk danışmanları ve hukuk büroları için. Müvekkil dosyaları, duruşma takvimleri, randevu yönetimi ve faturalandırma.",
-    image: "/images/industry-legal.jpg",
-    color: "#F59E0B",
-    features: ["Müvekkil dosya yönetimi", "Duruşma takvimi", "Randevu ve görüşme takibi", "Saat bazlı faturalandırma", "Belge yönetimi"],
-    stats: { users: "80+", appointments: "15.000+", satisfaction: "%97" },
-    featured: false
+    icon: Landmark,
+    title: 'Asistan Legal',
+    subtitle: 'Yakında',
+    description: 'Hukuk büroları için görüşme, müvekkil ve dosya takibini sadeleştiren yapı.',
+    image: '/images/industry-legal.jpg',
+    href: '/cozumler',
+    active: false,
   },
   {
-    id: "pro",
     icon: Briefcase,
-    title: "Asistan Pro",
-    subtitle: "Profesyonel Hizmetler",
-    description: "Danışmanlar ve hizmet profesyonelleri için esnek randevu çözümleri sunun.",
-    longDescription: "Danışmanlar, koçlar, eğitmenler, freelancer'lar ve tüm hizmet profesyonelleri için. Esnek çalışma saatleri, online görüşmeler ve proje yönetimi.",
-    image: "/images/industry-pro.jpg",
-    color: "#8B5CF6",
-    features: ["Esnek çalışma saatleri", "Online görüşme entegrasyonu", "Proje bazlı faturalandırma", "Müşteri portal", "Takvim senkronizasyonu"],
-    stats: { users: "100+", appointments: "20.000+", satisfaction: "%98" },
-    featured: false
-  }
+    title: 'Asistan Emlak',
+    subtitle: 'Planlanıyor',
+    description: 'Emlak ofisleri için müşteri görüşmesi, portföy ve ekip takibi.',
+    image: '/images/industry-pro.jpg',
+    href: '/cozumler',
+    active: false,
+  },
 ]
 
-const commonFeatures = [
-  {
-    icon: Calendar,
-    title: "Randevu Yönetimi",
-    description: "Akıllı takvim ile çakışmaları önleyin, randevularınızı kolayca yönetin."
-  },
-  {
-    icon: Bell,
-    title: "Hatırlatmalar",
-    description: "Otomatik SMS, e-posta ve WhatsApp hatırlatmaları ile no-show oranını azaltın."
-  },
-  {
-    icon: Users,
-    title: "Ekip Takibi",
-    description: "Ekip performansını izleyin, görevleri atayın ve süreçleri verimli yönetin."
-  },
-  {
-    icon: Star,
-    title: "Müşteri Deneyimi",
-    description: "Kişiselleştirilmiş iletişim ve hızlı hizmetle müşteri memnuniyetini artırın."
-  }
+const sharedBenefits = [
+  { icon: CalendarCheck, title: 'Randevu düzeni', description: 'Takvim, onay ve takip akışı tek panelde toplanır.' },
+  { icon: Users, title: 'Ekip görünürlüğü', description: 'Sekreter, uzman ve yönetici aynı bilgiyi görür.' },
+  { icon: Shield, title: 'Gizlilik odağı', description: 'Erişim rolleri ve veri düzeni kontrollü ilerler.' },
+]
+
+const roadmap = [
+  ['Şimdi', 'Asistan Health', 'Sağlık profesyonelleri için randevu ve hasta takibi.'],
+  ['Sırada', 'Asistan Beauty', 'Salon ve güzellik merkezi operasyonları.'],
+  ['Planlanıyor', 'Hukuk ve Emlak', 'Müvekkil, müşteri ve görüşme takibi.'],
 ]
 
 export default function SolutionsPage() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F0FDFA] via-white to-[#F0F9FF] -z-10" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#12C8AD]/10 rounded-full">
-                <span className="text-xs font-semibold text-[#12C8AD] uppercase tracking-wider">Çözümler</span>
-              </div>
-              
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#06142A] leading-tight">
-                Her sektör için uyarlanmış{" "}
-                <span className="text-[#12C8AD]">akıllı çözümler.</span>
+
+      <main>
+        <section className="bg-gradient-to-b from-[#F4FBFA] to-white pb-16 pt-28 lg:pb-24 lg:pt-32">
+          <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.95fr_1fr] lg:px-8">
+            <div>
+              <Badge className="mb-5 border-0 bg-white text-[#0B7F6F]">Çözümler</Badge>
+              <h1 className="mb-6 text-4xl font-bold leading-[1.08] tracking-tight text-[#06142A] md:text-5xl lg:text-6xl">
+                İlk olarak sağlık profesyonelleri için geliştirildi.
               </h1>
-              
-              <p className="text-lg text-[#475569] max-w-xl leading-relaxed">
-                Asistan, farklı sektörlerin ihtiyaçlarına göre özelleştirilmiş iş akışları ve akıllı otomasyonlarla profesyonellerin işlerini kolaylaştırır. Daha verimli süreçler, daha mutlu müşteriler, daha güçlü sonuçlar.
+              <p className="mb-8 max-w-xl text-lg leading-8 text-gray-600">
+                Asistan Health aktif. Güzellik, hukuk ve emlak çözümleri aynı iş yönetimi yaklaşımıyla sıradaki sektörlerdir.
               </p>
-              
-              <div className="flex flex-wrap gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-[#12C8AD] hover:bg-[#0EA894] text-white px-8 py-6 text-base rounded-xl shadow-lg shadow-[#12C8AD]/25"
-                >
-                  Çözümleri Keşfedin
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-[#E2E8F0] text-[#06142A] px-8 py-6 text-base rounded-xl hover:bg-[#F8FAFC]"
-                >
-                  <Play className="w-5 h-5 mr-2 fill-[#06142A]" />
-                  Demo İzle
-                </Button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link href="/cozumler/health">
+                  <Button size="lg" className="h-12 rounded-xl bg-[#0B7F6F] px-6 font-semibold text-white hover:bg-[#09685C]">
+                    Health’i İncele
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/auth/sign-up">
+                  <Button size="lg" variant="outline" className="h-12 rounded-xl border-[#0B7F6F]/30 px-6 text-[#0B7F6F] hover:bg-[#0B7F6F]/5">
+                    Erken Erişim Talep Et
+                  </Button>
+                </Link>
               </div>
             </div>
-            
-            {/* Right - Floating UI Elements */}
-            <div className="relative h-[500px]">
-              {/* Calendar Widget */}
-              <div className="absolute top-0 left-0 bg-white rounded-2xl shadow-xl p-5 border border-[#E2E8F0] w-64">
-                <div className="text-sm font-semibold text-[#06142A] mb-3">Randevu Takvimi</div>
-                <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">
-                  {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
-                    <div key={day} className="text-[#94A3B8] py-1">{day}</div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                  {[10, 11, 12, 13, 14, 15, 16].map((day) => (
-                    <div 
-                      key={day} 
-                      className={`py-2 rounded-lg ${
-                        day === 13 ? 'bg-[#12C8AD] text-white font-semibold' : 'text-[#475569]'
-                      }`}
-                    >
-                      {day}
-                    </div>
-                  ))}
+
+            <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-xl">
+              <div className="relative h-72 overflow-hidden rounded-2xl">
+                <Image src="/images/industry-health.jpg" alt="Klinik randevu yönetimi" fill className="object-cover" priority />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#06142A]/80 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5">
+                  <Badge className="mb-3 border-0 bg-white text-[#0B7F6F]">Öncelikli sektör</Badge>
+                  <h2 className="text-2xl font-bold text-white">Sağlıkta randevu ve hasta takibi</h2>
                 </div>
               </div>
-              
-              {/* Approval Rate */}
-              <div className="absolute top-4 right-0 bg-white rounded-2xl shadow-xl p-5 border border-[#E2E8F0]">
-                <div className="text-xs text-[#64748B] mb-1">Onay Oranı</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-[#12C8AD]">%98</span>
-                  <span className="text-xs text-[#12C8AD]">+%12 artış</span>
-                </div>
-              </div>
-              
-              {/* Satisfaction Rate */}
-              <div className="absolute top-32 right-4 bg-white rounded-2xl shadow-xl p-5 border border-[#E2E8F0]">
-                <div className="text-xs text-[#64748B] mb-1">Müşteri Memnuniyeti</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-[#16A9E8]">%98</span>
-                  <span className="text-xs text-[#16A9E8]">+%10 artış</span>
-                </div>
-              </div>
-              
-              {/* Chart */}
-              <div className="absolute bottom-24 left-4 bg-white rounded-2xl shadow-xl p-5 border border-[#E2E8F0] w-48">
-                <div className="text-xs text-[#64748B] mb-3">Gelir Analizi</div>
-                <div className="flex items-end gap-1 h-20">
-                  {[40, 65, 45, 80, 55, 90, 70].map((height, i) => (
-                    <div 
-                      key={i} 
-                      className="flex-1 bg-gradient-to-t from-[#12C8AD] to-[#16A9E8] rounded-t"
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
-                </div>
-                <div className="text-right mt-2 text-xs text-[#64748B]">Bu Ay</div>
-              </div>
-              
-              {/* Notification */}
-              <div className="absolute bottom-4 right-0 bg-white rounded-2xl shadow-xl p-4 border border-[#E2E8F0] w-56">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#12C8AD]/10 flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-[#12C8AD]" />
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="mx-auto mb-12 max-w-3xl text-center">
+              <h2 className="text-3xl font-bold text-[#06142A] md:text-4xl">Sektörünüze uygun Asistan.</h2>
+              <p className="mt-4 text-lg leading-8 text-gray-600">
+                Gerçek olmayan kullanıcı sayıları yerine, hangi sektörün hangi ihtiyacına odaklandığımızı açık söylüyoruz.
+              </p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {sectors.map((sector) => (
+                <Card key={sector.title} className={`overflow-hidden rounded-2xl border-gray-100 shadow-sm ${sector.active ? 'ring-2 ring-[#0B7F6F]/20' : ''}`}>
+                  <div className="relative h-40">
+                    <Image src={sector.image} alt={sector.title} fill className="object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                    <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#06142A]">
+                      {sector.subtitle}
+                    </span>
                   </div>
+                  <CardContent className="p-5">
+                    <sector.icon className="mb-4 h-7 w-7 text-[#0B7F6F]" />
+                    <h3 className="mb-2 text-lg font-bold text-[#06142A]">{sector.title}</h3>
+                    <p className="mb-4 text-sm leading-6 text-gray-600">{sector.description}</p>
+                    <Link href={sector.href} className="inline-flex items-center text-sm font-semibold text-[#0B7F6F] hover:underline">
+                      {sector.active ? 'Detayları incele' : 'Yol haritasında gör'}
+                      <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#F8FAFC] py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div>
+                <h2 className="text-3xl font-bold text-[#06142A] md:text-4xl">Her sektörde aynı temel düzen.</h2>
+                <p className="mt-4 text-lg leading-8 text-gray-600">
+                  Sektöre göre ekranlar değişir; ana hedef aynı kalır: randevu, müşteri/hasta ve ekip takibini sadeleştirmek.
+                </p>
+              </div>
+              <div className="grid gap-5 md:grid-cols-3">
+                {sharedBenefits.map((benefit) => (
+                  <Card key={benefit.title} className="rounded-2xl border-gray-100 bg-white shadow-sm">
+                    <CardContent className="p-6">
+                      <benefit.icon className="mb-4 h-7 w-7 text-[#0B7F6F]" />
+                      <h3 className="mb-2 font-bold text-[#06142A]">{benefit.title}</h3>
+                      <p className="text-sm leading-6 text-gray-600">{benefit.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-20 lg:py-24">
+          <div className="mx-auto max-w-4xl px-6 lg:px-8">
+            <div className="mb-12 text-center">
+              <h2 className="text-3xl font-bold text-[#06142A] md:text-4xl">Yol haritası</h2>
+              <p className="mt-4 text-lg text-gray-600">Önce sağlık, sonra yakın sektörler.</p>
+            </div>
+            <div className="space-y-4">
+              {roadmap.map(([phase, title, description]) => (
+                <div key={title} className="grid gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:grid-cols-[140px_1fr]">
+                  <span className="rounded-full bg-[#0B7F6F]/10 px-3 py-1 text-sm font-semibold text-[#0B7F6F] md:w-fit">{phase}</span>
                   <div>
-                    <div className="text-sm font-semibold text-[#06142A]">Otomatik Hatırlatma</div>
-                    <div className="text-xs text-[#64748B]">Ayşe Yılmaz - Yarın 09:30</div>
+                    <h3 className="font-bold text-[#06142A]">{title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-gray-600">{description}</p>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
-      
-      {/* Industry Solutions */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Sektörünüze Özel Çözümler
-            </h2>
-            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              Her sektörün kendine özgü ihtiyaçları için tasarlanmış özelleştirilmiş çözümler
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {industries.map((industry) => (
-              <div 
-                key={industry.id}
-                className={`group rounded-2xl overflow-hidden border transition-all duration-300 hover:shadow-xl ${
-                  industry.featured 
-                    ? 'border-[#12C8AD] shadow-lg shadow-[#12C8AD]/10' 
-                    : 'border-[#E2E8F0] hover:border-[#12C8AD]/30'
-                }`}
-              >
-                {industry.featured && (
-                  <div className="bg-[#12C8AD] text-white text-xs font-semibold text-center py-1.5">
-                    En Popüler
-                  </div>
-                )}
-                <div className="relative h-40 overflow-hidden">
-                  <Image
-                    src={industry.image}
-                    alt={industry.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: industry.color }}
-                    >
-                      <industry.icon className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-5 bg-white">
-                  <div className="text-xs text-[#64748B] mb-1">{industry.subtitle}</div>
-                  <h3 className="text-lg font-semibold text-[#06142A] mb-2">{industry.title}</h3>
-                  <p className="text-sm text-[#64748B] mb-4 leading-relaxed">{industry.description}</p>
-                  <Link 
-                    href={`/cozumler/${industry.id}`}
-                    className="inline-flex items-center text-sm font-medium"
-                    style={{ color: industry.color }}
-                  >
-                    Detayları İncele
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      
-      {/* Common Features */}
-      <section className="py-20 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#06142A] mb-4">
-              Tüm Sektörlerde Ortak Özellikler
-            </h2>
-            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              Hangi sektörde olursanız olun, bu temel özellikler her zaman yanınızda
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {commonFeatures.map((feature, index) => (
-              <div 
-                key={index}
-                className="bg-white rounded-2xl p-6 border border-[#E2E8F0] hover:shadow-lg transition-shadow"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#12C8AD]/10 flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-[#12C8AD]" />
-                </div>
-                <h3 className="text-lg font-semibold text-[#06142A] mb-2">{feature.title}</h3>
-                <p className="text-sm text-[#64748B] leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      
+        </section>
+      </main>
+
       <Footer />
     </div>
   )
