@@ -1,28 +1,32 @@
 import type { Metadata, Viewport } from 'next'
-import { Manrope, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { JetBrains_Mono, Manrope } from 'next/font/google'
+
 import { Toaster } from '@/components/ui/sonner'
+
 import './globals.css'
 
-const manrope = Manrope({ 
+const manrope = Manrope({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-manrope',
-  weight: ['400', '500', '600', '700', '800']
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
 })
 
-const jetbrainsMono = JetBrains_Mono({ 
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-jetbrains-mono',
-  weight: ['400', '500']
+  weight: ['400', '500'],
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kktc.asistan.online'),
   title: {
-    default: 'Asistan | KKTC için AI Destekli Randevu ve İş Yönetimi',
+    default: 'KKTC Randevu Sistemi | Asistan Health',
     template: '%s | Asistan',
   },
-  description: 'KKTC’deki klinikler ve hizmet işletmeleri için AI destekli randevu, hasta iletişimi ve ekip yönetim platformu.',
+  description: 'KKTC klinikleri için AI destekli randevu, hasta takibi ve ekip yönetim platformu.',
   keywords: [
     'KKTC randevu sistemi',
     'klinik yönetimi',
@@ -39,8 +43,8 @@ export const metadata: Metadata = {
     locale: 'tr_CY',
     url: '/',
     siteName: 'Asistan',
-    title: 'Asistan | KKTC için AI Destekli Randevu ve İş Yönetimi',
-    description: 'KKTC’deki klinikler ve hizmet işletmeleri için randevu, hasta iletişimi ve ekip yönetimi tek panelde.',
+    title: 'KKTC Randevu Sistemi | Asistan Health',
+    description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi tek panelde.',
     images: [
       {
         url: '/images/asistan-full-logo.png',
@@ -52,14 +56,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Asistan | KKTC için AI Destekli Randevu ve İş Yönetimi',
-    description: 'KKTC’deki klinikler ve hizmet işletmeleri için AI destekli iş yönetim platformu.',
+    title: 'KKTC Randevu Sistemi | Asistan Health',
+    description: 'KKTC klinikleri için AI destekli randevu ve iş yönetim platformu.',
     images: ['/images/asistan-full-logo.png'],
   },
   icons: {
-    icon: [
-      { url: '/images/asistan-mark.svg', type: 'image/svg+xml' },
-    ],
+    icon: [{ url: '/images/asistan-mark.svg', type: 'image/svg+xml' }],
     apple: '/images/asistan-mark.svg',
   },
 }
@@ -67,7 +69,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
-    { media: '(prefers-color-scheme: dark)', color: '#06142A' },
+    { media: '(prefers-color-scheme: dark)', color: '#0F172A' },
   ],
   width: 'device-width',
   initialScale: 1,

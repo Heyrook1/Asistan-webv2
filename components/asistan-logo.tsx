@@ -2,25 +2,23 @@ import Image from 'next/image'
 
 interface AsistanLogoProps {
   className?: string
-  /** kept for backwards-compat — the full image already contains the wordmark */
+  /** Kept for backwards compatibility: the full image already contains the wordmark. */
   showText?: boolean
-  /** kept for backwards-compat — tagline is no longer part of the bundled logo image */
+  /** Kept for backwards compatibility: tagline is no longer part of the bundled logo image. */
   showTagline?: boolean
-  /** 'dark' = navy wordmark for light backgrounds, 'light' = white wordmark for dark backgrounds */
+  /** 'dark' = navy wordmark for light backgrounds, 'light' = white wordmark for dark backgrounds. */
   variant?: 'light' | 'dark'
   size?: 'sm' | 'md' | 'lg'
   priority?: boolean
 }
 
-// Heights chosen so the wordmark scales naturally with the surrounding chrome.
-// The PNG aspect ratio is roughly 1920 × 660 (≈ 2.91:1).
 const HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
   sm: 24,
   md: 32,
   lg: 56,
 }
 
-const LOGO_ASPECT = 1920 / 660 // matches /public/images/asistan-full-logo*.png
+const LOGO_ASPECT = 1920 / 660
 
 const VARIANT_SRC: Record<NonNullable<AsistanLogoProps['variant']>, string> = {
   dark: '/images/asistan-full-logo.png',
@@ -44,8 +42,7 @@ export function AsistanLogo({
       height={height}
       priority={priority}
       unoptimized
-      className={`block h-auto w-auto select-none ${className}`}
-      style={{ height, width: 'auto', maxWidth: '100%' }}
+      className={`block h-auto w-auto max-w-full select-none ${className}`}
     />
   )
 }
@@ -72,5 +69,4 @@ export function AsistanIcon({
   )
 }
 
-// Backwards-compat re-export — some files import { AsistanMark } directly.
 export { AsistanIcon as AsistanMark }

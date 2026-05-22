@@ -1,128 +1,134 @@
-import type { Metadata } from 'next'
+'use client'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
+  BarChart3,
   Bell,
-  Briefcase,
-  Calendar,
+  CalendarDays,
+  Check,
   CheckCircle2,
-  ClipboardList,
-  FileText,
-  Landmark,
-  LayoutDashboard,
-  Lock,
-  MessageSquare,
-  Scissors,
+  ChevronDown,
+  CircleDollarSign,
+  Clock3,
+  Globe2,
+  HeartPulse,
+  LockKeyhole,
+  Mail,
+  Menu,
+  MessageSquareText,
+  Play,
+  Settings,
+  ShieldCheck,
   Sparkles,
   Stethoscope,
-  Users,
+  UsersRound,
+  X,
 } from 'lucide-react'
 
-import { Footer } from '@/components/marketing/footer'
-import { Navbar } from '@/components/marketing/navbar'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { GlowEffect } from '@/components/ui/glow-effect'
-
-export const metadata: Metadata = {
-  title: 'Asistan | KKTC için AI Destekli Randevu ve İş Yönetimi',
-  description:
-    'Asistan, KKTC’deki klinikler ve hizmet işletmeleri için randevu, hasta takibi, hatırlatmalar ve ekip yönetimini tek panelde toplar.',
+type CounterProps = {
+  value: number
+  prefix?: string
+  suffix?: string
 }
 
-const trustBadges = [
-  { icon: Stethoscope, text: 'Asistan Health aktif' },
-  { icon: ClipboardList, text: 'Türkçe arayüz' },
-  { icon: Users, text: 'Rol bazlı erişim' },
-  { icon: Lock, text: 'Gizlilik prensipleri' },
+type Plan = {
+  name: string
+  monthly: number
+  yearly: number
+  description: string
+  features: string[]
+  popular?: boolean
+}
+
+const navLinks = [
+  { href: '#hero', label: 'Ana Sayfa' },
+  { href: '#features', label: 'Özellikler' },
+  { href: '#how-it-works', label: 'Nasıl Çalışır?' },
+  { href: '#pricing', label: 'Fiyatlandırma' },
+  { href: '#contact', label: 'İletişim' },
 ]
 
-const trustStripItems = [
-  'KKTC odağı',
-  'Asistan Health aktif',
-  'Türkçe arayüz',
-  'Rol bazlı erişim',
-  'Gizlilik prensipleri',
-  'Erken erişim',
+const trustItems = [
+  { icon: HeartPulse, title: 'KKTC odağıyla', text: 'Yerel ihtiyaçlara uygun' },
+  { icon: ShieldCheck, title: 'Rol bazlı erişim', text: 'Hekim ve sekreter yetkileri' },
+  { icon: Sparkles, title: 'AI önerileri', text: 'Boş saatleri daha erken görün' },
 ]
 
-const painPoints = [
-  {
-    icon: MessageSquare,
-    title: 'Mesajlar dağılır',
-    description: 'WhatsApp, telefon ve not defteri arasında randevu takibi kaçabilir.',
-  },
-  {
-    icon: Bell,
-    title: 'Randevu unutulur',
-    description: 'Hatırlatma yapılmadığında iptal ve gelmeyen hasta riski artar.',
-  },
-  {
-    icon: Users,
-    title: 'Ekip zor koordine olur',
-    description: 'Doktor, sekreter ve işletme sahibi aynı bilgiyi aynı anda göremez.',
-  },
-]
-
-const productSignals = [
-  {
-    label: 'Randevu takibi',
-    description: 'Randevu, hasta ve ekip takibi aynı yerde.',
-  },
-  {
-    label: 'Sekreter rolü',
-    description: 'Doktor, sekreter ve yönetici akışları.',
-  },
-  {
-    label: 'Erken erişim',
-    description: 'Health aktif; Beauty, Hukuk ve Emlak sırada.',
-  },
-]
-
-const featureCards = [
-  {
-    icon: Calendar,
-    title: 'Randevu ve takvim',
-    description:
-      'Randevuları, bekleyen onayları ve müsait saatleri tek panelde görün. Sekreter ve doktor aynı akıştan ilerlesin.',
-    featured: true,
-  },
-  {
-    icon: FileText,
-    title: 'Hasta kartı',
-    description: 'Notlar, geçmiş randevular ve takip bilgileri düzenli kalsın.',
-  },
-  {
-    icon: Sparkles,
-    title: 'AI önerileri',
-    description: 'Boş saatleri ve takip fırsatlarını daha hızlı fark edin.',
-  },
-  {
-    icon: Bell,
-    title: 'Hatırlatma akışı',
-    description: 'Randevu öncesi ve sonrası iletişimi daha planlı yürütün.',
-  },
-  {
-    icon: Users,
-    title: 'Ekip rolleri',
-    description: 'Sekreter, doktor ve yönetici akışlarını ayrı yetkilerle düzenleyin.',
-  },
+const stats = [
+  { icon: CalendarDays, value: 12, suffix: '+', label: 'Günlük randevu görünümü' },
+  { icon: UsersRound, value: 3, suffix: ' rol', label: 'Hekim, sekreter, yönetici' },
+  { icon: Bell, value: 5, suffix: '+', label: 'Aktif hatırlatma akışı' },
 ]
 
 const steps = [
   {
-    title: 'Kur',
-    description: 'Hizmetleri, ekip üyelerini ve çalışma düzeninizi ekleyin.',
+    title: 'Kliniğinizi tanıyalım',
+    description: 'Randevu alma, hasta kabul ve takip düzeninizi 30 dakikada çıkarırız.',
   },
   {
-    title: 'Topla',
-    description: 'Sekreteriniz veya ekibiniz aynı panelden randevu akışını yönetsin.',
+    title: 'Panelinizi kuralım',
+    description: 'Hizmetleri, ekip rollerini ve çalışma saatlerini birlikte netleştiririz.',
   },
   {
-    title: 'Takip et',
-    description: 'Hatırlatmalar, notlar ve AI önerileri günlük işleri sadeleştirsin.',
+    title: 'Ekibinizle kullanın',
+    description: 'Sekreter ve hekimler aynı panelden günlük akışı takip eder.',
+  },
+]
+
+const problems = [
+  {
+    icon: MessageSquareText,
+    title: 'Mesajlar farklı yerlerde kalır',
+    description: 'Telefon, WhatsApp ve not defteri arasında randevu bilgisi kaybolur.',
+  },
+  {
+    icon: Bell,
+    title: 'Hatırlatma işi ekibe yük olur',
+    description: 'Unutulan aramalar iptal, boş saat ve hasta memnuniyetsizliği yaratır.',
+  },
+  {
+    icon: UsersRound,
+    title: 'Yetki ve görevler karışır',
+    description: 'Hekim, sekreter ve yönetici aynı bilgiye aynı güvenle ulaşamaz.',
+  },
+]
+
+const patientBenefits = [
+  {
+    icon: CalendarDays,
+    title: 'Daha net randevu iletişimi',
+    description: 'Hastalar randevu saatini ve takip adımlarını daha düzenli görür.',
+  },
+  {
+    icon: Bell,
+    title: 'Düzenli hatırlatma deneyimi',
+    description: 'Randevu öncesi ve sonrası iletişim akışı planlı ilerler.',
+  },
+  {
+    icon: LockKeyhole,
+    title: 'Bilgi güveni',
+    description: 'Hasta notları ve takip bilgileri rol bazlı erişimle korunur.',
+  },
+]
+
+const professionalBenefits = [
+  {
+    icon: Clock3,
+    title: 'Günlük takip yükü azalır',
+    description: 'Boş saatleri, bekleyen onayları ve takip notlarını tek ekranda görün.',
+  },
+  {
+    icon: UsersRound,
+    title: 'Ekip aynı bilgiyle çalışır',
+    description: 'Hekim, sekreter ve yönetici kendi rolüne göre aynı akışı takip eder.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Kararlar veriye dayanır',
+    description: 'Randevu, hasta ve ekip performansını daha görünür hale getirin.',
   },
 ]
 
@@ -130,148 +136,214 @@ const healthUseCases = [
   'Doktor ve diş hekimi muayenehaneleri',
   'Psikolog, diyetisyen ve fizyoterapistler',
   'Klinik yöneticileri ve sekreter ekipleri',
-  'Hasta randevusu ve takip notu tutan sağlık işletmeleri',
+  'Randevu ve takip notu tutan sağlık işletmeleri',
 ]
 
-const upcomingIndustries = [
-  { icon: Scissors, title: 'Asistan Beauty', description: 'Güzellik merkezleri ve salonlar için randevu ve paket takibi.', status: 'Yakında' },
-  { icon: Landmark, title: 'Asistan Legal', description: 'Hukuk büroları için görüşme, müvekkil ve dosya takibi.', status: 'Yakında' },
-  { icon: Briefcase, title: 'Asistan Emlak', description: 'Emlak ekipleri için müşteri, portföy ve görüşme planlama.', status: 'Planlanıyor' },
+const upcoming = ['Beauty Yakında', 'Hukuk Yakında', 'Emlak Planlanıyor']
+
+const securityItems = [
+  { icon: ShieldCheck, title: 'KVKK odaklı', text: 'Veri kapsamı kurulumda netleşir' },
+  { icon: LockKeyhole, title: 'SSL ile şifreleme', text: 'Uçtan uca güvenli erişim' },
+  { icon: Globe2, title: 'GDPR uyumlu yaklaşım', text: 'Diaspora senaryolarına hazır' },
+  { icon: Settings, title: 'Düzenli yedekleme', text: 'Operasyon sürekliliği için' },
 ]
 
-const earlyAccessItems = [
+const plans: Plan[] = [
   {
-    title: 'Klinik iş akışı',
-    description: 'Mevcut randevu, hasta kabul ve takip düzeninizi birlikte çıkarırız.',
+    name: 'Başlangıç',
+    monthly: 149,
+    yearly: 119,
+    description: 'Küçük klinikler ve tek hekimli ekipler için.',
+    features: ['1 kullanıcı', 'Temel randevu', 'Hasta kartı', 'Hatırlatma akışı'],
   },
   {
-    title: 'Sekreter yetkileri',
-    description: 'Kim hangi hastayı, randevuyu ve notu görebilir sorusunu netleştiririz.',
+    name: 'Profesyonel',
+    monthly: 249,
+    yearly: 199,
+    description: 'Büyüyen klinikler için en uygun seçenek.',
+    features: ['5 kullanıcı', 'Tüm randevu özellikleri', 'AI önerileri', 'Ekip rolleri', 'Öncelikli destek'],
+    popular: true,
   },
   {
-    title: 'Hatırlatma düzeni',
-    description: 'Randevu öncesi ve sonrası iletişim akışını kliniğinize göre planlarız.',
-  },
-  {
-    title: 'Hasta takip notları',
-    description: 'Hangi bilgilerin kartta tutulacağını ve ekip içinde nasıl kullanılacağını belirleriz.',
+    name: 'Kurumsal',
+    monthly: 499,
+    yearly: 399,
+    description: 'Birden fazla ekip ve özel süreçler için.',
+    features: ['Sınırsız kullanıcı', 'Tüm profesyonel özellikler', 'Özel entegrasyonlar', 'Kurulum danışmanlığı'],
   },
 ]
 
 const faqs = [
   {
-    question: 'Asistan tam olarak ne yapar?',
+    question: 'Asistan Health tam olarak ne yapar?',
     answer:
-      'Asistan; randevu, hasta bilgisi, sekreter rolleri, hatırlatmalar ve takip notlarını tek panelde düzenlemeye yardımcı olur.',
+      'Randevu, hasta kartı, ekip rolleri, hatırlatma ve takip notlarını tek panelde toplar. Klinik ekibi aynı güncel bilgiyle çalışır.',
   },
   {
-    question: 'Asistan Health kimler için uygundur?',
+    question: 'KKTC dışındaki hastalar için uygun mu?',
     answer:
-      'Doktorlar, klinik yöneticileri, sekreter ekipleri, diş hekimleri, psikologlar, diyetisyenler ve randevu ile çalışan sağlık hizmet sağlayıcıları için uygundur.',
+      'Evet. İlk odak KKTC klinikleri olsa da diaspora ve uzaktan takip senaryoları için de randevu iletişimini düzenli tutar.',
   },
   {
-    question: 'Hastalar için ne kolaylaşır?',
+    question: 'Erken erişimde kredi kartı gerekir mi?',
     answer:
-      'Hastalar daha net randevu iletişimi, hızlı geri dönüş ve düzenli hatırlatma deneyimi yaşar. Klinik tarafında bilgi daha görünür olur.',
+      'Hayır. Önce ihtiyaç görüşmesi yapılır. Kurulum kapsamı ve uygun plan netleşmeden ödeme adımı açılmaz.',
   },
   {
-    question: 'Fiyatlandırma nasıl belirlenir?',
+    question: 'Hasta verileri nasıl korunur?',
     answer:
-      'Erken erişimde önce ihtiyaç görüşmesi yapılır. Klinik büyüklüğü, ekip rolleri ve kurulum kapsamına göre en uygun başlangıç planı netleştirilir.',
+      'Rol bazlı erişim, yetki ayrımı ve KVKK odaklı kullanım prensipleriyle tasarlanır. Canlı kullanım öncesinde veri kapsamı birlikte değerlendirilir.',
   },
   {
-    question: 'Hasta verileri nasıl ele alınır?',
+    question: 'Ekibimiz ne kadar sürede başlar?',
     answer:
-      'Ürün rol bazlı erişim ve gizlilik prensipleriyle tasarlanır. Canlı kurulum öncesinde veri ve yetki kapsamı ayrıca değerlendirilir.',
+      'İlk görüşmede iş akışı çıkarılır. Hizmetler, roller ve çalışma saatleri netleştiğinde panel kısa sürede kullanıma hazırlanır.',
   },
 ]
 
+function Counter({ value, prefix = '', suffix = '' }: CounterProps) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion) {
+      setCount(value)
+      return
+    }
+
+    let frame = 0
+    const totalFrames = 44
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+
+        const animate = () => {
+          frame += 1
+          const progress = Math.min(frame / totalFrames, 1)
+          const eased = 1 - Math.pow(1 - progress, 3)
+          setCount(Math.round(value * eased))
+          if (progress < 1) requestAnimationFrame(animate)
+        }
+
+        requestAnimationFrame(animate)
+        observer.unobserve(node)
+      },
+      { threshold: 0.5 },
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [value])
+
+  return (
+    <span ref={ref}>
+      {prefix}
+      {count}
+      {suffix}
+    </span>
+  )
+}
+
+function Logo() {
+  return (
+    <Link href="#hero" className="flex items-center gap-2" aria-label="Asistan ana sayfa">
+      <Image src="/images/asistan-mark.svg" alt="" width={38} height={38} priority aria-hidden="true" />
+      <span className="text-2xl font-extrabold tracking-tight text-[#0F172A]">asistan</span>
+    </Link>
+  )
+}
+
 function DashboardMockup() {
   return (
-    <div className="relative">
-      <div className="absolute -inset-8 rounded-[2.5rem] bg-gradient-to-r from-[#12C8AD]/20 via-[#185FA5]/10 to-transparent blur-3xl" />
-      <div className="glass-panel relative overflow-hidden rounded-[2rem] p-3">
-        <div className="overflow-hidden rounded-3xl bg-[#0D1117] p-3 shadow-2xl">
-          <div className="grid min-h-[420px] grid-cols-[72px_1fr] rounded-2xl bg-white">
-            <aside className="hidden border-r border-gray-100 bg-[#F8FAFB] p-3 sm:block">
-              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0B7F6F]">
-                <LayoutDashboard className="h-5 w-5 text-white" aria-hidden="true" />
-              </div>
-              <div className="space-y-3">
-                {[Calendar, Users, MessageSquare, Bell].map((Icon, index) => (
-                  <div
-                    key={index}
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                      index === 0 ? 'bg-[#0B7F6F]/10 text-[#0B7F6F]' : 'text-gray-400'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                  </div>
-                ))}
-              </div>
-            </aside>
+    <div className="relative mx-auto w-full max-w-[680px]">
+      <div className="absolute -right-4 top-7 z-20 hidden rounded-2xl border border-white/80 bg-white px-4 py-3 shadow-xl md:block">
+        <p className="text-xs font-semibold text-slate-500">Onay oranı</p>
+        <p className="text-lg font-extrabold text-[#0F172A]">%94</p>
+      </div>
+      <div className="absolute -bottom-3 -left-4 z-20 hidden rounded-2xl border border-white/80 bg-white px-4 py-3 shadow-xl md:block">
+        <p className="text-xs font-semibold text-slate-500">Aktif hatırlatma</p>
+        <p className="text-lg font-extrabold text-[#0F172A]">5 akış</p>
+      </div>
 
-            <div className="col-span-2 p-4 sm:col-span-1 sm:p-5">
-              <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-4">
-                <div>
-                  <p className="text-sm font-bold text-[#06142A]">Klinik Paneli</p>
-                  <p className="text-xs text-gray-500">Örnek ürün görünümü</p>
+      <div className="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-2xl shadow-blue-500/15">
+        <div className="flex items-center justify-between bg-[#0F172A] px-5 py-4 text-white">
+          <Logo />
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">Klinik Paneli</span>
+        </div>
+        <div className="grid gap-4 bg-[#F8FAFB] p-4 lg:grid-cols-[160px_1fr]">
+          <aside className="hidden rounded-2xl bg-white p-3 shadow-sm lg:block">
+            {['Ana Sayfa', 'Randevular', 'Hastalar', 'Takvim', 'Hatırlatmalar'].map((item, index) => (
+              <div
+                key={item}
+                className={`mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold ${
+                  index === 0 ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-500'
+                }`}
+              >
+                <CalendarDays className="size-4" aria-hidden="true" />
+                {item}
+              </div>
+            ))}
+          </aside>
+
+          <div>
+            <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[
+                ['24', 'Bugünkü Randevu'],
+                ['156', 'Bu Hasta'],
+                ['1.248', 'Toplam Hasta'],
+                ['8', 'Bekleyen'],
+              ].map(([value, label]) => (
+                <div key={label} className="rounded-2xl bg-white p-4 shadow-sm">
+                  <p className="text-2xl font-extrabold text-[#0F172A]">{value}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500">{label}</p>
                 </div>
-                <span className="rounded-full bg-[#0B7F6F]/10 px-3 py-1 text-xs font-semibold text-[#0B7F6F]">
-                  Bugün
-                </span>
-              </div>
+              ))}
+            </div>
 
-              <div className="mb-5 grid grid-cols-3 gap-3">
+            <div className="grid gap-4 lg:grid-cols-[1fr_220px]">
+              <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-[#0F172A]">Bugünkü Randevular</h3>
+                  <span className="text-xs font-bold text-[#2563EB]">Tümünü gör</span>
+                </div>
                 {[
-                  ['12', 'Randevu'],
-                  ['3', 'Onay'],
-                  ['2', 'Boş saat'],
-                ].map(([value, label]) => (
-                  <div key={label} className="rounded-2xl border border-gray-100 bg-[#F8FAFB] p-3">
-                    <p className="text-2xl font-bold text-[#06142A]">{value}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">{label}</p>
+                  ['09:00', 'Ayşe Yılmaz', 'Beklemede'],
+                  ['10:30', 'Mehmet Demir', 'Onaylandı'],
+                  ['11:30', 'Zeynep Kaya', 'Onaylandı'],
+                  ['14:00', 'Ali Eren', 'Beklemede'],
+                ].map(([time, name, status]) => (
+                  <div key={`${time}-${name}`} className="mb-2 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-400">{time}</p>
+                      <p className="truncate text-sm font-bold text-[#0F172A]">{name}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-extrabold ${
+                        status === 'Onaylandı' ? 'bg-teal-50 text-[#0F766E]' : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {status}
+                    </span>
                   </div>
                 ))}
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="space-y-2">
-                  {[
-                    ['09:30', 'Hasta kontrolü', 'Onaylandı'],
-                    ['11:00', 'Klinik görüşme', 'Bekliyor'],
-                    ['14:00', 'Takip randevusu', 'Onaylandı'],
-                    ['15:30', 'Boş saat', 'Öneri'],
-                  ].map(([time, name, status]) => (
-                    <div key={`${time}-${name}`} className="flex items-center justify-between rounded-2xl bg-[#F8FAFB] px-3 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="w-11 shrink-0 font-mono text-xs text-gray-500">{time}</span>
-                        <span className="truncate text-sm font-medium text-[#06142A]">{name}</span>
-                      </div>
-                      <span
-                        className={
-                          status === 'Onaylandı'
-                            ? 'rounded-full bg-[#0B7F6F]/10 px-2 py-1 text-[10px] font-semibold text-[#0B7F6F]'
-                            : 'rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700'
-                        }
-                      >
-                        {status}
-                      </span>
+              <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2">
+                  <Sparkles className="size-4 text-[#12C8AD]" aria-hidden="true" />
+                  <h3 className="text-sm font-extrabold text-[#0F172A]">AI önerisi</h3>
+                </div>
+                <p className="text-sm leading-6 text-slate-600">Boş 15:30 saati bekleyen hastaya önerilebilir.</p>
+                <div className="mt-4 flex h-24 items-end gap-2 rounded-2xl bg-gradient-to-b from-blue-50 to-white p-3" aria-hidden="true">
+                  {['h-8', 'h-14', 'h-10', 'h-20', 'h-16', 'h-12'].map((height, index) => (
+                    <div key={`${height}-${index}`} className="flex flex-1 items-end">
+                      <div className={`${height} w-full rounded-t-lg bg-gradient-to-t from-[#2563EB] to-[#12C8AD]`} />
                     </div>
                   ))}
-                </div>
-
-                <div className="rounded-2xl border border-[#12C8AD]/20 bg-[#12C8AD]/10 p-4">
-                  <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#0B7F6F]">
-                    <Sparkles className="h-4 w-4" aria-hidden="true" />
-                    AI önerisi
-                  </div>
-                  <p className="text-sm leading-6 text-gray-600">
-                    Bekleyen hastaya bugün 15:30 için boş saat önerilebilir.
-                  </p>
-                  <div className="mt-4 rounded-xl bg-white p-3 text-xs text-gray-500 shadow-sm">
-                    Sekreter onayı bekliyor
-                  </div>
                 </div>
               </div>
             </div>
@@ -283,350 +355,526 @@ function DashboardMockup() {
 }
 
 export default function HomePage() {
+  const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [yearly, setYearly] = useState(true)
+  const [openFaq, setOpenFaq] = useState(0)
+  const priceSuffix = yearly ? '/aylık, yıllık' : '/aylık'
+
+  const translatedPlans = useMemo(
+    () =>
+      plans.map((plan) => ({
+        ...plan,
+        price: yearly ? plan.yearly : plan.monthly,
+      })),
+    [yearly],
+  )
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <main className="min-h-screen bg-white text-[#0F172A]">
+      <header
+        className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-200 ${
+          scrolled ? 'border-slate-200 bg-white/90 shadow-sm backdrop-blur-xl' : 'border-transparent bg-white'
+        }`}
+      >
+        <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Ana menü">
+          <Logo />
 
-      <main>
-        <section id="hero" className="mesh-hero overflow-hidden pb-16 pt-28 md:pb-24 md:pt-32" aria-label="Ana bölüm">
-          <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_0.95fr] lg:px-8">
-            <div className="max-w-2xl">
-              <Badge className="mb-5 border-0 bg-[#0B7F6F]/10 px-3 py-1.5 text-[#0B7F6F] hover:bg-[#0B7F6F]/10">
-                KKTC odağıyla Asistan Health aktif
-              </Badge>
-              <h1 className="mb-6 text-4xl font-bold leading-[1.08] tracking-tight text-[#06142A] md:text-5xl lg:text-6xl">
-                KKTC’de randevu ve iş yönetimi için{' '}
-                <span className="animated-gradient-text">akıllı asistanınız.</span>
-              </h1>
-              <p className="mb-8 max-w-xl text-base leading-8 text-gray-600 md:text-lg">
-                Asistan; klinikler, doktorlar ve hizmet işletmeleri için randevu, hasta iletişimi,
-                hatırlatmalar ve ekip takibini tek panelde toplar.
-              </p>
-              <div className="mb-7 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-12 w-full rounded-xl bg-[#0B7F6F] px-6 font-semibold text-white shadow-lg shadow-[#0B7F6F]/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#09685C] sm:w-auto">
-                  <Link href="/auth/sign-up" aria-label="Asistan erken erişim başvurusu yap">
-                    Erken Erişime Katıl
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-xl border-[#0B7F6F]/30 px-6 font-semibold text-[#0B7F6F] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0B7F6F]/5 sm:w-auto">
-                  <Link href="/cozumler/health" aria-label="Asistan Health çözümünü incele">
-                    Asistan Health’i İncele
-                  </Link>
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                {trustBadges.map((badge) => (
-                  <span key={badge.text} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-3 py-2 text-sm text-gray-600 shadow-sm ring-1 ring-gray-100">
-                    <badge.icon className="h-4 w-4 shrink-0 text-[#0B7F6F]" aria-hidden="true" />
-                    {badge.text}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <DashboardMockup />
-          </div>
-        </section>
-
-        <section className="border-y border-gray-100 bg-white py-5" aria-label="Güven şeridi">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-2 px-4 sm:px-6 md:flex md:flex-wrap md:justify-center lg:px-8">
-            {trustStripItems.map((item) => (
-              <span
-                key={item}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-gray-100 bg-white px-4 text-center text-sm font-medium text-gray-600 shadow-sm"
+          <div className="hidden items-center gap-8 lg:flex">
+            {navLinks.map((item, index) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative text-sm font-extrabold transition-all duration-200 hover:text-[#2563EB] ${
+                  index === 0 ? 'text-[#2563EB]' : 'text-[#0F172A]'
+                }`}
               >
-                {item}
-              </span>
+                {item.label}
+                {index === 0 && <span className="absolute -bottom-7 left-0 h-0.5 w-full rounded-full bg-[#2563EB]" />}
+              </Link>
             ))}
           </div>
-        </section>
 
-        <section id="problem" className="bg-white py-20 md:py-28" aria-label="Sorunlar">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-[#06142A] md:text-4xl">Dağınık takibi tek düzene taşıyın.</h2>
-              <p className="mt-4 text-base leading-8 text-gray-600 md:text-lg">
-                Asistan, küçük ekiplerin günlük randevu yükünü azaltmak için tasarlandı.
-              </p>
+          <div className="hidden items-center gap-3 lg:flex">
+            <button type="button" className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-bold transition-all duration-200 hover:border-[#2563EB]/40">
+              <Globe2 className="size-4 text-[#2563EB]" aria-hidden="true" />
+              KKTC
+              <ChevronDown className="size-4 text-slate-400" aria-hidden="true" />
+            </button>
+            <Link href="/auth/login" className="flex h-11 items-center rounded-xl border border-slate-200 px-5 text-sm font-extrabold transition-all duration-200 hover:border-[#2563EB]/40">
+              Giriş Yap
+            </Link>
+            <Link href="/auth/sign-up" className="flex h-11 items-center rounded-xl bg-gradient-to-r from-[#12C8AD] to-[#2563EB] px-5 text-sm font-extrabold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5">
+              Randevu Oluştur
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            className="flex size-11 items-center justify-center rounded-xl border border-slate-200 lg:hidden"
+            aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          </button>
+        </nav>
+
+        {menuOpen && (
+          <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-xl lg:hidden">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2">
+              {navLinks.map((item) => (
+                <Link key={item.href} href={item.href} className="rounded-xl px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
+                  {item.label}
+                </Link>
+              ))}
+              <Link href="/auth/sign-up" className="mt-2 rounded-xl bg-gradient-to-r from-[#12C8AD] to-[#2563EB] px-4 py-3 text-center text-sm font-extrabold text-white">
+                Randevu Oluştur
+              </Link>
             </div>
-            <div className="grid gap-5 md:grid-cols-3">
-              {painPoints.map((card) => (
-                <Card key={card.title} className="rounded-2xl border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-                  <CardContent className="p-6">
-                    <card.icon className="mb-4 h-7 w-7 text-[#0B7F6F]" aria-hidden="true" />
-                    <h3 className="mb-2 text-lg font-bold text-[#06142A] md:text-xl">{card.title}</h3>
-                    <p className="text-sm leading-6 text-gray-600">{card.description}</p>
-                  </CardContent>
-                </Card>
+          </div>
+        )}
+      </header>
+
+      <section id="hero" className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50 pb-12 pt-28 md:pb-20 md:pt-32">
+        <div className="absolute -right-32 top-28 size-96 rounded-full bg-[#2563EB]/15 blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-28 -left-28 size-96 rounded-full bg-[#12C8AD]/18 blur-3xl" aria-hidden="true" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-bold text-slate-600 shadow-sm ring-1 ring-slate-200">
+              <ShieldCheck className="size-4 text-[#12C8AD]" aria-hidden="true" />
+              KKTC odağıyla Asistan Health aktif
+            </div>
+            <h1 className="max-w-2xl text-5xl font-black leading-tight tracking-tight text-[#0F172A] md:text-6xl lg:text-7xl">
+              KKTC’de randevu, hasta takibi ve ekip yönetimi{' '}
+              <span className="bg-gradient-to-r from-[#12C8AD] to-[#2563EB] bg-clip-text text-transparent">tek panelde.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-[#475569] md:text-lg">
+              Asistan Health; hekim, sekreter ve klinik yöneticisinin günlük randevu akışını aynı ekranda toplar. Boş saatleri görün, hatırlatmaları planlayın, hasta notlarını düzenli tutun.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/auth/sign-up" className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#12C8AD] to-[#2563EB] px-7 text-sm font-extrabold text-white shadow-xl shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5">
+                Randevu Oluştur
+                <CalendarDays className="size-4" aria-hidden="true" />
+              </Link>
+              <Link href="#pricing" className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-[#2563EB]/30 bg-white px-7 text-sm font-extrabold text-[#2563EB] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#2563EB]">
+                <Play className="size-4" aria-hidden="true" />
+                Paketleri Gör
+              </Link>
+            </div>
+            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              {trustItems.map((item) => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#2563EB] shadow-sm">
+                    <item.icon className="size-5" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-[#0F172A]">{item.title}</p>
+                    <p className="text-xs leading-5 text-[#475569]">{item.text}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        </section>
 
-        <section id="signals" className="bg-[#F8FAFB] py-14" aria-label="Mikro ürün kanıtları">
-          <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
-            {productSignals.map((signal) => (
-              <Card key={signal.label} className="rounded-3xl border-gray-100 bg-white shadow-sm">
-                <CardContent className="p-6">
-                  <div className="mb-4 inline-flex rounded-full bg-[#0B7F6F]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#0B7F6F]">
-                    Mikro kanıt
+          <DashboardMockup />
+        </div>
+      </section>
+
+      <section className="bg-white py-12">
+        <div className="mx-auto grid max-w-6xl gap-5 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-xl shadow-blue-500/5">
+              <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#12C8AD] to-[#2563EB] text-white">
+                <stat.icon className="size-7" aria-hidden="true" />
+              </div>
+              <p className="text-4xl font-black text-[#0F172A]">
+                <Counter value={stat.value} suffix={stat.suffix} />
+              </p>
+              <p className="mt-2 text-sm font-bold text-[#475569]">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="how-it-works" className="bg-white py-16">
+        <div className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-br from-blue-50 to-teal-50 px-4 py-12 sm:px-8 lg:px-12">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">3 adımda kliniğinize göre kurulur.</h2>
+            <p className="mt-4 text-[#475569]">Ürünü gerçek çalışma düzeninize uydurmak için önce operasyonu anlarız.</p>
+          </div>
+          <div className="relative grid gap-6 md:grid-cols-3">
+            <div className="absolute left-[18%] right-[18%] top-10 hidden h-0.5 bg-gradient-to-r from-[#12C8AD] via-[#2563EB] to-[#12C8AD] md:block" aria-hidden="true" />
+            {steps.map((step, index) => (
+              <article key={step.title} className="relative rounded-3xl bg-white p-7 shadow-xl shadow-blue-500/5">
+                <div className="absolute -top-5 left-1/2 flex size-11 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-[#12C8AD] to-[#2563EB] text-sm font-black text-white shadow-lg">
+                  {index + 1}
+                </div>
+                <div className="mt-6 flex items-start gap-4">
+                  <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-[#0F766E]">
+                    <CalendarDays className="size-7" aria-hidden="true" />
                   </div>
-                  <h3 className="mb-2 text-lg font-bold text-[#06142A] md:text-xl">{signal.label}</h3>
-                  <p className="text-sm leading-6 text-gray-600">{signal.description}</p>
-                </CardContent>
-              </Card>
+                  <div>
+                    <h3 className="text-lg font-black">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-[#475569]">{step.description}</p>
+                  </div>
+                </div>
+              </article>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="features" className="bg-[#F8FAFB] py-20 md:py-28" aria-label="Özellikler">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 grid gap-6 lg:grid-cols-[0.75fr_1fr] lg:items-end">
-              <div>
-                <Badge className="mb-4 border-0 bg-white text-[#0B7F6F] hover:bg-white">Asistan nedir?</Badge>
-                <h2 className="text-3xl font-bold tracking-tight text-[#06142A] md:text-4xl">
-                  Randevu, takip ve ekip yönetimi aynı panelde.
-                </h2>
-              </div>
-              <p className="text-base leading-8 text-gray-600 md:text-lg">
-                Yeni bir teknoloji vitrini değil; kliniğinizdeki günlük takibi daha düzenli hale
-                getiren pratik bir iş aracıdır.
-              </p>
+      <section className="bg-[#F8FAFB] py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">Dağınık randevu takibi kliniğin ritmini bozar.</h2>
+            <p className="mt-4 text-[#475569]">Asistan, küçük ve orta ölçekli sağlık ekiplerinin günlük takip yükünü azaltmak için tasarlandı.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {problems.map((item) => (
+              <article key={item.title} className="rounded-3xl border border-slate-100 bg-white p-7 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl">
+                <div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#12C8AD]/15 to-[#2563EB]/15 text-[#2563EB]">
+                  <item.icon className="size-7" aria-hidden="true" />
+                </div>
+                <h3 className="text-xl font-black">{item.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#475569]">{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="bg-white py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">Asistan ile herkes kazanır.</h2>
+          </div>
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_320px_1fr]">
+            <div className="space-y-4">
+              <p className="text-lg font-black text-[#0F766E]">Hastalar için</p>
+              {patientBenefits.map((item) => (
+                <div key={item.title} className="flex items-start gap-4 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-[#0F766E]">
+                    <item.icon className="size-6" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="font-black">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-[#475569]">{item.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div className="grid auto-rows-fr gap-5 md:grid-cols-4 lg:gap-6">
-              {featureCards.map((card) => (
-                <Card
-                  key={card.title}
-                  className={`rounded-3xl border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
-                    card.featured ? 'md:col-span-2 md:row-span-2' : 'md:col-span-2 lg:col-span-1'
+            <div className="relative mx-auto flex size-72 items-center justify-center rounded-full bg-gradient-to-br from-[#12C8AD]/25 to-[#2563EB]/25 p-5">
+              <div className="flex size-48 items-center justify-center rounded-full bg-gradient-to-br from-[#12C8AD] to-[#2563EB] text-white shadow-2xl shadow-blue-500/20">
+                <Stethoscope className="size-20" aria-hidden="true" />
+              </div>
+              {[CalendarDays, Bell, ShieldCheck, BarChart3].map((Icon, index) => (
+                <div
+                  key={index}
+                  className={`absolute flex size-14 items-center justify-center rounded-2xl bg-white text-[#2563EB] shadow-xl ${
+                    index === 0 ? 'left-2 top-16' : index === 1 ? 'bottom-16 left-2' : index === 2 ? 'right-2 top-16' : 'bottom-16 right-2'
                   }`}
                 >
-                  <CardContent className={`${card.featured ? 'p-7 md:p-8' : 'p-6'}`}>
-                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0B7F6F]/10">
-                      <card.icon className="h-7 w-7 text-[#0B7F6F]" aria-hidden="true" />
-                    </div>
-                    <h3 className="mb-3 text-lg font-bold text-[#06142A] md:text-xl">{card.title}</h3>
-                    <p className="text-sm leading-6 text-gray-600 md:text-base">{card.description}</p>
-                    {card.featured && (
-                      <div className="mt-8 grid grid-cols-7 gap-2 rounded-2xl bg-[#F8FAFB] p-4">
-                        {Array.from({ length: 14 }).map((_, index) => (
-                          <div
-                            key={index}
-                            className={`h-10 rounded-xl ${
-                              [2, 5, 9].includes(index) ? 'bg-[#0B7F6F]' : [4, 11].includes(index) ? 'bg-[#12C8AD]/35' : 'bg-white'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                  <Icon className="size-6" aria-hidden="true" />
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-lg font-black text-[#2563EB]">Sağlık profesyonelleri için</p>
+              {professionalBenefits.map((item) => (
+                <div key={item.title} className="flex items-start gap-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
+                    <item.icon className="size-6" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="font-black">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-[#475569]">{item.description}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="how-it-works" className="bg-white py-20 md:py-28" aria-label="Nasıl çalışır">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 max-w-2xl">
-              <h2 className="text-3xl font-bold tracking-tight text-[#06142A] md:text-4xl">3 adımda kullanmaya başlayın.</h2>
-              <p className="mt-4 text-base leading-8 text-gray-600 md:text-lg">
-                Kurulum basit kalır; ekip günlük işlere hızlı döner.
-              </p>
-            </div>
-            <div className="relative grid gap-5 md:grid-cols-3">
-              <div className="absolute left-0 right-0 top-5 hidden h-px bg-gray-100 md:block" />
-              {steps.map((step, index) => (
-                <article key={step.title} className="relative rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-                  <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-[#0B7F6F] text-sm font-bold text-white shadow-lg shadow-[#0B7F6F]/20">
-                    {index + 1}
-                  </span>
-                  <h3 className="mb-2 text-xl font-bold text-[#06142A]">{step.title}</h3>
-                  <p className="text-sm leading-6 text-gray-600">{step.description}</p>
-                </article>
-              ))}
-            </div>
+      <section className="bg-white py-10">
+        <div className="mx-auto grid max-w-6xl gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-xl shadow-blue-500/5 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <h2 className="text-2xl font-black">Randevu, takip ve ekip yönetimi aynı panelde.</h2>
+            <p className="mt-3 text-sm leading-6 text-[#475569]">Yeni bir teknoloji vitrini değil; kliniğinizde her gün yapılan işleri daha takip edilebilir hale getiren pratik bir iş aracıdır.</p>
+            <Link href="/cozumler/health" className="mt-5 inline-flex rounded-xl border border-[#2563EB]/30 px-4 py-2 text-sm font-black text-[#2563EB]">
+              Health çözümünü incele
+            </Link>
           </div>
-        </section>
-
-        <section id="health" className="relative overflow-hidden bg-[#0D1117] py-20 text-white md:py-28" aria-label="Asistan Health">
-          <GlowEffect className="right-10 top-10 h-72 w-72 bg-[#12C8AD]/20" />
-          <GlowEffect className="bottom-0 left-10 h-56 w-56 bg-[#185FA5]/15" />
-          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-8">
-            <div>
-              <Badge className="mb-4 border-0 bg-white/10 text-white hover:bg-white/10">Öncelikli sektör</Badge>
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Asistan Health ile başlayın.</h2>
-              <p className="mt-4 text-base leading-8 text-white/70 md:text-lg">
-                İlk odak sağlık. Hasta randevusu, takip notları, sekreter yetkisi ve hatırlatma
-                akışı aynı panelde toplanır.
-              </p>
-              <Button asChild className="mt-7 h-12 rounded-xl bg-white px-6 font-semibold text-[#0D1117] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/90">
-                <Link href="/cozumler/health" aria-label="Asistan Health çözümünü incele">
-                  Health çözümünü incele
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
+          {[
+            ['12', 'Bugünkü randevu'],
+            ['156', 'Aktif hasta'],
+            ['%94', 'Onay oranı'],
+          ].map(([value, label]) => (
+            <div key={label} className="rounded-2xl bg-[#F8FAFB] p-5">
+              <p className="text-3xl font-black">{value}</p>
+              <p className="mt-2 text-sm font-bold text-[#475569]">{label}</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white py-16">
+        <div className="mx-auto grid max-w-7xl gap-10 rounded-3xl bg-gradient-to-br from-[#0F172A] to-[#1e3a5f] p-8 text-white shadow-2xl shadow-slate-900/20 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:p-12">
+          <div>
+            <span className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white">Öncelikli sektör</span>
+            <h2 className="mt-6 text-3xl font-black tracking-tight md:text-4xl">İlk odak sağlık ekipleri.</h2>
+            <p className="mt-4 text-base leading-8 text-white/70">
+              Hasta randevusu, takip notu, sekreter yetkisi ve hatırlatma akışı aynı panelde toplanır. Her kullanıcı kendi rolüne göre çalışır.
+            </p>
+            <Link href="/cozumler/health" className="mt-7 inline-flex h-12 items-center rounded-xl bg-white px-6 text-sm font-black text-[#0F172A] transition-all duration-200 hover:-translate-y-0.5">
+              Health çözümünü incele
+              <ArrowRight className="ml-2 size-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <div>
+            <div className="grid gap-4 sm:grid-cols-2">
               {healthUseCases.map((item) => (
-                <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:bg-white/10">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#12C8AD]" aria-hidden="true" />
-                  <span className="text-sm leading-6 text-white/85">{item}</span>
+                <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#12C8AD]" aria-hidden="true" />
+                  <p className="text-sm leading-6 text-white/85">{item}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section id="industries" className="bg-white py-20 md:py-28" aria-label="Sıradaki sektörler">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-[#06142A] md:text-4xl">Sıradaki sektörler yolda.</h2>
-              <p className="mt-4 text-base leading-8 text-gray-600 md:text-lg">
-                Health ile başlayan yapı, aynı düzeni farklı sektörlere taşıyacak şekilde planlanıyor.
-              </p>
-            </div>
-            <div className="grid gap-5 md:grid-cols-3">
-              {upcomingIndustries.map((industry) => (
-                <Card key={industry.title} className="rounded-2xl border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-                  <CardContent className="p-6">
-                    <div className="mb-5 flex items-center justify-between">
-                      <industry.icon className="h-7 w-7 text-[#0B7F6F]" aria-hidden="true" />
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{industry.status}</span>
-                    </div>
-                    <h3 className="mb-2 text-lg font-bold text-[#06142A] md:text-xl">{industry.title}</h3>
-                    <p className="text-sm leading-6 text-gray-600">{industry.description}</p>
-                  </CardContent>
-                </Card>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {upcoming.map((item) => (
+                <span key={item} className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black text-white/80">
+                  {item}
+                </span>
               ))}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="early-access" className="bg-[#F8FAFB] py-20 md:py-28" aria-label="Erken erişimde netleşenler">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-10 max-w-2xl">
-              <Badge className="mb-4 border-0 bg-white text-[#0B7F6F] hover:bg-white">Erken erişim</Badge>
-              <h2 className="text-3xl font-bold tracking-tight text-[#06142A] md:text-4xl">
-                İlk görüşmede neyi birlikte netleştiriyoruz?
-              </h2>
-              <p className="mt-4 text-base leading-8 text-gray-600 md:text-lg">
-                Ürünü kliniğinizin gerçek akışına uydurmak için önce operasyonu anlarız.
-              </p>
-            </div>
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-              {earlyAccessItems.map((item, index) => (
-                <Card key={item.title} className="rounded-3xl border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-                  <CardContent className="p-6">
-                    <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-full bg-[#0B7F6F] text-sm font-bold text-white">
-                      {index + 1}
-                    </div>
-                    <h3 className="mb-3 text-lg font-bold text-[#06142A] md:text-xl">{item.title}</h3>
-                    <p className="text-sm leading-6 text-gray-600">{item.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="pricing-preview" className="bg-white px-4 py-16 sm:px-6 lg:px-8" aria-label="Erken erişim modeli">
-          <div className="mx-auto max-w-7xl rounded-[2rem] border border-gray-100 bg-[#F8FAFB] p-6 md:p-8">
-            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-              <div>
-                <Badge className="mb-4 border-0 bg-white text-[#0B7F6F] hover:bg-white">Erken erişim modeli</Badge>
-                <h2 className="text-2xl font-bold tracking-tight text-[#06142A] md:text-3xl">
-                  İhtiyacınızı dinleyip uygun kurulum planını birlikte netleştiriyoruz.
-                </h2>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {['Keşif görüşmesi', 'Health odaklı kurulum', 'KKTC pazarı'].map((item) => (
-                    <span key={item} className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-gray-600">
-                      {item}
-                    </span>
-                  ))}
-                </div>
+      <section className="bg-[#0F172A] py-10 text-white">
+        <div className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 md:grid-cols-4 lg:px-8">
+          {securityItems.map((item) => (
+            <div key={item.title} className="text-center">
+              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                <item.icon className="size-6 text-white" aria-hidden="true" />
               </div>
-              <Button asChild className="h-12 rounded-xl bg-[#0B7F6F] px-6 font-semibold text-white hover:bg-[#09685C]">
-                <Link href="/fiyatlandirma" aria-label="Asistan fiyatlandırma ve erken erişim modelini gör">
-                  Paketleri Gör
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              <h3 className="font-black">{item.title}</h3>
+              <p className="mt-1 text-xs leading-5 text-white/60">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="pricing" className="bg-white py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">Kliniğinize uygun planı seçin.</h2>
+            <p className="mt-4 text-[#475569]">Kredi kartı gerekmez. Kurulum kapsamı netleşmeden ödeme adımı açılmaz.</p>
+            <div className="mt-6 inline-grid grid-cols-2 rounded-full bg-[#F8FAFB] p-1">
+              <button
+                type="button"
+                className={`rounded-full px-6 py-2 text-sm font-black transition-all duration-200 ${!yearly ? 'bg-[#2563EB] text-white shadow-lg' : 'text-[#475569]'}`}
+                onClick={() => setYearly(false)}
+              >
+                Aylık
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-6 py-2 text-sm font-black transition-all duration-200 ${yearly ? 'bg-[#2563EB] text-white shadow-lg' : 'text-[#475569]'}`}
+                onClick={() => setYearly(true)}
+              >
+                Yıllık
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {translatedPlans.map((plan) => (
+              <article
+                key={plan.name}
+                className={`relative rounded-3xl border p-7 shadow-xl shadow-blue-500/5 transition-all duration-200 hover:-translate-y-1 ${
+                  plan.popular
+                    ? 'scale-[1.02] border-[#2563EB] bg-gradient-to-br from-[#0F172A] to-[#1e3a5f] text-white'
+                    : 'border-slate-100 bg-white text-[#0F172A]'
+                }`}
+              >
+                {plan.popular && (
+                  <span className="absolute right-5 top-5 rounded-full bg-gradient-to-r from-[#12C8AD] to-[#2563EB] px-3 py-1 text-xs font-black text-white">
+                    En Popüler
+                  </span>
+                )}
+                <h3 className="text-2xl font-black">{plan.name}</h3>
+                <p className={`mt-2 text-sm leading-6 ${plan.popular ? 'text-white/65' : 'text-[#475569]'}`}>{plan.description}</p>
+                <p className="mt-6 text-5xl font-black">
+                  €{plan.price}
+                  <span className={`text-sm font-bold ${plan.popular ? 'text-white/60' : 'text-[#475569]'}`}> {priceSuffix}</span>
+                </p>
+                <ul className="mt-7 space-y-3">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-sm font-bold">
+                      <Check className="size-4 text-[#12C8AD]" aria-hidden="true" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={plan.name === 'Kurumsal' ? '#contact' : '/auth/sign-up'}
+                  className={`mt-8 flex h-12 items-center justify-center rounded-xl text-sm font-black transition-all duration-200 ${
+                    plan.popular ? 'bg-gradient-to-r from-[#12C8AD] to-[#2563EB] text-white' : 'border border-slate-200 text-[#0F172A] hover:border-[#2563EB]/40'
+                  }`}
+                >
+                  {plan.name === 'Kurumsal' ? 'İletişime Geç' : 'Hemen Başla'}
                 </Link>
-              </Button>
-            </div>
+              </article>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="faq" className="bg-white py-20 md:py-28" aria-label="Sık sorulan sorular">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.82fr_1.18fr] lg:px-8">
+      <section className="bg-[#F8FAFB] py-12">
+        <div className="mx-auto grid max-w-6xl gap-6 rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-blue-500/5 md:grid-cols-[1fr_1.2fr]">
+          <div className="flex items-center gap-5">
+            <div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#12C8AD] to-[#2563EB] text-white">
+              <Stethoscope className="size-10" aria-hidden="true" />
+            </div>
             <div>
-              <Badge className="mb-4 border-0 bg-[#0B7F6F]/10 text-[#0B7F6F] hover:bg-[#0B7F6F]/10">
-                Sık sorulanlar
-              </Badge>
-              <h2 className="text-3xl font-bold tracking-tight text-[#06142A] md:text-4xl">
-                Başlamadan önce bilmek isteyecekleriniz.
-              </h2>
-              <p className="mt-4 text-base leading-8 text-gray-600 md:text-lg">
-                Asistan Health’in kliniğinizde nasıl konumlanacağını netleştiren temel sorular.
+              <p className="text-sm font-black text-[#2563EB]">Asistan Health erken erişim</p>
+              <p className="mt-2 text-sm leading-6 text-[#475569]">
+                İlk kullanan ekiplerden biri olun. Kurulum ve ihtiyaç analizi için sizinle iletişime geçelim.
               </p>
             </div>
-            <Card className="rounded-[2rem] border-gray-100 shadow-sm">
-              <CardContent className="p-4 md:p-6">
-                <Accordion type="single" collapsible className="w-full">
-                  {faqs.map((faq, index) => (
-                    <AccordionItem key={faq.question} value={`faq-${index}`} className="border-gray-100">
-                      <AccordionTrigger className="text-left text-base font-bold text-[#06142A] hover:no-underline">
-                        {faq.question}
-                      </AccordionTrigger>
-                      <AccordionContent className="text-sm leading-6 text-gray-600">
-                        {faq.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </CardContent>
-            </Card>
           </div>
-        </section>
-
-        <section id="cta" className="bg-[#F8FAFB] px-4 py-20 sm:px-6 md:py-28 lg:px-8" aria-label="Erken erişim çağrısı">
-          <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-[#0D1117] p-8 text-center text-white md:p-12">
-            <div className="absolute inset-x-16 -top-24 h-48 rounded-full bg-[#12C8AD]/20 blur-3xl" />
-            <div className="relative">
-              <Stethoscope className="mx-auto mb-5 h-10 w-10 text-[#12C8AD]" aria-hidden="true" />
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Kliniğiniz için erken erişim talep edin.</h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-white/70 md:text-lg">
-                Asistan Health’i ilk kullanan ekiplerden biri olun. Kurulum ve ihtiyaç analizi için
-                sizinle iletişime geçelim.
-              </p>
-              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-12 rounded-xl bg-[#0B7F6F] px-6 font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#09685C]">
-                  <Link href="/auth/sign-up" aria-label="Asistan Health erken erişim başvurusu yap">
-                    Erken Erişim Başvurusu
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 rounded-xl border-white/20 bg-white/5 px-6 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/10">
-                  <Link href="/fiyatlandirma" aria-label="Asistan fiyatlandırma seçeneklerini gör">
-                    Paketleri Gör
-                  </Link>
-                </Button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {['Lefkoşa klinikleri', 'Girne sağlık ekipleri', 'Mağusa hizmet işletmeleri', 'KKTC genelinde kullanım'].map((item) => (
+              <div key={item} className="flex items-center gap-3 rounded-2xl bg-[#F8FAFB] p-4">
+                <CircleDollarSign className="size-5 text-[#2563EB]" aria-hidden="true" />
+                <p className="text-sm font-bold text-[#475569]">{item}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-20">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
+          <div>
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">Başlamadan önce bilmek isteyecekleriniz.</h2>
+            <p className="mt-4 max-w-md leading-8 text-[#475569]">
+              Erken erişim, güvenlik ve fiyatlandırma ile ilgili en kritik sorular.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {faqs.map((faq, index) => (
+              <div key={faq.question} className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-black transition-all duration-200 hover:text-[#2563EB]"
+                  onClick={() => setOpenFaq((current) => (current === index ? -1 : index))}
+                  aria-expanded={openFaq === index}
+                >
+                  {faq.question}
+                  <ChevronDown className={`size-4 shrink-0 transition-transform duration-200 ${openFaq === index ? 'rotate-180' : ''}`} aria-hidden="true" />
+                </button>
+                {openFaq === index && <p className="px-5 pb-5 text-sm leading-7 text-[#475569]">{faq.answer}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F172A] to-[#1e3a5f] p-8 text-center text-white shadow-2xl shadow-slate-900/25 md:p-14">
+          <div className="absolute left-1/2 top-0 size-72 -translate-x-1/2 rounded-full bg-[#12C8AD]/20 blur-3xl" aria-hidden="true" />
+          <div className="relative">
+            <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-white/10">
+              <Image src="/images/asistan-mark.svg" alt="" width={42} height={42} aria-hidden="true" />
+            </div>
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">Kliniğiniz için erken erişim talep edin.</h2>
+            <p className="mx-auto mt-4 max-w-2xl leading-8 text-white/70">
+              Asistan Health’i ilk kullanan ekiplerden biri olun. İhtiyaç analizi ve kurulum planı için sizinle iletişime geçelim.
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/auth/sign-up" className="inline-flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-[#12C8AD] to-[#2563EB] px-7 text-sm font-black text-white">
+                Başvuru oluştur
+              </Link>
+              <Link href="#pricing" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 text-sm font-black text-white">
+                Paketleri gör
+              </Link>
             </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 p-3 shadow-2xl backdrop-blur-xl sm:hidden">
-        <Button asChild className="h-12 w-full rounded-xl bg-[#0B7F6F] font-semibold text-white hover:bg-[#09685C]">
-          <Link href="/auth/sign-up" aria-label="Mobil erken erişim başvurusu yap">
-            Erken Erişime Katıl
-            <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-          </Link>
-        </Button>
-      </div>
+      <footer className="bg-[#0a0f1e] text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-6 lg:px-8">
+          <div className="lg:col-span-2">
+            <div className="mb-5 inline-flex">
+              <Logo />
+            </div>
+            <p className="max-w-sm text-sm leading-7 text-white/60">
+              KKTC’den başlayan, sağlık ve hizmet işletmeleri için AI destekli randevu ve iş yönetim platformu.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {['KVKK odaklı', 'Gizlilik öncelikli', 'Rol bazlı erişim'].map((item) => (
+                <span key={item} className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-white/70">
+                  {item}
+                </span>
+              ))}
+            </div>
+            <a href="mailto:merhaba@asistan.online" className="mt-6 inline-flex items-center gap-2 text-sm text-white/60 hover:text-white">
+              <Mail className="size-4" aria-hidden="true" />
+              merhaba@asistan.online
+            </a>
+          </div>
 
-      <Footer />
-    </div>
+          {[
+            ['Ürün', 'Özellikler', 'Fiyatlandırma', 'Kaynaklar'],
+            ['Çözümler', 'Asistan Health', 'Beauty Yakında', 'Hukuk Yakında'],
+            ['Şirket', 'Hakkımızda', 'İletişim', 'Erken Erişim'],
+            ['Yasal', 'Gizlilik', 'Kullanım Koşulları', 'KVKK'],
+          ].map(([title, ...links]) => (
+            <div key={title}>
+              <h3 className="mb-4 text-sm font-black">{title}</h3>
+              <ul className="space-y-3">
+                {links.map((item) => (
+                  <li key={item}>
+                    <Link href="#hero" className="text-sm text-white/55 transition-all duration-200 hover:text-white">
+                      {item}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm text-white/45 sm:px-6 md:flex-row lg:px-8">
+            <p>© 2026 Asistan. Tüm hakları saklıdır.</p>
+            <div className="flex flex-wrap justify-center gap-6">
+              <Link href="/terms" className="hover:text-white">
+                Kullanım Şartları
+              </Link>
+              <Link href="/privacy" className="hover:text-white">
+                Gizlilik Politikası
+              </Link>
+              <Link href="/privacy" className="hover:text-white">
+                KVKK Aydınlatma Metni
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
   )
 }

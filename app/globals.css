@@ -4,11 +4,6 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Asistan Brand Colors - Premium SaaS Design */
-/* Bright Teal: #12C8AD - decorative accent */
-/* Accessible Teal: #0B7F6F - text and primary actions */
-/* Accent Blue: #185FA5 - secondary accent */
-/* Dark Section: #0D1117 */
-/* Light Section: #F8FAFB */
 
 :root {
   --background: #FFFFFF;
@@ -23,7 +18,7 @@
   --secondary-foreground: #06142A;
   --muted: #F3F4F6;
   --muted-foreground: #6B7280;
-  --accent: #185FA5;
+  --accent: #2563EB;
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
@@ -50,11 +45,13 @@
   /* Brand specific */
   --deep-navy: #06142A;
   --teal: #0B7F6F;
-  --light-blue: #185FA5;
+  --light-blue: #2563EB;
+  --brand-teal: #12C8AD;
   --brand-teal-bright: #12C8AD;
   --brand-teal-accessible: #0B7F6F;
   --brand-teal-dark: #0F6E56;
-  --brand-blue: #185FA5;
+  --brand-blue: #2563EB;
+  --brand-navy: #0F172A;
   --brand-dark: #0D1117;
   --brand-light: #F8FAFB;
   --paper: #FFFFFF;
@@ -140,10 +137,12 @@
   --color-deep-navy: var(--deep-navy);
   --color-teal: var(--teal);
   --color-light-blue: var(--light-blue);
+  --color-brand-teal: var(--brand-teal);
   --color-brand-teal-bright: var(--brand-teal-bright);
   --color-brand-teal-accessible: var(--brand-teal-accessible);
   --color-brand-teal-dark: var(--brand-teal-dark);
   --color-brand-blue: var(--brand-blue);
+  --color-brand-navy: var(--brand-navy);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
   --color-paper: var(--paper);
@@ -152,18 +151,18 @@
 
 /* Gradient utilities */
 .gradient-teal-blue {
-  background: linear-gradient(135deg, #12C8AD 0%, #185FA5 100%);
+  background: linear-gradient(135deg, #12C8AD 0%, #2563EB 100%);
 }
 
 .text-gradient-teal-blue {
-  background: linear-gradient(135deg, #0B7F6F 0%, #185FA5 100%);
+  background: linear-gradient(135deg, #0B7F6F 0%, #2563EB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .animated-gradient-text {
-  background: linear-gradient(90deg, #0B7F6F, #12C8AD, #185FA5, #0B7F6F);
+  background: linear-gradient(90deg, #0B7F6F, #12C8AD, #2563EB, #0B7F6F);
   background-size: 240% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -173,8 +172,8 @@
 
 .mesh-hero {
   background:
-    radial-gradient(ellipse 70% 45% at 18% 12%, rgb(18 200 173 / 0.18), transparent 64%),
-    radial-gradient(ellipse 55% 42% at 86% 24%, rgb(24 95 165 / 0.14), transparent 68%),
+    radial-gradient(ellipse 70% 45% at 18% 12%, rgb(18 200 173 / 0.16), transparent 64%),
+    radial-gradient(ellipse 58% 46% at 88% 18%, rgb(37 99 235 / 0.18), transparent 68%),
     radial-gradient(ellipse 45% 38% at 50% 100%, rgb(18 200 173 / 0.10), transparent 72%),
     linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
 }
@@ -223,10 +222,73 @@
     box-shadow: 0 18px 48px rgb(18 200 173 / 0.24);
   }
 
+  .soft-grid {
+    background-image:
+      linear-gradient(rgb(24 95 165 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(37 99 235 / 0.055) 1px, transparent 1px);
+    background-size: 34px 34px;
+  }
+
+  .dot-matrix {
+    background-image: radial-gradient(rgb(37 99 235 / 0.16) 1px, transparent 1px);
+    background-size: 12px 12px;
+  }
+
+  .marquee-track {
+    animation: marquee 28s linear infinite;
+  }
+
+  .reveal-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 600ms ease,
+      transform 600ms ease;
+    will-change: opacity, transform;
+  }
+
+  .reveal-up.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    will-change: auto;
+  }
+
+  .reveal-delay-sm {
+    transition-delay: 90ms;
+  }
+
+  .reveal-delay-md {
+    transition-delay: 180ms;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 7s ease-in-out infinite;
+  }
+
+  .animate-float-card {
+    animation: float-card 5.5s ease-in-out infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .animated-gradient-text {
+    .animated-gradient-text,
+    .marquee-track,
+    .reveal-up,
+    .animate-float-slow,
+    .animate-float-card {
       animation: none;
+      opacity: 1;
+      transform: none;
+      transition: none;
     }
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
 
@@ -236,5 +298,23 @@
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes float-card {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate(0.4deg);
   }
 }
