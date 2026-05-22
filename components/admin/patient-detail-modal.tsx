@@ -1,6 +1,6 @@
 "use client"
 
-import { X, Phone, Mail, Calendar, MapPin, FileText, Clock, User, Activity } from "lucide-react"
+import { X, Phone, Mail, MapPin, FileText, Clock, User, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface PatientData {

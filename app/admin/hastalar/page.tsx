@@ -11,8 +11,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Download,
-  User
+  Download
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PatientDetailModal, PatientData } from "@/components/admin/patient-detail-modal"

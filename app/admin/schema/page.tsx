@@ -12,16 +12,10 @@ import {
   FileText,
   Shield,
   Smartphone,
-  Heart,
   Building2,
-  CreditCard,
-  Clock,
-  Star,
   ChevronDown,
-  ChevronRight,
-  ExternalLink
+  ChevronRight
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 // Database schema definition
@@ -357,16 +351,6 @@ const schemaGroups: SchemaGroup[] = [
       },
     ]
   },
-]
-
-// Data flow connections
-const dataFlows = [
-  { from: 'Mobile App', to: 'API', label: 'REST/GraphQL' },
-  { from: 'Web Admin', to: 'API', label: 'REST/GraphQL' },
-  { from: 'API', to: 'Database', label: 'Supabase Client' },
-  { from: 'Database', to: 'Real-time', label: 'Postgres Changes' },
-  { from: 'Real-time', to: 'Mobile App', label: 'WebSocket' },
-  { from: 'Real-time', to: 'Web Admin', label: 'WebSocket' },
 ]
 
 export default function SchemaPage() {

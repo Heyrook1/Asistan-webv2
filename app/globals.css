@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Cache invalidation */
+/* Cache invalidation */
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
@@ -12,7 +14,7 @@
   --card-foreground: #06142A;
   --popover: #FFFFFF;
   --popover-foreground: #06142A;
-  --primary: #0B7F6F;
+  --primary: #2563EB;
   --primary-foreground: #FFFFFF;
   --secondary: #F9FAFB;
   --secondary-foreground: #06142A;
@@ -24,8 +26,8 @@
   --destructive-foreground: #FFFFFF;
   --border: #E5E7EB;
   --input: #E5E7EB;
-  --ring: #12C8AD;
-  --chart-1: #12C8AD;
+  --ring: #2563EB;
+  --chart-1: #06B6D4;
   --chart-2: #185FA5;
   --chart-3: #06142A;
   --chart-4: #6B7280;
@@ -35,25 +37,42 @@
   /* Sidebar - Dark theme */
   --sidebar: #06142A;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #0B7F6F;
+  --sidebar-primary: #2563EB;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #2563EB;
+  --chart-1: #06B6D4;
+  --chart-2: #185FA5;
+  --chart-3: #06142A;
+  --chart-4: #6B7280;
+  --chart-5: #F9FAFB;
+  --radius: 0.75rem;
+  
+  /* Sidebar - Dark theme */
+  --sidebar: #06142A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #06142A;
   --sidebar-accent: #0A1F3D;
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #1A3050;
-  --sidebar-ring: #0B7F6F;
+  --sidebar-ring: #2563EB;
   
   /* Brand specific */
-  --deep-navy: #06142A;
-  --teal: #0B7F6F;
+  --deep-navy: #0B1020;
+  --teal: #06B6D4;
   --light-blue: #2563EB;
-  --brand-teal: #12C8AD;
-  --brand-teal-bright: #12C8AD;
-  --brand-teal-accessible: #0B7F6F;
-  --brand-teal-dark: #0F6E56;
+  --brand-teal: #06B6D4;
+  --brand-teal-bright: #22D3EE;
+  --brand-teal-accessible: #0891B2;
+  --brand-teal-dark: #164E63;
   --brand-blue: #2563EB;
-  --brand-navy: #0F172A;
-  --brand-dark: #0D1117;
-  --brand-light: #F8FAFB;
+  --brand-navy: #0B1020;
+  --brand-dark: #0B1020;
+  --brand-light: #F8FAFC;
   --paper: #FFFFFF;
   --line: #6B7280;
 }
@@ -65,7 +84,7 @@
   --card-foreground: #FFFFFF;
   --popover: #0A1F3D;
   --popover-foreground: #FFFFFF;
-  --primary: #0B7F6F;
+  --primary: #2563EB;
   --primary-foreground: #FFFFFF;
   --secondary: #0A1F3D;
   --secondary-foreground: #FFFFFF;
@@ -77,24 +96,25 @@
   --destructive-foreground: #FFFFFF;
   --border: #1A3050;
   --input: #1A3050;
-  --ring: #12C8AD;
-  --chart-1: #12C8AD;
+  --ring: #2563EB;
+  --chart-1: #06B6D4;
   --chart-2: #185FA5;
   --chart-3: #FFFFFF;
   --chart-4: #9CA3AF;
   --chart-5: #0A1F3D;
   --sidebar: #040D1A;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #0B7F6F;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #0A1F3D;
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #0A1F3D;
-  --sidebar-ring: #0B7F6F;
+  --sidebar-ring: #2563EB;
 }
 
 @theme inline {
-  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Satoshi', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -151,18 +171,18 @@
 
 /* Gradient utilities */
 .gradient-teal-blue {
-  background: linear-gradient(135deg, #12C8AD 0%, #2563EB 100%);
+  background: linear-gradient(135deg, #06B6D4 0%, #2563EB 100%);
 }
 
 .text-gradient-teal-blue {
-  background: linear-gradient(135deg, #0B7F6F 0%, #2563EB 100%);
+  background: linear-gradient(135deg, #06B6D4 0%, #2563EB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .animated-gradient-text {
-  background: linear-gradient(90deg, #0B7F6F, #12C8AD, #2563EB, #0B7F6F);
+  background: linear-gradient(90deg, #06B6D4, #2563EB, #0891B2, #06B6D4);
   background-size: 240% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -172,10 +192,10 @@
 
 .mesh-hero {
   background:
-    radial-gradient(ellipse 70% 45% at 18% 12%, rgb(18 200 173 / 0.16), transparent 64%),
-    radial-gradient(ellipse 58% 46% at 88% 18%, rgb(37 99 235 / 0.18), transparent 68%),
-    radial-gradient(ellipse 45% 38% at 50% 100%, rgb(18 200 173 / 0.10), transparent 72%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
+    radial-gradient(ellipse 70% 45% at 18% 12%, rgba(6, 182, 212, 0.16), transparent 64%),
+    radial-gradient(ellipse 58% 46% at 88% 18%, rgba(37, 99, 235, 0.18), transparent 68%),
+    radial-gradient(ellipse 45% 38% at 50% 100%, rgba(6, 182, 212, 0.10), transparent 72%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 @layer base {
@@ -212,14 +232,14 @@
   .tap-target { min-height: 44px; min-width: 44px; }
 
   .glass-panel {
-    background: rgb(255 255 255 / 0.78);
-    border: 1px solid rgb(255 255 255 / 0.72);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 24px 80px rgb(15 23 42 / 0.12);
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px);
+    box-shadow: 0 24px 80px rgba(11, 16, 32, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
 
   .brand-glow {
-    box-shadow: 0 18px 48px rgb(18 200 173 / 0.24);
+    box-shadow: 0 0 40px rgba(37, 99, 235, 0.35);
   }
 
   .soft-grid {

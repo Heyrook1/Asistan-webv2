@@ -1,15 +1,14 @@
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
-import { JetBrains_Mono, Manrope } from 'next/font/google'
+import { JetBrains_Mono, Inter } from 'next/font/google'
 
 import { Toaster } from '@/components/ui/sonner'
 
 import './globals.css'
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ['latin', 'latin-ext'],
-  variable: '--font-manrope',
-  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-sans',
   display: 'swap',
 })
 
@@ -83,7 +82,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="bg-white">
-      <body className={`${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <head>
+        <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet" />
+      </head>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-right" richColors duration={4000} />
         {process.env.NODE_ENV === 'production' && <Analytics />}

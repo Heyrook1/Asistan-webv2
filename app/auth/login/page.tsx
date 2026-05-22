@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -49,8 +49,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-secondary via-background to-secondary/50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#06B6D4]/10 via-background to-[#2563EB]/10 p-4 relative">
+      <Link href="/" className="absolute top-6 right-6 text-sm font-semibold text-slate-500 hover:text-[#2563EB] flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200 hover:border-[#2563EB]/30 transition-all">
+        <ArrowLeft className="h-3.5 w-3.5" /> Anasayfa
+      </Link>
+      <Card className="w-full max-w-md border-slate-200 shadow-xl shadow-blue-900/5">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <AsistanLogo variant="dark" />
@@ -74,10 +77,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                className="focus-visible:ring-[#2563EB] focus-visible:border-[#2563EB]"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Şifre</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Şifre</Label>
+                <Link href="/auth/forgot-password" className="text-xs font-medium text-[#2563EB] hover:underline">
+                  Şifremi unuttum?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -86,11 +95,12 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="focus-visible:ring-[#2563EB] focus-visible:border-[#2563EB]"
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white shadow-md shadow-blue-600/20" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -100,9 +110,9 @@ export default function LoginPage() {
                 'Giriş Yap'
               )}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-sm text-slate-500 text-center">
               Hesabınız yok mu?{' '}
-              <Link href="/auth/sign-up" className="text-primary hover:underline font-medium">
+              <Link href="/auth/sign-up" className="text-[#2563EB] hover:underline font-medium">
                 Kayıt olun
               </Link>
             </p>

@@ -48,7 +48,7 @@ export function MobileTopbar({
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 bg-white/85 px-3 backdrop-blur supports-[backdrop-filter]:bg-white/75 lg:hidden">
       <Link href="/dashboard" className="flex min-w-0 items-center" aria-label="Asistan'a git">
-        <AsistanLogo variant="dark" size="md" priority />
+        <AsistanLogo variant="dark" size="sm" priority />
       </Link>
 
       <div className="ml-auto flex items-center gap-1">

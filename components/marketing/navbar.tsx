@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronDown, Menu, X } from 'lucide-react'
 
-import { AsistanIcon } from '@/components/asistan-logo'
+import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -69,8 +69,7 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Asistan ana sayfa">
-            <AsistanIcon size={34} priority />
-            <span className="text-lg font-bold tracking-tight text-brand-navy">Asistan</span>
+            <AsistanLogo variant="light" size="md" priority />
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">

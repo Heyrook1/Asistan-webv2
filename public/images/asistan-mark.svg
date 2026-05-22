@@ -1,17 +1,16 @@
 <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="asistan-grad" x1="20" y1="20" x2="100" y2="115" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1BD1B5" />
-      <stop offset="55%" stop-color="#16A9E8" />
-      <stop offset="100%" stop-color="#0866C7" />
+      <stop offset="0%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
   </defs>
-  <g stroke="#0C1D36" stroke-width="5" stroke-linecap="round">
-    <line x1="8" y1="56" x2="32" y2="56" />
-    <line x1="2" y1="72" x2="34" y2="72" />
-    <line x1="14" y1="88" x2="30" y2="88" />
+  <g stroke="#06B6D4" stroke-width="8" stroke-linecap="round">
+    <line x1="16" y1="56" x2="38" y2="56" />
+    <line x1="8" y1="72" x2="32" y2="72" />
+    <line x1="20" y1="88" x2="36" y2="88" />
   </g>
-  <circle cx="68" cy="20" r="9" fill="#1BD1B5" />
-  <path d="M68 34 C 64 34, 60 36, 58 40 L 36 110 C 35 113, 37 116, 40 116 L 50 116 C 52 116, 54 115, 55 113 L 60 100 L 78 100 C 77 96, 76 92, 74 88 L 64 88 L 70 70 C 71 67, 72 65, 73 63 C 76 71, 80 84, 84 95 C 86 102, 88 109, 89 113 C 90 115, 92 116, 94 116 L 104 116 C 107 116, 109 113, 108 110 L 86 40 C 84 36, 78 34, 73 34 Z" fill="url(#asistan-grad)" />
+  <circle cx="68" cy="20" r="10" fill="#06B6D4" />
+  <path d="M68 34 C 64 34, 60 36, 58 40 L 36 110 C 35 113, 37 116, 40 116 L 52 116 C 54 116, 56 115, 57 113 L 61 100 L 78 100 C 77 96, 76 92, 74 88 L 65 88 L 71 70 C 72 67, 73 65, 74 63 C 77 71, 81 84, 85 95 C 87 102, 89 109, 90 113 C 91 115, 93 116, 95 116 L 106 116 C 109 116, 111 113, 110 110 L 86 40 C 84 36, 78 34, 73 34 Z" fill="url(#asistan-grad)" />
   <path d="M68 42 C 70 42, 72 43, 73 45 L 76 53 C 73 53, 70 53, 68 53 C 66 53, 64 53, 62 53 L 65 45 C 66 43, 67 42, 68 42 Z" fill="#FFFFFF" fill-opacity="0.18" />
 </svg>

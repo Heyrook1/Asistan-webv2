@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Lock, Mail, MapPin, Shield, Users } from 'lucide-react'
 
-import { AsistanIcon } from '@/components/asistan-logo'
+import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -62,8 +62,7 @@ export function Footer() {
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-7">
             <div className="lg:col-span-2">
               <Link href="/" className="mb-5 inline-flex items-center gap-3" aria-label="Asistan ana sayfa">
-                <AsistanIcon size={36} />
-                <span className="text-lg font-bold tracking-tight text-white">Asistan</span>
+                <AsistanLogo variant="light" size="md" />
               </Link>
               <p className="mb-6 max-w-sm text-sm leading-7 text-white/65">
                 KKTC’den başlayan, sağlık ve hizmet işletmeleri için AI destekli randevu ve iş yönetim platformu.
