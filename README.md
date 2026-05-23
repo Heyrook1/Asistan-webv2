@@ -2,7 +2,7 @@
 
 AI destekli klinik, randevu, hasta, ekip, tedavi, dosya ve iş akışı yönetim
 platformu. Next.js 16 + TypeScript + Prisma + PostgreSQL (Supabase) +
-Tailwind/shadcn üzerine kuruludur.
+Tailwind v4 + shadcn (new-york) üzerine kuruludur.
 
 ## Çalıştırma
 
@@ -70,7 +70,7 @@ sira ile uygulanmalidir:
 Sonra Prisma client’ı üretin:
 
 ```bash
-pnpm prisma generate
+pnpm db:generate
 ```
 
 ## Demo Verisi
