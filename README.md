@@ -137,5 +137,33 @@ açıp kapatabilirsiniz.
 - **Private Storage** - `patient-files` ve `message-media` bucket'lari private olarak olusturulur; DB'de base64 payload yerine sadece `storage://...` referansi tutulur. Storage object politikalari isletme, hasta ve sohbet katilimciligini kontrol eder.
 - **Production kontrolu** - canliya cikmadan once `pnpm check:production` calistirin; RLS, storage policy, realtime publication ve signed URL smoke testlerini denetler.
 
+## Test
+
+Birim ve bileşen testleri (Vitest + Testing Library):
+
+```bash
+pnpm test          # tek seferlik koşum (CI uyumlu)
+pnpm test:watch    # geliştirme sırasında izleme modu
+pnpm test:ui       # Vitest UI
+```
+
+Testler `tests/unit/**/*.{test,spec}.{ts,tsx}` altinda yasar. Setup
+`vitest.setup.ts` icinden `@testing-library/jest-dom/vitest` matchers yukler.
+
+Uctan uca testler (Playwright, Chromium):
+
+```bash
+pnpm e2e           # baslangic icin: testleri kos
+pnpm e2e:ui        # Playwright UI mode
+pnpm e2e:debug     # debug mode (inspector)
+```
+
+Playwright config (`playwright.config.ts`) `pnpm dev` server'ini otomatik
+ayaga kaldirir (`reuseExistingServer` lokalde acik). Disardan calisan bir
+server'a baglanmak icin: `E2E_BASE_URL=https://staging.example.com pnpm e2e`
+ya da `E2E_SKIP_WEB_SERVER=1 pnpm e2e`.
+
+Ilk kurulumdan sonra Chromium gerekli ise: `pnpm exec playwright install chromium`.
+
 ## Yapılacaklar (entegrasyon notları)
 - **E-posta / SMS gönderimi** — bildirim oluşturulduğunda dış servise gönderim eklemek için Supabase Edge Function ya da bir webhook ekleyin.
