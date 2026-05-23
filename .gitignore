@@ -34,3 +34,8 @@ next-env.d.ts
 
 # v0.dev generated drafts/injection helpers
 .v0/
+
+# test artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
