@@ -25,6 +25,7 @@ export default async function DashboardPage() {
     patients,
     services,
     staff,
+    locations,
     business,
     confirmedAppointments,
     calendarAppointments,
@@ -47,6 +48,11 @@ export default async function DashboardPage() {
       where: { businessId: session.businessId, isActive: true },
       orderBy: { fullName: 'asc' },
       select: { id: true, fullName: true },
+    }),
+    prisma.location.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
     }),
     prisma.business.findUnique({
       where: { id: session.businessId },
@@ -104,6 +110,7 @@ export default async function DashboardPage() {
       durationMin: service.durationMin,
     })),
     staff: staff.map((member) => ({ id: member.id, label: member.fullName })),
+    locations: locations.map((location) => ({ id: location.id, label: location.name })),
     bookingSlug: business?.slug ?? 'klinik',
   }
 

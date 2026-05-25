@@ -147,6 +147,7 @@ export async function getPatientDetail(
         include: {
           service: { select: { name: true, color: true } },
           staff: { select: { fullName: true } },
+          location: { select: { name: true } },
         },
       },
       timeline: { orderBy: { createdAt: 'desc' }, take: 50 },
@@ -223,7 +224,7 @@ export async function getTeamList(businessId: string) {
 
 export async function getAppointmentsRange(
   businessId: string,
-  range: { from: Date; to: Date; staffId?: string; serviceId?: string },
+  range: { from: Date; to: Date; staffId?: string; serviceId?: string; locationId?: string },
   viewer: SessionContext
 ) {
   const where: Prisma.AppointmentWhereInput = {
@@ -232,6 +233,7 @@ export async function getAppointmentsRange(
   }
   if (range.staffId) where.staffId = range.staffId
   if (range.serviceId) where.serviceId = range.serviceId
+  if (range.locationId) where.locationId = range.locationId
   applyAppointmentViewScope(where, viewer)
   return prisma.appointment.findMany({
     where,
@@ -240,13 +242,14 @@ export async function getAppointmentsRange(
       patient: { select: { id: true, fullName: true, phone: true } },
       service: { select: { id: true, name: true, color: true, durationMin: true } },
       staff: { select: { id: true, fullName: true, color: true } },
+      location: { select: { id: true, name: true } },
     },
   })
 }
 
 export async function getAppointmentsList(
   businessId: string,
-  options: { status?: string; from?: Date; to?: Date } = {},
+  options: { status?: string; from?: Date; to?: Date; locationId?: string } = {},
   viewer: SessionContext
 ) {
   const where: Prisma.AppointmentWhereInput = { businessId }
@@ -256,6 +259,7 @@ export async function getAppointmentsList(
     if (options.from) where.date.gte = options.from
     if (options.to) where.date.lte = options.to
   }
+  if (options.locationId) where.locationId = options.locationId
   applyAppointmentViewScope(where, viewer)
   return prisma.appointment.findMany({
     where,
@@ -265,6 +269,7 @@ export async function getAppointmentsList(
       patient: { select: { id: true, fullName: true, phone: true } },
       service: { select: { id: true, name: true, color: true, durationMin: true } },
       staff: { select: { id: true, fullName: true, color: true } },
+      location: { select: { id: true, name: true } },
     },
   })
 }

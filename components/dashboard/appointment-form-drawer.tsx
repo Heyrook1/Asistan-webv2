@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,6 +17,7 @@ export type AppointmentOption = { id: string; label: string }
 export function AppointmentFormDrawer({
   open,
   onOpenChange,
+  locations,
   patients,
   services,
   staff,
@@ -26,6 +27,7 @@ export function AppointmentFormDrawer({
 }: {
   open: boolean
   onOpenChange: (next: boolean) => void
+  locations: AppointmentOption[]
   patients: AppointmentOption[]
   services: (AppointmentOption & { durationMin: number })[]
   staff: AppointmentOption[]
@@ -37,6 +39,7 @@ export function AppointmentFormDrawer({
   const [pending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [form, setForm] = useState({
+    locationId: '',
     patientId: defaultPatientId ?? '',
     serviceId: '',
     staffId: '',
@@ -46,50 +49,20 @@ export function AppointmentFormDrawer({
   })
 
   useEffect(() => {
-    if (open) {
-      setForm((f) => ({
-        ...f,
-        patientId: defaultPatientId ?? f.patientId,
-        date: defaultDate ?? f.date,
-        startTime: defaultStartTime ?? f.startTime,
-      }))
-    }
-  }, [open, defaultPatientId, defaultDate, defaultStartTime])
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault()
-    const nextErrors: Record<string, string> = {}
-    if (!form.patientId) nextErrors.patientId = 'Randevu oluşturmak için hasta seçin.'
-    if (!form.serviceId) nextErrors.serviceId = 'Randevu süresini ve ücretini belirlemek için hizmet seçin.'
-    if (!form.date) nextErrors.date = 'Randevu tarihini girin.'
-    if (!form.startTime) nextErrors.startTime = 'Başlangıç saatini girin.'
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) {
-      toast.error('Eksik alanları kontrol edin')
-      return
-    }
-
-    startTransition(async () => {
-      const result = await createAppointment({
-        patientId: form.patientId,
-        serviceId: form.serviceId,
-        staffId: form.staffId && form.staffId !== 'none' ? form.staffId : undefined,
-        date: form.date,
-        startTime: form.startTime,
-        notes: form.notes || undefined,
-        status: 'SCHEDULED',
-      })
-      if (!result.ok) {
-        toast.error(result.error)
-        return
-      }
-      toast.success('Randevu oluşturuldu')
-      onOpenChange(false)
-      setErrors({})
-      setForm({ patientId: '', serviceId: '', staffId: '', date: '', startTime: '', notes: '' })
-      router.refresh()
-    })
-  }
+    if (!open) return
+    setForm((current) => ({
+      ...current,
+      locationId:
+        current.locationId && locations.some((location) => location.id === current.locationId)
+          ? current.locationId
+          : locations.length === 1
+            ? locations[0].id
+            : '',
+      patientId: defaultPatientId ?? current.patientId,
+      date: defaultDate ?? current.date,
+      startTime: defaultStartTime ?? current.startTime,
+    }))
+  }, [open, defaultPatientId, defaultDate, defaultStartTime, locations])
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -101,84 +74,193 @@ export function AppointmentFormDrawer({
     })
   }
 
+  function submit(event: React.FormEvent) {
+    event.preventDefault()
+
+    const nextErrors: Record<string, string> = {}
+    if (locations.length > 1 && !form.locationId) nextErrors.locationId = 'Randevu icin bir sube secin.'
+    if (!form.patientId) nextErrors.patientId = 'Randevu olusturmak icin hasta secin.'
+    if (!form.serviceId) nextErrors.serviceId = 'Randevu suresini belirlemek icin hizmet secin.'
+    if (!form.date) nextErrors.date = 'Randevu tarihini girin.'
+    if (!form.startTime) nextErrors.startTime = 'Baslangic saatini girin.'
+
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error('Eksik alanlari kontrol edin')
+      return
+    }
+
+    startTransition(async () => {
+      const result = await createAppointment({
+        locationId: form.locationId || undefined,
+        patientId: form.patientId,
+        serviceId: form.serviceId,
+        staffId: form.staffId && form.staffId !== 'none' ? form.staffId : undefined,
+        date: form.date,
+        startTime: form.startTime,
+        notes: form.notes || undefined,
+        status: 'SCHEDULED',
+      })
+
+      if (!result.ok) {
+        const fieldErrors = result.fieldErrors ?? {}
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors((current) => ({ ...current, ...fieldErrors }))
+        }
+        toast.error(result.error)
+        return
+      }
+
+      toast.success('Randevu olusturuldu')
+      onOpenChange(false)
+      setErrors({})
+      setForm({
+        locationId: locations.length === 1 ? locations[0].id : '',
+        patientId: '',
+        serviceId: '',
+        staffId: '',
+        date: '',
+        startTime: '',
+        notes: '',
+      })
+      router.refresh()
+    })
+  }
+
   const noPatients = patients.length === 0
   const noServices = services.length === 0
+  const multipleLocations = locations.length > 1
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full max-w-full overflow-y-auto p-0 sm:max-w-md">
         <form onSubmit={submit} className="flex h-full flex-col">
-          <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-[#06142A] to-[#0E2D52] px-5 py-4 text-white pt-safe">
+          <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-brand-navy to-sidebar-card px-5 py-4 pt-safe text-white">
             <SheetTitle className="flex items-center gap-2 text-white">
-              <CalendarPlus className="h-5 w-5 text-[#0B7F6F]" /> Yeni Randevu
+              <CalendarPlus className="h-5 w-5 text-brand-teal" />
+              Yeni Randevu
             </SheetTitle>
             <SheetDescription className="text-white/60">
-              Hasta, hizmet ve saat bilgilerini girin.
+              Hasta, sube ve saat bilgilerini girin.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto bg-[#F7F9FB] px-4 py-4 space-y-4 md:px-6 md:py-5">
+          <div className="flex-1 space-y-4 overflow-y-auto bg-dashboard-surface px-4 py-4 md:px-6 md:py-5">
             {noPatients && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                Henüz hasta yok. Önce <strong>Hasta Ekle</strong> ile bir hasta oluşturmalısınız.
+                Henuz hasta yok. Once Hasta Ekle ile bir hasta olusturmalisiniz.
               </div>
             )}
             {noServices && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                Henüz hizmet yok. Önce <strong>Hizmetler</strong> sayfasından bir hizmet ekleyin.
+                Henuz hizmet yok. Once Hizmetler sayfasindan bir hizmet ekleyin.
               </div>
             )}
+            {locations.length === 0 && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                Henuz sube kaydi yok. Bu randevu ile varsayilan sube olusturulacak.
+              </div>
+            )}
+            {locations.length > 0 && (
+              <div>
+                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                  Sube{multipleLocations ? ' *' : ''}
+                </Label>
+                <Select value={form.locationId || undefined} onValueChange={(value) => update('locationId', value)}>
+                  <SelectTrigger aria-invalid={Boolean(errors.locationId)}>
+                    <SelectValue placeholder="Sube sec" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.locationId && <p className="mt-1 text-xs text-destructive">{errors.locationId}</p>}
+              </div>
+            )}
+
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Hasta *</Label>
-              <Select value={form.patientId || undefined} onValueChange={(v) => update('patientId', v)}>
-                <SelectTrigger aria-invalid={Boolean(errors.patientId)}><SelectValue placeholder="Hasta seç" /></SelectTrigger>
+              <Label className="mb-1.5 block text-xs text-muted-foreground">Hasta *</Label>
+              <Select value={form.patientId || undefined} onValueChange={(value) => update('patientId', value)}>
+                <SelectTrigger aria-invalid={Boolean(errors.patientId)}>
+                  <SelectValue placeholder="Hasta sec" />
+                </SelectTrigger>
                 <SelectContent>
-                  {patients.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                  {patients.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>
+                      {patient.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {errors.patientId && <p className="mt-1 text-xs text-destructive">{errors.patientId}</p>}
             </div>
+
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Hizmet *</Label>
-              <Select value={form.serviceId || undefined} onValueChange={(v) => update('serviceId', v)}>
-                <SelectTrigger aria-invalid={Boolean(errors.serviceId)}><SelectValue placeholder="Hizmet seç" /></SelectTrigger>
+              <Label className="mb-1.5 block text-xs text-muted-foreground">Hizmet *</Label>
+              <Select value={form.serviceId || undefined} onValueChange={(value) => update('serviceId', value)}>
+                <SelectTrigger aria-invalid={Boolean(errors.serviceId)}>
+                  <SelectValue placeholder="Hizmet sec" />
+                </SelectTrigger>
                 <SelectContent>
-                  {services.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.label} • {s.durationMin} dk</SelectItem>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.label} - {service.durationMin} dk
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {errors.serviceId && <p className="mt-1 text-xs text-destructive">{errors.serviceId}</p>}
             </div>
+
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Personel</Label>
-              <Select value={form.staffId || 'none'} onValueChange={(v) => update('staffId', v)}>
-                <SelectTrigger><SelectValue placeholder="Personel (opsiyonel)" /></SelectTrigger>
+              <Label className="mb-1.5 block text-xs text-muted-foreground">Personel</Label>
+              <Select value={form.staffId || 'none'} onValueChange={(value) => update('staffId', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Personel (opsiyonel)" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Atanmadı</SelectItem>
-                  {staff.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                  <SelectItem value="none">Atanmadi</SelectItem>
+                  {staff.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Tarih *</Label>
-                <Input type="date" value={form.date} onChange={(e) => update('date', e.target.value)} required aria-invalid={Boolean(errors.date)} />
+                <Label className="mb-1.5 block text-xs text-muted-foreground">Tarih *</Label>
+                <Input
+                  type="date"
+                  value={form.date}
+                  onChange={(event) => update('date', event.target.value)}
+                  required
+                  aria-invalid={Boolean(errors.date)}
+                />
                 {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Saat *</Label>
-                <Input type="time" value={form.startTime} onChange={(e) => update('startTime', e.target.value)} required aria-invalid={Boolean(errors.startTime)} />
+                <Label className="mb-1.5 block text-xs text-muted-foreground">Saat *</Label>
+                <Input
+                  type="time"
+                  value={form.startTime}
+                  onChange={(event) => update('startTime', event.target.value)}
+                  required
+                  aria-invalid={Boolean(errors.startTime)}
+                />
                 {errors.startTime && <p className="mt-1 text-xs text-destructive">{errors.startTime}</p>}
               </div>
             </div>
+
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Not</Label>
-              <Textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} rows={3} />
+              <Label className="mb-1.5 block text-xs text-muted-foreground">Not</Label>
+              <Textarea value={form.notes} onChange={(event) => update('notes', event.target.value)} rows={3} />
             </div>
           </div>
 
@@ -191,16 +273,16 @@ export function AppointmentFormDrawer({
                 onClick={() => onOpenChange(false)}
                 className="h-11 flex-1 md:flex-none"
               >
-                İptal
+                Iptal
               </Button>
               <Button
                 type="submit"
                 size="lg"
                 disabled={pending || noPatients || noServices}
-                className="h-11 flex-[2] bg-[#0B7F6F] text-white hover:bg-[#09685C] md:flex-none"
+                className="h-11 flex-[2] bg-brand-teal text-white hover:bg-brand-teal-hover md:flex-none"
               >
                 {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {pending ? 'Kaydediliyor...' : 'Randevu Oluştur'}
+                {pending ? 'Kaydediliyor...' : 'Randevu Olustur'}
               </Button>
             </div>
           </div>

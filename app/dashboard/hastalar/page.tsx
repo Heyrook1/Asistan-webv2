@@ -23,7 +23,7 @@ function initials(name: string) {
 export default async function HastalarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; archived?: string }>
+  searchParams: Promise<{ q?: string; archived?: string; create?: string }>
 }) {
   const sp = await searchParams
   const session = await requirePagePermission('patient.view')
@@ -34,14 +34,17 @@ export default async function HastalarPage({
     <div className="space-y-3 lg:space-y-4">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#0C1D36] lg:text-2xl">Hastalar</h1>
+          <h1 className="text-xl font-bold text-brand-ink lg:text-2xl">Hastalar</h1>
           <p className="text-[12px] text-muted-foreground lg:text-sm">
             {patients.length} hasta{sp.q ? ` • "${sp.q}"` : ''}{archived ? ' • arşiv' : ''}
           </p>
         </div>
       </div>
 
-      <PatientsToolbar canCreate={can(session, 'patient.edit')} />
+      <PatientsToolbar
+        canCreate={can(session, 'patient.edit')}
+        initialCreateOpen={sp.create === '1'}
+      />
 
       {patients.length === 0 ? (
         <EmptyState
@@ -66,12 +69,12 @@ export default async function HastalarPage({
                     href={`/dashboard/hastalar/${p.id}`}
                     className="flex items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm active:bg-slate-50"
                   >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0B7F6F]/15 to-[#16A9E8]/15 text-sm font-bold text-[#0C1D36]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-teal/15 to-brand-cyan/15 text-sm font-bold text-brand-ink">
                       {initials(p.fullName)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
-                        <span className="truncate text-[15px] font-semibold text-[#0C1D36]">{p.fullName}</span>
+                        <span className="truncate text-[15px] font-semibold text-brand-ink">{p.fullName}</span>
                         {hasAllergy && (
                           <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Alerji uyarısı" />
                         )}
@@ -85,7 +88,7 @@ export default async function HastalarPage({
                           <Badge className="bg-rose-100 text-rose-700 border-0 text-[10px]">Riskli</Badge>
                         )}
                         {p.tags.slice(0, 2).map((tag) => (
-                          <Badge key={tag} variant="secondary" className="bg-[#0B7F6F]/10 text-[#0b7f6f] border-0 text-[10px]">
+                          <Badge key={tag} variant="secondary" className="bg-brand-teal/10 text-brand-teal border-0 text-[10px]">
                             {tag}
                           </Badge>
                         ))}
@@ -108,7 +111,7 @@ export default async function HastalarPage({
             <CardContent className="p-0 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#F7F9FB] text-left">
+                  <thead className="bg-dashboard-surface text-left">
                     <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-3 font-medium">Hasta</th>
                       <th className="px-4 py-3 font-medium">İletişim</th>
@@ -124,11 +127,11 @@ export default async function HastalarPage({
                       const hasAllergy = p._count.allergies > 0
                       const hasRisk = Boolean(p.riskNote)
                       return (
-                        <tr key={p.id} className="hover:bg-[#F7F9FB]">
+                        <tr key={p.id} className="hover:bg-dashboard-surface">
                           <td className="px-4 py-3">
                             <Link
                               href={`/dashboard/hastalar/${p.id}`}
-                              className="flex items-center gap-1.5 font-medium text-[#0C1D36] hover:text-[#0B7F6F]"
+                              className="flex items-center gap-1.5 font-medium text-brand-ink hover:text-brand-teal"
                             >
                               {p.fullName}
                               {hasAllergy && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
@@ -137,7 +140,7 @@ export default async function HastalarPage({
                             <span className="text-[11px] text-muted-foreground">#{p.patientNumber}</span>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            <p className="flex items-center gap-1.5 text-sm text-[#0C1D36]">
+                            <p className="flex items-center gap-1.5 text-sm text-brand-ink">
                               <Phone className="h-3 w-3 text-muted-foreground" /> {formatPhone(p.phone)}
                             </p>
                             {p.email && (
@@ -147,7 +150,7 @@ export default async function HastalarPage({
                             )}
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">
-                            <p className="text-sm text-[#0C1D36]">{age != null ? `${age}` : '—'}</p>
+                            <p className="text-sm text-brand-ink">{age != null ? `${age}` : '—'}</p>
                             <p className="text-[11px] text-muted-foreground">{p.gender || '—'}</p>
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">
@@ -156,7 +159,7 @@ export default async function HastalarPage({
                                 <span className="text-[11px] text-muted-foreground">—</span>
                               ) : (
                                 p.tags.slice(0, 3).map((t) => (
-                                  <Badge key={t} variant="secondary" className="bg-[#0B7F6F]/10 text-[#0b7f6f] text-[10px]">
+                                  <Badge key={t} variant="secondary" className="bg-brand-teal/10 text-brand-teal text-[10px]">
                                     {t}
                                   </Badge>
                                 ))
@@ -164,13 +167,13 @@ export default async function HastalarPage({
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <p className="text-sm text-[#0C1D36]">{p._count.appointments} randevu</p>
+                            <p className="text-sm text-brand-ink">{p._count.appointments} randevu</p>
                             <p className="text-[11px] text-muted-foreground">{formatRelativeDate(p.updatedAt)}</p>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <Link
                               href={`/dashboard/hastalar/${p.id}`}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-[#0B7F6F]"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-brand-teal"
                             >
                               Aç <ArrowRight className="h-3.5 w-3.5" />
                             </Link>

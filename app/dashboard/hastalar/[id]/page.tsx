@@ -39,7 +39,7 @@ export default async function PatientDetailPage({
 
   const age = ageFromBirthDate(patient.birthDate)
 
-  const [services, staff] = await Promise.all([
+  const [services, staff, locations] = await Promise.all([
     prisma.service.findMany({
       where: { businessId: session.businessId, isActive: true },
       orderBy: { name: 'asc' },
@@ -49,6 +49,11 @@ export default async function PatientDetailPage({
       where: { businessId: session.businessId, isActive: true },
       orderBy: { fullName: 'asc' },
       select: { id: true, fullName: true },
+    }),
+    prisma.location.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
     }),
   ])
 
@@ -66,12 +71,12 @@ export default async function PatientDetailPage({
 
   return (
     <div className="space-y-3 lg:space-y-4">
-      <Link href="/dashboard/hastalar" className="tap-target inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-[#0B7F6F]">
+      <Link href="/dashboard/hastalar" className="tap-target inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand-teal">
         <ChevronLeft className="h-4 w-4" /> Hasta listesine dön
       </Link>
 
       <div className="hidden lg:block">
-        <h1 className="text-2xl font-bold text-[#0C1D36]">Hasta Kartı</h1>
+        <h1 className="text-2xl font-bold text-brand-ink">Hasta Kartı</h1>
         <p className="text-sm text-muted-foreground">Hastanın tüm klinik geçmişi, ilaçları, notları, dosyaları ve tedavi süreci tek ekranda.</p>
       </div>
 
@@ -80,17 +85,17 @@ export default async function PatientDetailPage({
         <CardContent className="p-4 lg:p-5">
           <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0B7F6F] to-[#16A9E8] text-white text-xl font-bold">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-teal to-brand-cyan text-white text-xl font-bold">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold text-[#0C1D36]">{patient.fullName}</h2>
+                  <h2 className="text-xl font-bold text-brand-ink">{patient.fullName}</h2>
                   <Badge className={patient.isArchived ? 'bg-rose-100 text-rose-800 border-0' : 'bg-emerald-100 text-emerald-800 border-0'}>
                     {patient.isArchived ? 'Arşivli' : 'Aktif Hasta'}
                   </Badge>
                 </div>
-                <p className="text-[13px] text-[#0B7F6F] font-medium">#{patient.patientNumber}</p>
+                <p className="text-[13px] text-brand-teal font-medium">#{patient.patientNumber}</p>
 
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <StatPill label="Yaş" value={age != null ? String(age) : '—'} />
@@ -100,24 +105,24 @@ export default async function PatientDetailPage({
 
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-[#0B7F6F]" /> {formatPhone(patient.phone)}
+                    <Phone className="h-3.5 w-3.5 text-brand-teal" /> {formatPhone(patient.phone)}
                   </span>
                   {patient.email && (
                     <span className="inline-flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-[#0B7F6F]" /> {patient.email}
+                      <Mail className="h-3.5 w-3.5 text-brand-teal" /> {patient.email}
                     </span>
                   )}
                   {patient.city && (
                     <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-[#0B7F6F]" /> {patient.city}
+                      <MapPin className="h-3.5 w-3.5 text-brand-teal" /> {patient.city}
                     </span>
                   )}
                 </div>
 
                 {(patient.emergencyContactName || patient.emergencyContactPhone) && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#F7F9FB] px-3 py-1.5 text-xs text-muted-foreground">
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-dashboard-surface px-3 py-1.5 text-xs text-muted-foreground">
                     <ShieldAlert className="h-3.5 w-3.5 text-rose-500" />
-                    <span><strong className="text-[#0C1D36]">Acil İletişim:</strong> {patient.emergencyContactName ?? '—'}{patient.emergencyContactPhone ? ` — ${formatPhone(patient.emergencyContactPhone)}` : ''}</span>
+                    <span><strong className="text-brand-ink">Acil İletişim:</strong> {patient.emergencyContactName ?? '—'}{patient.emergencyContactPhone ? ` — ${formatPhone(patient.emergencyContactPhone)}` : ''}</span>
                   </div>
                 )}
               </div>
@@ -154,6 +159,7 @@ export default async function PatientDetailPage({
                 isArchived={patient.isArchived}
                 services={services}
                 staff={staff}
+                locations={locations}
                 patientLabel={`${patient.fullName} (#${patient.patientNumber})`}
               />
             </div>
@@ -162,7 +168,7 @@ export default async function PatientDetailPage({
       </Card>
 
       <Tabs defaultValue="genel" className="space-y-3 lg:space-y-4">
-        <div className="-mx-4 sticky top-14 z-10 bg-[#F4F8F9]/95 px-4 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0 md:backdrop-blur-none lg:top-[68px]">
+        <div className="-mx-4 sticky top-14 z-10 bg-dashboard-bg/95 px-4 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0 md:backdrop-blur-none lg:top-[68px]">
           <Card className="overflow-hidden">
             <CardContent className="p-1.5 md:p-2">
               <div className="overflow-x-auto no-scrollbar md:overflow-visible">
@@ -211,8 +217,8 @@ export default async function PatientDetailPage({
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-[#0C1D36] flex items-center gap-2">
-                      <ClipboardCheck className="h-4 w-4 text-[#0B7F6F]" /> Tedavi Planı
+                    <h3 className="text-sm font-semibold text-brand-ink flex items-center gap-2">
+                      <ClipboardCheck className="h-4 w-4 text-brand-teal" /> Tedavi Planı
                     </h3>
                   </div>
                   <TreatmentPlanBoard
@@ -234,7 +240,7 @@ export default async function PatientDetailPage({
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-[#0C1D36]">Kullandığı İlaçlar</h3>
+                    <h3 className="text-sm font-semibold text-brand-ink">Kullandığı İlaçlar</h3>
                     <span className="text-[11px] text-muted-foreground">{activeMedications.length} aktif</span>
                   </div>
                   {patient.medications.length === 0 ? (
@@ -243,11 +249,11 @@ export default async function PatientDetailPage({
                     <ul className="space-y-2">
                       {patient.medications.slice(0, 6).map((m) => (
                         <li key={m.id} className="flex items-start gap-3 rounded-lg border bg-white p-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0B7F6F]/10 text-[#0b7f6f] text-[10px] font-bold">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-teal/10 text-brand-teal text-[10px] font-bold">
                             Rx
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#0C1D36] truncate">{m.name}</p>
+                            <p className="text-sm font-medium text-brand-ink truncate">{m.name}</p>
                             <p className="text-[11px] text-muted-foreground truncate">
                               {[m.dosage, m.frequency].filter(Boolean).join(' • ') || 'Detay yok'}
                             </p>
@@ -268,7 +274,7 @@ export default async function PatientDetailPage({
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-[#0C1D36]">Tahliller ve Raporlar</h3>
+                    <h3 className="text-sm font-semibold text-brand-ink">Tahliller ve Raporlar</h3>
                   </div>
                   {pdfFiles.length === 0 && patient.labResults.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Henüz tahlil/rapor yok.</p>
@@ -280,13 +286,13 @@ export default async function PatientDetailPage({
                             <FileText className="h-4 w-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#0C1D36] truncate">{f.fileName}</p>
+                            <p className="text-sm font-medium text-brand-ink truncate">{f.fileName}</p>
                             <p className="text-[11px] text-muted-foreground">{formatShortDate(f.uploadedAt)}</p>
                           </div>
-                          <a href={f.fileUrl} target="_blank" rel="noreferrer" className="rounded-md p-1.5 hover:bg-[#F7F9FB]" title="Görüntüle">
+                          <a href={f.fileUrl} target="_blank" rel="noreferrer" className="rounded-md p-1.5 hover:bg-dashboard-surface" title="Görüntüle">
                             <Eye className="h-4 w-4 text-muted-foreground" />
                           </a>
-                          <a href={f.fileUrl} download={f.fileName} className="rounded-md p-1.5 hover:bg-[#F7F9FB]" title="İndir">
+                          <a href={f.fileUrl} download={f.fileName} className="rounded-md p-1.5 hover:bg-dashboard-surface" title="İndir">
                             <Download className="h-4 w-4 text-muted-foreground" />
                           </a>
                         </li>
@@ -297,7 +303,7 @@ export default async function PatientDetailPage({
                             <ClipboardCheck className="h-4 w-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#0C1D36] truncate">{l.title}</p>
+                            <p className="text-sm font-medium text-brand-ink truncate">{l.title}</p>
                             <p className="text-[11px] text-muted-foreground">{formatShortDate(l.resultDate)}</p>
                           </div>
                         </li>
@@ -313,7 +319,7 @@ export default async function PatientDetailPage({
               <Card>
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-[#0C1D36]">Hasta Hikayesi</h3>
+                    <h3 className="text-sm font-semibold text-brand-ink">Hasta Hikayesi</h3>
                   </div>
                   {patient.timeline.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
@@ -329,7 +335,7 @@ export default async function PatientDetailPage({
                             {timelineIcon(ev.type)}
                           </span>
                           <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
-                          <p className="text-sm text-[#0C1D36]">{ev.title}</p>
+                          <p className="text-sm text-brand-ink">{ev.title}</p>
                           {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
                         </li>
                       ))}
@@ -342,7 +348,7 @@ export default async function PatientDetailPage({
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="h-4 w-4 text-violet-600" />
-                    <h3 className="text-sm font-semibold text-[#0C1D36]">AI Klinik Önerileri</h3>
+                    <h3 className="text-sm font-semibold text-brand-ink">AI Klinik Önerileri</h3>
                   </div>
                   {canViewMedicalNotes ? (
                     <AISuggestionsList suggestions={(patient.aiSuggestions as Suggestion[] | null) ?? defaultSuggestions(patient)} />
@@ -366,7 +372,7 @@ export default async function PatientDetailPage({
                   {patient.appointments.map((a) => (
                     <li key={a.id} className="py-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-[#0C1D36]">{a.service.name}</p>
+                        <p className="text-sm font-medium text-brand-ink">{a.service.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {formatDate(a.date)} • {formatTime(a.startTime)}-{formatTime(a.endTime)}{a.staff ? ` • ${a.staff.fullName}` : ''}
                         </p>
@@ -394,7 +400,7 @@ export default async function PatientDetailPage({
                   {patient.medications.map((m) => (
                     <li key={m.id} className="rounded-xl border bg-white p-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[#0C1D36]">{m.name}</p>
+                        <p className="text-sm font-semibold text-brand-ink">{m.name}</p>
                         <Badge variant="outline" className={m.active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}>
                           {m.active ? 'Aktif' : 'Pasif'}
                         </Badge>
@@ -424,7 +430,7 @@ export default async function PatientDetailPage({
                   {patient.allergies.map((a) => (
                     <li key={a.id} className="rounded-xl border bg-white p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-[#0C1D36]">{a.name}</p>
+                        <p className="text-sm font-semibold text-brand-ink">{a.name}</p>
                         <Badge
                           variant="outline"
                           className={
@@ -459,7 +465,7 @@ export default async function PatientDetailPage({
                   {patient.treatments.map((t) => (
                     <li key={t.id} className="rounded-xl border bg-white p-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[#0C1D36]">{t.title}</p>
+                        <p className="text-sm font-semibold text-brand-ink">{t.title}</p>
                         <Badge variant="outline">{TREATMENT_STATUS_LABELS[t.status]}</Badge>
                       </div>
                       {t.doctorName && <p className="text-xs text-muted-foreground">Hekim: {t.doctorName}</p>}
@@ -482,7 +488,7 @@ export default async function PatientDetailPage({
                 <ul className="space-y-3">
                   {patient.labResults.map((l) => (
                     <li key={l.id} className="rounded-xl border bg-white p-3">
-                      <p className="text-sm font-semibold text-[#0C1D36]">{l.title}</p>
+                      <p className="text-sm font-semibold text-brand-ink">{l.title}</p>
                       <p className="text-xs text-muted-foreground">{formatDate(l.resultDate)}{l.labName ? ` • ${l.labName}` : ''}</p>
                       {l.description && <p className="text-xs mt-1 whitespace-pre-line">{l.description}</p>}
                     </li>
@@ -499,15 +505,15 @@ export default async function PatientDetailPage({
           <Card>
             <CardContent className="p-5 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
               <div>
-                <h3 className="mb-2 text-sm font-semibold text-[#0C1D36]">Anamnez ve Hasta Hikayesi</h3>
+                <h3 className="mb-2 text-sm font-semibold text-brand-ink">Anamnez ve Hasta Hikayesi</h3>
                 {patient.patientStory ? (
-                  <p className="whitespace-pre-line text-sm leading-6 text-[#0C1D36]">{patient.patientStory}</p>
+                  <p className="whitespace-pre-line text-sm leading-6 text-brand-ink">{patient.patientStory}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground">Hasta hikayesi henüz girilmedi.</p>
                 )}
               </div>
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-[#0C1D36]">Zaman Çizelgesi</h3>
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">Zaman Çizelgesi</h3>
                 {patient.timeline.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
                 ) : (
@@ -522,7 +528,7 @@ export default async function PatientDetailPage({
                           {timelineIcon(ev.type)}
                         </span>
                         <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
-                        <p className="text-sm text-[#0C1D36]">{ev.title}</p>
+                        <p className="text-sm text-brand-ink">{ev.title}</p>
                         {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
                       </li>
                     ))}
@@ -544,8 +550,8 @@ export default async function PatientDetailPage({
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {patient.files.map((f) => (
-                    <a key={f.id} href={f.fileUrl} target="_blank" rel="noreferrer" className="block rounded-xl border bg-white p-3 hover:border-[#0B7F6F]/40">
-                      <p className="text-sm font-medium text-[#0C1D36] truncate">{f.fileName}</p>
+                    <a key={f.id} href={f.fileUrl} target="_blank" rel="noreferrer" className="block rounded-xl border bg-white p-3 hover:border-brand-teal/40">
+                      <p className="text-sm font-medium text-brand-ink truncate">{f.fileName}</p>
                       <p className="text-[11px] text-muted-foreground">{FILE_CATEGORY_LABELS[f.category] ?? f.category} • {f.fileType}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(f.uploadedAt)}</p>
                     </a>
@@ -569,10 +575,10 @@ export default async function PatientDetailPage({
                   {patient.notes.map((n) => (
                     <li key={n.id} className="rounded-xl border bg-white p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-[#0C1D36]">{n.title}</p>
+                        <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
                         {n.isPinned && <Badge className="bg-amber-100 text-amber-800 border-0">Sabit</Badge>}
                       </div>
-                      <p className="mt-1 text-sm whitespace-pre-line text-[#0C1D36]">{n.note}</p>
+                      <p className="mt-1 text-sm whitespace-pre-line text-brand-ink">{n.note}</p>
                       <p className="mt-2 text-[10px] text-muted-foreground">{formatDateTime(n.createdAt)} • {n.creator?.fullName ?? n.createdBy}</p>
                     </li>
                   ))}
@@ -591,7 +597,7 @@ function StatPill({ label, value, highlight = false }: { label: string; value: s
   return (
     <div className="flex flex-col">
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className={`text-sm font-semibold ${highlight ? 'text-rose-600' : 'text-[#0C1D36]'}`}>{value}</span>
+      <span className={`text-sm font-semibold ${highlight ? 'text-rose-600' : 'text-brand-ink'}`}>{value}</span>
     </div>
   )
 }
@@ -632,7 +638,7 @@ function AISuggestionsList({ suggestions }: { suggestions: Suggestion[] }) {
           <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700">
             {suggestionIcon(s.type ?? s.icon)}
           </span>
-          <p className="text-sm text-[#0C1D36] flex-1">{s.title}</p>
+          <p className="text-sm text-brand-ink flex-1">{s.title}</p>
         </li>
       ))}
     </ul>
@@ -707,7 +713,7 @@ function SummaryCard({
     <Card>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-[#0C1D36]">Hasta Özeti</h3>
+          <h3 className="text-sm font-semibold text-brand-ink">Hasta Özeti</h3>
           {canEdit && <PatientMetaEditor patientId={patientId} initial={meta} staff={staff} />}
         </div>
         <dl className="grid gap-2 text-sm">
@@ -727,7 +733,7 @@ function SummaryRow({ icon, label, value, multiline = false }: { icon: React.Rea
     <div className="grid grid-cols-[20px_120px_1fr] gap-2 items-start">
       <span className="text-muted-foreground mt-0.5">{icon}</span>
       <span className="text-muted-foreground">{label}</span>
-      <span className={`text-[#0C1D36] ${multiline ? '' : 'truncate'}`}>{value}</span>
+      <span className={`text-brand-ink ${multiline ? '' : 'truncate'}`}>{value}</span>
     </div>
   )
 }

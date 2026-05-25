@@ -1,36 +1,33 @@
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { AsistanLogo } from '@/components/asistan-logo'
+import { MailCheck } from 'lucide-react'
+
+import { AuthShell } from '@/components/marketing/auth-shell'
 import { Button } from '@/components/ui/button'
-import { Mail } from 'lucide-react'
 
 export default function SignUpSuccessPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-secondary via-background to-secondary/50 p-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader className="space-y-4">
-          <div className="flex justify-center">
-            <AsistanLogo variant="dark" />
-          </div>
-          <div className="flex justify-center">
-            <div className="rounded-full bg-primary/10 p-4">
-              <Mail className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl">E-postanızı Kontrol Edin</CardTitle>
-          <CardDescription>
-            Hesabınızı doğrulamak için e-posta adresinize bir onay bağlantısı gönderdik.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <p>E-postanızı alamadıysanız, lütfen spam klasörünüzü kontrol edin.</p>
-        </CardContent>
-        <CardFooter>
-          <Button asChild className="w-full">
-            <Link href="/auth/login">Giriş Sayfasına Dön</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+    <AuthShell
+      badge="Kayit Tamamlandi"
+      title="E-posta dogrulama adimina gectiniz."
+      description="Hesabinizi aktif etmek icin e-posta kutunuza gonderilen baglantiyi acin."
+      highlights={[
+        'Gelen kutusu ve spam klasorunu kontrol edin',
+        'Baglantiya tiklayarak hesabi aktiflestirin',
+        'Ardindan panelinize giris yapabilirsiniz',
+      ]}
+    >
+      <div className="text-center">
+        <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-brand-cyan/10 text-brand-blue">
+          <MailCheck className="size-7" />
+        </div>
+        <h2 className="text-2xl font-black text-brand-navy">E-postanizi kontrol edin</h2>
+        <p className="mt-2 text-sm leading-7 text-slate-500">
+          Dogrulama baglantisi acildiktan sonra giris ekranindan devam edebilirsiniz.
+        </p>
+        <Button asChild className="mt-6 h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
+          <Link href="/auth/login">Giris Sayfasina Don</Link>
+        </Button>
+      </div>
+    </AuthShell>
   )
 }

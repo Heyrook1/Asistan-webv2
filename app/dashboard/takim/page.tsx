@@ -1,12 +1,25 @@
 import { requirePagePermission, can } from '@/lib/session'
 import { getTeamList } from '@/lib/queries'
+import { prisma } from '@/lib/prisma'
+import { getVendorPlanName, getVendorPlanUserLimit } from '@/lib/vendor-membership'
 import { TeamBoard } from './team-board'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TakimPage() {
   const session = await requirePagePermission('team.view')
-  const team = await getTeamList(session.businessId)
+  const [team, vendorAccount] = await Promise.all([
+    getTeamList(session.businessId),
+    prisma.vendorAccount.findUnique({
+      where: { businessId: session.businessId },
+      select: { plan: true, isDemo: true, accessEndAt: true },
+    }),
+  ])
+  const activeMembers = team.filter((member) => member.isActive).length
+  const userLimit = getVendorPlanUserLimit({
+    plan: vendorAccount?.plan,
+    isDemo: vendorAccount?.isDemo,
+  })
 
   return (
     <TeamBoard
@@ -24,6 +37,17 @@ export default async function TakimPage() {
         userId: m.userId,
       }))}
       canManage={can(session, 'team.manage')}
+      membership={
+        vendorAccount
+          ? {
+              planName: getVendorPlanName(vendorAccount.plan),
+              isDemo: vendorAccount.isDemo,
+              userLimit,
+              activeMembers,
+              accessEndAt: vendorAccount.accessEndAt ? vendorAccount.accessEndAt.toISOString() : null,
+            }
+          : null
+      }
     />
   )
 }

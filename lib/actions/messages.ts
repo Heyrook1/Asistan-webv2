@@ -5,8 +5,17 @@ import { revalidatePath } from 'next/cache'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { checkRateLimit } from '@/lib/security/rate-limit'
 import { MESSAGE_MEDIA_BUCKET } from '@/lib/storage-constants'
 import { ok, err, type ActionResult } from './result'
+
+const DIRECT_CONVERSATION_RATE_LIMIT = { action: 'messages:get-or-create-direct', limit: 12, windowMs: 60_000 }
+const SEND_MESSAGE_RATE_LIMIT = { action: 'messages:send', limit: 45, windowMs: 60_000 }
+
+function rateLimitedResult(retryAfterMs: number): ActionResult<never> {
+  const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000))
+  return err(`Cok fazla istek gonderdiniz. Lutfen ${retryAfterSeconds} saniye sonra tekrar deneyin.`)
+}
 
 async function assertParticipant(conversationId: string, userId: string) {
   return prisma.conversationParticipant.findFirst({
@@ -40,6 +49,12 @@ export async function getOrCreateDirectConversation(
   const parsed = directSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requireSession()
+  const directRateLimit = await checkRateLimit({
+    ...DIRECT_CONVERSATION_RATE_LIMIT,
+    userId: session.userId,
+    businessId: session.businessId,
+  })
+  if (!directRateLimit.allowed) return rateLimitedResult(directRateLimit.retryAfterMs)
   if (parsed.data.partnerUserId === session.userId) return err('Kendinizle sohbet başlatamazsınız')
   if (!(await assertSameBusinessUser(session.businessId, parsed.data.partnerUserId))) {
     return err('Bu kullanıcı ekipte bulunamadı')
@@ -205,7 +220,7 @@ export async function addGroupParticipants(input: unknown): Promise<ActionResult
       prisma.conversationParticipant.upsert({
         where: { conversationId_userId: { conversationId: conversation.id, userId } },
         create: { conversationId: conversation.id, userId },
-        update: { isActive: true },
+        update: { isActive: true, deletedAt: null },
       })
     )
   )
@@ -272,6 +287,12 @@ export async function sendMessage(
   const parsed = sendSchema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requireSession()
+  const sendRateLimit = await checkRateLimit({
+    ...SEND_MESSAGE_RATE_LIMIT,
+    userId: session.userId,
+    businessId: session.businessId,
+  })
+  if (!sendRateLimit.allowed) return rateLimitedResult(sendRateLimit.retryAfterMs)
   const participant = await assertParticipant(parsed.data.conversationId, session.userId)
   if (!participant) return err('Bu sohbete erişim yetkiniz yok')
   if (!parsed.data.body && parsed.data.attachments.length === 0) return err('Mesaj boş olamaz')
@@ -362,9 +383,26 @@ export async function toggleMessageReaction(input: unknown): Promise<ActionResul
   if (existing) {
     await prisma.messageReaction.delete({ where: { id: existing.id } })
   } else {
-    await prisma.messageReaction.create({
-      data: { messageId: parsed.data.messageId, userId: session.userId, emoji: parsed.data.emoji },
+    const archived = await prisma.messageReaction.findFirst({
+      where: {
+        messageId: parsed.data.messageId,
+        userId: session.userId,
+        emoji: parsed.data.emoji,
+        deletedAt: { not: null },
+      },
+      select: { id: true },
     })
+
+    if (archived) {
+      await prisma.messageReaction.update({
+        where: { id: archived.id },
+        data: { deletedAt: null },
+      })
+    } else {
+      await prisma.messageReaction.create({
+        data: { messageId: parsed.data.messageId, userId: session.userId, emoji: parsed.data.emoji },
+      })
+    }
   }
 
   revalidatePath('/dashboard/mesajlar')

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { Prisma, TeamRole } from '@prisma/client'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { addDays, DEMO_PLAN_CODE, DEMO_TRIAL_DAYS } from '@/lib/vendor-membership'
 import {
   PERMISSIONS,
   ROLE_DEFAULT_PERMISSIONS,
@@ -16,6 +17,27 @@ import {
 
 export { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS, can }
 export type { Permission, SessionContext }
+
+type SessionBlockReason = 'package_expired' | null
+type SessionResolution = {
+  session: SessionContext | null
+  blockedReason: SessionBlockReason
+}
+
+type VendorAccountDelegate = {
+  findUnique: typeof prisma.vendorAccount.findUnique
+  create: typeof prisma.vendorAccount.create
+  update: typeof prisma.vendorAccount.update
+}
+
+function getVendorAccountDelegate(): VendorAccountDelegate | null {
+  const delegate = (prisma as { vendorAccount?: VendorAccountDelegate }).vendorAccount
+  if (!delegate) {
+    console.error('Prisma delegate "vendorAccount" is unavailable. Run prisma generate and restart the server.')
+    return null
+  }
+  return delegate
+}
 
 function slugify(input: string) {
   return input
@@ -72,19 +94,85 @@ async function createBootstrapBusiness(input: {
   })
 }
 
-/**
- * Resolves the current Supabase session into our domain session. Cached per
- * request so multiple Server Components can share the result.
- *
- * Returns null if the visitor is not signed in.
- */
-export const getSession = cache(async (): Promise<SessionContext | null> => {
+async function createSelfSignupDemoVendorAccount(businessId: string) {
+  const vendorAccount = getVendorAccountDelegate()
+  if (!vendorAccount) return
+
+  const exists = await vendorAccount.findUnique({
+    where: { businessId },
+    select: { id: true },
+  })
+  if (exists) return
+
+  const accessStartAt = new Date()
+  await vendorAccount.create({
+    data: {
+      businessId,
+      source: 'SELF_SIGNUP',
+      isDemo: true,
+      status: 'TRIAL',
+      plan: DEMO_PLAN_CODE,
+      accessStartAt,
+      accessEndAt: addDays(accessStartAt, DEMO_TRIAL_DAYS),
+      packageDurationDays: DEMO_TRIAL_DAYS,
+    },
+  })
+}
+
+async function ensureVendorAccessState(input: {
+  businessId: string
+  businessIsActive: boolean
+  role: TeamRole
+}): Promise<SessionBlockReason> {
+  if (input.role === TeamRole.SUPER_ADMIN) return null
+
+  const vendorAccount = getVendorAccountDelegate()
+  if (!vendorAccount) return input.businessIsActive ? null : 'package_expired'
+
+  const account = await vendorAccount.findUnique({
+    where: { businessId: input.businessId },
+    select: {
+      id: true,
+      status: true,
+      accessEndAt: true,
+    },
+  })
+
+  if (!account) {
+    return input.businessIsActive ? null : 'package_expired'
+  }
+
+  const now = new Date()
+  const expired = !!account.accessEndAt && account.accessEndAt.getTime() <= now.getTime()
+
+  if (expired && (account.status === 'TRIAL' || account.status === 'ACTIVE')) {
+    await prisma.$transaction([
+      vendorAccount.update({
+        where: { id: account.id },
+        data: { status: 'SUSPENDED' },
+      }),
+      prisma.business.update({
+        where: { id: input.businessId },
+        data: { isActive: false },
+      }),
+    ])
+    return 'package_expired'
+  }
+
+  if (account.status === 'SUSPENDED' || account.status === 'CANCELLED' || !input.businessIsActive) {
+    return 'package_expired'
+  }
+
+  return null
+}
+
+const resolveSession = cache(async (): Promise<SessionResolution> => {
   const supabase = await createClient()
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser()
 
-  if (!authUser?.email) return null
+  if (!authUser?.email) return { session: null, blockedReason: null }
 
   const fullName =
     (authUser.user_metadata?.full_name as string | undefined) ||
@@ -122,14 +210,13 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     })
   }
 
-  if (!user.isActive) return null
+  if (!user.isActive) return { session: null, blockedReason: null }
 
   const ownedBusiness = await prisma.business.findUnique({ where: { ownerUserId: user.id } })
   const membership = await prisma.teamMember.findFirst({
     where: {
       OR: [{ userId: user.id }, { email: user.email }],
       isActive: true,
-      business: { isActive: true },
     },
     include: { business: true },
     orderBy: { createdAt: 'asc' },
@@ -146,8 +233,14 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
       ownerUserId: user.id,
       email: authUser.email,
     })
-    await prisma.teamMember.create({
-      data: {
+    await prisma.teamMember.upsert({
+      where: {
+        businessId_email: {
+          businessId: business.id,
+          email: authUser.email,
+        },
+      },
+      create: {
         businessId: business.id,
         userId: user.id,
         fullName,
@@ -155,7 +248,16 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
         role: TeamRole.ISLETME_SAHIBI,
         permissions: [...ROLE_DEFAULT_PERMISSIONS.ISLETME_SAHIBI],
       },
+      update: {
+        userId: user.id,
+        fullName,
+        role: TeamRole.ISLETME_SAHIBI,
+        permissions: [...ROLE_DEFAULT_PERMISSIONS.ISLETME_SAHIBI],
+        isActive: true,
+        deletedAt: null,
+      },
     })
+    await createSelfSignupDemoVendorAccount(business.id)
   } else {
     if (membership && !membership.userId) {
       await prisma.teamMember.update({
@@ -174,7 +276,7 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
   })
 
   const isOwner = business.ownerUserId === user.id
-  if (!isOwner && !currentMembership) return null
+  if (!isOwner && !currentMembership) return { session: null, blockedReason: null }
 
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
   if (currentMembership && (!currentMembership.lastSeenAt || currentMembership.lastSeenAt < fiveMinAgo)) {
@@ -185,6 +287,14 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
   }
 
   const role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
+
+  const blockedReason = await ensureVendorAccessState({
+    businessId: business.id,
+    businessIsActive: business.isActive,
+    role,
+  })
+  if (blockedReason) return { session: null, blockedReason }
+
   const explicit = (currentMembership?.permissions ?? []) as Permission[]
   const permissions =
     isOwner || role === TeamRole.SUPER_ADMIN
@@ -194,22 +304,44 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
         : [...(ROLE_DEFAULT_PERMISSIONS[role] ?? [])]
 
   return {
-    userId: user.id,
-    email: user.email,
-    fullName: user.fullName,
-    businessId: business.id,
-    businessName: business.name,
-    role,
-    permissions,
-    isOwner,
-    staffMemberId: currentMembership?.id ?? null,
+    blockedReason: null,
+    session: {
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      businessId: business.id,
+      businessName: business.name,
+      role,
+      permissions,
+      isOwner,
+      staffMemberId: currentMembership?.id ?? null,
+    },
   }
 })
 
+/**
+ * Resolves the current Supabase session into our domain session. Cached per
+ * request so multiple Server Components can share the result.
+ */
+export const getSession = cache(async (): Promise<SessionContext | null> => {
+  const resolved = await resolveSession()
+  return resolved.session
+})
+
+export const getSessionBlockReason = cache(async (): Promise<SessionBlockReason> => {
+  const resolved = await resolveSession()
+  return resolved.blockedReason
+})
+
 export async function requireSession(): Promise<SessionContext> {
-  const session = await getSession()
-  if (!session) redirect('/auth/login')
-  return session
+  const resolved = await resolveSession()
+  if (!resolved.session) {
+    if (resolved.blockedReason === 'package_expired') {
+      redirect('/auth/login?reason=package-expired')
+    }
+    redirect('/auth/login')
+  }
+  return resolved.session
 }
 
 export async function requirePermission(permission: Permission): Promise<SessionContext> {
@@ -234,5 +366,40 @@ export async function requirePageAnyPermission(
   const session = await requireSession()
   if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
   if (!permissions.some((p) => session.permissions.includes(p))) redirect('/dashboard')
+  return session
+}
+
+function getSystemAdminEmails() {
+  const raw = process.env.SYSTEM_ADMIN_EMAILS ?? ''
+  return new Set(
+    raw
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  )
+}
+
+export function isSystemAdmin(session: SessionContext | null) {
+  if (!session) return false
+  const allowlist = getSystemAdminEmails()
+  if (allowlist.size > 0) {
+    return allowlist.has(session.email.toLowerCase())
+  }
+  return session.role === TeamRole.SUPER_ADMIN
+}
+
+export function isSuperAdmin(session: SessionContext | null) {
+  return !!session && session.role === TeamRole.SUPER_ADMIN
+}
+
+export async function requireSystemAdminSession(): Promise<SessionContext> {
+  const session = await requireSession()
+  if (!isSystemAdmin(session)) redirect('/dashboard')
+  return session
+}
+
+export async function requireSuperAdminSession(): Promise<SessionContext> {
+  const session = await requireSession()
+  if (!isSuperAdmin(session)) redirect('/dashboard')
   return session
 }

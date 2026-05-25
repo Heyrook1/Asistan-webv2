@@ -122,7 +122,7 @@ export function TreatmentPlanBoard({
                 )}
               </button>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${item.status === 'TAMAMLANDI' ? 'line-through text-muted-foreground' : 'text-[#0C1D36]'}`}>
+                <p className={`text-sm font-medium truncate ${item.status === 'TAMAMLANDI' ? 'line-through text-muted-foreground' : 'text-brand-ink'}`}>
                   {item.title}
                 </p>
                 {item.frequency && <p className="text-[11px] text-muted-foreground">{item.frequency}</p>}
@@ -182,7 +182,7 @@ export function TreatmentPlanBoard({
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>İptal</Button>
-              <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
+              <Button type="submit" disabled={pending} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
                 {pending ? 'Kaydediliyor...' : 'Ekle'}
               </Button>
             </div>

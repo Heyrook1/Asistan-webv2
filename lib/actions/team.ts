@@ -11,6 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { env } from '@/lib/env'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
+import { getVendorPlanName, getVendorPlanUserLimit } from '@/lib/vendor-membership'
 
 const memberSchema = z.object({
   fullName: z.string().trim().min(2, 'Ad soyad en az 2 karakter').max(120),
@@ -164,6 +165,37 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
       return err('Bu e-posta ile kayitli bir ekip uyesi zaten var.')
     }
 
+    try {
+      const [vendorAccount, activeMemberCount] = await Promise.all([
+        prisma.vendorAccount.findUnique({
+          where: { businessId: session.businessId },
+          select: { plan: true, isDemo: true },
+        }),
+        prisma.teamMember.count({
+          where: { businessId: session.businessId, isActive: true },
+        }),
+      ])
+
+      const userLimit = getVendorPlanUserLimit({
+        plan: vendorAccount?.plan,
+        isDemo: vendorAccount?.isDemo,
+      })
+
+      if (userLimit !== null && activeMemberCount >= userLimit) {
+        if (vendorAccount?.isDemo || userLimit === 1) {
+          return err('Bu hesap en fazla 1 aktif kullaniciya izin verir. Yeni kullanici icin paket yukseltin.')
+        }
+        return err(
+          `${getVendorPlanName(vendorAccount?.plan)} paketi en fazla ${userLimit} aktif kullaniciya izin verir.`
+        )
+      }
+    } catch (limitError) {
+      const message = limitError instanceof Error ? limitError.message : String(limitError)
+      if (!message.includes('P2021') && !message.includes('does not exist')) {
+        throw limitError
+      }
+    }
+
     let authUser: { id: string; invitationSent: boolean } | null = null
     if (parsed.data.password || parsed.data.sendInvite) {
       try {
@@ -183,38 +215,57 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
       }
     }
 
-    let user = await prisma.user.findUnique({ where: { email } })
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: authUser?.id,
-          email,
-          fullName: parsed.data.fullName,
-          phone: parsed.data.phone ?? null,
-        },
-      })
-    } else {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          fullName: parsed.data.fullName,
-          phone: parsed.data.phone ?? user.phone,
-          isActive: true,
-        },
-      })
-    }
+    const created = await prisma.$transaction(async (tx) => {
+      let user = await tx.user.findUnique({ where: { email } })
+      if (!user) {
+        user = await tx.user.create({
+          data: {
+            id: authUser?.id,
+            email,
+            fullName: parsed.data.fullName,
+            phone: parsed.data.phone ?? null,
+          },
+        })
+      } else {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: {
+            fullName: parsed.data.fullName,
+            phone: parsed.data.phone ?? user.phone,
+            isActive: true,
+          },
+        })
+      }
 
-    const created = await prisma.teamMember.create({
-      data: {
-        businessId: session.businessId,
-        userId: user.id,
-        fullName: parsed.data.fullName,
-        email,
-        phone: parsed.data.phone ?? null,
-        role,
-        permissions,
-        color: parsed.data.color,
-      },
+      return tx.teamMember.upsert({
+        where: {
+          businessId_email: {
+            businessId: session.businessId,
+            email,
+          },
+        },
+        update: {
+          userId: user.id,
+          fullName: parsed.data.fullName,
+          email,
+          phone: parsed.data.phone ?? null,
+          role,
+          permissions,
+          color: parsed.data.color,
+          isActive: true,
+          deletedAt: null,
+        },
+        create: {
+          businessId: session.businessId,
+          userId: user.id,
+          fullName: parsed.data.fullName,
+          email,
+          phone: parsed.data.phone ?? null,
+          role,
+          permissions,
+          color: parsed.data.color,
+        },
+      })
     })
 
     const business = await prisma.business.findUnique({
@@ -346,6 +397,47 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
   const parsed = toggleSchema.safeParse(input)
   if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.manage')
+
+  if (parsed.data.isActive) {
+    const target = await prisma.teamMember.findFirst({
+      where: { id: parsed.data.id, businessId: session.businessId },
+      select: { id: true, isActive: true },
+    })
+    if (!target) return err('Uye bulunamadi')
+
+    try {
+      const [vendorAccount, activeMemberCount] = await Promise.all([
+        prisma.vendorAccount.findUnique({
+          where: { businessId: session.businessId },
+          select: { plan: true, isDemo: true },
+        }),
+        prisma.teamMember.count({
+          where: { businessId: session.businessId, isActive: true },
+        }),
+      ])
+
+      const userLimit = getVendorPlanUserLimit({
+        plan: vendorAccount?.plan,
+        isDemo: vendorAccount?.isDemo,
+      })
+      const projectedActiveCount = activeMemberCount + (target.isActive ? 0 : 1)
+
+      if (userLimit !== null && projectedActiveCount > userLimit) {
+        if (vendorAccount?.isDemo || userLimit === 1) {
+          return err('Bu hesap en fazla 1 aktif kullaniciya izin verir.')
+        }
+        return err(
+          `${getVendorPlanName(vendorAccount?.plan)} paketi en fazla ${userLimit} aktif kullaniciya izin verir.`
+        )
+      }
+    } catch (limitError) {
+      const message = limitError instanceof Error ? limitError.message : String(limitError)
+      if (!message.includes('P2021') && !message.includes('does not exist')) {
+        throw limitError
+      }
+    }
+  }
+
   await prisma.teamMember.updateMany({
     where: { id: parsed.data.id, businessId: session.businessId },
     data: { isActive: parsed.data.isActive },
@@ -410,26 +502,28 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
 
     if (!authUserId) return err('Supabase kullanicisi olusturulamadi')
 
-    let user = await prisma.user.findUnique({ where: { email: target.email.toLowerCase() } })
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: authUserId,
-          email: target.email.toLowerCase(),
-          fullName: target.fullName,
-          phone: target.phone,
-        },
-      })
-    } else if (user.id !== authUserId) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { fullName: target.fullName, phone: target.phone ?? user.phone, isActive: true },
-      })
-    }
+    await prisma.$transaction(async (tx) => {
+      let user = await tx.user.findUnique({ where: { email: target.email.toLowerCase() } })
+      if (!user) {
+        user = await tx.user.create({
+          data: {
+            id: authUserId,
+            email: target.email.toLowerCase(),
+            fullName: target.fullName,
+            phone: target.phone,
+          },
+        })
+      } else if (user.id !== authUserId) {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: { fullName: target.fullName, phone: target.phone ?? user.phone, isActive: true },
+        })
+      }
 
-    await prisma.teamMember.update({
-      where: { id: target.id },
-      data: { userId: user.id },
+      await tx.teamMember.update({
+        where: { id: target.id },
+        data: { userId: user.id },
+      })
     })
 
     revalidatePath('/dashboard/takim')
@@ -452,7 +546,13 @@ export async function deleteTeamMember(input: unknown): Promise<ActionResult> {
   })
   if (!target) return err('Uye bulunamadi')
   if (target.userId && target.userId === session.userId) return err('Kendinizi silemezsiniz')
-  await prisma.teamMember.delete({ where: { id: parsed.data.id } })
+  await prisma.teamMember.update({
+    where: { id: parsed.data.id },
+    data: {
+      isActive: false,
+      deletedAt: new Date(),
+    },
+  })
   revalidatePath('/dashboard/takim')
   return ok(undefined)
 }

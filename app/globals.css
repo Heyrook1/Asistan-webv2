@@ -7,7 +7,7 @@
 
 :root {
   --background: #FFFFFF;
-  --foreground: #06142A;
+  --foreground: #07182D;
   --card: #FFFFFF;
   --card-foreground: #06142A;
   --popover: #FFFFFF;
@@ -15,7 +15,7 @@
   --primary: #2563EB;
   --primary-foreground: #FFFFFF;
   --secondary: #F9FAFB;
-  --secondary-foreground: #06142A;
+  --secondary-foreground: #07182D;
   --muted: #F3F4F6;
   --muted-foreground: #6B7280;
   --accent: #2563EB;
@@ -33,7 +33,7 @@
   --radius: 0.75rem;
 
   /* Sidebar - Dark theme */
-  --sidebar: #06142A;
+  --sidebar: #07182D;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #06142A;
@@ -43,19 +43,83 @@
   --sidebar-ring: #2563EB;
 
   /* Brand specific */
-  --deep-navy: #0B1020;
-  --teal: #06B6D4;
-  --light-blue: #2563EB;
-  --brand-teal: #06B6D4;
-  --brand-teal-bright: #22D3EE;
-  --brand-teal-accessible: #0891B2;
-  --brand-teal-dark: #164E63;
-  --brand-blue: #2563EB;
-  --brand-navy: #0B1020;
-  --brand-dark: #0B1020;
+  --deep-navy: #07182D;
+  --teal: #16D4C5;
+  --light-blue: #1E8BFF;
+  --brand-ink: #0F172A;
+  --brand-navy: #07182D;
+  --brand-dark: #0F172A;
+  --brand-blue: #1E8BFF;
+  --brand-teal: #0FB9AB;
+  --brand-teal-hover: #0A9C90;
+  --brand-teal-bright: #16D4C5;
+  --brand-teal-accessible: #0FB9AB;
+  --brand-teal-dark: #0A6159;
+  --brand-cyan: #16D4C5;
+  --brand-danger: #FF4D4F;
+  --brand-danger-strong: #C22326;
   --brand-light: #F8FAFC;
+  --dashboard-bg: #F7FAFD;
+  --dashboard-surface: #F7F9FB;
+  --dashboard-hover: #F7F8FB;
+  --sidebar-card: #0B1F3A;
+  --sidebar-card-mid: #102A4D;
+  --sidebar-card-end: #0E2544;
+  --sidebar-card-border: #1B365E;
   --paper: #FFFFFF;
   --line: #6B7280;
+}
+
+@keyframes asistan-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes asistan-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes asistan-bar {
+  from {
+    height: 8px;
+  }
+  to {
+    height: var(--bar-height);
+  }
+}
+
+.asistan-rise {
+  animation: asistan-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.asistan-slide {
+  animation: asistan-slide 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.asistan-bar {
+  height: var(--bar-height);
+  animation: asistan-bar 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asistan-rise,
+  .asistan-slide,
+  .asistan-bar {
+    animation: none;
+  }
 }
 
 .dark {
@@ -138,14 +202,26 @@
   --color-deep-navy: var(--deep-navy);
   --color-teal: var(--teal);
   --color-light-blue: var(--light-blue);
+  --color-brand-ink: var(--brand-ink);
   --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-hover: var(--brand-teal-hover);
   --color-brand-teal-bright: var(--brand-teal-bright);
   --color-brand-teal-accessible: var(--brand-teal-accessible);
   --color-brand-teal-dark: var(--brand-teal-dark);
+  --color-brand-cyan: var(--brand-cyan);
   --color-brand-blue: var(--brand-blue);
   --color-brand-navy: var(--brand-navy);
   --color-brand-dark: var(--brand-dark);
+  --color-brand-danger: var(--brand-danger);
+  --color-brand-danger-strong: var(--brand-danger-strong);
   --color-brand-light: var(--brand-light);
+  --color-dashboard-bg: var(--dashboard-bg);
+  --color-dashboard-surface: var(--dashboard-surface);
+  --color-dashboard-hover: var(--dashboard-hover);
+  --color-sidebar-card: var(--sidebar-card);
+  --color-sidebar-card-mid: var(--sidebar-card-mid);
+  --color-sidebar-card-end: var(--sidebar-card-end);
+  --color-sidebar-card-border: var(--sidebar-card-border);
   --color-paper: var(--paper);
   --color-line: var(--line);
 }
@@ -185,6 +261,7 @@
   }
   html, body {
     overflow-x: clip;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -197,6 +274,73 @@
 }
 
 @layer utilities {
+  .marketing-container {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .marketing-container {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .marketing-container {
+      padding-inline: 2rem;
+    }
+  }
+
+  .marketing-surface {
+    border: 1px solid color-mix(in srgb, var(--brand-blue) 9%, white);
+    background: white;
+    box-shadow: 0 16px 36px rgba(12, 29, 54, 0.08);
+  }
+
+  .marketing-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--brand-blue) 20%, white);
+    background: color-mix(in srgb, var(--brand-blue) 8%, white);
+    color: var(--brand-blue);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.35rem 0.7rem;
+    letter-spacing: 0;
+  }
+
+  .marketing-hero-bg {
+    background:
+      radial-gradient(ellipse 58% 44% at 8% 8%, rgba(22, 169, 232, 0.18), transparent 66%),
+      radial-gradient(ellipse 48% 42% at 95% 16%, rgba(24, 95, 165, 0.16), transparent 68%),
+      radial-gradient(ellipse 42% 30% at 56% 100%, rgba(22, 169, 232, 0.11), transparent 72%),
+      linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  }
+
+  .marketing-card-hover {
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .marketing-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(12, 29, 54, 0.12);
+    border-color: color-mix(in srgb, var(--brand-cyan) 34%, white);
+  }
+
+  .marketing-page-enter {
+    animation: marketing-page-enter 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .marketing-dash-line {
+    background-image: radial-gradient(circle, rgba(24, 95, 165, 0.45) 1.5px, transparent 1.6px);
+    background-size: 14px 8px;
+    background-repeat: repeat-x;
+  }
+
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
   .pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
   .pl-safe { padding-left: max(env(safe-area-inset-left), 0px); }
@@ -317,5 +461,16 @@
   }
   50% {
     transform: translateY(-9px) rotate(0.4deg);
+  }
+}
+
+@keyframes marketing-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

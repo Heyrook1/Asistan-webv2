@@ -64,6 +64,9 @@ function CommandInput({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
+  const reactId = React.useId()
+  const fallbackId = `command-input-${reactId.replace(/:/g, '')}`
+
   return (
     <div
       data-slot="command-input-wrapper"
@@ -77,6 +80,8 @@ function CommandInput({
           className,
         )}
         {...props}
+        id={props.id ?? fallbackId}
+        name={props.name ?? 'command-search'}
       />
     </div>
   )

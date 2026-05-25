@@ -92,6 +92,14 @@ type Member = {
   userId: string | null
 }
 
+type MembershipSnapshot = {
+  planName: string
+  isDemo: boolean
+  userLimit: number | null
+  activeMembers: number
+  accessEndAt: string | null
+}
+
 const MANAGED_ROLES: MatrixRoleId[] = ['ISLETME_SAHIBI', 'DOKTOR', 'SEKRETER', 'PERSONEL']
 
 const PERMISSION_CATALOG: AccessPermission[] = [
@@ -199,10 +207,12 @@ export function TeamBoard({
   members,
   canManage,
   currentUserId,
+  membership,
 }: {
   members: Member[]
   canManage: boolean
   currentUserId: string
+  membership: MembershipSnapshot | null
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -257,6 +267,12 @@ export function TeamBoard({
   const criticalPermissionCount = PERMISSION_CATALOG.filter((permission) => permission.critical).length
   const activeMembers = members.filter((member) => member.isActive).length
   const customMembers = members.filter((member) => member.permissions.length > 0).length
+  const effectiveActiveMembers = membership?.activeMembers ?? activeMembers
+  const reachedUserLimit =
+    membership?.userLimit !== null && membership ? effectiveActiveMembers >= membership.userLimit : false
+  const membershipEndText = membership?.accessEndAt
+    ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium' }).format(new Date(membership.accessEndAt))
+    : 'Suresiz'
 
   function openPermissionDrawer(member: Member) {
     setDrawerMember(member)
@@ -350,23 +366,48 @@ export function TeamBoard({
     <div className="space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#0B7F6F]/25 bg-[#0B7F6F]/10 px-3 py-1 text-xs font-semibold text-[#0b7f6f]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-brand-teal/25 bg-brand-teal/10 px-3 py-1 text-xs font-semibold text-brand-teal">
             <Shield className="h-3.5 w-3.5" />
             Kurumsal erişim yönetimi
           </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#0C1D36] lg:text-3xl">Yetki Kontrol Paneli</h1>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-brand-ink lg:text-3xl">Yetki Kontrol Paneli</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             Takım üyelerinin erişimlerini, rollerini ve işlem yetkilerini tek ekrandan yönetin.
           </p>
         </div>
         <Button
           onClick={() => setAddOpen(true)}
-          disabled={!canManage}
-          className="h-11 bg-[#0B7F6F] px-5 text-white shadow-lg shadow-teal-500/20 hover:bg-[#09685C]"
+          disabled={!canManage || reachedUserLimit}
+          className="h-11 bg-brand-teal px-5 text-white shadow-lg shadow-teal-500/20 hover:bg-brand-teal-hover"
         >
           <Plus className="mr-2 h-4 w-4" /> Kullanıcıyı davet et
         </Button>
       </section>
+
+      {membership && (
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-teal">Paket Durumu</p>
+              <p className="mt-1 text-base font-bold text-brand-ink">
+                {membership.isDemo ? 'Demo Hesap' : membership.planName}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Hesap pasif tarihi: {membershipEndText}</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-brand-ink">
+              {membership.userLimit === null
+                ? `Aktif kullanici: ${effectiveActiveMembers} / Sinirsiz`
+                : `Aktif kullanici: ${effectiveActiveMembers} / ${membership.userLimit}`}
+            </div>
+          </div>
+          {reachedUserLimit && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>Bu pakette aktif kullanici limiti doldu. Yeni ekip uyesi eklemek icin paket yukseltin.</p>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard icon={<Users />} label="Toplam Kullanıcı" value={members.length} detail={`${activeMembers} aktif kullanıcı`} />
@@ -378,7 +419,7 @@ export function TeamBoard({
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-[#0C1D36]">Rol Yönetimi</h2>
+            <h2 className="text-lg font-bold text-brand-ink">Rol Yönetimi</h2>
             <p className="text-sm text-muted-foreground">Rollerin kapsamını, risk seviyesini ve kullanıcı dağılımını izleyin.</p>
           </div>
         </div>
@@ -391,18 +432,18 @@ export function TeamBoard({
               <Card key={role.id} className="border-border/70 shadow-sm">
                 <CardContent className="flex h-full flex-col gap-4 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-teal/10 text-brand-teal">
                       <Shield className="h-5 w-5" />
                     </span>
                     <Badge variant="outline" className="bg-white text-[10px]">{roleLevel(role.id)}</Badge>
                   </div>
                   <div className="min-h-[112px]">
-                    <h3 className="font-bold text-[#0C1D36]">{role.name}</h3>
+                    <h3 className="font-bold text-brand-ink">{role.name}</h3>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">{role.description}</p>
                   </div>
                   <div className="mt-auto flex items-center justify-between border-t pt-3">
                     <div>
-                      <p className="text-lg font-bold text-[#0C1D36]">{count}</p>
+                      <p className="text-lg font-bold text-brand-ink">{count}</p>
                       <p className="text-[11px] text-muted-foreground">kullanıcı</p>
                     </div>
                     <Button
@@ -423,14 +464,14 @@ export function TeamBoard({
 
       <section id="permission-matrix" className="space-y-3">
         <div>
-          <h2 className="text-lg font-bold text-[#0C1D36]">Yetki Matrisi</h2>
+          <h2 className="text-lg font-bold text-brand-ink">Yetki Matrisi</h2>
           <p className="text-sm text-muted-foreground">Rol bazlı erişim hiyerarşisini yönetin. İşletme sahibi yetkileri kilitlidir.</p>
         </div>
         <Card className="overflow-hidden border-border/70 shadow-sm">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] text-sm">
-                <thead className="bg-[#F7F9FB] text-left">
+                <thead className="bg-dashboard-surface text-left">
                   <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     <th className="w-[360px] px-4 py-3 font-semibold">Yetki</th>
                     {MANAGED_ROLES.map((role) => (
@@ -464,7 +505,7 @@ export function TeamBoard({
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[#0C1D36]">Kullanıcı Erişim Tablosu</h2>
+            <h2 className="text-lg font-bold text-brand-ink">Kullanıcı Erişim Tablosu</h2>
             <p className="text-sm text-muted-foreground">Kullanıcı rollerini, erişim durumunu ve özel yetkileri yönetin.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -499,13 +540,13 @@ export function TeamBoard({
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                   <Users className="h-6 w-6" />
                 </div>
-                <p className="font-semibold text-[#0C1D36]">Kullanıcı bulunamadı</p>
+                <p className="font-semibold text-brand-ink">Kullanıcı bulunamadı</p>
                 <p className="mt-1 text-sm text-muted-foreground">Arama veya rol filtresini değiştirin.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1060px] text-sm">
-                  <thead className="bg-[#F7F9FB] text-left">
+                  <thead className="bg-dashboard-surface text-left">
                     <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-3 font-semibold">Kullanıcı</th>
                       <th className="px-4 py-3 font-semibold">Rol</th>
@@ -529,7 +570,7 @@ export function TeamBoard({
                                 {initials(member.fullName)}
                               </span>
                               <div>
-                                <p className="font-semibold text-[#0C1D36]">{member.fullName}</p>
+                                <p className="font-semibold text-brand-ink">{member.fullName}</p>
                                 <p className="text-xs text-muted-foreground">{member.phone ?? 'Telefon yok'}</p>
                               </div>
                             </div>
@@ -560,7 +601,7 @@ export function TeamBoard({
                           <td className="px-4 py-3 text-muted-foreground">{formatLastSeen(member.lastSeenAt)}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="rounded-full bg-[#0B7F6F]/10 px-2 py-1 text-xs font-semibold text-[#0b7f6f]">
+                              <span className="rounded-full bg-brand-teal/10 px-2 py-1 text-xs font-semibold text-brand-teal">
                                 {permissions.length} yetki
                               </span>
                               {criticalCount > 0 && (
@@ -608,7 +649,14 @@ export function TeamBoard({
         </Card>
       </section>
 
-      <AddUserDialog open={addOpen} onClose={() => setAddOpen(false)} pending={pending} startTransition={startTransition} />
+      <AddUserDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        pending={pending}
+        startTransition={startTransition}
+        limitReached={reachedUserLimit}
+        membership={membership}
+      />
       <ResetPasswordDialog open={passwordDialog.open} member={passwordDialog.member} onClose={() => setPasswordDialog({ open: false })} />
       <PermissionDrawer
         member={drawerMember}
@@ -629,7 +677,7 @@ export function TeamBoard({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeactivate} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
+            <AlertDialogAction onClick={confirmDeactivate} className="bg-brand-teal text-white hover:bg-brand-teal-hover">
               Onayla
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -643,12 +691,12 @@ function SummaryCard({ icon, label, value, detail }: { icon: React.ReactNode; la
   return (
     <Card className="border-border/70 shadow-sm">
       <CardContent className="flex items-center gap-4 p-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f] [&_svg]:h-5 [&_svg]:w-5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal [&_svg]:h-5 [&_svg]:w-5">
           {icon}
         </span>
         <div>
           <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-[#0C1D36]">{value}</p>
+          <p className="mt-1 text-2xl font-bold text-brand-ink">{value}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">{detail}</p>
         </div>
       </CardContent>
@@ -669,17 +717,17 @@ function PermissionMatrixGroup({
   return (
     <>
       <tr className="border-t bg-white">
-        <td colSpan={5} className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#0C1D36]">
+        <td colSpan={5} className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-brand-ink">
           {group}
         </td>
       </tr>
       {permissions.map((permission) => (
-        <tr key={permission.key} className="border-t hover:bg-[#F7F9FB]">
+        <tr key={permission.key} className="border-t hover:bg-dashboard-surface">
           <td className="px-4 py-3">
             <div className="flex items-start gap-2">
               {permission.critical && <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />}
               <div>
-                <p className="font-semibold text-[#0C1D36]">{permission.label}</p>
+                <p className="font-semibold text-brand-ink">{permission.label}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{permission.description}</p>
               </div>
             </div>
@@ -708,11 +756,15 @@ function AddUserDialog({
   onClose,
   pending,
   startTransition,
+  limitReached,
+  membership,
 }: {
   open: boolean
   onClose: () => void
   pending: boolean
   startTransition: React.TransitionStartFunction
+  limitReached: boolean
+  membership: MembershipSnapshot | null
 }) {
   const router = useRouter()
   const [form, setForm] = useState({
@@ -731,6 +783,10 @@ function AddUserDialog({
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (limitReached) {
+      toast.error('Paket kullanici limiti doldu. Yeni kullanici icin paket yukseltin.')
+      return
+    }
     startTransition(async () => {
       const result = await createTeamMember({
         fullName: form.fullName.trim(),
@@ -757,6 +813,13 @@ function AddUserDialog({
           <DialogTitle>Kullanıcıyı davet et</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
+          {limitReached && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              {membership?.isDemo
+                ? 'Demo hesap en fazla 1 aktif kullaniciya izin verir.'
+                : 'Bu paketin aktif kullanici limiti doldu. Lutfen paket yukseltin.'}
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label className="mb-1.5 block text-xs text-muted-foreground">Ad Soyad *</Label>
@@ -802,17 +865,17 @@ function AddUserDialog({
               autoComplete="new-password"
             />
           </div>
-          <label className="flex items-center justify-between rounded-xl border bg-[#F7F9FB] p-3 text-sm">
+          <label className="flex items-center justify-between rounded-xl border bg-dashboard-surface p-3 text-sm">
             <span>
-              <span className="block font-medium text-[#0C1D36]">Davet gönder</span>
+              <span className="block font-medium text-brand-ink">Davet gönder</span>
               <span className="text-xs text-muted-foreground">Geçici şifre yoksa kullanıcıya şifre kurulum bağlantısı gönderilir.</span>
             </span>
             <Switch checked={form.sendInvite} onCheckedChange={(sendInvite) => setForm({ ...form, sendInvite })} />
           </label>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={close}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
-              {pending ? 'Kaydediliyor...' : 'Kullanıcı ekle'}
+            <Button type="submit" disabled={pending || limitReached} className="bg-brand-teal text-white hover:bg-brand-teal-hover">
+              {limitReached ? 'Paket limiti dolu' : pending ? 'Kaydediliyor...' : 'Kullanıcı ekle'}
             </Button>
           </div>
         </form>
@@ -847,28 +910,28 @@ function PermissionDrawer({
         </SheetHeader>
         {member && (
           <div className="space-y-5 p-5">
-            <div className="rounded-2xl border bg-[#F7F9FB] p-4">
+            <div className="rounded-2xl border bg-dashboard-surface p-4">
               <div className="flex items-center gap-3">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: member.color }}>
                   {initials(member.fullName)}
                 </span>
                 <div>
-                  <p className="font-bold text-[#0C1D36]">{member.fullName}</p>
+                  <p className="font-bold text-brand-ink">{member.fullName}</p>
                   <p className="text-xs text-muted-foreground">{member.email}</p>
-                  <Badge className="mt-2 border-0 bg-[#0B7F6F]/10 text-[#0b7f6f]">{ROLE_LABELS[member.role]}</Badge>
+                  <Badge className="mt-2 border-0 bg-brand-teal/10 text-brand-teal">{ROLE_LABELS[member.role]}</Badge>
                 </div>
               </div>
             </div>
 
             {GROUPS.map((group) => (
               <div key={group} className="space-y-2">
-                <h3 className="text-sm font-bold text-[#0C1D36]">{group}</h3>
+                <h3 className="text-sm font-bold text-brand-ink">{group}</h3>
                 <div className="overflow-hidden rounded-2xl border">
                   {PERMISSION_CATALOG.filter((permission) => permission.group === group).map((permission) => (
                     <div key={permission.key} className="flex items-center justify-between gap-4 border-b p-3 last:border-b-0">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-[#0C1D36]">{permission.label}</p>
+                          <p className="text-sm font-semibold text-brand-ink">{permission.label}</p>
                           {permission.critical && <Badge variant="outline" className="bg-amber-50 text-[10px] text-amber-700">Kritik</Badge>}
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">{permission.description}</p>
@@ -888,7 +951,7 @@ function PermissionDrawer({
               <Button type="button" variant="outline" className="flex-1" onClick={onReset}>
                 <RotateCcw className="mr-2 h-4 w-4" /> Varsayılan Role Sıfırla
               </Button>
-              <Button type="button" className="flex-1 bg-[#0B7F6F] text-white hover:bg-[#09685C]" disabled={pending} onClick={onSave}>
+              <Button type="button" className="flex-1 bg-brand-teal text-white hover:bg-brand-teal-hover" disabled={pending} onClick={onSave}>
                 Değişiklikleri Kaydet
               </Button>
             </div>
@@ -938,8 +1001,8 @@ function ResetPasswordDialog({
           <DialogTitle>Şifre sıfırla</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-3">
-          <div className="rounded-xl border bg-[#F7F9FB] p-3 text-sm">
-            <p className="font-semibold text-[#0C1D36]">{member?.fullName}</p>
+          <div className="rounded-xl border bg-dashboard-surface p-3 text-sm">
+            <p className="font-semibold text-brand-ink">{member?.fullName}</p>
             <p className="text-xs text-muted-foreground">{member?.email}</p>
           </div>
           <div>
@@ -955,7 +1018,7 @@ function ResetPasswordDialog({
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={close}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
+            <Button type="submit" disabled={pending} className="bg-brand-teal text-white hover:bg-brand-teal-hover">
               {pending ? 'Kaydediliyor...' : 'Şifreyi sıfırla'}
             </Button>
           </div>

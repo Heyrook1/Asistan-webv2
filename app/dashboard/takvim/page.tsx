@@ -16,7 +16,7 @@ export default async function TakvimPage() {
   const from = new Date(now.getFullYear(), now.getMonth() - 12, 1)
   const to = new Date(now.getFullYear(), now.getMonth() + 13, 0)
 
-  const [appointments, patients, services, staff, business] = await Promise.all([
+  const [appointments, patients, services, staff, business, locations] = await Promise.all([
     getAppointmentsRange(session.businessId, { from, to }, session),
     prisma.patient.findMany({
       where: { businessId: session.businessId, isArchived: false },
@@ -38,6 +38,11 @@ export default async function TakvimPage() {
       where: { id: session.businessId },
       select: { slug: true },
     }),
+    prisma.location.findMany({
+      where: { businessId: session.businessId, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
+    }),
   ])
 
   return (
@@ -51,6 +56,8 @@ export default async function TakvimPage() {
         serviceColor: a.service.color,
         staffId: a.staffId,
         staffName: a.staff?.fullName ?? null,
+        locationId: a.locationId,
+        locationName: a.location?.name ?? null,
         date: a.date.toISOString().slice(0, 10),
         startTime: a.startTime,
         endTime: a.endTime,
@@ -59,6 +66,7 @@ export default async function TakvimPage() {
       patients={patients.map((p) => ({ id: p.id, label: `${p.fullName} (#${p.patientNumber})` }))}
       services={services.map((s) => ({ id: s.id, name: s.name, durationMin: s.durationMin, color: s.color }))}
       staff={staff.map((s) => ({ id: s.id, name: s.fullName, color: s.color }))}
+      locations={locations.map((l) => ({ id: l.id, label: l.name }))}
       canCreate={can(session, 'appointment.manage')}
       bookingSlug={business?.slug ?? 'klinik'}
     />

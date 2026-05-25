@@ -60,8 +60,8 @@ export const metadata: Metadata = {
     images: ['/images/asistan-full-logo.png'],
   },
   icons: {
-    icon: [{ url: '/images/asistan-mark.svg', type: 'image/svg+xml' }],
-    apple: '/images/asistan-mark.svg',
+    icon: [{ url: '/images/asistan-icon.png', type: 'image/png' }],
+    apple: '/images/asistan-icon.png',
   },
 }
 

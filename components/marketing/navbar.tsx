@@ -3,26 +3,47 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown, Globe, Menu, X } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
-const navItems = [
-  { href: '/urun', label: 'Ürün' },
-  { href: '/cozumler', label: 'Çözümler' },
-  { href: '/fiyatlandirma', label: 'Fiyatlandırma' },
-  { href: '/kaynaklar', label: 'Kaynaklar' },
-  { href: '/hakkimizda', label: 'Hakkımızda' },
+type NavItem = {
+  href: string
+  label: string
+  hasMenu?: boolean
+}
+
+const navItems: NavItem[] = [
+  { href: '/cozumler', label: 'Cozumler', hasMenu: true },
+  { href: '/urun', label: 'Ozellikler' },
+  { href: '/urun#nasil-calisir', label: 'Nasil Calisir?' },
+  { href: '/fiyatlandirma', label: 'Fiyatlandirma' },
+  { href: '/fiyatlandirma#sss', label: 'SSS' },
 ]
 
 const solutionItems = [
-  { href: '/cozumler/health', label: 'Asistan Health', status: 'Aktif' },
-  { href: '/cozumler', label: 'Beauty', status: 'Yakında' },
-  { href: '/cozumler', label: 'Hukuk', status: 'Yakında' },
-  { href: '/cozumler', label: 'Emlak', status: 'Yakında' },
+  { href: '/cozumler/health', label: 'Klinik Sahipleri', status: 'Aktif' },
+  { href: '/cozumler/beauty', label: 'Doktorlar', status: 'Yakinda' },
+  { href: '/cozumler/legal', label: 'Sekreterler', status: 'Yakinda' },
+  { href: '/cozumler/pro', label: 'Tum Cozumler', status: 'Plan' },
 ]
+
+const languageItems = [
+  { code: 'TR', label: 'Turkce' },
+  { code: 'EN', label: 'English' },
+]
+
+function baseHref(path: string) {
+  return path.split('#')[0] ?? path
+}
 
 export function Navbar() {
   const pathname = usePathname()
@@ -32,59 +53,67 @@ export function Navbar() {
   const solutionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!solutionsRef.current?.contains(event.target as Node)) setSolutionsOpen(false)
+    const onPointerDown = (event: PointerEvent) => {
+      if (!solutionsRef.current?.contains(event.target as Node)) {
+        setSolutionsOpen(false)
+      }
     }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setSolutionsOpen(false)
         setMobileMenuOpen(false)
       }
     }
 
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
     }
   }, [])
 
   return (
     <nav
       className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-all duration-300',
-        scrolled ? 'border-b border-slate-100 bg-white/90 shadow-sm backdrop-blur-xl' : 'bg-white/95 backdrop-blur-md',
+        'fixed inset-x-0 top-0 z-50 border-b transition-all duration-300',
+        scrolled
+          ? 'border-brand-blue/15 bg-white/96 shadow-[0_10px_30px_rgba(12,29,54,0.08)] backdrop-blur-xl'
+          : 'border-transparent bg-white/90 backdrop-blur-md'
       )}
-      aria-label="Ana menü"
+      aria-label="Ana menu"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Asistan ana sayfa">
-            <AsistanLogo variant="light" size="md" priority />
+      <div className="marketing-container">
+        <div className="flex h-[72px] items-center justify-between gap-4">
+          <Link href="/" className="inline-flex shrink-0 items-center" aria-label="Asistan ana sayfa">
+            <AsistanLogo variant="dark" size="md" priority />
           </Link>
 
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1 lg:flex">
             {navItems.map((item) => {
-              const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-              const isSolutions = item.href === '/cozumler'
+              const active = pathname === baseHref(item.href) || pathname.startsWith(`${baseHref(item.href)}/`)
 
-              if (isSolutions) {
+              if (item.hasMenu) {
                 return (
-                  <div key={item.href} ref={solutionsRef} className="relative" onMouseEnter={() => setSolutionsOpen(true)}>
+                  <div
+                    key={item.href}
+                    ref={solutionsRef}
+                    className="relative"
+                    onMouseEnter={() => setSolutionsOpen(true)}
+                    onMouseLeave={() => setSolutionsOpen(false)}
+                  >
                     <button
                       type="button"
                       className={cn(
-                        'relative flex min-h-11 items-center gap-1 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
-                        active ? 'text-brand-teal-dark' : 'text-slate-600 hover:text-brand-navy',
+                        'relative flex min-h-11 items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
+                        active ? 'text-brand-teal-dark' : 'text-slate-600 hover:text-brand-navy'
                       )}
                       aria-haspopup="menu"
                       aria-expanded={solutionsOpen}
@@ -92,26 +121,19 @@ export function Navbar() {
                     >
                       {item.label}
                       <ChevronDown className={cn('size-4 transition-transform', solutionsOpen && 'rotate-180')} aria-hidden="true" />
-                      {active && <span className="absolute inset-x-4 bottom-0 h-0.5 bg-brand-teal" />}
+                      {active && <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-teal" />}
                     </button>
                     {solutionsOpen && (
-                      <div className="absolute left-0 top-full mt-2 w-64 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
-                        <Link
-                          href="/cozumler"
-                          className="mb-1 block rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-400 hover:bg-slate-50"
-                          onClick={() => setSolutionsOpen(false)}
-                        >
-                          Tüm çözümler
-                        </Link>
+                      <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-brand-blue/15 bg-white p-2 shadow-xl">
                         {solutionItems.map((solution) => (
                           <Link
                             key={`${solution.label}-${solution.status}`}
                             href={solution.href}
-                            className="flex min-h-11 items-center justify-between rounded-xl px-3 py-2 text-sm text-brand-navy hover:bg-slate-50"
+                            className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-sm text-brand-navy hover:bg-brand-light"
                             onClick={() => setSolutionsOpen(false)}
                           >
                             <span>{solution.label}</span>
-                            <span className="rounded-full bg-brand-teal/10 px-2 py-0.5 text-[10px] font-semibold text-brand-teal-dark">
+                            <span className="rounded-full border border-brand-blue/20 bg-brand-blue/10 px-2 py-0.5 text-[10px] font-semibold text-brand-blue">
                               {solution.status}
                             </span>
                           </Link>
@@ -127,50 +149,64 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'relative flex min-h-11 items-center px-4 py-2 text-sm font-medium transition-colors',
-                    active ? 'text-brand-teal-dark' : 'text-slate-600 hover:text-brand-navy',
+                    'relative flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
+                    active ? 'text-brand-teal-dark' : 'text-slate-600 hover:text-brand-navy'
                   )}
                 >
                   {item.label}
-                  {active && <span className="absolute inset-x-4 bottom-0 h-0.5 bg-brand-teal" />}
+                  {active && <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-teal" />}
                 </Link>
               )
             })}
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <Button asChild variant="ghost" className="font-medium text-slate-600 hover:text-brand-navy">
-              <Link href="/auth/login">Giriş yap</Link>
+          <div className="hidden items-center gap-2 lg:flex">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-brand-blue/15 px-3 text-xs font-semibold text-slate-600 hover:bg-brand-light">
+                <Globe className="size-3.5" />
+                TR
+                <ChevronDown className="size-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32 rounded-xl">
+                {languageItems.map((language) => (
+                  <DropdownMenuItem key={language.code} className="cursor-pointer">
+                    {language.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button asChild variant="ghost" className="h-10 px-3 text-sm font-semibold text-slate-600 hover:text-brand-navy">
+              <Link href="/auth/login">Giris Yap</Link>
             </Button>
-            <Button asChild className="rounded-full bg-gradient-to-r from-brand-teal to-brand-blue px-6 font-semibold text-white shadow-lg shadow-brand-blue/20">
-              <Link href="/auth/sign-up">Erken erişim</Link>
+            <Button asChild className="h-10 rounded-lg bg-brand-blue px-4 text-sm font-semibold text-white hover:bg-brand-blue/90">
+              <Link href="/auth/sign-up">Ekran Erisim</Link>
             </Button>
           </div>
 
           <button
             type="button"
-            className="flex size-11 items-center justify-center rounded-xl md:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-lg border border-brand-blue/15 text-brand-navy lg:hidden"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            aria-label={mobileMenuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+            aria-label={mobileMenuOpen ? 'Menuyu kapat' : 'Menuyu ac'}
             aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X className="size-6 text-brand-navy" aria-hidden="true" /> : <Menu className="size-6 text-brand-navy" aria-hidden="true" />}
+            {mobileMenuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg md:hidden">
-          <div className="flex flex-col gap-2">
+        <div className="border-t border-brand-blue/10 bg-white py-3 lg:hidden">
+          <div className="marketing-container flex flex-col gap-1">
             {navItems.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+              const active = pathname === baseHref(item.href) || pathname.startsWith(`${baseHref(item.href)}/`)
               return (
                 <Link
-                  key={item.href}
+                  key={`mobile-${item.href}`}
                   href={item.href}
                   className={cn(
-                    'flex min-h-11 items-center justify-between rounded-xl px-4 py-3',
-                    active ? 'bg-brand-teal/10 text-brand-teal-dark' : 'text-slate-600',
+                    'flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold',
+                    active ? 'bg-brand-blue/10 text-brand-teal-dark' : 'text-slate-700 hover:bg-brand-light'
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -178,29 +214,35 @@ export function Navbar() {
                 </Link>
               )
             })}
-            <div className="mt-2 border-t border-slate-100 pt-4">
-              <p className="mb-2 px-4 text-xs font-semibold uppercase text-slate-400">Çözümler</p>
-              {solutionItems.map((solution) => (
-                <Link
-                  key={`${solution.label}-mobile`}
-                  href={solution.href}
-                  className="flex min-h-11 items-center justify-between rounded-xl px-4 py-2 text-sm text-slate-600"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <span>{solution.label}</span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px]">{solution.status}</span>
-                </Link>
-              ))}
+            <div className="mt-2 flex items-center justify-between rounded-lg border border-brand-blue/10 px-3 py-2 text-xs">
+              <span className="inline-flex items-center gap-1 text-slate-500">
+                <Globe className="size-3.5" />
+                Dil
+              </span>
+              <div className="inline-flex overflow-hidden rounded-lg border border-brand-blue/15">
+                {languageItems.map((language) => (
+                  <button
+                    key={language.code}
+                    type="button"
+                    className={cn(
+                      'min-h-8 px-2.5 font-semibold',
+                      language.code === 'TR' ? 'bg-brand-blue text-white' : 'bg-white text-slate-600'
+                    )}
+                  >
+                    {language.code}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-4">
-              <Button asChild variant="outline" className="w-full rounded-full">
+            <div className="mt-2 grid grid-cols-2 gap-2 border-t border-brand-blue/10 pt-3">
+              <Button asChild variant="outline" className="h-10 rounded-lg border-brand-blue/20">
                 <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
-                  Giriş yap
+                  Giris Yap
                 </Link>
               </Button>
-              <Button asChild className="w-full rounded-full bg-gradient-to-r from-brand-teal to-brand-blue text-white">
+              <Button asChild className="h-10 rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
                 <Link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>
-                  Erken erişim
+                  Ekran Erisim
                 </Link>
               </Button>
             </div>

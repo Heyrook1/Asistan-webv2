@@ -5,21 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   BarChart3,
-  Calendar,
-  CalendarCheck,
   CalendarPlus,
   Check,
-  ChevronDown,
-  ChevronLeft,
   ChevronRight,
   Clock,
   Scissors,
   Send,
   Share2,
-  Sparkles,
   UserPlus,
-  Users,
-  Wallet,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,35 +22,21 @@ import { AppointmentFormDrawer, type AppointmentOption } from '@/components/dash
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
 import { ServiceFormDialog } from '@/components/dashboard/service-form-dialog'
 import { RemindersCard, type ReminderItem } from '@/components/dashboard/reminders-card'
-import { formatShortDate, formatTime, trMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { StatsGrid } from '@/components/dashboard/admin-overview/stats-grid'
+import { MiniCalendar } from '@/components/dashboard/admin-overview/mini-calendar'
+import { AiSuggestions } from '@/components/dashboard/admin-overview/ai-suggestions'
+import { UpcomingAppointmentsTable } from '@/components/dashboard/admin-overview/upcoming-appointments-table'
+import { QuickStartTour } from '@/components/dashboard/admin-overview/quick-start-tour'
+import type { CalendarEvent, OverviewStats, Suggestion } from '@/components/dashboard/admin-overview/types'
 
 type LookupData = {
+  locations: AppointmentOption[]
   patients: AppointmentOption[]
   services: (AppointmentOption & { durationMin: number })[]
   staff: AppointmentOption[]
   bookingSlug: string
-}
-
-type OverviewStats = {
-  todayAppointments: number
-  pendingAppointments: number
-  activePatients: number
-  confirmedAppointments: number
-  monthlyRevenue: number
-}
-
-type CalendarEvent = {
-  id: string
-  patientId: string
-  patientName: string
-  serviceName: string
-  staffName: string | null
-  date: string
-  startTime: string
-  endTime: string
-  status: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 }
 
 type SetupStep = {
@@ -65,45 +44,10 @@ type SetupStep = {
   done: boolean
 }
 
-type Suggestion = {
-  title: string
-  description: string
-  tone: 'teal' | 'orange' | 'violet'
-  href?: string
-}
-
 type Modal = 'appointment' | 'patient' | 'service' | 'share' | null
 
-const monthFormatter = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' })
-const weekdayLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz']
-
-function toIsoDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
-function startOfWeek(date: Date) {
-  const d = new Date(date)
-  const day = d.getDay()
-  d.setDate(d.getDate() - ((day + 6) % 7))
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function addDays(date: Date, days: number) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
-}
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
+const DASHBOARD_REFRESH_INTERVAL_MS = 120_000
+const QUICK_START_TOUR_KEY_PREFIX = 'asistan.quick-start-tour.v1.dismissed.'
 
 export function AdminOverview({
   businessName,
@@ -134,15 +78,42 @@ export function AdminOverview({
 }) {
   const router = useRouter()
   const [modal, setModal] = useState<Modal>(null)
-  const [cursor, setCursor] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1)
-  })
-  const [calendarOpen, setCalendarOpen] = useState(true)
+  const [quickStartOpen, setQuickStartOpen] = useState(false)
 
   useEffect(() => {
-    const timer = window.setInterval(() => router.refresh(), 30_000)
-    return () => window.clearInterval(timer)
+    let timer: number | null = null
+
+    const clearPolling = () => {
+      if (timer !== null) {
+        window.clearInterval(timer)
+        timer = null
+      }
+    }
+
+    const startPolling = () => {
+      clearPolling()
+      if (document.visibilityState !== 'visible') return
+      timer = window.setInterval(() => {
+        router.refresh()
+      }, DASHBOARD_REFRESH_INTERVAL_MS)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        router.refresh()
+        startPolling()
+      } else {
+        clearPolling()
+      }
+    }
+
+    startPolling()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearPolling()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [router])
 
   const bookingLink = useMemo(() => {
@@ -150,77 +121,46 @@ export function AdminOverview({
     return `${window.location.origin}/randevu/${lookups.bookingSlug}`
   }, [lookups.bookingSlug])
 
+  const quickStartStorageKey = useMemo(
+    () => `${QUICK_START_TOUR_KEY_PREFIX}${lookups.bookingSlug}`,
+    [lookups.bookingSlug]
+  )
+
   const completedSteps = setupSteps.filter((step) => step.done).length
   const setupProgress = setupSteps.length ? Math.round((completedSteps / setupSteps.length) * 100) : 0
   const setupComplete = setupSteps.length > 0 && completedSteps === setupSteps.length
+  const isFirstDayCandidate =
+    !setupComplete &&
+    upcomingAppointments.length === 0 &&
+    stats.confirmedAppointments === 0 &&
+    canCreateAppointment
 
-  const days = useMemo(() => {
-    const start = startOfWeek(cursor)
-    return Array.from({ length: 42 }, (_, index) => addDays(start, index))
-  }, [cursor])
+  useEffect(() => {
+    if (!isFirstDayCandidate) return
+    const alreadyDismissed = window.localStorage.getItem(quickStartStorageKey)
+    if (alreadyDismissed === '1') return
+    const timer = window.setTimeout(() => setQuickStartOpen(true), 350)
+    return () => window.clearTimeout(timer)
+  }, [isFirstDayCandidate, quickStartStorageKey])
 
-  const eventsByDate = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>()
-    for (const event of calendarEvents) {
-      if (!map.has(event.date)) map.set(event.date, [])
-      map.get(event.date)!.push(event)
-    }
-    return map
-  }, [calendarEvents])
-
-  const statCards = [
-    {
-      title: 'Bugünkü Randevular',
-      value: stats.todayAppointments,
-      icon: Calendar,
-      tone: 'teal' as const,
-      hint: 'Onaylı ajanda',
-    },
-    {
-      title: 'Bekleyen Onay',
-      value: stats.pendingAppointments,
-      icon: Clock,
-      tone: 'orange' as const,
-      hint: 'Onay bekliyor',
-    },
-    {
-      title: 'Toplam Müşteri',
-      value: stats.activePatients,
-      icon: Users,
-      tone: 'violet' as const,
-      hint: 'Aktif kayıt',
-    },
-    {
-      title: 'Onaylanan',
-      value: stats.confirmedAppointments,
-      icon: CalendarCheck,
-      tone: 'amber' as const,
-      hint: 'Tüm zamanlar',
-    },
-    canViewAnalytics
-      ? {
-      title: 'Aylık Ciro',
-      value: trMoney.format(stats.monthlyRevenue),
-      icon: Wallet,
-      tone: 'green' as const,
-      hint: 'Bu ay',
-        }
-      : null,
-  ].filter((card): card is NonNullable<typeof card> => Boolean(card))
+  function dismissQuickStartForever() {
+    window.localStorage.setItem(quickStartStorageKey, '1')
+    setQuickStartOpen(false)
+  }
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      {/* Header */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-[#0C1D36] lg:text-[26px]">Genel Bakış</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground lg:text-sm">
-            {businessName}
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-brand-ink lg:text-[26px]">Genel Bakış</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground lg:text-sm">{businessName}</p>
         </div>
         <div className="hidden flex-wrap gap-2 lg:flex">
           {canCreateAppointment && (
-            <Button onClick={() => setModal('appointment')} className="h-11 gap-2 bg-[#087C87] text-white shadow-lg shadow-cyan-600/20 hover:bg-[#066D77]">
+            <Button
+              onClick={() => setModal('appointment')}
+              className="h-11 gap-2 bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover"
+            >
               <CalendarPlus className="h-4 w-4" />
               Randevu Oluştur
             </Button>
@@ -238,35 +178,9 @@ export function AdminOverview({
         </div>
       </div>
 
-      {/* Stats: 2-col grid on mobile, expands on desktop */}
-      <div className="grid grid-cols-2 gap-2.5 md:gap-3 xl:grid-cols-5">
-        {statCards.map((card) => (
-          <Card key={card.title} className="border-border/50 shadow-sm">
-            <CardContent className="flex items-start gap-2.5 p-3 md:items-center md:gap-3 md:p-4">
-              <div className={cn(
-                'flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-12 md:w-12',
-                card.tone === 'teal' && 'bg-cyan-50 text-cyan-600',
-                card.tone === 'orange' && 'bg-orange-50 text-orange-600',
-                card.tone === 'violet' && 'bg-violet-50 text-violet-600',
-                card.tone === 'amber' && 'bg-amber-50 text-amber-600',
-                card.tone === 'green' && 'bg-emerald-50 text-emerald-600'
-              )}>
-                <card.icon className="h-5 w-5 md:h-6 md:w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground line-clamp-1 md:text-[11px]">{card.title}</p>
-                <p className="mt-0.5 text-xl font-bold text-[#0C1D36] md:text-2xl">{card.value}</p>
-                <p className="mt-0.5 hidden text-[11px] text-muted-foreground line-clamp-1 md:block">{card.hint}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Reminders & quick notes */}
+      <StatsGrid stats={stats} canViewAnalytics={canViewAnalytics} />
       <RemindersCard initialReminders={reminders} />
 
-      {/* Setup steps + calendar + suggestions */}
       <div
         className={cn(
           'grid gap-4',
@@ -278,26 +192,30 @@ export function AdminOverview({
             <CardContent className="p-4 lg:p-5">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-bold text-[#0C1D36]">Kurulumu tamamlayın</h2>
+                  <h2 className="text-sm font-bold text-brand-ink">Kurulumu tamamlayın</h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">İlk randevuya hazırlanmak için adımlar.</p>
                 </div>
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-[#0B7F6F] text-xs font-bold text-[#0C1D36]">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-4 border-brand-teal text-xs font-bold text-brand-ink">
                   {completedSteps}/{setupSteps.length}
                 </div>
               </div>
               <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-[#0B7F6F] transition-[width]" style={{ width: `${setupProgress}%` }} />
+                <div className="h-full rounded-full bg-brand-teal transition-[width]" style={{ width: `${setupProgress}%` }} />
               </div>
               <ul className="space-y-2.5">
                 {setupSteps.map((step, index) => (
                   <li key={step.title} className="flex items-center gap-3 text-sm">
-                    <span className={cn(
-                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                      step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                    )}>
+                    <span
+                      className={cn(
+                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                        step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      )}
+                    >
                       {step.done ? <Check className="h-3.5 w-3.5" /> : index + 1}
                     </span>
-                    <span className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-[#0C1D36]')}>
+                    <span
+                      className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-brand-ink')}
+                    >
                       {step.title}
                     </span>
                     {!step.done && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
@@ -308,233 +226,22 @@ export function AdminOverview({
           </Card>
         )}
 
-        {/* Calendar — collapsible on mobile, always visible on desktop */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4 lg:p-5">
-            <button
-              type="button"
-              onClick={() => setCalendarOpen((open) => !open)}
-              className="flex w-full items-center justify-between gap-2 xl:cursor-default"
-              aria-expanded={calendarOpen}
-            >
-              <h2 className="text-sm font-bold text-[#0C1D36]">Aylık Takvim</h2>
-              <span className="flex items-center gap-2">
-                <span className="text-xs font-medium capitalize text-muted-foreground">{monthFormatter.format(cursor)}</span>
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 text-muted-foreground transition-transform xl:hidden',
-                    calendarOpen && 'rotate-180'
-                  )}
-                />
-              </span>
-            </button>
-
-            <div className={cn('mt-3', !calendarOpen && 'hidden xl:block')}>
-              <div className="mb-3 flex items-center justify-end gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} aria-label="Önceki ay">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-8" onClick={() => {
-                  const now = new Date()
-                  setCursor(new Date(now.getFullYear(), now.getMonth(), 1))
-                }}>
-                  Bugün
-                </Button>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} aria-label="Sonraki ay">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
-                {weekdayLabels.map((day) => (
-                  <span key={day} className="pb-1 text-[10px] font-medium text-muted-foreground">{day}</span>
-                ))}
-                {days.map((day) => {
-                  const iso = toIsoDate(day)
-                  const dayEvents = eventsByDate.get(iso) ?? []
-                  const inMonth = day.getMonth() === cursor.getMonth()
-                  const isToday = iso === toIsoDate(new Date())
-                  return (
-                    <Link
-                      key={iso}
-                      href={`/dashboard/takvim?date=${iso}`}
-                      className={cn(
-                        'mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition-colors hover:bg-cyan-50',
-                        !inMonth && 'text-slate-300',
-                        isToday && 'bg-[#087C87] text-white hover:bg-[#087C87]'
-                      )}
-                      title={dayEvents.length ? `${dayEvents.length} onaylı randevu` : 'Randevu yok'}
-                    >
-                      <span>{day.getDate()}</span>
-                      {dayEvents.length > 0 && (
-                        <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-[#087C87]')} />
-                      )}
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Suggestions: swipe cards on mobile, list on desktop */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4 lg:p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-violet-600" />
-                <h2 className="text-sm font-bold text-[#0C1D36]">Asistan AI Önerileri</h2>
-              </div>
-              <span className="rounded-full bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700">AI</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {suggestions.map((suggestion) => (
-                <Link
-                  key={suggestion.title}
-                  href={suggestion.href ?? '/dashboard'}
-                  className={cn(
-                    'flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-white',
-                    suggestion.tone === 'teal' && 'border-emerald-100 bg-emerald-50/70',
-                    suggestion.tone === 'orange' && 'border-orange-100 bg-orange-50/70',
-                    suggestion.tone === 'violet' && 'border-violet-100 bg-violet-50/70'
-                  )}
-                >
-                  <span className={cn(
-                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                    suggestion.tone === 'teal' && 'bg-emerald-100 text-emerald-700',
-                    suggestion.tone === 'orange' && 'bg-orange-100 text-orange-700',
-                    suggestion.tone === 'violet' && 'bg-violet-100 text-violet-700'
-                  )}>
-                    {suggestion.tone === 'teal' ? <CalendarCheck className="h-5 w-5" /> : suggestion.tone === 'orange' ? <Clock className="h-5 w-5" /> : <Users className="h-5 w-5" />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-[#0C1D36] line-clamp-1">{suggestion.title}</span>
-                    <span className="block text-xs text-muted-foreground line-clamp-2">{suggestion.description}</span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </Link>
-              ))}
-            </div>
-            {canViewAnalytics && (
-              <Link href="/dashboard/analitik" className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-[#087C87]">
-                Tüm önerileri görüntüle <ChevronRight className="h-4 w-4" />
-              </Link>
-            )}
-          </CardContent>
-        </Card>
+        <MiniCalendar calendarEvents={calendarEvents} />
+        <AiSuggestions suggestions={suggestions} canViewAnalytics={canViewAnalytics} />
       </div>
 
-      {/* Upcoming + quick actions */}
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
-        <Card className="shadow-sm">
-          <CardContent className="p-4 lg:p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-[#0C1D36]">Yaklaşan Randevular</h2>
-              <Link href="/dashboard/randevular" className="inline-flex items-center gap-1 text-xs font-medium text-[#087C87]">
-                Tümü <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
+        <UpcomingAppointmentsTable
+          upcomingAppointments={upcomingAppointments}
+          canCreateAppointment={canCreateAppointment}
+          onCreateAppointment={() => setModal('appointment')}
+          onShareCalendar={() => setModal('share')}
+          onOpenQuickStart={() => setQuickStartOpen(true)}
+        />
 
-            {upcomingAppointments.length === 0 ? (
-              <div className="rounded-2xl border border-dashed bg-slate-50/70 px-4 py-6 text-center">
-                <p className="text-sm font-semibold text-[#0C1D36]">Yaklaşan randevu yok</p>
-                <p className="mt-1 text-xs text-muted-foreground">Yeni bir randevu oluşturabilir veya online takvim bağlantısını paylaşabilirsiniz.</p>
-                <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
-                  {canCreateAppointment && (
-                    <Button size="sm" onClick={() => setModal('appointment')} className="bg-[#087C87] text-white hover:bg-[#066D77]">
-                      <CalendarPlus className="mr-2 h-4 w-4" />
-                      Randevu Oluştur
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => setModal('share')}>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Takvimi Paylaş
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Mobile: card list */}
-                <ul className="space-y-2 md:hidden">
-                  {upcomingAppointments.map((appointment) => (
-                    <li key={appointment.id}>
-                      <Link
-                        href={`/dashboard/hastalar/${appointment.patientId}`}
-                        className="flex items-center gap-3 rounded-xl border bg-white p-3 active:bg-slate-50"
-                      >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[12px] font-bold text-violet-700">
-                          {initials(appointment.patientName)}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-[#0C1D36]">{appointment.patientName}</span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {appointment.serviceName}{appointment.staffName ? ` • ${appointment.staffName}` : ''}
-                          </span>
-                        </span>
-                        <span className="text-right">
-                          <span className="block text-sm font-semibold text-[#0C1D36]">{formatTime(appointment.startTime)}</span>
-                          <span className={cn(
-                            'mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                            appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
-                          )}>
-                            {appointment.status === 'CONFIRMED' ? 'Onaylı' : 'Bekliyor'}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Tablet+: table */}
-                <div className="hidden md:block">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-[11px] font-medium text-muted-foreground">
-                        <th className="pb-3">Saat</th>
-                        <th className="pb-3">Müşteri</th>
-                        <th className="pb-3">Hizmet</th>
-                        <th className="pb-3">Çalışan</th>
-                        <th className="pb-3">Durum</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {upcomingAppointments.map((appointment) => (
-                        <tr key={appointment.id} className="hover:bg-[#F7F9FB]">
-                          <td className="py-3 font-semibold text-[#0C1D36]">{formatTime(appointment.startTime)}</td>
-                          <td className="py-3">
-                            <Link href={`/dashboard/hastalar/${appointment.patientId}`} className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-[11px] font-bold text-violet-700">
-                                {initials(appointment.patientName)}
-                              </span>
-                              <span>
-                                <span className="block font-medium text-[#0C1D36]">{appointment.patientName}</span>
-                                <span className="block text-[11px] text-muted-foreground">{formatShortDate(appointment.date)}</span>
-                              </span>
-                            </Link>
-                          </td>
-                          <td className="py-3 text-[#0C1D36]">{appointment.serviceName}</td>
-                          <td className="py-3 text-muted-foreground">{appointment.staffName ?? 'Atanmadı'}</td>
-                          <td className="py-3">
-                            <span className={cn(
-                              'rounded-full px-2 py-1 text-[11px] font-semibold',
-                              appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
-                            )}>
-                              {appointment.status === 'CONFIRMED' ? 'Onaylandı' : 'Onay Bekliyor'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions — desktop only, mobile uses FAB */}
         <Card className="hidden shadow-sm xl:block">
           <CardContent className="p-5">
-            <h2 className="mb-4 text-sm font-bold text-[#0C1D36]">Hızlı İşlemler</h2>
+            <h2 className="mb-4 text-sm font-bold text-brand-ink">Hızlı İşlemler</h2>
             <div className="grid grid-cols-2 gap-3">
               {canCreateAppointment && (
                 <QuickAction icon={<CalendarPlus />} label="Randevu Oluştur" onClick={() => setModal('appointment')} />
@@ -546,7 +253,11 @@ export function AdminOverview({
                 <QuickAction icon={<Scissors />} label="Hizmet Ekle" onClick={() => setModal('service')} />
               )}
               <QuickAction icon={<Clock />} label="Müsaitlik Düzenle" href="/dashboard/takvim" />
-              <QuickAction icon={<Send />} label="Toplu Mesaj Gönder" onClick={() => toast.info('Toplu mesaj özelliği sonraki entegrasyon adımında bağlanacak.')} />
+              <QuickAction
+                icon={<Send />}
+                label="Toplu Mesaj Gönder"
+                onClick={() => toast.info('Toplu mesaj özelliği sonraki entegrasyon adımında bağlanacak.')}
+              />
               {canViewAnalytics && <QuickAction icon={<BarChart3 />} label="Rapor Oluştur" href="/dashboard/analitik" />}
             </div>
           </CardContent>
@@ -556,6 +267,7 @@ export function AdminOverview({
       <AppointmentFormDrawer
         open={modal === 'appointment'}
         onOpenChange={(open) => setModal(open ? 'appointment' : null)}
+        locations={lookups.locations}
         patients={lookups.patients}
         services={lookups.services}
         staff={lookups.staff}
@@ -578,13 +290,31 @@ export function AdminOverview({
                 navigator.clipboard.writeText(bookingLink)
                 toast.success('Bağlantı kopyalandı')
               }}
-              className="bg-[#087C87] text-white hover:bg-[#066D77]"
+              className="bg-brand-teal text-white hover:bg-brand-teal-hover"
             >
               Bağlantıyı Kopyala
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      <QuickStartTour
+        open={quickStartOpen}
+        onOpenChange={setQuickStartOpen}
+        onStartAppointment={() => {
+          setQuickStartOpen(false)
+          setModal('appointment')
+        }}
+        onOpenPatients={() => {
+          setQuickStartOpen(false)
+          router.push('/dashboard/hastalar')
+        }}
+        onOpenCalendar={() => {
+          setQuickStartOpen(false)
+          router.push('/dashboard/takvim')
+        }}
+        onDismissForever={dismissQuickStartForever}
+      />
     </div>
   )
 }
@@ -601,8 +331,8 @@ function QuickAction({
   onClick?: () => void
 }) {
   const content = (
-    <span className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border bg-white p-3 text-center text-xs font-semibold text-[#0C1D36] shadow-sm transition-colors hover:border-[#087C87]/40 hover:bg-cyan-50/40">
-      <span className="text-[#087C87] [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
+    <span className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border bg-white p-3 text-center text-xs font-semibold text-brand-ink shadow-sm transition-colors hover:border-brand-teal/40 hover:bg-cyan-50/40">
+      <span className="text-brand-teal [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
       {label}
     </span>
   )

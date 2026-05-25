@@ -12,6 +12,7 @@ import { AppointmentFormDrawer, type AppointmentOption } from './appointment-for
 import { ServiceFormDialog } from './service-form-dialog'
 
 export type QuickActionsLookups = {
+  locations: AppointmentOption[]
   patients: AppointmentOption[]
   services: (AppointmentOption & { durationMin: number })[]
   staff: AppointmentOption[]
@@ -43,7 +44,7 @@ export function QuickActions({
     <>
       <div className="flex flex-wrap gap-2">
         {canCreateAppointment && (
-          <Button onClick={() => setOpen('appointment')} className="bg-[#0B7F6F] text-white hover:bg-[#09685C]">
+          <Button onClick={() => setOpen('appointment')} className="bg-brand-teal text-white hover:bg-brand-teal-hover">
             <CalendarPlus className="mr-2 h-4 w-4" />
             Randevu Oluştur
           </Button>
@@ -73,6 +74,7 @@ export function QuickActions({
       <AppointmentFormDrawer
         open={open === 'appointment'}
         onOpenChange={(v) => setOpen(v ? 'appointment' : null)}
+        locations={lookups.locations}
         patients={lookups.patients}
         services={lookups.services}
         staff={lookups.staff}
@@ -93,7 +95,7 @@ export function QuickActions({
                 navigator.clipboard.writeText(bookingLink)
                 toast.success('Bağlantı kopyalandı')
               }}
-              className="bg-[#0B7F6F] hover:bg-[#09685C] text-white"
+              className="bg-brand-teal hover:bg-brand-teal-hover text-white"
             >
               Bağlantıyı Kopyala
             </Button>

@@ -1,149 +1,129 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import { AsistanLogo } from '@/components/asistan-logo'
+import { CheckCircle2, Loader2, Lock } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { AuthShell } from '@/components/marketing/auth-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from 'sonner'
-import { Loader2, KeyRound } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function ResetPasswordPage() {
-  const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [success, setSuccess] = useState(false)
 
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault()
-    
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
     if (password !== confirmPassword) {
-      toast.error('Şifreler eşleşmiyor', {
-        description: 'Lütfen her iki alana da aynı şifreyi girin.'
-      })
+      toast.error('Sifreler eslesmiyor.')
       return
     }
-
     if (password.length < 6) {
-      toast.error('Şifre çok kısa', {
-        description: 'Şifreniz en az 6 karakter olmalıdır.'
-      })
+      toast.error('Sifre en az 6 karakter olmali.')
       return
     }
 
     setLoading(true)
-
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      })
-
+      const { error } = await supabase.auth.updateUser({ password })
       if (error) {
-        toast.error('Şifre güncellenemedi', {
-          description: error.message,
-        })
+        toast.error('Sifre guncellenemedi', { description: error.message })
         return
       }
-
-      setIsSuccess(true)
-      toast.success('Şifreniz başarıyla güncellendi!')
+      setSuccess(true)
+      toast.success('Sifreniz guncellendi.')
     } catch {
-      toast.error('Beklenmeyen bir hata oluştu')
+      toast.error('Beklenmeyen bir hata olustu.')
     } finally {
       setLoading(false)
     }
   }
 
-  if (isSuccess) {
+  if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#06B6D4]/10 via-background to-[#2563EB]/10 p-4">
-        <Card className="w-full max-w-md border-slate-200 shadow-xl shadow-blue-900/5">
-          <CardHeader className="text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
-                <KeyRound className="h-8 w-8" />
-              </div>
-            </div>
-            <div>
-              <CardTitle className="text-2xl text-[#0C1D36]">Şifreniz Güncellendi</CardTitle>
-              <CardDescription className="mt-2 text-slate-500">
-                Yeni şifrenizle sisteme güvenle giriş yapabilirsiniz.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardFooter className="flex justify-center pt-2">
-            <Button asChild className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
-              <Link href="/auth/login">Giriş Yap</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <AuthShell
+        badge="Sifre Guncellendi"
+        title="Yeni sifreniz hazir."
+        description="Artik panelinize yeni sifrenizle guvenli sekilde giris yapabilirsiniz."
+      >
+        <div className="text-center">
+          <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <CheckCircle2 className="size-7" />
+          </div>
+          <h2 className="text-2xl font-black text-brand-navy">Sifre degisimi tamamlandi</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-500">Giris ekranina donerek devam edebilirsiniz.</p>
+          <Button asChild className="mt-6 h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
+            <Link href="/auth/login">Giris Yap</Link>
+          </Button>
+        </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#06B6D4]/10 via-background to-[#2563EB]/10 p-4">
-      <Card className="w-full max-w-md border-slate-200 shadow-xl shadow-blue-900/5">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <AsistanLogo variant="dark" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl text-[#0C1D36]">Yeni Şifre Belirle</CardTitle>
-            <CardDescription className="mt-2 text-slate-500">
-              Lütfen hesabınız için yeni bir şifre girin.
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <form onSubmit={handleUpdate}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2 text-left">
-              <Label htmlFor="password" className="font-semibold text-slate-700">Yeni Şifre</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="focus-visible:ring-[#2563EB] focus-visible:border-[#2563EB]"
-              />
-            </div>
-            <div className="space-y-2 text-left">
-              <Label htmlFor="confirmPassword" className="font-semibold text-slate-700">Şifre Tekrarı</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="focus-visible:ring-[#2563EB] focus-visible:border-[#2563EB]"
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white shadow-md shadow-blue-600/20" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Güncelleniyor...
-                </>
-              ) : (
-                'Şifreyi Güncelle'
-              )}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+    <AuthShell
+      badge="Yeni Sifre"
+      title="Hesabiniz icin yeni sifre belirleyin."
+      description="Guclu bir sifre secin ve eski sifrenizin yerine kaydedin."
+    >
+      <div className="mb-6">
+        <h2 className="text-2xl font-black text-brand-navy">Yeni Sifre</h2>
+        <p className="mt-2 text-sm text-slate-500">Iki alana da ayni sifreyi girin.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="reset-password">Yeni Sifre</Label>
+          <Input
+            id="reset-password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="********"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            disabled={loading}
+            className="h-11 rounded-lg"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="reset-password-confirm">Sifre Tekrar</Label>
+          <Input
+            id="reset-password-confirm"
+            name="confirm_password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="********"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            disabled={loading}
+            className="h-11 rounded-lg"
+          />
+        </div>
+
+        <Button type="submit" disabled={loading} className="h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Guncelleniyor...
+            </>
+          ) : (
+            <>
+              <Lock className="mr-2 size-4" />
+              Sifreyi Guncelle
+            </>
+          )}
+        </Button>
+      </form>
+    </AuthShell>
   )
 }

@@ -24,6 +24,7 @@ export function PatientActionButtons({
   isArchived,
   services,
   staff,
+  locations,
   patientLabel,
 }: {
   patientId: string
@@ -31,6 +32,7 @@ export function PatientActionButtons({
   isArchived: boolean
   services: { id: string; name: string; durationMin: number }[]
   staff: { id: string; fullName: string }[]
+  locations: { id: string; name: string }[]
   patientLabel: string
 }) {
   const router = useRouter()
@@ -56,7 +58,7 @@ export function PatientActionButtons({
       <div className="space-y-2">
         <Button
           onClick={() => setOpen('appointment')}
-          className="h-11 w-full bg-[#0B7F6F] text-white hover:bg-[#09685C] md:h-9 md:w-auto"
+          className="h-11 w-full bg-brand-teal text-white hover:bg-brand-teal-hover md:h-9 md:w-auto"
         >
           <CalendarPlus className="mr-2 h-4 w-4" /> Randevu Oluştur
         </Button>
@@ -91,6 +93,7 @@ export function PatientActionButtons({
       <AppointmentFormDrawer
         open={open === 'appointment'}
         onOpenChange={(v) => setOpen(v ? 'appointment' : null)}
+        locations={locations.map((location) => ({ id: location.id, label: location.name }))}
         patients={[{ id: patientId, label: patientLabel }]}
         services={services.map((s) => ({ id: s.id, label: s.name, durationMin: s.durationMin }))}
         staff={staff.map((s) => ({ id: s.id, label: s.fullName }))}
@@ -349,7 +352,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function DialogFooter({ pending }: { pending: boolean }) {
   return (
     <div className="flex justify-end pt-2">
-      <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
+      <Button type="submit" disabled={pending} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
         {pending ? 'Kaydediliyor...' : 'Kaydet'}
       </Button>
     </div>

@@ -132,7 +132,7 @@ export function ServiceFormDialog({
           </label>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
+            <Button type="submit" disabled={pending} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
               {pending ? 'Kaydediliyor...' : draft.id ? 'Güncelle' : 'Kaydet'}
             </Button>
           </div>

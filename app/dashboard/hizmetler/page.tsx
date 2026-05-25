@@ -4,7 +4,12 @@ import { ServicesBoard } from './services-board'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HizmetlerPage() {
+export default async function HizmetlerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ create?: string }>
+}) {
+  const sp = await searchParams
   const session = await requirePagePermission('service.manage')
   const services = await getServicesList(session.businessId)
 
@@ -22,6 +27,7 @@ export default async function HizmetlerPage() {
         isActive: s.isActive,
       }))}
       canManage={can(session, 'service.manage')}
+      initialCreateOpen={sp.create === '1'}
     />
   )
 }

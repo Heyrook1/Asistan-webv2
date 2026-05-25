@@ -223,22 +223,22 @@ export async function runNotificationAction(
 }
 
 async function completeActionRow(actionId: string, userId: string) {
-  await prisma.notificationAction.update({
-    where: { id: actionId },
-    data: { status: NotificationActionStatus.COMPLETED, completedBy: userId, completedAt: new Date() },
-  })
-  // Marking the parent notification as read so it stops counting against the
-  // unread badge once a decision has been made.
-  const action = await prisma.notificationAction.findUnique({
-    where: { id: actionId },
-    select: { notificationId: true },
-  })
-  if (action) {
-    await prisma.notification.update({
-      where: { id: action.notificationId },
-      data: { isRead: true, readAt: new Date() },
+  const completedAt = new Date()
+
+  await prisma.$transaction(async (tx) => {
+    // Marking the parent notification as read so it stops counting against the
+    // unread badge once a decision has been made.
+    const action = await tx.notificationAction.update({
+      where: { id: actionId },
+      data: { status: NotificationActionStatus.COMPLETED, completedBy: userId, completedAt },
+      select: { notificationId: true },
     })
-  }
+
+    await tx.notification.update({
+      where: { id: action.notificationId },
+      data: { isRead: true, readAt: completedAt },
+    })
+  })
 }
 
 async function closePeerActions(notificationId: string, exceptActionId: string) {

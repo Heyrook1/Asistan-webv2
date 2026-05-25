@@ -1,36 +1,45 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link'
+import { AlertTriangle } from 'lucide-react'
 
-export default async function Page({
+import { AuthShell } from '@/components/marketing/auth-shell'
+import { Button } from '@/components/ui/button'
+
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const params = await searchParams
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">
-                Sorry, something went wrong.
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {params?.error ? (
-                <p className="text-sm text-muted-foreground">
-                  Code error: {params.error}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  An unspecified error occurred.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+    <AuthShell
+      badge="Auth Error"
+      title="Kimlik dogrulama adiminda bir sorun olustu."
+      description="Baglanti suresi dolmus olabilir veya oturum gecersiz hale gelmis olabilir."
+      highlights={[
+        'Baglantiyi tekrar acmayi deneyin',
+        'Sifirlama/giris adimini yeniden baslatin',
+        'Sorun surerse destek ile iletisime gecin',
+      ]}
+    >
+      <div className="text-center">
+        <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+          <AlertTriangle className="size-7" />
+        </div>
+        <h2 className="text-2xl font-black text-brand-navy">Oturum acilamadi</h2>
+        <p className="mt-2 text-sm leading-7 text-slate-500">
+          {params?.error ? `Hata kodu: ${params.error}` : 'Belirlenemeyen bir dogrulama hatasi olustu.'}
+        </p>
+
+        <div className="mt-6 grid gap-2">
+          <Button asChild className="h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
+            <Link href="/auth/login">Giris Sayfasina Git</Link>
+          </Button>
+          <Button asChild variant="outline" className="h-11 w-full rounded-lg border-brand-blue/20">
+            <Link href="/auth/forgot-password">Sifre Sifirlama</Link>
+          </Button>
         </div>
       </div>
-    </div>
+    </AuthShell>
   )
 }

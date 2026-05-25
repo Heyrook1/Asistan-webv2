@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -26,14 +26,22 @@ import { formatCurrency, formatDuration } from '@/lib/format'
 export function ServicesBoard({
   services,
   canManage,
+  initialCreateOpen = false,
 }: {
   services: ServiceDraft[]
   canManage: boolean
+  initialCreateOpen?: boolean
 }) {
   const router = useRouter()
   const [dialog, setDialog] = useState<{ open: boolean; initial?: ServiceDraft }>({ open: false })
   const [deleteTarget, setDeleteTarget] = useState<ServiceDraft | null>(null)
   const [pending, startTransition] = useTransition()
+
+  useEffect(() => {
+    if (!initialCreateOpen) return
+    setDialog({ open: true })
+    router.replace('/dashboard/hizmetler', { scroll: false })
+  }, [initialCreateOpen, router])
 
   function toggle(id: string, isActive: boolean) {
     startTransition(async () => {
@@ -58,13 +66,13 @@ export function ServicesBoard({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#0C1D36]">Hizmetler</h1>
+          <h1 className="text-2xl font-bold text-brand-ink">Hizmetler</h1>
           <p className="text-sm text-muted-foreground">
             {services.length} hizmet • {services.filter((s) => s.isActive).length} aktif
           </p>
         </div>
         {canManage && (
-          <Button onClick={() => setDialog({ open: true })} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
+          <Button onClick={() => setDialog({ open: true })} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
             <Plus className="mr-2 h-4 w-4" /> Hizmet Ekle
           </Button>
         )}
@@ -83,7 +91,7 @@ export function ServicesBoard({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="h-3 w-3 rounded-full shrink-0" style={{ background: s.color }} />
-                    <p className="font-semibold text-[#0C1D36] truncate">{s.name}</p>
+                    <p className="font-semibold text-brand-ink truncate">{s.name}</p>
                   </div>
                   {s.category && <Badge variant="outline">{s.category}</Badge>}
                 </div>
@@ -92,7 +100,7 @@ export function ServicesBoard({
                 )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{formatDuration(s.durationMin)}</span>
-                  <span className="font-semibold text-[#0C1D36]">{formatCurrency(s.price, s.currency)}</span>
+                  <span className="font-semibold text-brand-ink">{formatCurrency(s.price, s.currency)}</span>
                 </div>
                 {canManage && (
                   <div className="flex items-center justify-between pt-2 border-t">

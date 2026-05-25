@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -29,6 +29,7 @@ import {
   Clock,
   RotateCcw,
   User,
+  MapPin,
   Check,
   Calendar as CalendarIcon,
   Frown,
@@ -52,6 +53,8 @@ type PlainAppointment = {
   serviceColor: string
   staffId: string | null
   staffName: string | null
+  locationId: string | null
+  locationName: string | null
   date: string
   startTime: string
   endTime: string
@@ -157,27 +160,44 @@ function initialsOf(name: string) {
 
 export function AppointmentsBoard({
   initialStatus,
+  initialCreateOpen = false,
   appointments,
   patients,
   services,
   staff,
+  locations,
   canManage,
 }: {
   initialStatus: string
+  initialCreateOpen?: boolean
   appointments: PlainAppointment[]
   patients: Option[]
   services: (Option & { durationMin: number })[]
   staff: Option[]
+  locations: Option[]
   canManage: boolean
 }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<FilterValue>(
     (initialStatus as FilterValue) ?? 'ALL'
   )
   const [pending, startTransition] = useTransition()
-  const [createOpen, setCreateOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(initialCreateOpen)
   const [reschedule, setReschedule] = useState<PlainAppointment | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PlainAppointment | null>(null)
+
+  useEffect(() => {
+    if (!initialCreateOpen) return
+    setCreateOpen(true)
+    const next = new URLSearchParams(searchParams.toString())
+    if (!next.has('create')) return
+    next.delete('create')
+    const queryString = next.toString()
+    const href = queryString ? `${pathname}?${queryString}` : pathname
+    router.replace(href, { scroll: false })
+  }, [initialCreateOpen, pathname, router, searchParams])
 
   const filtered = useMemo(
     () => (status === 'ALL' ? appointments : appointments.filter((a) => a.status === status)),
@@ -208,7 +228,7 @@ export function AppointmentsBoard({
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#0C1D36] lg:text-[28px]">Randevular</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-brand-ink lg:text-[28px]">Randevular</h1>
           <p className="mt-0.5 text-[13px] text-muted-foreground lg:text-sm">
             Tüm randevularınızı görüntüleyin ve yönetin.
           </p>
@@ -216,7 +236,7 @@ export function AppointmentsBoard({
         {canManage && (
           <Button
             onClick={() => setCreateOpen(true)}
-            className="hidden h-11 gap-2 bg-[#0B7F6F] text-white shadow-sm hover:bg-[#09685C] md:inline-flex"
+            className="hidden h-11 gap-2 bg-brand-teal text-white shadow-sm hover:bg-brand-teal-hover md:inline-flex"
           >
             <CalendarPlus className="h-4 w-4" />
             Randevu Oluştur
@@ -239,8 +259,8 @@ export function AppointmentsBoard({
                 className={cn(
                   'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition-colors md:h-10',
                   active
-                    ? 'border-[#0B7F6F] bg-[#0B7F6F] text-white shadow-sm'
-                    : 'border-border bg-white text-[#0C1D36] hover:border-[#0B7F6F]/40'
+                    ? 'border-brand-teal bg-brand-teal text-white shadow-sm'
+                    : 'border-border bg-white text-brand-ink hover:border-brand-teal/40'
                 )}
               >
                 <FilterIcon className={cn('h-4 w-4', active ? 'text-white' : filter.iconClass)} />
@@ -251,7 +271,7 @@ export function AppointmentsBoard({
         </div>
         <button
           type="button"
-          className="hidden h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 text-[13px] font-semibold text-[#0C1D36] transition-colors hover:border-[#0B7F6F]/40 md:inline-flex"
+          className="hidden h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 text-[13px] font-semibold text-brand-ink transition-colors hover:border-brand-teal/40 md:inline-flex"
           onClick={() => toast.info('Gelişmiş filtreleme yakında.')}
         >
           <SlidersHorizontal className="h-4 w-4" />
@@ -290,6 +310,7 @@ export function AppointmentsBoard({
       <AppointmentFormDrawer
         open={createOpen}
         onOpenChange={setCreateOpen}
+        locations={locations}
         patients={patients}
         services={services}
         staff={staff}
@@ -378,7 +399,7 @@ function AppointmentRow({
 
         {/* Time block — desktop only */}
         <div className="hidden w-[80px] shrink-0 flex-col justify-center md:flex">
-          <span className="text-xl font-bold text-[#0C1D36]">{formatTime(appointment.startTime)}</span>
+          <span className="text-xl font-bold text-brand-ink">{formatTime(appointment.startTime)}</span>
           <span className="text-xs text-muted-foreground">{duration} dk</span>
         </div>
 
@@ -386,7 +407,7 @@ function AppointmentRow({
         <div className="hidden shrink-0 items-center md:flex">
           <span
             className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white"
-            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || '#0B7F6F'}, #16A9E8)` }}
+            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-teal)'}, var(--brand-cyan))` }}
           >
             {initialsOf(appointment.patientName)}
           </span>
@@ -397,21 +418,21 @@ function AppointmentRow({
           <div className="flex items-start gap-3">
             <span
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white md:hidden"
-              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || '#0B7F6F'}, #16A9E8)` }}
+              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-teal)'}, var(--brand-cyan))` }}
             >
               {initialsOf(appointment.patientName)}
             </span>
             <div className="min-w-0 flex-1">
               <Link
                 href={`/dashboard/hastalar/${appointment.patientId}`}
-                className="block truncate text-[15px] font-bold text-[#0C1D36] hover:text-[#0B7F6F] md:text-base"
+                className="block truncate text-[15px] font-bold text-brand-ink hover:text-brand-teal md:text-base"
               >
                 {appointment.patientName}
               </Link>
               <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground md:text-[13px]">
                 <span
                   className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: appointment.serviceColor || '#0B7F6F' }}
+                  style={{ background: appointment.serviceColor || 'var(--brand-teal)' }}
                 />
                 <span className="truncate">{appointment.serviceName}</span>
               </p>
@@ -421,12 +442,18 @@ function AppointmentRow({
                   <span className="truncate">{appointment.staffName}</span>
                 </p>
               )}
+              {appointment.locationName && (
+                <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground md:text-[13px]">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{appointment.locationName}</span>
+                </p>
+              )}
             </div>
           </div>
 
           {/* Mobile-only bottom row: time + status */}
           <div className="mt-3 flex items-center justify-between gap-2 md:hidden">
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0C1D36]">
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand-ink">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               {formatTime(appointment.startTime)}
               <span className="font-normal text-muted-foreground">• {duration} dk</span>
@@ -464,7 +491,7 @@ function AppointmentRow({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 rounded-full text-muted-foreground hover:bg-slate-50 hover:text-[#0C1D36]"
+                  className="h-9 w-9 rounded-full text-muted-foreground hover:bg-slate-50 hover:text-brand-ink"
                   aria-label="İşlemler"
                 >
                   <MoreVertical className="h-4 w-4" />
@@ -552,7 +579,7 @@ function RescheduleDialog({
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>İptal</Button>
-            <Button type="submit" disabled={pending} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
+            <Button type="submit" disabled={pending} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
               {pending ? 'Kaydediliyor...' : 'Güncelle'}
             </Button>
           </div>

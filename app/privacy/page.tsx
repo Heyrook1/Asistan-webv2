@@ -1,83 +1,97 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Lock, ShieldCheck, Users } from 'lucide-react'
+import { ArrowRight, Database, LockKeyhole, ShieldCheck, Users } from 'lucide-react'
 
-import { Footer } from '@/components/marketing/footer'
-import { Navbar } from '@/components/marketing/navbar'
+import { MarketingPageShell } from '@/components/marketing/page-shell'
+import { FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 
 export const metadata: Metadata = {
   title: 'Gizlilik',
-  description: 'Asistan platformunun gizlilik, rol bazlı erişim ve veri koruma yaklaşımı.',
+  description: 'Asistan platformunun gizlilik, yetki ve veri guvenligi yaklasimi.',
 }
 
 const principles = [
   {
-    icon: Lock,
+    icon: LockKeyhole,
     title: 'Veri minimizasyonu',
-    description: 'Ürün deneyimi için gerekli olmayan kişisel verileri toplamamaya öncelik veririz.',
+    description:
+      'Klinik operasyonu icin gerekli olmayan kisisel verileri toplamamaya oncelik veririz.',
   },
   {
     icon: Users,
-    title: 'Rol bazlı erişim',
-    description: 'Doktor, sekreter ve yönetici rollerinin erişim ihtiyacı ayrı ele alınır.',
+    title: 'Rol bazli erisim',
+    description:
+      'Doktor, sekreter ve yonetici rollerinin erisim kapsamlarini ayri olarak yonetiriz.',
+  },
+  {
+    icon: Database,
+    title: 'Izlenebilir veri akisi',
+    description:
+      'Kayit degisiklikleri denetlenebilir bicimde tutulur, operasyon adimlari geriye donuk izlenebilir.',
   },
   {
     icon: ShieldCheck,
-    title: 'Güvenli süreç',
-    description: 'Erken erişim kurulumlarında veri işleme ve yetki kapsamı ayrıca netleştirilir.',
+    title: 'Guvenli operasyon',
+    description:
+      'Kimlik dogrulama, tenant ayrimi ve yetki kontrolleri urun mimarisinin temel katmanidir.',
   },
 ]
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <Navbar />
-      <section className="bg-[#F8FAFB] pt-32 pb-20">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <Badge className="mb-5 border-0 bg-[#0B7F6F]/10 text-[#0B7F6F] hover:bg-[#0B7F6F]/10">
-            Gizlilik
-          </Badge>
-          <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-[#06142A] md:text-5xl">
-            Hasta ve işletme verileri için gizlilik odaklı yaklaşım.
-          </h1>
-          <p className="mt-6 text-base leading-8 text-gray-600 md:text-lg">
-            Bu sayfa, Asistan'ın erken erişim ve ürün geliştirme dönemindeki genel gizlilik
-            prensiplerini açıklar. Canlı kurulum kapsamı, işletme ihtiyacına göre ayrıca netleştirilir.
-          </p>
+    <MarketingPageShell>
+      <section className="relative overflow-hidden pb-16 pt-28 md:pb-20 md:pt-32">
+        <div className="marketing-hero-bg absolute inset-0" />
+        <div className="soft-grid absolute inset-0 opacity-60" />
+        <div className="marketing-container relative z-10">
+          <FadeUp className="mx-auto max-w-3xl text-center">
+            <Badge className="marketing-chip mb-5 border-0">Gizlilik</Badge>
+            <h1 className="font-heading text-4xl font-black leading-[1.08] text-brand-navy md:text-5xl">
+              Hasta ve isletme verisi icin guvenli bir temel.
+            </h1>
+            <p className="mt-5 text-base leading-8 text-slate-600 md:text-lg">
+              Bu sayfa, Asistan icindeki veri toplama, erisim ve isleme prensiplerini genel seviyede
+              ozetler. Kurulum ozelindeki kapsam, canliya gecis oncesinde ayrica netlestirilir.
+            </p>
+          </FadeUp>
         </div>
       </section>
 
-      <section className="py-20">
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
-          {principles.map((item) => (
-            <Card key={item.title} className="rounded-3xl border-gray-100 shadow-sm">
-              <CardContent className="p-6">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0B7F6F]/10">
-                  <item.icon className="h-6 w-6 text-[#0B7F6F]" aria-hidden="true" />
+      <section className="bg-white py-20">
+        <div className="marketing-container grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {principles.map((item, index) => (
+            <ScaleIn key={item.title} delay={0.05 * index}>
+              <article className="marketing-surface marketing-card-hover h-full rounded-2xl p-5">
+                <div className="mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-blue">
+                  <item.icon className="size-5" aria-hidden="true" />
                 </div>
-                <h2 className="text-xl font-bold text-[#06142A]">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-gray-600">{item.description}</p>
-              </CardContent>
-            </Card>
+                <h2 className="text-lg font-extrabold text-brand-navy">{item.title}</h2>
+                <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
+              </article>
+            </ScaleIn>
           ))}
         </div>
       </section>
 
-      <section className="px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl rounded-[2rem] bg-[#0D1117] p-8 text-white md:p-10">
-          <h2 className="text-2xl font-bold">Sorularınız için bize yazın.</h2>
-          <p className="mt-3 text-white/70">
-            Gizlilik ve veri işleme kapsamı ile ilgili sorularınızı doğrudan ekibimize iletebilirsiniz.
-          </p>
-          <Link href="mailto:merhaba@asistan.online" className="mt-6 inline-flex items-center font-semibold text-[#12C8AD] hover:text-white">
-            merhaba@asistan.online
-            <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-          </Link>
+      <section className="bg-dashboard-surface py-16">
+        <div className="marketing-container">
+          <FadeUp className="rounded-2xl bg-brand-navy p-7 text-white md:p-9">
+            <h2 className="text-2xl font-black md:text-3xl">Sorulariniz varsa dogrudan ulasin.</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-white/75 md:text-base">
+              Gizlilik, veri saklama veya erisim politikasiyla ilgili sorulariniz icin ekibimizle iletisime
+              gecebilirsiniz.
+            </p>
+            <Link
+              href="mailto:merhaba@asistan.online"
+              className="mt-6 inline-flex items-center text-sm font-semibold text-brand-cyan hover:text-white"
+            >
+              merhaba@asistan.online
+              <ArrowRight className="ml-1.5 size-4" />
+            </Link>
+          </FadeUp>
         </div>
       </section>
-      <Footer />
-    </main>
+    </MarketingPageShell>
   )
 }

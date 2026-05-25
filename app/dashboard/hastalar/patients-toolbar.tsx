@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -15,16 +15,35 @@ const chips: Chip[] = [
   { key: 'archived', label: 'Arşiv', icon: Archive },
 ]
 
-export function PatientsToolbar({ canCreate }: { canCreate: boolean }) {
+export function PatientsToolbar({
+  canCreate,
+  initialCreateOpen = false,
+}: {
+  canCreate: boolean
+  initialCreateOpen?: boolean
+}) {
   const router = useRouter()
   const params = useSearchParams()
-  const [drawer, setDrawer] = useState(false)
+  const [drawer, setDrawer] = useState(initialCreateOpen)
   const [query, setQuery] = useState(params.get('q') ?? '')
   const archived = params.get('archived') === '1'
   const [, startTransition] = useTransition()
 
+  useEffect(() => {
+    if (!initialCreateOpen) return
+    setDrawer(true)
+    const next = new URLSearchParams(params.toString())
+    if (!next.has('create')) return
+    next.delete('create')
+    const queryString = next.toString()
+    const href = queryString ? `/dashboard/hastalar?${queryString}` : '/dashboard/hastalar'
+    startTransition(() => router.replace(href, { scroll: false }))
+  }, [initialCreateOpen, params, router, startTransition])
+
   function pushParams(next: URLSearchParams) {
-    startTransition(() => router.replace(`/dashboard/hastalar?${next.toString()}`))
+    const queryString = next.toString()
+    const href = queryString ? `/dashboard/hastalar?${queryString}` : '/dashboard/hastalar'
+    startTransition(() => router.replace(href, { scroll: false }))
   }
 
   function applyQuery(value: string) {
@@ -42,7 +61,7 @@ export function PatientsToolbar({ canCreate }: { canCreate: boolean }) {
   }
 
   return (
-    <div className="-mx-4 sticky top-14 z-20 bg-[#F4F8F9]/95 px-4 pt-1 pb-3 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
+    <div className="-mx-4 sticky top-14 z-20 bg-dashboard-bg/95 px-4 pt-1 pb-3 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
         <form
           onSubmit={(e) => {
@@ -78,7 +97,7 @@ export function PatientsToolbar({ canCreate }: { canCreate: boolean }) {
           <Button
             type="button"
             onClick={() => setDrawer(true)}
-            className="hidden h-10 bg-[#0B7F6F] text-white hover:bg-[#09685C] lg:inline-flex"
+            className="hidden h-10 bg-brand-teal text-white hover:bg-brand-teal-hover lg:inline-flex"
           >
             <UserPlus className="mr-2 h-4 w-4" /> Hasta Ekle
           </Button>
@@ -96,8 +115,8 @@ export function PatientsToolbar({ canCreate }: { canCreate: boolean }) {
               className={cn(
                 'tap-target inline-flex items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors',
                 active
-                  ? 'border-[#0B7F6F] bg-[#0B7F6F] text-white'
-                  : 'border-border bg-white text-muted-foreground hover:border-[#0B7F6F]/40'
+                  ? 'border-brand-teal bg-brand-teal text-white'
+                  : 'border-border bg-white text-muted-foreground hover:border-brand-teal/40'
               )}
               aria-pressed={active}
             >

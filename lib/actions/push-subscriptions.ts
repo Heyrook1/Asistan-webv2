@@ -51,6 +51,30 @@ export async function registerPushSubscription(input: unknown): Promise<ActionRe
     return ok({ id: existing.id })
   }
 
+  const archived = await prisma.pushSubscription.findFirst({
+    where: {
+      endpoint: parsed.data.endpoint,
+      deletedAt: { not: null },
+    },
+    select: { id: true, userId: true },
+  })
+
+  if (archived) {
+    await prisma.pushSubscription.update({
+      where: { id: archived.id },
+      data: {
+        userId: session.userId,
+        businessId: session.businessId,
+        p256dh: parsed.data.p256dh,
+        auth: parsed.data.auth,
+        userAgent: parsed.data.userAgent ?? null,
+        lastUsedAt: new Date(),
+        deletedAt: null,
+      },
+    })
+    return ok({ id: archived.id })
+  }
+
   const created = await prisma.pushSubscription.create({
     data: {
       businessId: session.businessId,

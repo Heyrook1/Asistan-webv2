@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Calendar, CalendarDays, Users, Briefcase,
   Bell, BarChart3, Settings, Sparkles, HelpCircle,
-  UserCog, LogOut,
+  UserCog, LogOut, Shield,
 } from 'lucide-react'
 import { AsistanLogo } from '@/components/asistan-logo'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -21,6 +21,8 @@ type NavItem = {
   icon: typeof LayoutDashboard
   permission?: Permission
   badge?: boolean
+  adminOnly?: boolean
+  superAdminOnly?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -32,21 +34,30 @@ const navItems: NavItem[] = [
   { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
   { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: true },
   { name: 'Analitik', href: '/dashboard/analitik', icon: BarChart3, permission: 'analytics.view' },
+  { name: 'Super Admin', href: '/dashboard/super-admin', icon: Shield, superAdminOnly: true },
   { name: 'Ayarlar', href: '/dashboard/ayarlar', icon: Settings },
 ]
 
 export function DashboardSidebar({
   unreadNotifications,
   session,
+  showPlatformAdmin = false,
+  showSuperAdmin = false,
 }: {
   unreadNotifications: number
   session: SessionContext
+  showPlatformAdmin?: boolean
+  showSuperAdmin?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
 
   const visibleItems = navItems.filter(
-    (item) => !item.permission || session.permissions.includes(item.permission)
+    (item) => {
+      if (item.adminOnly && !showPlatformAdmin) return false
+      if (item.superAdminOnly && !showSuperAdmin) return false
+      return !item.permission || session.permissions.includes(item.permission)
+    }
   )
 
   async function handleLogout() {
@@ -59,13 +70,13 @@ export function DashboardSidebar({
 
   function SidebarContent() {
     return (
-      <div className="flex h-full flex-col bg-[#06142A] relative overflow-hidden">
-        <div className="absolute -top-32 -left-20 h-64 w-64 rounded-full bg-[#0B7F6F]/5 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-[#16A9E8]/5 blur-3xl pointer-events-none" />
+      <div className="flex h-full flex-col bg-brand-navy relative overflow-hidden">
+        <div className="absolute -top-32 -left-20 h-64 w-64 rounded-full bg-brand-teal/5 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-brand-cyan/5 blur-3xl pointer-events-none" />
 
-        <div className="relative flex h-[68px] shrink-0 items-center px-5 border-b border-[#1A3050]">
+        <div className="relative flex h-[68px] shrink-0 items-center px-5 border-b border-sidebar-border">
           <Link href="/dashboard">
-            <AsistanLogo variant="light" size="lg" />
+            <AsistanLogo variant="light" size="lg" priority />
           </Link>
         </div>
 
@@ -82,22 +93,22 @@ export function DashboardSidebar({
                   className={cn(
                     'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group',
                     active
-                      ? 'bg-gradient-to-r from-[#0B7F6F]/15 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(18,200,173,0.2)]'
+                      ? 'bg-gradient-to-r from-brand-teal/15 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(11,127,111,0.2)]'
                       : 'text-white/55 hover:bg-white/[0.04] hover:text-white/90'
                   )}
                 >
                   {active && (
-                    <span className="absolute left-0 inset-y-2 w-[3px] rounded-r-full bg-[#0B7F6F]" />
+                    <span className="absolute left-0 inset-y-2 w-[3px] rounded-r-full bg-brand-teal" />
                   )}
                   <item.icon
                     className={cn(
                       'h-[18px] w-[18px] shrink-0 transition-colors',
-                      active ? 'text-[#0B7F6F]' : 'group-hover:text-white/90'
+                      active ? 'text-brand-teal' : 'group-hover:text-white/90'
                     )}
                   />
                   <span className="flex-1 truncate">{item.name}</span>
                   {item.badge && unreadNotifications > 0 && (
-                    <span className="min-w-[20px] h-5 rounded-full bg-[#0B7F6F] text-[#06142A] text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
+                    <span className="min-w-[20px] h-5 rounded-full bg-brand-teal text-brand-navy text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
                     </span>
                   )}
@@ -109,11 +120,11 @@ export function DashboardSidebar({
 
         <div className="relative shrink-0 px-3 pb-4 pt-2 space-y-2">
           <div
-            className="relative overflow-hidden rounded-2xl p-4 border border-[#1F3A60]"
-            style={{ background: 'linear-gradient(155deg, #0E2D52 0%, #0A2240 60%, #0D2D4D 100%)' }}
+            className="relative overflow-hidden rounded-2xl p-4 border border-sidebar-card-border"
+            style={{ background: 'linear-gradient(155deg, var(--sidebar-card) 0%, var(--sidebar-card-mid) 60%, var(--sidebar-card-end) 100%)' }}
           >
             <div className="absolute -right-4 -top-4 opacity-90">
-              <Sparkles className="h-12 w-12 text-[#0B7F6F]/30" />
+              <Sparkles className="h-12 w-12 text-brand-teal/30" />
             </div>
             <p className="relative text-sm font-bold text-white mb-1 leading-tight truncate">
               {session.businessName}
@@ -123,7 +134,7 @@ export function DashboardSidebar({
             </p>
             <Link
               href="/dashboard/ayarlar"
-              className="relative inline-block rounded-lg px-4 py-1.5 text-xs font-bold bg-[#0B7F6F] hover:bg-[#09685C] text-[#06142A] transition-colors"
+              className="relative inline-block rounded-lg px-4 py-1.5 text-xs font-bold bg-brand-teal hover:bg-brand-teal-hover text-brand-navy transition-colors"
             >
               İşletme Ayarları
             </Link>

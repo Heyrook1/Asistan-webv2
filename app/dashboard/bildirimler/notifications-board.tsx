@@ -229,18 +229,18 @@ export function NotificationsBoard({ businessId, userId, notifications }: Props)
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#0C1D36]">Bildirim Merkezi</h1>
+          <h1 className="text-2xl font-bold text-brand-ink">Bildirim Merkezi</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Size atanan randevuları, hasta kartı güncellemelerini ve sistem gelişmelerini tek
             ekrandan takip edin.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="border-0 bg-[#0C1D36]/5 text-[#0C1D36]">
+          <Badge variant="secondary" className="border-0 bg-brand-ink/5 text-brand-ink">
             Toplam {notifications.length}
           </Badge>
           {unreadTotal > 0 && (
-            <Badge className="border-0 bg-[#FF4D4F]/10 text-[#C22326]">
+            <Badge className="border-0 bg-brand-danger/10 text-brand-danger-strong">
               {unreadTotal} okunmamış
             </Badge>
           )}
@@ -336,7 +336,7 @@ export function NotificationsBoard({ businessId, userId, notifications }: Props)
                 <TabsTrigger
                   key={t.value}
                   value={t.value}
-                  className="rounded-full border border-transparent bg-[#F4F8F9] px-3 py-1.5 text-xs data-[state=active]:border-[#0B7F6F]/40 data-[state=active]:bg-[#0B7F6F]/10 data-[state=active]:text-[#0b7f6f]"
+                  className="rounded-full border border-transparent bg-dashboard-bg px-3 py-1.5 text-xs data-[state=active]:border-brand-teal/40 data-[state=active]:bg-brand-teal/10 data-[state=active]:text-brand-teal"
                 >
                   {t.label}
                 </TabsTrigger>
@@ -388,10 +388,10 @@ export function NotificationsBoard({ businessId, userId, notifications }: Props)
 function EmptyView() {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-white px-6 py-16 text-center">
-      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
+      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal">
         <Inbox className="h-6 w-6" />
       </div>
-      <p className="text-base font-semibold text-[#0C1D36]">Henüz bildiriminiz yok.</p>
+      <p className="text-base font-semibold text-brand-ink">Henüz bildiriminiz yok.</p>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">
         Size atanan randevular ve hasta kartı güncellemeleri burada görünecek.
       </p>
@@ -417,8 +417,8 @@ function NotificationRow({
         type="button"
         onClick={() => onOpen(n.id)}
         className={cn(
-          'group flex w-full items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-left transition hover:border-[#0B7F6F]/40 hover:shadow-sm',
-          !n.isRead ? 'border-[#0B7F6F]/30 bg-[#0B7F6F]/[0.03]' : 'border-border/50'
+          'group flex w-full items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-left transition hover:border-brand-teal/40 hover:shadow-sm',
+          !n.isRead ? 'border-brand-teal/30 bg-brand-teal/[0.03]' : 'border-border/50'
         )}
       >
         <div
@@ -428,16 +428,16 @@ function NotificationRow({
               ? 'bg-rose-100 text-rose-600'
               : n.priority === 'HIGH'
                 ? 'bg-amber-100 text-amber-700'
-                : 'bg-[#0B7F6F]/10 text-[#0b7f6f]'
+                : 'bg-brand-teal/10 text-brand-teal'
           )}
         >
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-[#FF4D4F]" />}
-            <p className="truncate text-sm font-semibold text-[#0C1D36]">{n.title}</p>
-            <Badge variant="secondary" className="border-0 bg-[#0C1D36]/5 text-[10px] text-[#0C1D36]/70">
+            {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-brand-danger" />}
+            <p className="truncate text-sm font-semibold text-brand-ink">{n.title}</p>
+            <Badge variant="secondary" className="border-0 bg-brand-ink/5 text-[10px] text-brand-ink/70">
               {NOTIFICATION_TYPE_LABELS[n.type]}
             </Badge>
             {n.priority !== 'NORMAL' && (
@@ -480,14 +480,14 @@ function NotificationRow({
             }}
             disabled={pending}
             className={cn(
-              'inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-[#F7F9FB] hover:text-[#0C1D36]',
+              'inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-dashboard-surface hover:text-brand-ink',
               pending && 'opacity-50'
             )}
             aria-label={n.isRead ? 'Okunmadı olarak işaretle' : 'Okundu olarak işaretle'}
           >
             {n.isRead ? <Undo2 className="h-4 w-4" /> : <Check className="h-4 w-4" />}
           </button>
-          <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-[#0C1D36]" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-brand-ink" />
         </div>
       </button>
     </li>
@@ -532,14 +532,14 @@ function NotificationDetail({
                 ? 'bg-rose-100 text-rose-600'
                 : n.priority === 'HIGH'
                   ? 'bg-amber-100 text-amber-700'
-                  : 'bg-[#0B7F6F]/10 text-[#0b7f6f]'
+                  : 'bg-brand-teal/10 text-brand-teal'
             )}
           >
             <Icon className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="border-0 bg-[#0C1D36]/5 text-[10px] text-[#0C1D36]/70">
+              <Badge variant="secondary" className="border-0 bg-brand-ink/5 text-[10px] text-brand-ink/70">
                 {NOTIFICATION_TYPE_LABELS[n.type]}
               </Badge>
               {n.priority !== 'NORMAL' && (
@@ -551,7 +551,7 @@ function NotificationDetail({
                 {n.isRead ? 'Okundu' : 'Okunmamış'}
               </Badge>
             </div>
-            <SheetTitle className="text-lg font-bold text-[#0C1D36]">{n.title}</SheetTitle>
+            <SheetTitle className="text-lg font-bold text-brand-ink">{n.title}</SheetTitle>
             <p className="text-xs text-muted-foreground">
               {formatDateTime(n.createdAt)} • {formatTimeAgo(n.createdAt)}
               {n.actor && <> • {n.actor.fullName}</>}
@@ -560,7 +560,7 @@ function NotificationDetail({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-[#F7F9FB] hover:text-[#0C1D36]"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-dashboard-surface hover:text-brand-ink"
             aria-label="Kapat"
           >
             <X className="h-4 w-4" />
@@ -570,10 +570,10 @@ function NotificationDetail({
 
       <ScrollArea className="flex-1 px-5 py-4">
         <div className="space-y-5">
-          <p className="text-sm leading-relaxed text-[#0C1D36]/90">{n.message}</p>
+          <p className="text-sm leading-relaxed text-brand-ink/90">{n.message}</p>
 
           {n.type === 'APPOINTMENT' && (appointmentId || patientName) && (
-            <div className="rounded-2xl border bg-[#F4F8F9]/60 p-4">
+            <div className="rounded-2xl border bg-dashboard-bg/60 p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Randevu özeti
               </p>
@@ -604,7 +604,7 @@ function NotificationDetail({
           )}
 
           {n.type === 'PATIENT' && (patientId || patientName) && (
-            <div className="rounded-2xl border bg-[#F4F8F9]/60 p-4">
+            <div className="rounded-2xl border bg-dashboard-bg/60 p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Hasta özeti
               </p>
@@ -622,7 +622,7 @@ function NotificationDetail({
                     <span className="w-24 shrink-0 text-xs text-muted-foreground">Etiketler</span>
                     <div className="flex flex-wrap gap-1">
                       {tags.map((t) => (
-                        <Badge key={t} variant="secondary" className="border-0 bg-[#0B7F6F]/10 text-[10px] text-[#0b7f6f]">
+                        <Badge key={t} variant="secondary" className="border-0 bg-brand-teal/10 text-[10px] text-brand-teal">
                           {t}
                         </Badge>
                       ))}
@@ -689,7 +689,7 @@ function NotificationDetail({
                       onClick={() => onRunAction(a.id, a.label)}
                       className={cn(
                         'gap-1',
-                        isApprove && 'bg-[#0B7F6F] text-white hover:bg-[#0fb39c]'
+                        isApprove && 'bg-brand-teal text-white hover:bg-brand-teal-bright'
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -752,8 +752,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start gap-2">
       <dt className="w-24 shrink-0 text-xs text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 flex-1 text-sm text-[#0C1D36]">{value}</dd>
+      <dd className="min-w-0 flex-1 text-sm text-brand-ink">{value}</dd>
     </div>
   )
 }
-

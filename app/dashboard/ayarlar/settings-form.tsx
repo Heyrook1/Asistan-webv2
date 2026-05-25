@@ -55,7 +55,7 @@ export function SettingsForm({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-[#0C1D36]">Ayarlar</h1>
+        <h1 className="text-2xl font-bold text-brand-ink">Ayarlar</h1>
         <p className="text-sm text-muted-foreground">İşletme ve hesap bilgilerinizi yönetin.</p>
       </div>
 
@@ -69,8 +69,8 @@ export function SettingsForm({
           </Field>
           <Field label="Rol">
             <div className="flex items-center gap-2">
-              <Badge className="bg-[#06142A] text-white">{ROLE_LABELS[session.role]}</Badge>
-              {session.isOwner && <Badge variant="secondary" className="bg-[#0B7F6F]/10 text-[#0b7f6f]">Sahip</Badge>}
+              <Badge className="bg-brand-navy text-white">{ROLE_LABELS[session.role]}</Badge>
+              {session.isOwner && <Badge variant="secondary" className="bg-brand-teal/10 text-brand-teal">Sahip</Badge>}
             </div>
           </Field>
           <Field label="Aktif İşletme">
@@ -81,7 +81,7 @@ export function SettingsForm({
 
       <Card>
         <CardContent className="p-5">
-          <p className="text-sm font-semibold text-[#0C1D36] mb-4">İşletme Bilgileri</p>
+          <p className="text-sm font-semibold text-brand-ink mb-4">İşletme Bilgileri</p>
           <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
             <Field label="İşletme Adı *">
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={!session.isOwner} />
@@ -139,7 +139,7 @@ export function SettingsForm({
               </Select>
             </Field>
             <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit" disabled={pending || !session.isOwner} className="bg-[#0B7F6F] hover:bg-[#09685C] text-white">
+              <Button type="submit" disabled={pending || !session.isOwner} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
                 {pending ? 'Kaydediliyor...' : 'Kaydet'}
               </Button>
             </div>

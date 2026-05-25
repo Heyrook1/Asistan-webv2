@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Lock, Mail, MapPin, Shield, Users } from 'lucide-react'
+import { ArrowRight, Mail, Shield, Users, Globe, Lock } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
@@ -10,45 +10,48 @@ import { Input } from '@/components/ui/input'
 
 const footerLinks = [
   {
-    title: 'Ürün',
+    title: 'Urun',
     links: [
-      { label: 'Özellikler', href: '/urun' },
-      { label: 'Fiyatlandırma', href: '/fiyatlandirma' },
-      { label: 'Kaynaklar', href: '/kaynaklar' },
+      { label: 'Ozellikler', href: '/urun' },
+      { label: 'Nasil Calisir?', href: '/urun#nasil-calisir' },
+      { label: 'Fiyatlandirma', href: '/fiyatlandirma' },
+      { label: 'Guncellemeler', href: '/kaynaklar' },
     ],
   },
   {
-    title: 'Çözümler',
+    title: 'Cozumler',
     links: [
-      { label: 'Asistan Health', href: '/cozumler/health' },
-      { label: 'Beauty Yakında', href: '/cozumler' },
-      { label: 'Hukuk Yakında', href: '/cozumler' },
-      { label: 'Emlak Yakında', href: '/cozumler' },
+      { label: 'Klinik Sahipleri', href: '/cozumler/health' },
+      { label: 'Doktorlar', href: '/cozumler/health' },
+      { label: 'Sekreterler', href: '/cozumler/health' },
+      { label: 'Tum Cozumler', href: '/cozumler' },
     ],
   },
   {
-    title: 'Şirket',
+    title: 'Sirket',
     links: [
-      { label: 'Hakkımızda', href: '/hakkimizda' },
-      { label: 'İletişim', href: '/contact' },
-      { label: 'Erken Erişim', href: '/auth/sign-up' },
-      { label: 'Giriş Yap', href: '/auth/login' },
+      { label: 'Hakkimizda', href: '/hakkimizda' },
+      { label: 'Gizlilik Politikasi', href: '/privacy' },
+      { label: 'Kullanim Kosullari', href: '/terms' },
+      { label: 'Iletisim', href: '/contact' },
     ],
   },
   {
-    title: 'Yasal',
+    title: 'Destek',
     links: [
-      { label: 'Gizlilik', href: '/privacy' },
-      { label: 'Kullanım Koşulları', href: '/terms' },
+      { label: 'SSS', href: '/fiyatlandirma#sss' },
+      { label: 'Destek Merkezi', href: '/kaynaklar' },
+      { label: 'Canli Destek', href: '/auth/login' },
+      { label: 'Demo Talep Et', href: '/auth/sign-up' },
     ],
   },
 ]
 
 const trustBadges = [
-  { icon: Shield, text: 'KVKK odaklı' },
-  { icon: Lock, text: 'Gizlilik öncelikli' },
-  { icon: Users, text: 'Rol bazlı erişim' },
-  { icon: MapPin, text: 'KKTC odaklı' },
+  { icon: Shield, label: 'KVKK' },
+  { icon: Lock, label: 'Guvenli Altyapi' },
+  { icon: Users, label: 'Rol Bazli Erisim' },
+  { icon: Globe, label: 'KKTC Odakli' },
 ]
 
 export function Footer() {
@@ -56,39 +59,43 @@ export function Footer() {
   const [status, setStatus] = useState<'idle' | 'success'>('idle')
 
   return (
-    <footer className="bg-brand-navy pb-20 text-white sm:pb-0">
+    <footer className="bg-brand-navy text-white">
       <div className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-7">
-            <div className="lg:col-span-2">
-              <Link href="/" className="mb-5 inline-flex items-center gap-3" aria-label="Asistan ana sayfa">
+        <div className="marketing-container py-14">
+          <div className="grid gap-10 lg:grid-cols-[1.35fr_repeat(4,minmax(0,1fr))]">
+            <div>
+              <Link href="/" className="inline-flex items-center" aria-label="Asistan ana sayfa">
                 <AsistanLogo variant="light" size="md" />
               </Link>
-              <p className="mb-6 max-w-sm text-sm leading-7 text-white/65">
-                KKTC’den başlayan, sağlık ve hizmet işletmeleri için AI destekli randevu ve iş yönetim platformu.
+              <p className="mt-5 max-w-sm text-sm leading-7 text-white/65">
+                AI destekli klinik ve randevu yonetim platformu. Saglik ekiplerinin gunluk operasyonunu daha sakin hale getirir.
               </p>
-
-              <div className="mb-6 flex flex-wrap gap-2">
-                {trustBadges.map((badge) => (
-                  <div key={badge.text} className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
-                    <badge.icon className="size-3.5 text-brand-teal" aria-hidden="true" />
-                    <span className="text-[11px] font-semibold text-white/80">{badge.text}</span>
-                  </div>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {trustBadges.map((item) => (
+                  <span
+                    key={item.label}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80"
+                  >
+                    <item.icon className="size-3.5 text-brand-cyan" aria-hidden="true" />
+                    {item.label}
+                  </span>
                 ))}
               </div>
-
-              <a href="mailto:merhaba@asistan.online" className="inline-flex items-center gap-2 text-sm text-white/65 transition-colors hover:text-white">
+              <a
+                href="mailto:merhaba@asistan.online"
+                className="mt-5 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
+              >
                 <Mail className="size-4" aria-hidden="true" />
                 merhaba@asistan.online
               </a>
             </div>
 
-            {footerLinks.map((section) => (
-              <div key={section.title}>
-                <h4 className="mb-4 text-sm font-bold text-white">{section.title}</h4>
+            {footerLinks.map((group) => (
+              <div key={group.title}>
+                <h4 className="mb-4 text-sm font-bold text-white">{group.title}</h4>
                 <ul className="space-y-3">
-                  {section.links.map((link) => (
-                    <li key={`${section.title}-${link.label}`}>
+                  {group.links.map((link) => (
+                    <li key={`${group.title}-${link.label}`}>
                       <Link href={link.href} className="text-sm text-white/60 transition-colors hover:text-white">
                         {link.label}
                       </Link>
@@ -98,16 +105,9 @@ export function Footer() {
               </div>
             ))}
 
-            <div className="lg:col-span-2">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-white/10">
-                  <Mail className="size-4 text-brand-teal" aria-hidden="true" />
-                </div>
-                <h4 className="text-sm font-bold text-white">Güncel kalın</h4>
-              </div>
-              <p className="mb-4 text-xs leading-6 text-white/60">
-                Asistan Health ve yeni sektör duyurularını e-posta ile alın.
-              </p>
+            <div>
+              <h4 className="mb-4 text-sm font-bold text-white">Bultene abone olun</h4>
+              <p className="mb-4 text-xs leading-6 text-white/60">Yenilikleri ve urun duyurularini e-posta ile alin.</p>
               <form
                 className="flex gap-2"
                 onSubmit={(event) => {
@@ -117,52 +117,41 @@ export function Footer() {
                 }}
               >
                 <Input
+                  id="newsletter-email"
+                  name="email"
                   type="email"
-                  placeholder="E-posta adresiniz"
                   value={email}
                   onChange={(event) => {
                     setEmail(event.target.value)
                     setStatus('idle')
                   }}
-                  className="h-10 rounded-xl border-white/10 bg-white/10 text-sm text-white placeholder:text-white/45 focus:border-brand-teal focus:ring-brand-teal"
-                  aria-label="E-posta adresiniz"
+                  placeholder="E-posta adresiniz"
+                  autoComplete="email"
+                  className="h-10 rounded-lg border-white/15 bg-white/10 text-sm text-white placeholder:text-white/50 focus:border-brand-cyan focus:ring-brand-cyan"
                   required
                 />
-                <Button type="submit" size="icon" className="size-10 shrink-0 rounded-xl bg-brand-teal-dark hover:bg-brand-teal-dark/90" aria-label="Abone ol">
+                <Button type="submit" size="icon" className="size-10 rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90" aria-label="Abone ol">
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Button>
               </form>
-              {status === 'success' ? (
-                <p className="mt-2 text-xs font-medium text-brand-teal" role="status">
-                  Kaydınız alındı.
-                </p>
-              ) : (
-                <p className="mt-2 text-[10px] text-white/45">İstediğiniz zaman abonelikten çıkabilirsiniz.</p>
-              )}
+              <p className="mt-2 text-xs text-brand-cyan" role="status">
+                {status === 'success' ? 'Kaydiniz alindi.' : 'Istediginiz zaman cikabilirsiniz.'}
+              </p>
             </div>
           </div>
         </div>
       </div>
-
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 sm:px-6 md:flex-row lg:px-8">
-          <p className="text-sm text-white/50">© 2026 Asistan. Tüm hakları saklıdır.</p>
-          <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-white/50">
-            <Link href="/hakkimizda" className="hover:text-white">
-              Şirket
-            </Link>
-            <Link href="/kaynaklar" className="hover:text-white">
-              Kaynaklar
-            </Link>
+        <div className="marketing-container flex flex-col items-center justify-between gap-3 py-5 text-xs text-white/50 md:flex-row">
+          <p>© 2026 Asistan. Tum haklari saklidir.</p>
+          <div className="flex items-center gap-4">
             <Link href="/privacy" className="hover:text-white">
-              Gizlilik
+              KVKK
             </Link>
-            <Link href="/terms" className="hover:text-white">
-              Koşullar
-            </Link>
-            <Link href="/auth/sign-up" className="font-medium text-brand-teal hover:text-white">
-              Erken erişim
-            </Link>
+            <span className="inline-flex items-center gap-1">
+              <Globe className="size-3.5" />
+              TR
+            </span>
           </div>
         </div>
       </div>

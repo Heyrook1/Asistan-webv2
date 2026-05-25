@@ -186,13 +186,13 @@ export function PatientFormDrawer({
     }}>
       <SheetContent
         side="right"
-        className="w-full max-w-full overflow-hidden p-0 sm:max-w-2xl bg-[#F8FAFC]"
+        className="w-full max-w-full overflow-hidden p-0 sm:max-w-2xl bg-brand-light"
       >
         <div className="flex h-full flex-col">
           {/* Header & Stepper */}
           <SheetHeader className="shrink-0 border-b bg-white px-5 py-5 pt-safe shadow-sm z-10">
-            <SheetTitle className="flex items-center gap-2 text-[#0C1D36] text-lg font-bold">
-              <UserPlus className="h-5 w-5 text-[#0B7F6F]" />
+            <SheetTitle className="flex items-center gap-2 text-brand-ink text-lg font-bold">
+              <UserPlus className="h-5 w-5 text-brand-teal" />
               Yeni Hasta Kaydı
             </SheetTitle>
             
@@ -200,7 +200,7 @@ export function PatientFormDrawer({
             <div className="mt-6 flex items-center justify-between relative">
               <div className="absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 bg-slate-100 -z-10" />
               <div 
-                className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 bg-[#087C87] transition-all duration-300 -z-10" 
+                className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 bg-brand-teal transition-all duration-300 -z-10" 
                 style={{ width: `${(stepIndex / (STEPS.length - 1)) * 100}%` }} 
               />
               
@@ -211,14 +211,14 @@ export function PatientFormDrawer({
                   <div key={step.id} className="flex flex-col items-center gap-2 bg-white px-2">
                     <div className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
-                      isActive ? "bg-[#087C87] text-white ring-4 ring-cyan-50" : 
-                      isPassed ? "bg-[#087C87] text-white" : "bg-slate-100 text-slate-400"
+                      isActive ? "bg-brand-teal text-white ring-4 ring-cyan-50" : 
+                      isPassed ? "bg-brand-teal text-white" : "bg-slate-100 text-slate-400"
                     )}>
                       {isPassed ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
                     </div>
                     <span className={cn(
                       "text-[11px] font-semibold hidden sm:block",
-                      isActive ? "text-[#0C1D36]" : "text-muted-foreground"
+                      isActive ? "text-brand-ink" : "text-muted-foreground"
                     )}>
                       {step.label}
                     </span>
@@ -227,7 +227,7 @@ export function PatientFormDrawer({
               })}
             </div>
             
-            <SheetDescription className="text-center mt-3 text-xs font-medium text-[#087C87]">
+            <SheetDescription className="text-center mt-3 text-xs font-medium text-brand-teal">
               Adım {stepIndex + 1}: {currentStep.label} - {currentStep.description}
             </SheetDescription>
           </SheetHeader>
@@ -464,7 +464,14 @@ export function PatientFormDrawer({
                       <Textarea value={item.note} onChange={(e) => set({ ...item, note: e.target.value })} rows={3} />
                     </Field>
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <input type="checkbox" checked={item.isPinned} onChange={(e) => set({ ...item, isPinned: e.target.checked })} className="rounded text-[#087C87] focus:ring-[#087C87]" />
+                      <input
+                        id={`note-pinned-${idx}`}
+                        name={`notes[${idx}].isPinned`}
+                        type="checkbox"
+                        checked={item.isPinned}
+                        onChange={(e) => set({ ...item, isPinned: e.target.checked })}
+                        className="rounded text-brand-teal focus:ring-brand-teal"
+                      />
                       Bu notu hasta profilinde üste sabitle
                     </label>
                     <RepeaterFooter index={idx} onRemove={remove} />
@@ -494,7 +501,7 @@ export function PatientFormDrawer({
                   type="button"
                   size="lg"
                   onClick={handleNext}
-                  className="h-12 flex-1 rounded-xl bg-[#087C87] text-white hover:bg-[#066D77] font-semibold"
+                  className="h-12 flex-1 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover font-semibold"
                 >
                   Sonraki Adım <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
@@ -504,7 +511,7 @@ export function PatientFormDrawer({
                   onClick={onSubmit}
                   size="lg"
                   disabled={pending}
-                  className="h-12 flex-1 rounded-xl bg-[#087C87] text-white hover:bg-[#066D77] font-semibold"
+                  className="h-12 flex-1 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover font-semibold"
                 >
                   {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                   {pending ? 'Kaydediliyor...' : 'Hastayı Kaydet'}
@@ -522,7 +529,7 @@ function Section({ title, required, children }: { title: string; required?: bool
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-[#0C1D36]">{title}</h3>
+        <h3 className="text-sm font-bold text-brand-ink">{title}</h3>
         {required && <span className="text-[10px] uppercase font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">Zorunlu</span>}
       </div>
       <div className="p-5 space-y-4">
@@ -561,8 +568,8 @@ function RepeaterSection<T>({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-[#0C1D36]">{title}</h3>
-        <Button type="button" variant="ghost" size="sm" onClick={add} className="h-8 px-2 text-[#087C87] hover:bg-cyan-50">
+        <h3 className="text-sm font-bold text-brand-ink">{title}</h3>
+        <Button type="button" variant="ghost" size="sm" onClick={add} className="h-8 px-2 text-brand-teal hover:bg-cyan-50">
           <Plus className="h-4 w-4 mr-1" /> Ekle
         </Button>
       </div>

@@ -298,20 +298,20 @@ export function MesajlarBoard({
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#0C1D36]">Mesajlar</h1>
+          <h1 className="text-2xl font-bold text-brand-ink">Mesajlar</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Ekip arkadaşlarınızla doğrudan, gerçek zamanlı yazışın. Tüm mesajlar veritabanında saklanır.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {totalUnread > 0 && (
-            <span className="rounded-full bg-[#FF4D4F]/10 px-2.5 py-1 text-xs font-semibold text-[#C22326]">
+            <span className="rounded-full bg-brand-danger/10 px-2.5 py-1 text-xs font-semibold text-brand-danger-strong">
               {totalUnread} okunmamış
             </span>
           )}
           <Button
             onClick={() => setComposeOpen(true)}
-            className="bg-[#0B7F6F] text-white hover:bg-[#09685C]"
+            className="bg-brand-teal text-white hover:bg-brand-teal-hover"
           >
             <Plus className="mr-1.5 h-4 w-4" />
             Yeni Sohbet
@@ -352,14 +352,14 @@ export function MesajlarBoard({
                           router.push(`/dashboard/mesajlar?conversation=${c.id}`)
                         }}
                         className={cn(
-                          'flex w-full items-start gap-3 px-3 py-3 text-left transition hover:bg-[#F7F9FB]',
-                          activeConversationId === c.id && 'bg-[#0B7F6F]/[0.06]'
+                          'flex w-full items-start gap-3 px-3 py-3 text-left transition hover:bg-dashboard-surface',
+                          activeConversationId === c.id && 'bg-brand-teal/[0.06]'
                         )}
                       >
                         <UserAvatar fullName={c.partner?.fullName ?? c.title ?? '?'} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-semibold text-[#0C1D36]">
+                            <p className="truncate text-sm font-semibold text-brand-ink">
                               {c.partner?.fullName ?? c.title ?? 'Sohbet'}
                             </p>
                             {c.lastMessageAt && (
@@ -373,7 +373,7 @@ export function MesajlarBoard({
                               className={cn(
                                 'min-w-0 flex-1 truncate text-xs',
                                 c.unreadCount > 0
-                                  ? 'font-semibold text-[#0C1D36]'
+                                  ? 'font-semibold text-brand-ink'
                                   : 'text-muted-foreground'
                               )}
                             >
@@ -381,7 +381,7 @@ export function MesajlarBoard({
                               {c.lastMessage?.body ?? 'Henüz mesaj yok'}
                             </p>
                             {c.unreadCount > 0 && (
-                              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF4D4F] px-1.5 text-[10px] font-bold text-white">
+                              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-danger px-1.5 text-[10px] font-bold text-white">
                                 {c.unreadCount > 9 ? '9+' : c.unreadCount}
                               </span>
                             )}
@@ -396,7 +396,7 @@ export function MesajlarBoard({
           </aside>
 
           {/* Thread */}
-          <section className="flex min-w-0 flex-col bg-[#F4F8F9]/40">
+          <section className="flex min-w-0 flex-col bg-dashboard-bg/40">
             {!thread ? (
               <ThreadEmpty onCompose={() => setComposeOpen(true)} />
             ) : (
@@ -405,14 +405,14 @@ export function MesajlarBoard({
                   <button
                     type="button"
                     onClick={() => router.push('/dashboard/mesajlar')}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-[#F7F9FB] lg:hidden"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-dashboard-surface lg:hidden"
                     aria-label="Sohbet listesine dön"
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </button>
                   <UserAvatar fullName={partner?.fullName ?? thread.title ?? '?'} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#0C1D36]">
+                    <p className="truncate text-sm font-semibold text-brand-ink">
                       {partner?.fullName ?? thread.title ?? 'Sohbet'}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
@@ -437,7 +437,7 @@ export function MesajlarBoard({
                   {allMessages.length === 0 ? (
                     <div className="flex h-full flex-col items-center justify-center text-center">
                       <MessageCircle className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                      <p className="text-sm font-medium text-[#0C1D36]">
+                      <p className="text-sm font-medium text-brand-ink">
                         Henüz mesaj yok
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -467,12 +467,12 @@ export function MesajlarBoard({
                               className={cn(
                                 'max-w-[70%] rounded-2xl px-3 py-2 text-sm leading-relaxed shadow-sm',
                                 mine
-                                  ? 'rounded-br-sm bg-[#0B7F6F] text-white'
-                                  : 'rounded-bl-sm bg-white text-[#0C1D36]'
+                                  ? 'rounded-br-sm bg-brand-teal text-white'
+                                  : 'rounded-bl-sm bg-white text-brand-ink'
                               )}
                             >
                               {showSender && !mine && (
-                                <p className="mb-0.5 text-[10px] font-semibold text-[#0b7f6f]">
+                                <p className="mb-0.5 text-[10px] font-semibold text-brand-teal">
                                   {m.sender.fullName}
                                 </p>
                               )}
@@ -487,7 +487,7 @@ export function MesajlarBoard({
                                       rel="noreferrer"
                                       className={cn(
                                         'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs',
-                                        mine ? 'bg-white/15 text-white' : 'bg-[#F4F8F9] text-[#0C1D36]'
+                                        mine ? 'bg-white/15 text-white' : 'bg-dashboard-bg text-brand-ink'
                                       )}
                                     >
                                       <Paperclip className="h-3.5 w-3.5" />
@@ -517,7 +517,7 @@ export function MesajlarBoard({
                                         ? 'bg-white/25'
                                         : mine
                                           ? 'bg-white/10'
-                                          : 'bg-[#EAF6F4]'
+                                          : 'bg-emerald-50'
                                     )}
                                     title={r.user.fullName}
                                   >
@@ -549,7 +549,7 @@ export function MesajlarBoard({
                           key={`${file.name}-${index}`}
                           type="button"
                           onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
-                          className="inline-flex max-w-[220px] items-center gap-1 rounded-full bg-[#F4F8F9] px-2 py-1 text-xs text-[#0C1D36]"
+                          className="inline-flex max-w-[220px] items-center gap-1 rounded-full bg-dashboard-bg px-2 py-1 text-xs text-brand-ink"
                           title="Kaldır"
                         >
                           <Paperclip className="h-3 w-3" />
@@ -559,9 +559,11 @@ export function MesajlarBoard({
                     </div>
                   )}
                   <div className="flex items-end gap-2">
-                    <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border text-muted-foreground hover:bg-[#F7F9FB]" title="Dosya ekle">
+                    <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border text-muted-foreground hover:bg-dashboard-surface" title="Dosya ekle">
                       <Paperclip className="h-4 w-4" />
                       <input
+                        id="chat-attachment"
+                        name="attachments"
                         type="file"
                         multiple
                         className="sr-only"
@@ -588,7 +590,7 @@ export function MesajlarBoard({
                     <Button
                       onClick={handleSend}
                       disabled={pending || (!draft.trim() && attachments.length === 0)}
-                      className="h-11 bg-[#0B7F6F] text-white hover:bg-[#09685C]"
+                      className="h-11 bg-brand-teal text-white hover:bg-brand-teal-hover"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -603,15 +605,15 @@ export function MesajlarBoard({
       <Sheet open={composeOpen} onOpenChange={setComposeOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <SheetHeader className="border-b pb-3">
-            <SheetTitle className="text-[#0C1D36]">Yeni sohbet</SheetTitle>
+            <SheetTitle className="text-brand-ink">Yeni sohbet</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant={!groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(false)} className={!groupMode ? 'bg-[#0B7F6F] text-white hover:bg-[#09685C]' : ''}>
+              <Button type="button" variant={!groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(false)} className={!groupMode ? 'bg-brand-teal text-white hover:bg-brand-teal-hover' : ''}>
                 <UserCircle2 className="mr-1.5 h-4 w-4" />
                 Bire bir
               </Button>
-              <Button type="button" variant={groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(true)} className={groupMode ? 'bg-[#0B7F6F] text-white hover:bg-[#09685C]' : ''}>
+              <Button type="button" variant={groupMode ? 'default' : 'outline'} onClick={() => setGroupMode(true)} className={groupMode ? 'bg-brand-teal text-white hover:bg-brand-teal-hover' : ''}>
                 <Users className="mr-1.5 h-4 w-4" />
                 Grup
               </Button>
@@ -623,7 +625,7 @@ export function MesajlarBoard({
             {teammates.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-white p-6 text-center">
                 <UserCircle2 className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-                <p className="text-sm font-medium text-[#0C1D36]">Ekipte başka kullanıcı yok</p>
+                <p className="text-sm font-medium text-brand-ink">Ekipte başka kullanıcı yok</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Ekip ayarlarından bir üye davet edip aktive ettikten sonra sohbet başlatabilirsiniz.
                 </p>
@@ -646,18 +648,18 @@ export function MesajlarBoard({
                         )
                       }}
                       disabled={pending}
-                      className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-[#F7F9FB] disabled:opacity-60"
+                      className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-dashboard-surface disabled:opacity-60"
                     >
                       <UserAvatar fullName={t.fullName} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#0C1D36]">{t.fullName}</p>
+                        <p className="truncate text-sm font-semibold text-brand-ink">{t.fullName}</p>
                         <p className="text-[11px] text-muted-foreground">{ROLE_LABELS[t.role]}</p>
                       </div>
                       {groupMode && (
                         <span
                           className={cn(
                             'h-5 w-5 rounded-full border',
-                            groupUsers.includes(t.userId) && 'border-[#0B7F6F] bg-[#0B7F6F]'
+                            groupUsers.includes(t.userId) && 'border-brand-teal bg-brand-teal'
                           )}
                         />
                       )}
@@ -671,7 +673,7 @@ export function MesajlarBoard({
                 type="button"
                 disabled={pending || !groupTitle.trim() || groupUsers.length === 0}
                 onClick={handleCreateGroup}
-                className="w-full bg-[#0B7F6F] text-white hover:bg-[#09685C]"
+                className="w-full bg-brand-teal text-white hover:bg-brand-teal-hover"
               >
                 Grup Sohbeti Oluştur
               </Button>
@@ -683,7 +685,7 @@ export function MesajlarBoard({
       <Sheet open={membersOpen} onOpenChange={setMembersOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <SheetHeader className="border-b pb-3">
-            <SheetTitle className="text-[#0C1D36]">Grup üyeleri</SheetTitle>
+            <SheetTitle className="text-brand-ink">Grup üyeleri</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-4">
             <div>
@@ -693,7 +695,7 @@ export function MesajlarBoard({
                   <li key={p.userId} className="flex items-center gap-3 px-3 py-3">
                     <UserAvatar fullName={p.user.fullName} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#0C1D36]">{p.user.fullName}</p>
+                      <p className="truncate text-sm font-semibold text-brand-ink">{p.user.fullName}</p>
                     </div>
                     {p.userId !== session.userId && (
                       <Button
@@ -702,7 +704,7 @@ export function MesajlarBoard({
                         size="sm"
                         disabled={pending}
                         onClick={() => handleRemoveGroupMember(p.userId)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-[#C22326]"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-brand-danger-strong"
                         title="Gruptan çıkar"
                       >
                         <UserMinus className="h-4 w-4" />
@@ -726,14 +728,14 @@ export function MesajlarBoard({
                         type="button"
                         disabled={pending}
                         onClick={() => handleAddGroupMember(t.userId)}
-                        className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-[#F7F9FB] disabled:opacity-60"
+                        className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-dashboard-surface disabled:opacity-60"
                       >
                         <UserAvatar fullName={t.fullName} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-[#0C1D36]">{t.fullName}</p>
+                          <p className="truncate text-sm font-semibold text-brand-ink">{t.fullName}</p>
                           <p className="text-[11px] text-muted-foreground">{ROLE_LABELS[t.role]}</p>
                         </div>
-                        <UserPlus className="h-4 w-4 text-[#0B7F6F]" />
+                        <UserPlus className="h-4 w-4 text-brand-teal" />
                       </button>
                     </li>
                   ))}
@@ -758,7 +760,7 @@ function UserAvatar({ fullName, size = 'md' }: { fullName: string; size?: 'sm' |
     <Avatar className={cn(size === 'sm' ? 'h-7 w-7 text-[10px]' : 'h-10 w-10')}>
       <AvatarFallback
         className="font-bold text-white"
-        style={{ background: 'linear-gradient(135deg, #0B7F6F, #16A9E8)' }}
+        style={{ background: 'linear-gradient(135deg, var(--brand-teal), var(--brand-cyan))' }}
       >
         {initials || '?'}
       </AvatarFallback>
@@ -770,7 +772,7 @@ function RailEmpty({ onCompose }: { onCompose: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
       <MessageCircle className="mb-3 h-8 w-8 text-muted-foreground/60" />
-      <p className="text-sm font-semibold text-[#0C1D36]">Henüz sohbetiniz yok</p>
+      <p className="text-sm font-semibold text-brand-ink">Henüz sohbetiniz yok</p>
       <p className="mt-1 max-w-xs text-xs text-muted-foreground">
         Sağ üstteki "Yeni Sohbet" düğmesi ile ekip arkadaşınıza ilk mesajı gönderin.
       </p>
@@ -784,14 +786,14 @@ function RailEmpty({ onCompose }: { onCompose: () => void }) {
 function ThreadEmpty({ onCompose }: { onCompose: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B7F6F]/10 text-[#0b7f6f]">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal">
         <MessageCircle className="h-6 w-6" />
       </div>
-      <p className="text-base font-semibold text-[#0C1D36]">Bir sohbet seçin</p>
+      <p className="text-base font-semibold text-brand-ink">Bir sohbet seçin</p>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">
         Soldaki listeden bir sohbet açın veya yeni bir tane başlatın.
       </p>
-      <Button onClick={onCompose} className="mt-4 bg-[#0B7F6F] text-white hover:bg-[#09685C]">
+      <Button onClick={onCompose} className="mt-4 bg-brand-teal text-white hover:bg-brand-teal-hover">
         <Plus className="mr-1.5 h-4 w-4" />
         Yeni Sohbet
       </Button>

@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { createReminder, deleteReminder, toggleReminder } from '@/lib/actions/reminders'
@@ -170,14 +171,14 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
               <Bell className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-sm font-bold text-[#0C1D36]">Hatırlatma & Notlar</h2>
+              <h2 className="text-sm font-bold text-brand-ink">Hatırlatma & Notlar</h2>
               <p className="text-[11px] text-muted-foreground">
                 {totalActive > 0 ? `${totalActive} aktif hatırlatma` : 'Hızlı not ve hatırlatma ekleyin'}
               </p>
             </div>
           </div>
           {totalActive > 0 && (
-            <span className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-[#0B7F6F] px-2 text-[11px] font-bold text-white">
+            <span className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-brand-teal px-2 text-[11px] font-bold text-white">
               {totalActive}
             </span>
           )}
@@ -200,7 +201,7 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
               onClick={() => setShowDetails((s) => !s)}
               className={cn(
                 'h-9 w-9 shrink-0 rounded-xl text-muted-foreground',
-                (showDetails || dueAt || priority !== 'NORMAL') && 'bg-slate-50 text-[#0C1D36]'
+                (showDetails || dueAt || priority !== 'NORMAL') && 'bg-slate-50 text-brand-ink'
               )}
               aria-label="Tarih ve öncelik"
               aria-pressed={showDetails}
@@ -211,7 +212,7 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
               type="submit"
               size="icon"
               disabled={pending || !title.trim()}
-              className="h-9 w-9 shrink-0 rounded-xl bg-[#0B7F6F] text-white shadow-sm hover:bg-[#09685C] disabled:opacity-50"
+              className="h-9 w-9 shrink-0 rounded-xl bg-brand-teal text-white shadow-sm hover:bg-brand-teal-hover disabled:opacity-50"
               aria-label="Ekle"
             >
               <Plus className="h-4 w-4" />
@@ -245,6 +246,8 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
 
               <input
                 ref={dateInputRef}
+                id="reminder-due-at"
+                name="dueAt"
                 type="datetime-local"
                 value={dueAt}
                 onChange={(e) => setDueAt(e.target.value)}
@@ -314,11 +317,53 @@ export function RemindersCard({ initialReminders }: { initialReminders: Reminder
   )
 }
 
+export function RemindersCardSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="space-y-3 p-4 lg:p-5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-9 rounded-xl" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          </div>
+          <Skeleton className="h-7 w-8 rounded-full" />
+        </div>
+
+        <div className="rounded-2xl border border-border/60 bg-white p-2 shadow-inner-sm">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-11 flex-1 rounded-lg md:h-10" />
+            <Skeleton className="h-9 w-9 rounded-xl" />
+            <Skeleton className="h-9 w-9 rounded-xl" />
+          </div>
+        </div>
+
+        <ul className="space-y-1.5">
+          {Array.from({ length: rows }).map((_, index) => (
+            <li key={index} className="flex items-start gap-2.5 rounded-xl border bg-white px-2.5 py-2">
+              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-44 max-w-full" />
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-4 w-20 rounded-full" />
+                  <Skeleton className="h-4 w-14 rounded-full" />
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  )
+}
+
 function EmptyHint() {
   return (
     <div className="rounded-xl border border-dashed border-border/70 bg-slate-50/60 px-4 py-6 text-center">
-      <Sparkles className="mx-auto h-5 w-5 text-[#0B7F6F]" />
-      <p className="mt-2 text-sm font-semibold text-[#0C1D36]">Henüz hatırlatma yok</p>
+      <Sparkles className="mx-auto h-5 w-5 text-brand-teal" />
+      <p className="mt-2 text-sm font-semibold text-brand-ink">Henüz hatırlatma yok</p>
       <p className="mt-1 text-[12px] text-muted-foreground">
         Yukarıdan ilk notunuzu veya hatırlatmanızı ekleyin.
       </p>
@@ -349,7 +394,7 @@ function ReminderRow({
     <li
       className={cn(
         'group flex items-start gap-2.5 rounded-xl border bg-white px-2.5 py-2 transition-colors',
-        item.isDone ? 'border-border/40 opacity-70' : 'border-border/60 hover:border-[#0B7F6F]/40'
+        item.isDone ? 'border-border/40 opacity-70' : 'border-border/60 hover:border-brand-teal/40'
       )}
     >
       <button
@@ -358,8 +403,8 @@ function ReminderRow({
         className={cn(
           'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
           item.isDone
-            ? 'border-[#0B7F6F] bg-[#0B7F6F] text-white'
-            : 'border-border bg-white hover:border-[#0B7F6F]'
+            ? 'border-brand-teal bg-brand-teal text-white'
+            : 'border-border bg-white hover:border-brand-teal'
         )}
         aria-label={item.isDone ? 'Tamamlanmadı olarak işaretle' : 'Tamamlandı olarak işaretle'}
         aria-pressed={item.isDone}
@@ -371,7 +416,7 @@ function ReminderRow({
         <p
           className={cn(
             'text-[14px] font-medium leading-snug',
-            item.isDone ? 'text-muted-foreground line-through' : 'text-[#0C1D36]'
+            item.isDone ? 'text-muted-foreground line-through' : 'text-brand-ink'
           )}
         >
           {item.title}

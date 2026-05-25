@@ -1,199 +1,185 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { ArrowRight, BookOpen, CalendarCheck, Clock, FileText, MessageSquare, Shield } from "lucide-react"
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { ArrowRight, BookOpen, CalendarCheck, Clock, FileText, MessageSquare, Shield } from 'lucide-react'
 
-import { Footer } from "@/components/marketing/footer"
-import { Navbar } from "@/components/marketing/navbar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { MarketingPageShell } from '@/components/marketing/page-shell'
+import { FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 export const metadata: Metadata = {
-  title: "Kaynaklar",
-  description:
-    "Klinikler için randevu yönetimi, hasta iletişimi ve ekip takibi hakkında pratik Asistan rehberleri.",
+  title: 'Kaynaklar',
+  description: 'Klinikler icin randevu yonetimi, hasta iletisimi ve ekip takibi hakkinda pratik Asistan rehberleri.',
 }
 
 const guides = [
   {
-    type: "Rehber",
+    type: 'Rehber',
     icon: CalendarCheck,
-    title: "Kliniklerde randevu takibini düzenlemenin yolları",
-    description: "Takvim, hatırlatma ve takip sorumluluğunu daha net bir akışa yerleştirin.",
-    time: "6 dk okuma",
+    title: 'Kliniklerde randevu takibini duzenlemenin yollari',
+    description: 'Takvim, hatirlatma ve takip sorumlulugunu daha net bir akisa yerlestirin.',
+    time: '6 dk okuma',
   },
   {
-    type: "Hasta iletişimi",
+    type: 'Hasta iletisimi',
     icon: MessageSquare,
-    title: "Hasta hatırlatmaları neden önemlidir?",
-    description: "Gelmeyen randevuları azaltmak için hatırlatma dilini ve zamanlamayı planlayın.",
-    time: "5 dk okuma",
+    title: 'Hasta hatirlatmalari neden onemlidir?',
+    description: 'Gelmeyen randevulari azaltmak icin hatirlatma dilini ve zamanlamayi planlayin.',
+    time: '5 dk okuma',
   },
   {
-    type: "Ekip",
+    type: 'Ekip',
     icon: BookOpen,
-    title: "Sekreter ve doktor takvimini aynı panelden yönetmek",
-    description: "Rol bazlı görünümle ekip içi karışıklığı azaltan temel kullanım senaryoları.",
-    time: "7 dk okuma",
+    title: 'Sekreter ve doktor takvimini ayni panelden yonetmek',
+    description: 'Rol bazli gorunumle ekip ici karisikligi azaltan temel kullanim senaryolari.',
+    time: '7 dk okuma',
   },
   {
-    type: "Gizlilik",
+    type: 'Gizlilik',
     icon: Shield,
-    title: "Kliniklerde veri gizliliği için temel alışkanlıklar",
-    description: "Hasta bilgisi, yetki ve erişim süreçlerinde dikkat edilmesi gereken noktalar.",
-    time: "4 dk okuma",
+    title: 'Kliniklerde veri gizliligi icin temel aliskanliklar',
+    description: 'Hasta bilgisi, yetki ve erisim sureclerinde dikkat edilmesi gereken noktalar.',
+    time: '4 dk okuma',
   },
   {
-    type: "Operasyon",
+    type: 'Operasyon',
     icon: Clock,
-    title: "Gelmeyen randevuları azaltmak için takip akışı",
-    description: "Randevu öncesi ve sonrası yapılacak küçük kontrollerle takibi güçlendirin.",
-    time: "6 dk okuma",
+    title: 'Gelmeyen randevulari azaltmak icin takip akisi',
+    description: 'Randevu oncesi ve sonrasi yapilacak kucuk kontrollerle takibi guclendirin.',
+    time: '6 dk okuma',
   },
   {
-    type: "Ürün notları",
+    type: 'Urun notlari',
     icon: FileText,
-    title: "Asistan Health ürün notları",
-    description: "Erken erişim döneminde öncelik verilen sağlık sektörü ihtiyaçlarını takip edin.",
-    time: "3 dk okuma",
+    title: 'Asistan Health urun notlari',
+    description: 'Erken erisim doneminde oncelik verilen saglik sektoru ihtiyaclarini takip edin.',
+    time: '3 dk okuma',
   },
 ]
 
-const topics = ["Randevu yönetimi", "Hasta iletişimi", "Ekip takibi", "Veri gizliliği"]
+const topics = ['Randevu yonetimi', 'Hasta iletisimi', 'Ekip takibi', 'Veri gizliligi']
 
 export default function ResourcesPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <Navbar />
+    <MarketingPageShell>
+      <section className="relative overflow-hidden bg-brand-light pb-20 pt-28">
+        <div className="absolute inset-0 z-0 mesh-hero soft-grid opacity-70" />
+        <div className="pointer-events-none absolute -left-24 top-16 h-64 w-64 rounded-full bg-brand-cyan/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 top-24 h-64 w-64 rounded-full bg-brand-blue/20 blur-3xl" />
 
-      <section className="bg-[#F8FAFC] pt-32 pb-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <div>
-              <Badge className="mb-6 bg-[#0B7F6F]/10 text-[#0B7F6F] hover:bg-[#0B7F6F]/10">
-                Kaynaklar
-              </Badge>
-              <h1 className="text-4xl font-bold leading-tight text-[#06142A] sm:text-5xl lg:text-6xl">
-                Klinik yönetimi için sade rehberler.
+            <FadeUp>
+              <Badge className="mb-6 bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/10">Kaynaklar</Badge>
+              <h1 className="font-heading text-4xl font-black leading-tight text-brand-navy sm:text-5xl lg:text-6xl">
+                Klinik yonetimi icin sade rehberler.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#475569]">
-                Randevu takibi, hasta iletişimi ve ekip düzeni hakkında kısa, uygulanabilir ve
-                sağlık ekiplerinin günlük diline yakın içerikler.
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
+                Randevu takibi, hasta iletisimi ve ekip duzeni hakkinda kisa, uygulanabilir ve saglik ekiplerinin gunluk diline yakin icerikler.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                {topics.map((topic) => (
-                  <span key={topic} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-[#475569]">
-                    {topic}
-                  </span>
+                {topics.map((topic, index) => (
+                  <ScaleIn key={topic} delay={0.05 * index}>
+                    <span className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-600">{topic}</span>
+                  </ScaleIn>
                 ))}
               </div>
-            </div>
+            </FadeUp>
 
-            <Card className="rounded-3xl border-[#E2E8F0] bg-white shadow-xl shadow-slate-200/60">
-              <CardContent className="p-6 md:p-8">
-                <p className="text-sm font-semibold text-[#0B7F6F]">Öne çıkan rehber</p>
-                <h2 className="mt-3 text-2xl font-bold text-[#06142A]">
-                  Excel ve WhatsApp ile randevu takibi nerede zorlaşır?
-                </h2>
-                <p className="mt-4 leading-relaxed text-[#64748B]">
-                  Randevu değişiklikleri, hasta hatırlatmaları ve ekip içi bilgi paylaşımı aynı
-                  anda büyüdüğünde operasyon dağılmaya başlar. Bu rehber, ilk düzenleme adımlarını
-                  gösterir.
-                </p>
-                <Button asChild className="mt-6 min-h-11 rounded-xl bg-[#0B7F6F] text-white hover:bg-[#09685C]">
-                  <Link href="/auth/sign-up" aria-label="Öne çıkan rehber hakkında demo talep et">
-                    Demo Talep Et
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <ScaleIn>
+              <Card className="rounded-3xl border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+                <CardContent className="p-6 md:p-8">
+                  <p className="text-sm font-semibold text-brand-teal">One cikan rehber</p>
+                  <h2 className="mt-3 text-2xl font-bold text-brand-navy">Excel ve WhatsApp ile randevu takibi nerede zorlasir?</h2>
+                  <p className="mt-4 leading-relaxed text-slate-500">
+                    Randevu degisiklikleri, hasta hatirlatmalari ve ekip ici bilgi paylasimi ayni anda buyudugunde operasyon dagilmaya baslar.
+                  </p>
+                  <Button asChild className="mt-6 min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">
+                    <Link href="/auth/sign-up" aria-label="One cikan rehber hakkinda demo talep et">
+                      Demo Talep Et
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </ScaleIn>
           </div>
         </div>
       </section>
 
-      <section className="py-20">
+      <section className="bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <FadeUp className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-3xl font-bold text-[#06142A]">Son içerikler</h2>
-              <p className="mt-3 max-w-2xl text-[#64748B]">
-                Erken erişim döneminde özellikle klinik operasyonlarına odaklanan içerikler.
-              </p>
+              <h2 className="font-heading text-3xl font-black text-brand-navy">Son icerikler</h2>
+              <p className="mt-3 max-w-2xl text-slate-500">Erken erisim doneminde ozellikle klinik operasyonlarina odaklanan icerikler.</p>
             </div>
-            <Button asChild variant="outline" className="min-h-11 rounded-xl border-[#CBD5E1] text-[#06142A]">
-              <Link href="/cozumler/health" aria-label="Asistan Health çözümünü incele">
-                Health Çözümünü İncele
+            <Button asChild variant="outline" className="min-h-11 rounded-xl border-slate-300 text-brand-navy">
+              <Link href="/cozumler/health" aria-label="Asistan Health cozumunu incele">
+                Health Cozumunu Incele
               </Link>
             </Button>
-          </div>
+          </FadeUp>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {guides.map((guide) => (
-              <Card
-                key={guide.title}
-                className="rounded-2xl border-[#E2E8F0] transition-all hover:border-[#0B7F6F]/40 hover:shadow-lg"
-              >
-                <CardContent className="p-6">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0B7F6F]/10">
-                      <guide.icon className="h-5 w-5 text-[#0B7F6F]" aria-hidden="true" />
+            {guides.map((guide, index) => (
+              <ScaleIn key={guide.title} delay={0.05 * index}>
+                <Card className="rounded-2xl border-slate-200 transition-all hover:border-brand-teal/40 hover:shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="mb-5 flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-teal/10">
+                        <guide.icon className="h-5 w-5 text-brand-teal" aria-hidden="true" />
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-brand-teal">{guide.type}</span>
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-wide text-[#0B7F6F]">
-                      {guide.type}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold leading-snug text-[#06142A]">{guide.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#64748B]">{guide.description}</p>
-                  <div className="mt-6 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
-                      <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                      {guide.time}
-                    </span>
-                    <span className="inline-flex items-center text-sm font-semibold text-[#0B7F6F]">
-                      Oku
-                      <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                    <h3 className="text-lg font-semibold leading-snug text-brand-navy">{guide.title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-500">{guide.description}</p>
+                    <div className="mt-6 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                        <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                        {guide.time}
+                      </span>
+                      <span className="inline-flex items-center text-sm font-semibold text-brand-teal">
+                        Oku
+                        <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </ScaleIn>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-[#F8FAFC] py-20">
+      <section className="bg-dashboard-surface py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-          <Badge className="mb-5 bg-[#185FA5]/10 text-[#185FA5] hover:bg-[#185FA5]/10">
-            E-posta listesi
-          </Badge>
-          <h2 className="text-3xl font-bold text-[#06142A]">Yeni rehberleri kaçırmayın.</h2>
-          <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-[#64748B]">
-            Asistan Health ürün notları ve klinik operasyon rehberleri hazır oldukça e-posta ile
-            paylaşalım.
-          </p>
-          <form className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row">
-            <label className="sr-only" htmlFor="email">
-              E-posta adresi
-            </label>
-            <Input
-              id="email"
-              type="email"
-              name="email"
-              placeholder="E-posta adresiniz"
-              className="min-h-11 rounded-xl border-[#CBD5E1]"
-              autoComplete="email"
-            />
-            <Button className="min-h-11 rounded-xl bg-[#0B7F6F] text-white hover:bg-[#09685C]">
-              Haberdar Ol
-            </Button>
-          </form>
-          <p className="mt-3 text-xs text-[#94A3B8]">Sadece ürün ve rehber duyuruları gönderilir.</p>
+          <FadeUp>
+            <Badge className="mb-5 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/10">E-posta listesi</Badge>
+            <h2 className="font-heading text-3xl font-black text-brand-navy">Yeni rehberleri kacirmayin.</h2>
+            <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-slate-500">
+              Asistan Health urun notlari ve klinik operasyon rehberleri hazir oldukca e-posta ile paylasalim.
+            </p>
+            <form className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row">
+              <label className="sr-only" htmlFor="resources-email">
+                E-posta adresi
+              </label>
+              <Input
+                id="resources-email"
+                type="email"
+                name="email"
+                placeholder="E-posta adresiniz"
+                className="min-h-11 rounded-xl border-slate-300"
+                autoComplete="email"
+              />
+              <Button className="min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">Haberdar Ol</Button>
+            </form>
+            <p className="mt-3 text-xs text-slate-400">Sadece urun ve rehber duyurulari gonderilir.</p>
+          </FadeUp>
         </div>
       </section>
-
-      <Footer />
-    </main>
+    </MarketingPageShell>
   )
 }

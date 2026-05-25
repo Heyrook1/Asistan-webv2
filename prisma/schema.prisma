@@ -24,6 +24,18 @@ enum TeamRole {
   PERSONEL
 }
 
+enum VendorMembershipStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum VendorAccountSource {
+  SELF_SIGNUP
+  ADMIN_CREATED
+}
+
 enum AppointmentStatus {
   SCHEDULED
   CONFIRMED
@@ -148,14 +160,17 @@ model Business {
   currency     String   @default("TRY")
   timezone     String   @default("Europe/Istanbul")
   isActive     Boolean  @default(true)
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   owner             User                @relation("BusinessOwner", fields: [ownerUserId], references: [id])
+  vendorAccount     VendorAccount?
   members           TeamMember[]
   patients          Patient[]
   services          Service[]
   appointments      Appointment[]
+  locations         Location[]
   notes             PatientNote[]
   medications       Medication[]
   allergies         Allergy[]
@@ -172,6 +187,49 @@ model Business {
   @@index([slug])
 }
 
+model Location {
+  id        String   @id @default(uuid())
+  businessId String
+  name      String
+  address   String?
+  city      String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business     Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([businessId, isActive])
+  @@index([businessId, sortOrder, name])
+}
+
+model VendorAccount {
+  id                  String                 @id @default(uuid())
+  businessId          String                 @unique
+  status              VendorMembershipStatus @default(TRIAL)
+  source              VendorAccountSource    @default(ADMIN_CREATED)
+  isDemo              Boolean                @default(false)
+  plan                String                 @default("STARTER")
+  balance             Decimal                @default(0) @db.Decimal(12, 2)
+  currency            String                 @default("TRY")
+  accessStartAt       DateTime?
+  accessEndAt         DateTime?
+  packageDurationDays Int?
+  notes               String?
+  deletedAt           DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([isDemo, accessEndAt])
+}
+
 model TeamMember {
   id          String    @id @default(uuid())
   businessId  String
@@ -183,6 +241,7 @@ model TeamMember {
   permissions String[]  @default([])
   color       String    @default("#16A9E8")
   isActive    Boolean   @default(true)
+  deletedAt   DateTime?
   lastSeenAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -230,6 +289,7 @@ model Patient {
   assignedDoctorId      String?
   tags                  String[]  @default([])
   isArchived            Boolean   @default(false)
+  deletedAt             DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -262,6 +322,7 @@ model PatientNote {
   createdBy       String // display snapshot for legacy rows/fallback
   createdByUserId String?
   isPinned        Boolean  @default(false)
+  deletedAt       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -284,6 +345,7 @@ model Medication {
   endDate    DateTime?
   notes      String?
   active     Boolean   @default(true)
+  deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -301,6 +363,7 @@ model Allergy {
   severity   String   @default("ORTA") // HAFIF | ORTA | SIDDETLI
   reaction   String?
   notes      String?
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -322,6 +385,7 @@ model Treatment {
   status      TreatmentStatus @default(PLANLANDI)
   cost        Decimal?        @db.Decimal(10, 2)
   notes       String?         @db.Text
+  deletedAt   DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -340,6 +404,7 @@ model TreatmentPlanItem {
   status     PlanItemStatus @default(PLANLANDI)
   order      Int            @default(0)
   notes      String?
+  deletedAt  DateTime?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
@@ -359,6 +424,7 @@ model LabResult {
   labName     String?
   fileUrl     String?
   notes       String?  @db.Text
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -380,6 +446,7 @@ model PatientFile {
   fileUrl     String
   description String?
   uploadedBy  String?
+  deletedAt   DateTime?
   uploadedAt  DateTime     @default(now())
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -404,6 +471,7 @@ model Service {
   currency    String   @default("TRY")
   color       String   @default("#12C8AD")
   isActive    Boolean  @default(true)
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -416,6 +484,7 @@ model Service {
 model Appointment {
   id         String            @id @default(uuid())
   businessId String
+  locationId String?
   patientId  String
   serviceId  String
   staffId    String?
@@ -425,10 +494,12 @@ model Appointment {
   status     AppointmentStatus @default(SCHEDULED)
   price      Decimal?          @db.Decimal(10, 2)
   notes      String?
+  deletedAt  DateTime?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
   business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location Location?   @relation(fields: [locationId], references: [id], onDelete: SetNull)
   patient  Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   service  Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   staff    TeamMember? @relation(fields: [staffId], references: [id], onDelete: SetNull)
@@ -437,6 +508,7 @@ model Appointment {
   @@index([businessId, status])
   @@index([businessId, patientId])
   @@index([businessId, staffId])
+  @@index([businessId, locationId, date])
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -453,6 +525,7 @@ model TimelineEvent {
   actorName   String?
   actorId     String?
   metadata    Json?
+  deletedAt   DateTime?
   createdAt   DateTime          @default(now())
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -480,6 +553,7 @@ model Notification {
   isRead         Boolean              @default(false)
   readAt         DateTime?
   archivedAt     DateTime?
+  deletedAt      DateTime?
   createdAt      DateTime             @default(now())
 
   business Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -502,6 +576,7 @@ model NotificationAction {
   status         NotificationActionStatus @default(PENDING)
   completedBy    String?
   completedAt    DateTime?
+  deletedAt      DateTime?
   createdAt      DateTime                 @default(now())
 
   notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
@@ -517,6 +592,7 @@ model PushSubscription {
   p256dh     String
   auth       String
   userAgent  String?
+  deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
@@ -536,6 +612,7 @@ model Reminder {
   dueAt      DateTime?
   isDone     Boolean          @default(false)
   priority   ReminderPriority @default(NORMAL)
+  deletedAt  DateTime?
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
@@ -555,6 +632,7 @@ model Conversation {
   title         String? // null for DMs, set for group chats
   isGroup       Boolean   @default(false)
   directKey     String?
+  deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   lastMessageAt DateTime?
@@ -574,6 +652,7 @@ model ConversationParticipant {
   joinedAt       DateTime  @default(now())
   lastReadAt     DateTime?
   isActive       Boolean   @default(true)
+  deletedAt      DateTime?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -608,6 +687,7 @@ model MessageAttachment {
   fileSize   Int
   storageKey String
   fileUrl    String
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
@@ -620,6 +700,7 @@ model MessageReaction {
   messageId String
   userId    String
   emoji     String
+  deletedAt DateTime?
   createdAt DateTime @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)

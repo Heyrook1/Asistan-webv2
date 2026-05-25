@@ -22,6 +22,8 @@ type Event = {
   serviceColor: string
   staffId: string | null
   staffName: string | null
+  locationId: string | null
+  locationName: string | null
   date: string
   startTime: string
   endTime: string
@@ -73,6 +75,7 @@ export function CalendarBoard({
   patients,
   services,
   staff,
+  locations,
   canCreate,
   bookingSlug,
 }: {
@@ -80,6 +83,7 @@ export function CalendarBoard({
   patients: { id: string; label: string }[]
   services: { id: string; name: string; durationMin: number; color: string }[]
   staff: { id: string; name: string; color: string }[]
+  locations: { id: string; label: string }[]
   canCreate: boolean
   bookingSlug: string
 }) {
@@ -156,7 +160,7 @@ export function CalendarBoard({
     <div className="space-y-3 lg:space-y-4">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#0C1D36] lg:text-2xl">Takvim</h1>
+          <h1 className="text-xl font-bold text-brand-ink lg:text-2xl">Takvim</h1>
           <p className="text-[12px] text-muted-foreground lg:text-sm">{title}</p>
         </div>
         <div className="hidden flex-wrap items-center gap-2 md:flex">
@@ -167,7 +171,7 @@ export function CalendarBoard({
                 onClick={() => setView(v)}
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-medium',
-                  view === v ? 'bg-[#0B7F6F] text-white' : 'text-muted-foreground hover:text-[#0C1D36]'
+                  view === v ? 'bg-brand-teal text-white' : 'text-muted-foreground hover:text-brand-ink'
                 )}
               >
                 {VIEW_LABEL[v]}
@@ -255,6 +259,7 @@ export function CalendarBoard({
       <AppointmentFormDrawer
         open={create.open}
         onOpenChange={(v) => setCreate({ open: v })}
+        locations={locations}
         patients={patients}
         services={services.map((s) => ({ id: s.id, label: s.name, durationMin: s.durationMin }))}
         staff={staff.map((s) => ({ id: s.id, label: s.name }))}
@@ -272,7 +277,7 @@ export function CalendarBoard({
                 navigator.clipboard.writeText(bookingLink)
                 toast.success('Bağlantı kopyalandı')
               }}
-              className="bg-[#0B7F6F] hover:bg-[#09685C] text-white"
+              className="bg-brand-teal hover:bg-brand-teal-hover text-white"
             >
               Bağlantıyı Kopyala
             </Button>
@@ -352,7 +357,7 @@ function MobileAgenda({
 
   return (
     <div className="md:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      <div className="sticky top-14 z-20 -mx-4 flex items-center justify-between gap-2 border-b border-border/40 bg-[#F4F8F9]/95 px-4 py-2 backdrop-blur">
+      <div className="sticky top-14 z-20 -mx-4 flex items-center justify-between gap-2 border-b border-border/40 bg-dashboard-bg/95 px-4 py-2 backdrop-blur">
         <button
           type="button"
           onClick={() => setCursor(addDays(cursor, -1))}
@@ -370,7 +375,7 @@ function MobileAgenda({
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {FULL_WEEK_DAY_LABELS[weekdayIndex]}
           </span>
-          <span className="text-sm font-bold text-[#0C1D36]">
+          <span className="text-sm font-bold text-brand-ink">
             {new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(cursor)}
           </span>
         </button>
@@ -386,13 +391,15 @@ function MobileAgenda({
           <button
             type="button"
             onClick={openDatePicker}
-            className="tap-target flex items-center justify-center rounded-xl border border-[#0B7F6F]/40 bg-[#0B7F6F]/10 text-[#0B7F6F]"
+            className="tap-target flex items-center justify-center rounded-xl border border-brand-teal/40 bg-brand-teal/10 text-brand-teal"
             aria-label="Takvimden tarih seç"
           >
             <CalendarDays className="h-5 w-5" />
           </button>
           <input
             ref={dateInputRef}
+            id="mobile-calendar-date"
+            name="mobile_calendar_date"
             type="date"
             value={cursorIso}
             onChange={handleDateChange}
@@ -412,7 +419,7 @@ function MobileAgenda({
               d.setHours(0, 0, 0, 0)
               setCursor(d)
             }}
-            className="rounded-full bg-[#0B7F6F] px-4 py-1.5 text-xs font-bold text-white shadow-sm"
+            className="rounded-full bg-brand-teal px-4 py-1.5 text-xs font-bold text-white shadow-sm"
           >
             Bugüne Dön
           </button>
@@ -421,7 +428,7 @@ function MobileAgenda({
 
       {events.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed bg-white py-10 text-center">
-          <p className="text-sm font-semibold text-[#0C1D36]">Bu gün için randevu yok</p>
+          <p className="text-sm font-semibold text-brand-ink">Bu gün için randevu yok</p>
           <p className="mt-1 text-xs text-muted-foreground">Boş saate dokunarak randevu oluşturabilirsiniz.</p>
         </div>
       ) : null}
@@ -461,19 +468,19 @@ function MobileAgenda({
                             borderLeftWidth: 3,
                           }}
                         >
-                          <span className="block font-semibold text-[#0C1D36]">{ev.patientName}</span>
+                          <span className="block font-semibold text-brand-ink">{ev.patientName}</span>
                           <span className="mt-0.5 block text-[12px] text-muted-foreground">
                             {ev.serviceName}{ev.staffName ? ` • ${ev.staffName}` : ''}
                           </span>
                           <span className="mt-1 inline-flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span className="font-semibold text-[#0C1D36]">
+                            <span className="font-semibold text-brand-ink">
                               {formatTime(ev.startTime)} - {formatTime(ev.endTime)}
                             </span>
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                               style={{
                                 background: `${APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor}22`,
-                                color: APPOINTMENT_STATUS_DOT[ev.status] ?? '#0C1D36',
+                                color: APPOINTMENT_STATUS_DOT[ev.status] ?? 'var(--brand-ink)',
                               }}
                             >
                               {APPOINTMENT_STATUS_LABELS[ev.status]}
@@ -511,7 +518,7 @@ function MonthGrid({
   return (
     <div className="grid grid-cols-7 text-xs">
       {WEEK_DAY_LABELS.map((d) => (
-        <div key={d} className="px-3 py-2 text-center text-[11px] uppercase text-muted-foreground bg-[#F7F9FB] border-b">
+        <div key={d} className="px-3 py-2 text-center text-[11px] uppercase text-muted-foreground bg-dashboard-surface border-b">
           {d}
         </div>
       ))}
@@ -523,12 +530,12 @@ function MonthGrid({
           <button
             key={iso}
             onClick={() => onSlotClick(iso)}
-            className={`text-left min-h-[110px] border-b border-r p-2 hover:bg-[#F7F9FB] ${
-              !inMonth ? 'bg-[#FAFBFC] text-muted-foreground' : 'bg-white'
+            className={`text-left min-h-[110px] border-b border-r p-2 hover:bg-dashboard-surface ${
+              !inMonth ? 'bg-dashboard-surface text-muted-foreground' : 'bg-white'
             }`}
           >
             <div className="flex items-center justify-between mb-1">
-              <span className={`text-xs font-medium ${iso === today ? 'rounded-full bg-[#0B7F6F] text-white px-2' : ''}`}>
+              <span className={`text-xs font-medium ${iso === today ? 'rounded-full bg-brand-teal text-white px-2' : ''}`}>
                 {day.getDate()}
               </span>
               {dayEvents.length > 0 && (
@@ -542,7 +549,7 @@ function MonthGrid({
                   href={`/dashboard/hastalar/${ev.patientId}`}
                   onClick={(e) => e.stopPropagation()}
                   className="block rounded-md px-1.5 py-0.5 text-[10px] truncate"
-                  style={{ background: `${ev.serviceColor}1f`, color: '#0C1D36' }}
+                  style={{ background: `${ev.serviceColor}1f`, color: 'var(--brand-ink)' }}
                   title={`${ev.patientName} • ${ev.serviceName}`}
                 >
                   <span className="font-medium">{formatTime(ev.startTime)}</span> {ev.patientName}
@@ -572,14 +579,14 @@ function DayWeekGrid({
   return (
     <div className="overflow-x-auto">
       <div className="grid" style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(160px, 1fr))` }}>
-        <div className="bg-[#F7F9FB] border-b border-r" />
+        <div className="bg-dashboard-surface border-b border-r" />
         {days.map((d) => {
           const iso = toISODate(d)
           return (
             <div
               key={iso}
-              className={`px-3 py-3 text-center border-b border-r bg-[#F7F9FB] ${
-                iso === today ? 'text-[#0B7F6F]' : 'text-[#0C1D36]'
+              className={`px-3 py-3 text-center border-b border-r bg-dashboard-surface ${
+                iso === today ? 'text-brand-teal' : 'text-brand-ink'
               }`}
             >
               <p className="text-[11px] uppercase text-muted-foreground">{WEEK_DAY_LABELS[(d.getDay() + 6) % 7]}</p>
@@ -602,7 +609,7 @@ function DayWeekGrid({
                 <button
                   key={`${iso}-${hour}`}
                   onClick={() => onSlotClick(iso, `${String(hour).padStart(2, '0')}:00`)}
-                  className="relative min-h-[60px] border-b border-r p-1 text-left hover:bg-[#F7F9FB]"
+                  className="relative min-h-[60px] border-b border-r p-1 text-left hover:bg-dashboard-surface"
                 >
                   {hourEvents.map((ev) => (
                     <Link
@@ -615,7 +622,7 @@ function DayWeekGrid({
                         borderLeft: `3px solid ${APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor}`,
                       }}
                     >
-                      <p className="font-medium text-[#0C1D36] truncate">{ev.patientName}</p>
+                      <p className="font-medium text-brand-ink truncate">{ev.patientName}</p>
                       <p className="text-muted-foreground truncate">
                         {formatTime(ev.startTime)} - {formatTime(ev.endTime)} • {APPOINTMENT_STATUS_LABELS[ev.status]}
                       </p>

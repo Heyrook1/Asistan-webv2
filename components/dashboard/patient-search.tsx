@@ -87,7 +87,7 @@ export function PatientSearch() {
             }
           }}
           placeholder="Hasta adı, telefon, e-posta, hasta no veya etiket ara..."
-          className="pl-10 h-10 bg-[#F7F8FB] border-border/40 text-sm rounded-xl focus-visible:ring-[#0B7F6F]/40 focus-visible:border-[#0B7F6F]/40"
+          className="pl-10 h-10 bg-dashboard-hover border-border/40 text-sm rounded-xl focus-visible:ring-brand-teal/40 focus-visible:border-brand-teal/40"
         />
       </div>
 
@@ -106,17 +106,17 @@ export function PatientSearch() {
                     onClick={() => go(r.id)}
                     onMouseEnter={() => setActiveIndex(i)}
                     className={`w-full text-left px-4 py-2.5 flex items-center justify-between gap-3 ${
-                      i === activeIndex ? 'bg-[#F7F8FB]' : ''
+                      i === activeIndex ? 'bg-dashboard-hover' : ''
                     }`}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#0C1D36] truncate">{r.fullName}</p>
+                      <p className="text-sm font-medium text-brand-ink truncate">{r.fullName}</p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         #{r.patientNumber} • {formatPhone(r.phone)}{r.email ? ` • ${r.email}` : ''}
                       </p>
                     </div>
                     {r.tags.length > 0 && (
-                      <span className="hidden md:inline-flex shrink-0 rounded-full bg-[#0B7F6F]/10 text-[#0b7f6f] text-[10px] px-2 py-0.5">
+                      <span className="hidden md:inline-flex shrink-0 rounded-full bg-brand-teal/10 text-brand-teal text-[10px] px-2 py-0.5">
                         {r.tags[0]}
                       </span>
                     )}

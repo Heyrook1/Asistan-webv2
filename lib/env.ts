@@ -37,6 +37,8 @@ const envSchema = z
     SMS_PROVIDER_WEBHOOK_URL: optionalUrl,
     WHATSAPP_PROVIDER_WEBHOOK_URL: optionalUrl,
     NOTIFICATION_PROVIDER_TOKEN: optionalSecret,
+    UPSTASH_REDIS_REST_URL: optionalUrl,
+    UPSTASH_REDIS_REST_TOKEN: optionalSecret,
     NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY: optionalSecret,
     WEB_PUSH_VAPID_PRIVATE_KEY: optionalSecret,
     WEB_PUSH_CONTACT_EMAIL: optionalSecret,
@@ -94,6 +96,8 @@ export const env = {
     parsed.data.SUPABASE_ANON_KEY ??
     parsed.data.SUPABASE_PUBLISHABLE_KEY!,
   supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY ?? parsed.data.SUPABASE_SECRET_KEY,
+  upstashRedisRestUrl: parsed.data.UPSTASH_REDIS_REST_URL,
+  upstashRedisRestToken: parsed.data.UPSTASH_REDIS_REST_TOKEN,
   webPushVapidPublic: parsed.data.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY,
   webPushVapidPrivate: parsed.data.WEB_PUSH_VAPID_PRIVATE_KEY,
   webPushContactEmail: parsed.data.WEB_PUSH_CONTACT_EMAIL,

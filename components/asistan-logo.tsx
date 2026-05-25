@@ -18,7 +18,10 @@ const HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
   lg: 56,
 }
 
-const LOGO_ASPECT = 1920 / 660
+const LOGO_ASPECT: Record<NonNullable<AsistanLogoProps['variant']>, number> = {
+  dark: 1210 / 334,
+  light: 2172 / 724,
+}
 
 const VARIANT_SRC: Record<NonNullable<AsistanLogoProps['variant']>, string> = {
   dark: '/images/asistan-full-logo.png',
@@ -32,7 +35,7 @@ export function AsistanLogo({
   priority = false,
 }: AsistanLogoProps) {
   const height = HEIGHTS[size]
-  const width = Math.round(height * LOGO_ASPECT)
+  const width = Math.round(height * LOGO_ASPECT[variant])
 
   return (
     <Image
@@ -41,8 +44,11 @@ export function AsistanLogo({
       width={width}
       height={height}
       priority={priority}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       unoptimized
-      className={`block h-auto w-auto max-w-full select-none ${className}`}
+      className={`block max-w-full select-none ${className}`}
+      style={{ height: `${height}px`, width: 'auto' }}
     />
   )
 }

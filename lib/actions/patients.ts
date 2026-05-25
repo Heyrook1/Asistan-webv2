@@ -383,28 +383,30 @@ export async function updatePatient(rawInput: unknown): Promise<ActionResult> {
   const existing = await prisma.patient.findFirst({ where: { id, businessId: session.businessId } })
   if (!existing) return err('Hasta bulunamadı')
 
-  await prisma.patient.update({
-    where: { id },
-    data: {
-      ...patch,
-      birthDate: patch.birthDate !== undefined ? toDate(patch.birthDate) : undefined,
-      tags: patch.tags ?? undefined,
-    },
-  })
-
   const changedFields = Object.entries(patch)
     .filter(([_, value]) => value !== undefined)
     .map(([key]) => key)
 
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: id,
-      type: TimelineEventType.PATIENT_UPDATED,
-      title: 'Hasta bilgileri güncellendi',
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.patient.update({
+      where: { id },
+      data: {
+        ...patch,
+        birthDate: patch.birthDate !== undefined ? toDate(patch.birthDate) : undefined,
+        tags: patch.tags ?? undefined,
+      },
+    })
+
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: id,
+        type: TimelineEventType.PATIENT_UPDATED,
+        title: 'Hasta bilgileri güncellendi',
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
   })
 
   const { business, patient } = await getPatientNotificationContext(session.businessId, id)
@@ -462,27 +464,32 @@ export async function addPatientNote(input: unknown): Promise<ActionResult<{ id:
     select: { id: true },
   })
   if (!ownership) return err('Hasta bulunamadı')
-  const note = await prisma.patientNote.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      title: data.title,
-      note: data.note,
-      isPinned: data.isPinned ?? false,
-      createdBy: session.fullName,
-      createdByUserId: session.userId,
-    },
-  })
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      type: TimelineEventType.NOTE_ADDED,
-      title: 'Not eklendi',
-      description: data.title,
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  const note = await prisma.$transaction(async (tx) => {
+    const createdNote = await tx.patientNote.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        title: data.title,
+        note: data.note,
+        isPinned: data.isPinned ?? false,
+        createdBy: session.fullName,
+        createdByUserId: session.userId,
+      },
+    })
+
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        type: TimelineEventType.NOTE_ADDED,
+        title: 'Not eklendi',
+        description: data.title,
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
+
+    return createdNote
   })
 
   const { business, patient } = await getPatientNotificationContext(session.businessId, data.patientId)
@@ -518,28 +525,31 @@ export async function addMedication(input: unknown): Promise<ActionResult<{ id: 
   const session = await requirePermission('patient.edit')
   const data = parsed.data
   if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
-  const med = await prisma.medication.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      name: data.name,
-      dosage: data.dosage ?? null,
-      frequency: data.frequency ?? null,
-      startDate: toDate(data.startDate),
-      endDate: toDate(data.endDate),
-      notes: data.notes ?? null,
-    },
-  })
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      type: TimelineEventType.MEDICATION_ADDED,
-      title: 'İlaç eklendi',
-      description: data.name,
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  const med = await prisma.$transaction(async (tx) => {
+    const createdMedication = await tx.medication.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        name: data.name,
+        dosage: data.dosage ?? null,
+        frequency: data.frequency ?? null,
+        startDate: toDate(data.startDate),
+        endDate: toDate(data.endDate),
+        notes: data.notes ?? null,
+      },
+    })
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        type: TimelineEventType.MEDICATION_ADDED,
+        title: 'İlaç eklendi',
+        description: data.name,
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
+    return createdMedication
   })
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
   return ok({ id: med.id })
@@ -552,26 +562,29 @@ export async function addAllergy(input: unknown): Promise<ActionResult<{ id: str
   const session = await requirePermission('patient.edit')
   const data = parsed.data
   if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
-  const created = await prisma.allergy.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      name: data.name,
-      severity: data.severity,
-      reaction: data.reaction ?? null,
-      notes: data.notes ?? null,
-    },
-  })
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      type: TimelineEventType.ALLERGY_ADDED,
-      title: 'Alerji eklendi',
-      description: `${data.name} (${data.severity})`,
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const createdAllergy = await tx.allergy.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        name: data.name,
+        severity: data.severity,
+        reaction: data.reaction ?? null,
+        notes: data.notes ?? null,
+      },
+    })
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        type: TimelineEventType.ALLERGY_ADDED,
+        title: 'Alerji eklendi',
+        description: `${data.name} (${data.severity})`,
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
+    return createdAllergy
   })
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
   return ok({ id: created.id })
@@ -584,30 +597,33 @@ export async function addTreatment(input: unknown): Promise<ActionResult<{ id: s
   const session = await requirePermission('patient.edit')
   const data = parsed.data
   if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
-  const created = await prisma.treatment.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      title: data.title,
-      description: data.description ?? null,
-      doctorName: data.doctorName ?? null,
-      startDate: toDate(data.startDate),
-      endDate: toDate(data.endDate),
-      status: data.status,
-      cost: data.cost == null ? null : new Prisma.Decimal(data.cost),
-      notes: data.notes ?? null,
-    },
-  })
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      type: TimelineEventType.TREATMENT_ADDED,
-      title: 'Tedavi eklendi',
-      description: data.title,
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const createdTreatment = await tx.treatment.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        title: data.title,
+        description: data.description ?? null,
+        doctorName: data.doctorName ?? null,
+        startDate: toDate(data.startDate),
+        endDate: toDate(data.endDate),
+        status: data.status,
+        cost: data.cost == null ? null : new Prisma.Decimal(data.cost),
+        notes: data.notes ?? null,
+      },
+    })
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        type: TimelineEventType.TREATMENT_ADDED,
+        title: 'Tedavi eklendi',
+        description: data.title,
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
+    return createdTreatment
   })
 
   const treatmentContext = await getPatientNotificationContext(session.businessId, data.patientId)
@@ -650,28 +666,31 @@ export async function addLabResult(input: unknown): Promise<ActionResult<{ id: s
   const fileUrlError = validateLabResultFileUrl(data.fileUrl, session.businessId, data.patientId)
   if (fileUrlError) return err(fileUrlError)
 
-  const created = await prisma.labResult.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      title: data.title,
-      description: data.description ?? null,
-      resultDate: new Date(`${data.resultDate}T00:00:00`),
-      labName: data.labName ?? null,
-      fileUrl: data.fileUrl ?? null,
-      notes: data.notes ?? null,
-    },
-  })
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      type: TimelineEventType.LAB_RESULT_ADDED,
-      title: 'Tahlil eklendi',
-      description: data.title,
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const createdLabResult = await tx.labResult.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        title: data.title,
+        description: data.description ?? null,
+        resultDate: new Date(`${data.resultDate}T00:00:00`),
+        labName: data.labName ?? null,
+        fileUrl: data.fileUrl ?? null,
+        notes: data.notes ?? null,
+      },
+    })
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        type: TimelineEventType.LAB_RESULT_ADDED,
+        title: 'Tahlil eklendi',
+        description: data.title,
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
+    return createdLabResult
   })
 
   const labContext = await getPatientNotificationContext(session.businessId, data.patientId)
@@ -719,30 +738,33 @@ export async function addPatientFile(input: unknown): Promise<ActionResult<{ id:
   const fileReferenceError = validatePatientFileReference(data, session.businessId, data.patientId)
   if (fileReferenceError) return err(fileReferenceError)
 
-  const created = await prisma.patientFile.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      fileName: data.fileName,
-      fileType: data.fileType,
-      fileSize: data.fileSize ?? null,
-      category: data.category,
-      storageKey: data.storageKey,
-      fileUrl: data.fileUrl,
-      description: data.description ?? null,
-      uploadedBy: session.fullName,
-    },
-  })
-  await prisma.timelineEvent.create({
-    data: {
-      businessId: session.businessId,
-      patientId: data.patientId,
-      type: TimelineEventType.FILE_UPLOADED,
-      title: 'Dosya yüklendi',
-      description: data.fileName,
-      actorName: session.fullName,
-      actorId: session.userId,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const createdFile = await tx.patientFile.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        fileSize: data.fileSize ?? null,
+        category: data.category,
+        storageKey: data.storageKey,
+        fileUrl: data.fileUrl,
+        description: data.description ?? null,
+        uploadedBy: session.fullName,
+      },
+    })
+    await tx.timelineEvent.create({
+      data: {
+        businessId: session.businessId,
+        patientId: data.patientId,
+        type: TimelineEventType.FILE_UPLOADED,
+        title: 'Dosya yüklendi',
+        description: data.fileName,
+        actorName: session.fullName,
+        actorId: session.userId,
+      },
+    })
+    return createdFile
   })
 
   const fileContext = await getPatientNotificationContext(session.businessId, data.patientId)
