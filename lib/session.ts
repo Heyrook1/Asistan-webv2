@@ -200,27 +200,36 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
       if (!user) throw error
     }
   } else {
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        email: authUser.email,
-        fullName: user.fullName || fullName,
-        avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? user.avatarUrl,
-      },
-    })
+    const nextFullName = user.fullName || fullName
+    const nextAvatar = (authUser.user_metadata?.avatar_url as string | undefined) ?? user.avatarUrl
+    const shouldUpdateUser =
+      user.email !== authUser.email || user.fullName !== nextFullName || user.avatarUrl !== nextAvatar
+
+    if (shouldUpdateUser) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          email: authUser.email,
+          fullName: nextFullName,
+          avatarUrl: nextAvatar,
+        },
+      })
+    }
   }
 
   if (!user.isActive) return { session: null, blockedReason: null }
 
-  const ownedBusiness = await prisma.business.findUnique({ where: { ownerUserId: user.id } })
-  const membership = await prisma.teamMember.findFirst({
-    where: {
-      OR: [{ userId: user.id }, { email: user.email }],
-      isActive: true,
-    },
-    include: { business: true },
-    orderBy: { createdAt: 'asc' },
-  })
+  const [ownedBusiness, membership] = await Promise.all([
+    prisma.business.findUnique({ where: { ownerUserId: user.id } }),
+    prisma.teamMember.findFirst({
+      where: {
+        OR: [{ userId: user.id }, { email: user.email }],
+        isActive: true,
+      },
+      include: { business: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ])
 
   let business = ownedBusiness ?? membership?.business ?? null
 
@@ -267,15 +276,17 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
     }
   }
 
-  const currentMembership = await prisma.teamMember.findFirst({
-    where: {
-      businessId: business.id,
-      isActive: true,
-      OR: [{ userId: user.id }, { email: user.email }],
-    },
-  })
-
   const isOwner = business.ownerUserId === user.id
+  const currentMembership = isOwner
+    ? null
+    : await prisma.teamMember.findFirst({
+        where: {
+          businessId: business.id,
+          isActive: true,
+          OR: [{ userId: user.id }, { email: user.email }],
+        },
+      })
+
   if (!isOwner && !currentMembership) return { session: null, blockedReason: null }
 
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
