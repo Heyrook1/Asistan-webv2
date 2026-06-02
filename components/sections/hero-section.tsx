@@ -13,6 +13,9 @@ import {
   Sparkles,
   TrendingUp,
   UserRoundCheck,
+  Search,
+  MapPin,
+  Star,
 } from 'lucide-react'
 
 import { useLandingLocale } from '@/components/sections/landing-locale'
@@ -38,12 +41,13 @@ const iconMap = {
 
 const HERO_COPY = {
   tr: {
+    badge: 'Yeni Nesil Sağlık Ekosistemi',
     headline: 'Klinik operasyonlarında modern, güvenilir ve hızlı deneyim',
     subheadline:
-      'Klinikler ve hastalar için eksiksiz ekosistem: web panel + mobil uygulama (yakında). Kliniğinizi profesyonelce yönetin, hastalar saniyeler içinde randevu oluştursun.',
+      'Klinikler ve hastalar için eksiksiz ekosistem — web panel + mobil uygulama (yakında). Kliniğinizi profesyonelce yönetin, hastalar saniyeler içinde randevu oluştursun.',
     startTrial: 'Ücretsiz Deneyin',
     joinPatient: 'Hasta Olarak Katıl',
-    ribbon: 'Günlük sorunları çözen akıllı vitrin',
+    ribbon: 'Akıllı Klinik Çözümleri',
     stories: [
       {
         title: 'Ön masada telefon trafiği',
@@ -74,22 +78,27 @@ const HERO_COPY = {
         icon: 'growth',
       },
     ] as HeroStory[],
-    dashboard: 'Klinik Paneli',
-    newBookings: '18 yeni randevu',
+    dashboard: 'Klinik Yönetim Paneli v2',
+    newBookings: '18 Yeni Randevu',
     appTitle: 'Asistan Rezervasyon',
-    dermatology: 'Dermatoloji',
-    live: 'Canlı',
-    nearby: 'Yakındaki 4 klinik · 2 anlık uygunluk',
-    oneTap: 'Tek dokunuşla randevu',
-    reminders: 'Hatırlatma bildirimleri',
+    dermatology: 'Cildiye & Dermatoloji',
+    live: 'Canlı Uygun',
+    nearby: 'Lefkoşa · 1.2 km uzakta',
+    oneTap: 'Anında Randevu Al',
+    reminders: 'Akıllı Hatırlatıcılar',
+    mockupDoctor: 'Dr. Selim Kaya',
+    mockupDoctorTitle: 'Dermatoloji Uzmanı',
+    mockupRating: '4.9 (184 Değerlendirme)',
+    mockupNextSlot: 'Bugün 14:30',
   },
   en: {
+    badge: 'Next-Gen Health Ecosystem',
     headline: 'Healthcare operations, elevated by one connected platform',
     subheadline:
-      'The complete ecosystem for clinics and patients - web dashboard + mobile app (coming soon). Run your clinic with confidence and let patients book care in seconds.',
+      'The complete ecosystem for clinics and patients — web dashboard + mobile app (coming soon). Run your clinic with confidence and let patients book care in seconds.',
     startTrial: 'Start Free Trial',
     joinPatient: 'Join as Patient',
-    ribbon: 'Smart showcase for everyday clinic problems',
+    ribbon: 'Smart Clinic Solutions',
     stories: [
       {
         title: 'Front desk call overload',
@@ -120,14 +129,18 @@ const HERO_COPY = {
         icon: 'growth',
       },
     ] as HeroStory[],
-    dashboard: 'Clinic Dashboard',
-    newBookings: '18 new bookings',
+    dashboard: 'Clinic Management Dashboard v2',
+    newBookings: '18 New Bookings',
     appTitle: 'Asistan Rezervasyon',
-    dermatology: 'Dermatology',
-    live: 'Live',
-    nearby: '4 clinics nearby - 2 instant slots',
-    oneTap: 'Book in 1 tap',
-    reminders: 'Reminder alerts',
+    dermatology: 'Dermatology & Skin Care',
+    live: 'Available Now',
+    nearby: 'Nicosia · 1.2 km away',
+    oneTap: 'One-Tap Booking',
+    reminders: 'Smart Reminders',
+    mockupDoctor: 'Dr. Selim Kaya',
+    mockupDoctorTitle: 'Dermatology Specialist',
+    mockupRating: '4.9 (184 Reviews)',
+    mockupNextSlot: 'Today 14:30',
   },
 } as const
 
@@ -140,7 +153,7 @@ export function HeroSection() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       setActiveStory((prev) => (prev + 1) % stories.length)
-    }, 4800)
+    }, 5500)
 
     return () => window.clearInterval(timer)
   }, [stories.length])
@@ -149,152 +162,269 @@ export function HeroSection() {
   const ActiveIcon = iconMap[active.icon]
 
   return (
-    <section className="relative overflow-hidden px-4 pb-16 pt-34 sm:px-6 lg:pb-24 lg:pt-40">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,113,227,0.14),transparent_54%)]" />
+    <section className="relative overflow-hidden px-4 pb-20 pt-32 sm:px-6 lg:pb-32 lg:pt-38 bg-[#FFFFFF] selection:bg-[#0071E3]/18">
+      {/* Liquid Glass Background Elements */}
+      <div className="absolute inset-0 bg-[#FBFBFA]/50 pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-[800px] bg-[radial-gradient(circle_at_50%_0%,rgba(0,113,227,0.06),rgba(255,255,255,0))]" />
+      
+      {/* Slow floating liquid glass orbs */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-18 top-28 h-52 w-52 rounded-full bg-[#0071E3]/16 blur-3xl"
-        animate={{ y: [0, -18, 0], x: [0, 8, 0] }}
-        transition={orbFloatTransition}
+        className="pointer-events-none absolute left-[-10%] top-[10%] h-[450px] w-[450px] rounded-full bg-[#0071E3]/5 blur-[120px]"
+        animate={{
+          y: [0, -40, 0],
+          x: [0, 30, 0],
+        }}
+        transition={{
+          duration: 15,
+          ease: 'easeInOut',
+          repeat: Number.POSITIVE_INFINITY,
+          repeatType: 'mirror',
+        }}
       />
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-16 top-44 h-60 w-60 rounded-full bg-cyan-200/30 blur-3xl"
-        animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
-        transition={{ ...orbFloatTransition, duration: 8.2 }}
+        className="pointer-events-none absolute right-[-5%] top-[25%] h-[500px] w-[500px] rounded-full bg-[#60A5FA]/6 blur-[130px]"
+        animate={{
+          y: [0, 50, 0],
+          x: [0, -35, 0],
+        }}
+        transition={{
+          duration: 18,
+          ease: 'easeInOut',
+          repeat: Number.POSITIVE_INFINITY,
+          repeatType: 'mirror',
+        }}
       />
 
-      <div className="mx-auto w-full max-w-[1220px]">
-        <AnimatedHero headline={copy.headline} subheadline={copy.subheadline} badge="Asistan Health" />
+      <div className="mx-auto w-full max-w-[1220px] relative z-10">
+        <AnimatedHero headline={copy.headline} subheadline={copy.subheadline} badge={copy.badge} />
 
         <motion.div
           variants={revealSoft}
-          initial={false}
-          whileInView="visible"
-          viewport={{ once: true, margin: '-12% 0px -10% 0px' }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          initial="hidden"
+          animate="visible"
+          className="mt-10 flex flex-wrap items-center justify-center gap-4"
         >
-          <Button asChild className="h-12 rounded-2xl bg-[#0071E3] px-6 text-sm font-semibold text-white hover:bg-[#0063C8] active:scale-[0.98]">
+          <Button asChild className="h-13 rounded-2xl bg-[#0071E3] hover:bg-[#0063C8] px-7 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(0,113,227,0.4)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
             <Link href="/auth/sign-up">
               {copy.startTrial}
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
           </Button>
           <Button
             asChild
             variant="outline"
-            className="h-12 rounded-2xl border-black/10 bg-white/75 px-6 text-sm font-semibold text-[#1D1D1F] backdrop-blur-md active:scale-[0.98]"
+            className="h-13 rounded-2xl border-black/10 bg-white/60 hover:bg-white/95 px-7 text-sm font-semibold text-[#1D1D1F] backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           >
             <a href="#waitlist">{copy.joinPatient}</a>
           </Button>
         </motion.div>
 
+        {/* Stories Ribbon / Value Highlights */}
         <motion.div
-          variants={revealSoft}
-          initial={false}
-          whileInView="visible"
-          viewport={{ once: true, margin: '-10% 0px -8% 0px' }}
-          className="mx-auto mt-7 max-w-4xl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.2, ease: appleEase }}
+          className="mx-auto mt-16 max-w-4xl"
         >
-          <GlassCard className="border-[#0071E3]/15 p-4 sm:p-5" tone="accent">
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#0071E3]/20 bg-[#EEF6FF] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0071E3]">
-              <Sparkles className="h-3.5 w-3.5" />
-              {copy.ribbon}
-            </p>
+          <GlassCard className="border-[#0071E3]/8 p-5 sm:p-6 bg-white/40 shadow-xl backdrop-blur-xl" tone="neutral">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-black/5 pb-4">
+              <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#0071E3]/20 bg-[#EEF6FF]/80 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#0071E3]">
+                <Sparkles className="h-3.5 w-3.5" />
+                {copy.ribbon}
+              </p>
+              
+              <div className="flex items-center gap-1.5">
+                {stories.map((story, index) => (
+                  <button
+                    key={story.title}
+                    type="button"
+                    onClick={() => setActiveStory(index)}
+                    aria-label={story.title}
+                    className={`h-2.5 rounded-full transition-all duration-500 ${index === activeStory ? 'w-9 bg-[#0071E3]' : 'w-2.5 bg-black/15 hover:bg-black/30'}`}
+                  />
+                ))}
+              </div>
+            </div>
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${locale}-${activeStory}`}
-                initial={false}
+                initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
-                transition={{ duration: 0.36, ease: appleEase }}
-                className="grid gap-4 md:grid-cols-[auto_1fr]"
+                exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                transition={{ duration: 0.4, ease: appleEase }}
+                className="grid gap-4 md:grid-cols-[64px_1fr]"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0071E3]/12 text-[#0071E3]">
-                  <ActiveIcon className="h-5 w-5" />
-                </span>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0071E3]/8 text-[#0071E3] shadow-inner">
+                  <ActiveIcon className="h-6 w-6" />
+                </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[#0071E3]">{active.title}</p>
-                  <p className="mt-2 text-sm text-[#4B4C52]">
-                    {active.problem}
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#0071E3]">{active.title}</p>
+                  <p className="mt-1.5 text-sm text-[#4B4C52] leading-relaxed">
+                    <span className="font-semibold text-[#1D1D1F]">Sorun:</span> {active.problem}
                   </p>
-                  <p className="mt-1.5 text-sm font-medium text-[#1D1D1F]">
-                    {active.solution}
+                  <p className="mt-1.5 text-sm text-[#1D1D1F] leading-relaxed">
+                    <span className="font-semibold text-[#0071E3]">Çözüm:</span> {active.solution}
                   </p>
-                  <p className="mt-2 text-xs font-semibold text-emerald-700">{active.impact}</p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {active.impact}
+                  </div>
                 </div>
               </motion.div>
             </AnimatePresence>
-
-            <div className="mt-4 flex items-center gap-2">
-              {stories.map((story, index) => (
-                <button
-                  key={story.title}
-                  type="button"
-                  onClick={() => setActiveStory(index)}
-                  aria-label={story.title}
-                  className={`h-2 rounded-full transition-all ${index === activeStory ? 'w-8 bg-[#0071E3]' : 'w-2 bg-black/20 hover:bg-black/35'}`}
-                />
-              ))}
-            </div>
           </GlassCard>
         </motion.div>
 
+        {/* Premium Side-by-Side Mockup Showcase */}
         <motion.div
-          variants={revealSoft}
-          initial={false}
-          whileInView="visible"
-          viewport={{ once: true, margin: '-8% 0px -6% 0px' }}
-          className="relative mx-auto mt-8 grid max-w-[1130px] gap-5 lg:grid-cols-[1.2fr_0.85fr]"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.9, delay: 0.3, ease: appleEase }}
+          className="relative mx-auto mt-20 max-w-[1150px] px-2"
         >
-          <GlassCard className="p-4 sm:p-5" tone="neutral">
-            <div className="rounded-2xl border border-black/5 bg-white p-3 shadow-glass-soft">
-              <div className="mb-3 flex items-center justify-between rounded-xl border border-black/6 bg-[#F8F8FA] px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#5F6370]">{copy.dashboard}</p>
-                <span className="rounded-full bg-emerald-500/14 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                  {copy.newBookings}
-                </span>
-              </div>
-              <Image
-                src="/images/asistan-main.png"
-                alt="Asistan dashboard preview"
-                width={1100}
-                height={680}
-                priority
-                unoptimized
-                className="h-auto w-full rounded-xl border border-black/8 object-cover"
-              />
-            </div>
-          </GlassCard>
+          {/* Back Glowing Effect */}
+          <div className="absolute top-[20%] left-[20%] right-[20%] bottom-[10%] bg-[#0071E3]/8 blur-[80px] rounded-full pointer-events-none -z-10" />
 
-          <GlassCard className="relative p-4 sm:p-5" tone="accent">
-            <div className="mx-auto w-full max-w-[290px] rounded-[2rem] border border-black/8 bg-[#FAFAFC] p-3 shadow-[0_16px_40px_-26px_rgba(0,113,227,0.6)]">
-              <div className="mx-auto mb-2 h-1.5 w-16 rounded-full bg-black/12" />
-              <div className="space-y-2 rounded-[1.4rem] border border-black/6 bg-white p-3">
-                <div className="flex items-center gap-2 rounded-xl bg-[#EEF6FF] p-2">
-                  <Smartphone className="h-4 w-4 text-[#0071E3]" />
-                  <p className="text-xs font-semibold text-[#1D1D1F]">{copy.appTitle}</p>
-                </div>
-                <div className="rounded-xl border border-black/6 p-2.5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-medium text-[#1D1D1F]">{copy.dermatology}</p>
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{copy.live}</span>
+          <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr] items-center">
+            
+            {/* Desktop Dashboard Frame (Left/Back) */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#0071E3]/10 to-cyan-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl -z-10" />
+              
+              <GlassCard className="p-2 sm:p-3 bg-white/40 border-white/50 shadow-2xl backdrop-blur-xl" tone="neutral">
+                {/* Safari style window headers */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-black/5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full bg-red-400/90" />
+                    <span className="w-3.5 h-3.5 rounded-full bg-amber-400/90" />
+                    <span className="w-3.5 h-3.5 rounded-full bg-green-400/90" />
                   </div>
-                  <p className="text-[11px] text-[#5F6370]">{copy.nearby}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-[#F5F7FB] p-2">
-                    <CalendarClock className="mb-1 h-3.5 w-3.5 text-[#0071E3]" />
-                    <p className="text-[10px] text-[#5F6370]">{copy.oneTap}</p>
+                  
+                  {/* Pseudo URL bar */}
+                  <div className="flex-1 max-w-sm mx-auto bg-white/60 border border-black/5 rounded-lg py-1 px-4 text-center text-[10px] text-[#5F6370] font-mono tracking-tight shadow-inner">
+                    kktc.asistan.online
                   </div>
-                  <div className="rounded-xl bg-[#F5F7FB] p-2">
-                    <Bell className="mb-1 h-3.5 w-3.5 text-[#0071E3]" />
-                    <p className="text-[10px] text-[#5F6370]">{copy.reminders}</p>
-                  </div>
+
+                  <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-[11px] font-bold text-emerald-700">
+                    {copy.newBookings}
+                  </span>
                 </div>
-              </div>
+
+                <div className="relative rounded-2xl overflow-hidden mt-2 border border-black/10">
+                  <Image
+                    src="/images/asistan-main.png"
+                    alt="Asistan Dashboard Panel"
+                    width={1200}
+                    height={750}
+                    priority
+                    unoptimized
+                    className="h-auto w-full object-cover shadow-lg"
+                  />
+                </div>
+              </GlassCard>
             </div>
-          </GlassCard>
+
+            {/* Mobile App Frame (Right/Front Floating) */}
+            <div className="relative flex justify-center lg:justify-start lg:-ml-12 lg:-mt-20 z-20">
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{
+                  duration: 6,
+                  ease: 'easeInOut',
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatType: 'mirror',
+                }}
+                className="w-full max-w-[285px] rounded-[2.8rem] border-8 border-slate-900 bg-slate-900 p-2 shadow-2xl relative"
+              >
+                {/* Phone Speaker & Camera Notch */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-full z-30 flex items-center justify-center">
+                  <div className="w-12 h-1 bg-white/20 rounded-full" />
+                </div>
+
+                {/* Simulated App View */}
+                <div className="w-full aspect-[9/19.5] rounded-[2.4rem] overflow-hidden bg-[#FAFAFC] border border-black/5 p-4 flex flex-col justify-between text-left select-none relative">
+                  
+                  {/* Top Header */}
+                  <div className="pt-4 pb-2 border-b border-black/5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-bold text-[#1D1D1F] tracking-tight">{copy.appTitle}</p>
+                      <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider animate-pulse">
+                        Beta
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* App Content */}
+                  <div className="flex-1 mt-3 space-y-3.5">
+                    {/* Search Component */}
+                    <div className="flex items-center gap-2 rounded-xl bg-slate-100 p-2 text-slate-400 border border-slate-200 shadow-inner">
+                      <Search className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="text-[10px] font-medium">{locale === 'tr' ? 'Doktor veya klinik ara...' : 'Search doctor or clinic...'}</span>
+                    </div>
+
+                    {/* Booking Card */}
+                    <div className="rounded-xl border border-black/6 bg-white p-3 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-[#0071E3]">{copy.dermatology}</span>
+                        <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{copy.live}</span>
+                      </div>
+                      
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 relative overflow-hidden border border-black/5">
+                          <Image src="/images/medical-team.jpg" alt="Doctor" fill className="object-cover" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-[#1D1D1F] leading-tight">{copy.mockupDoctor}</p>
+                          <p className="text-[9px] text-slate-400 leading-none mt-0.5">{copy.mockupDoctorTitle}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-1 text-[9px] text-[#5F6370]">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <span className="font-bold text-[#1D1D1F]">4.9</span>
+                        <span>{locale === 'tr' ? '(184 Yorum)' : '(184 Reviews)'}</span>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <p className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">{locale === 'tr' ? 'EN YAKIN SAAT' : 'NEXT SLOT'}</p>
+                          <p className="text-[10px] font-bold text-[#1D1D1F]">{copy.mockupNextSlot}</p>
+                        </div>
+                        <button className="bg-[#0071E3] hover:bg-[#0063C8] text-white font-bold text-[9px] px-2.5 py-1.5 rounded-lg shadow-sm">
+                          {locale === 'tr' ? 'Seç' : 'Select'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* App Highlights mini grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-xl border border-black/5 bg-white p-2 text-left shadow-sm">
+                        <CalendarClock className="h-3.5 w-3.5 text-[#0071E3] mb-1" />
+                        <p className="text-[9px] font-bold text-[#1D1D1F] leading-snug">{copy.oneTap}</p>
+                      </div>
+                      <div className="rounded-xl border border-black/5 bg-white p-2 text-left shadow-sm">
+                        <Bell className="h-3.5 w-3.5 text-[#0071E3] mb-1" />
+                        <p className="text-[9px] font-bold text-[#1D1D1F] leading-snug">{copy.reminders}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* App Bottom Navigation Bar */}
+                  <div className="border-t border-black/5 pt-2 flex justify-around text-slate-400">
+                    <span className="w-4 h-4 rounded-full bg-[#0071E3]/15 flex items-center justify-center"><Smartphone className="h-3 w-3 text-[#0071E3]" /></span>
+                    <span className="w-4 h-4 rounded-full bg-slate-100" />
+                    <span className="w-4 h-4 rounded-full bg-slate-100" />
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+          </div>
         </motion.div>
       </div>
     </section>

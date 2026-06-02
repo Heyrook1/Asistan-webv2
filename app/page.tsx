@@ -1,6 +1,6 @@
 import dynamic from 'next/dynamic'
 
-import { HeroSection } from '@/components/sections/hero-section'
+import { HeroCoverFlow } from '@/components/sections/HeroCoverFlow'
 import { LandingLocaleProvider } from '@/components/sections/landing-locale'
 import { PageTransition } from '@/components/sections/page-transition'
 import { SectionSkeleton } from '@/components/sections/section-skeleton'
@@ -9,7 +9,7 @@ import { SiteHeader } from '@/components/sections/site-header'
 
 const MobileAppShowcaseSection = dynamic(
   () =>
-    import('@/components/sections/mobile-app-showcase-section').then(
+    import('@/components/sections/MobileAppShowcase').then(
       (mod) => mod.MobileAppShowcaseSection,
     ),
   {
@@ -75,7 +75,7 @@ export default function HomePage() {
           <div className="noise-overlay pointer-events-none fixed inset-0 opacity-[0.18]" />
           <SiteHeader />
           <main>
-            <HeroSection />
+            <HeroCoverFlow />
             <MobileAppShowcaseSection />
             <EcosystemFlowSection />
             <ForWhomSection />

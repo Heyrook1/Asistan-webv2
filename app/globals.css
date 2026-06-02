@@ -272,6 +272,21 @@
     linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.62) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 24px 60px -15px rgba(29, 29, 31, 0.08) !important;
+}
+
+.liquid-glass-accent {
+  background: rgba(255, 255, 255, 0.68) !important;
+  border: 1px solid rgba(0, 113, 227, 0.22) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 24px 60px -15px rgba(0, 113, 227, 0.14) !important;
+}
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

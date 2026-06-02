@@ -77,6 +77,46 @@ function applyCorsHeaders(
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Localized auth route redirects and rewrites
+  if (pathname === '/giris') {
+    return NextResponse.redirect(new URL('/tr/giris', request.url))
+  }
+  if (pathname === '/login') {
+    return NextResponse.redirect(new URL('/en/login', request.url))
+  }
+  if (pathname === '/kayit') {
+    return NextResponse.redirect(new URL('/tr/kayit', request.url))
+  }
+  if (pathname === '/register') {
+    return NextResponse.redirect(new URL('/en/register', request.url))
+  }
+
+  if (pathname === '/tr/login') {
+    return NextResponse.redirect(new URL('/tr/giris', request.url))
+  }
+  if (pathname === '/en/giris') {
+    return NextResponse.redirect(new URL('/en/login', request.url))
+  }
+  if (pathname === '/tr/register') {
+    return NextResponse.redirect(new URL('/tr/kayit', request.url))
+  }
+  if (pathname === '/en/kayit') {
+    return NextResponse.redirect(new URL('/en/register', request.url))
+  }
+
+  if (pathname === '/tr/giris') {
+    return NextResponse.rewrite(new URL('/tr/auth/login', request.url))
+  }
+  if (pathname === '/en/login') {
+    return NextResponse.rewrite(new URL('/en/auth/login', request.url))
+  }
+  if (pathname === '/tr/kayit') {
+    return NextResponse.rewrite(new URL('/tr/auth/register', request.url))
+  }
+  if (pathname === '/en/register') {
+    return NextResponse.rewrite(new URL('/en/auth/register', request.url))
+  }
+
   if (!isClientApiPath(pathname)) {
     return await updateSession(request)
   }

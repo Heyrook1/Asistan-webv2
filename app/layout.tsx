@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Analytics } from '@vercel/analytics/next'
+import { Analytics } from '@vercel/analytics/react'
 
 import { Toaster } from '@/components/ui/sonner'
 
@@ -58,6 +58,9 @@ export const metadata: Metadata = {
     icon: [{ url: '/images/asistan-icon.png', type: 'image/png' }],
     apple: '/images/asistan-icon.png',
   },
+  other: {
+    google: 'notranslate',
+  },
 }
 
 export const viewport: Viewport = {
@@ -76,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr" className="bg-background text-foreground">
+    <html lang="tr" translate="no" className="bg-background text-foreground">
       <body className="font-sans antialiased">
         {children}
         <Toaster position="top-right" richColors duration={4000} />

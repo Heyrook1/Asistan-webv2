@@ -12,8 +12,8 @@ interface GlassCardProps extends React.ComponentProps<'div'> {
 }
 
 const toneClass: Record<GlassCardTone, string> = {
-  neutral: 'border-white/55 bg-white/62',
-  accent: 'border-primary/30 bg-white/68 shadow-accent-glow',
+  neutral: 'liquid-glass',
+  accent: 'liquid-glass-accent',
 }
 
 const blurClass: Record<GlassCardBlur, string> = {
@@ -33,11 +33,9 @@ export function GlassCard({
     <div
       data-slot="glass-card"
       className={cn(
-        'relative overflow-hidden rounded-3xl border shadow-glass-soft',
+        'relative overflow-hidden rounded-3xl transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
         toneClass[tone],
-        blurClass[blur],
-        interactive &&
-          'transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-glass',
+        interactive && 'hover:-translate-y-1 hover:scale-[1.01] hover:brightness-[1.02]',
         className,
       )}
       {...props}

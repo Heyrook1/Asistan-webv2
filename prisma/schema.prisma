@@ -885,3 +885,13 @@ model MessageReaction {
   @@index([messageId])
   @@index([userId])
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Waitlist (early app registrations)
+// ────────────────────────────────────────────────────────────────────────────
+
+model Waitlist {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

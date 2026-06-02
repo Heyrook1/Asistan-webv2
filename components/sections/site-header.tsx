@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
-import { useLandingLocale } from '@/components/sections/landing-locale'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/ui/button'
 import { appleEase } from '@/lib/animations'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,7 @@ const NAV_COPY = {
     startTrialShort: 'Ücretsiz Deneyin',
     openMenu: 'Gezinme menüsünü aç',
     closeMenu: 'Gezinme menüsünü kapat',
+    login: 'Giriş Yap',
   },
   en: {
     links: [
@@ -39,21 +40,25 @@ const NAV_COPY = {
     startTrialShort: 'Start Trial',
     openMenu: 'Open navigation menu',
     closeMenu: 'Close navigation menu',
+    login: 'Login',
   },
 } as const
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { locale, setLocale } = useLandingLocale()
-  const copy = NAV_COPY[locale]
+  const { language, setLanguage } = useLanguage()
+  const copy = NAV_COPY[language]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [language])
+
+  const loginUrl = language === 'tr' ? '/tr/giris' : '/en/login'
+  const registerUrl = language === 'tr' ? '/tr/kayit' : '/en/register'
 
   return (
     <header
@@ -80,37 +85,40 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          {/* Language Switcher */}
           <div className="inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold backdrop-blur-md">
             <button
               type="button"
               className={cn(
-                'rounded-lg px-2.5 py-1 transition',
-                locale === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
+                'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
               )}
-              onClick={() => setLocale('tr')}
+              onClick={() => setLanguage('tr')}
             >
               TR
             </button>
             <button
               type="button"
               className={cn(
-                'rounded-lg px-2.5 py-1 transition',
-                locale === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
+                'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
               )}
-              onClick={() => setLocale('en')}
+              onClick={() => setLanguage('en')}
             >
               EN
             </button>
           </div>
+
+          {/* Auth Actions */}
           <Button
             asChild
             variant="outline"
-            className="h-10 rounded-xl border-black/10 bg-white/75 px-4 text-sm font-semibold text-[#1D1D1F] backdrop-blur-md"
+            className="h-10 rounded-xl border-black/10 bg-white/75 px-4 text-sm font-semibold text-[#1D1D1F] backdrop-blur-md hover:bg-slate-50"
           >
-            <a href="#waitlist">{copy.joinPatient}</a>
+            <Link href={loginUrl}>{copy.login}</Link>
           </Button>
           <Button asChild className="h-10 rounded-xl bg-[#0071E3] px-4 text-sm font-semibold text-white hover:bg-[#0063C8]">
-            <Link href="/auth/sign-up">{copy.startTrial}</Link>
+            <Link href={registerUrl}>{copy.startTrial}</Link>
           </Button>
         </div>
 
@@ -137,20 +145,26 @@ export function SiteHeader() {
               <button
                 type="button"
                 className={cn(
-                  'rounded-lg px-2.5 py-1 transition',
-                  locale === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
+                  'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                  language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
                 )}
-                onClick={() => setLocale('tr')}
+                onClick={() => {
+                  setLanguage('tr')
+                  setOpen(false)
+                }}
               >
                 TR
               </button>
               <button
                 type="button"
                 className={cn(
-                  'rounded-lg px-2.5 py-1 transition',
-                  locale === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
+                  'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                  language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
                 )}
-                onClick={() => setLocale('en')}
+                onClick={() => {
+                  setLanguage('en')
+                  setOpen(false)
+                }}
               >
                 EN
               </button>
@@ -173,10 +187,10 @@ export function SiteHeader() {
                 variant="outline"
                 className="h-10 rounded-xl border-black/10 bg-white text-sm font-semibold text-[#1D1D1F]"
               >
-                <a href="#waitlist" onClick={() => setOpen(false)}>{copy.joinPatient}</a>
+                <Link href={loginUrl} onClick={() => setOpen(false)}>{copy.login}</Link>
               </Button>
               <Button asChild className="h-10 rounded-xl bg-[#0071E3] text-sm font-semibold text-white hover:bg-[#0063C8]">
-                <Link href="/auth/sign-up" onClick={() => setOpen(false)}>{copy.startTrialShort}</Link>
+                <Link href={registerUrl} onClick={() => setOpen(false)}>{copy.startTrialShort}</Link>
               </Button>
             </div>
           </motion.div>
