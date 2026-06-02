@@ -44,17 +44,17 @@ export function HeroSection() {
               </p>
             </FadeUp>
 
-            <FadeUp delay={0.18} className="mt-8 flex flex-wrap gap-3">
-              <Button asChild className="h-11 rounded-lg bg-brand-blue px-5 text-sm font-semibold text-white hover:bg-brand-blue/90">
+            <FadeUp delay={0.18} className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button asChild className="h-12 w-full rounded-xl bg-brand-blue px-5 text-sm font-semibold text-white hover:bg-brand-blue/90 sm:w-auto">
                 <Link href="/auth/sign-up">
                   Randevu Al
                   <ArrowRight className="ml-1.5 size-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 rounded-lg border-brand-blue/20 px-5 text-sm font-semibold text-brand-navy">
+              <Button asChild variant="outline" className="h-12 w-full rounded-xl border-brand-blue/20 px-5 text-sm font-semibold text-brand-navy sm:w-auto">
                 <Link href="/auth/sign-up">Saglayici Olarak Katil</Link>
               </Button>
-              <Button asChild variant="ghost" className="h-11 rounded-lg border border-brand-blue/15 bg-white/70 px-5 text-sm font-semibold text-brand-navy hover:bg-white">
+              <Button asChild variant="ghost" className="h-12 w-full rounded-xl border border-brand-blue/15 bg-white/70 px-5 text-sm font-semibold text-brand-navy hover:bg-white sm:w-auto">
                 <Link href="/fiyatlandirma">Demo Gor</Link>
               </Button>
             </FadeUp>

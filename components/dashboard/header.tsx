@@ -17,6 +17,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -27,12 +29,11 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { createClient } from '@/lib/supabase/client'
-import { can, ROLE_LABELS, type SessionContext } from '@/lib/rbac'
 import { NotificationBell } from '@/components/dashboard/notification-bell'
-import type { NotificationListItem } from '@/lib/notifications/types'
 import { GlobalCommandTrigger } from '@/components/dashboard/global-command-palette'
+import { can, ROLE_LABELS, type SessionContext } from '@/lib/rbac'
+import { createClient } from '@/lib/supabase/client'
+import type { NotificationListItem } from '@/lib/notifications/types'
 
 const DASHBOARD_COMMAND_OPEN_EVENT = 'dashboard:command-open'
 
@@ -60,9 +61,10 @@ export function DashboardHeader({
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
   const membershipEndText = membership?.accessEndAt
     ? new Date(membership.accessEndAt).toLocaleDateString('tr-TR')
-    : 'Suresiz'
+    : 'Süresiz'
 
   const canManageAppointments = can(session, 'appointment.manage')
   const canCreatePatients = can(session, 'patient.edit')
@@ -82,7 +84,7 @@ export function DashboardHeader({
   }
 
   return (
-    <header className="sticky top-0 z-30 hidden h-[68px] items-center gap-3 border-b border-border/50 bg-white/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-white/70 lg:flex lg:px-6">
+    <header className="sticky top-0 z-30 hidden h-[72px] items-center gap-3 border-b border-border/60 bg-white/80 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70 lg:flex lg:px-6">
       <div className="flex max-w-xl flex-1">
         <GlobalCommandTrigger />
       </div>
@@ -91,13 +93,13 @@ export function DashboardHeader({
         {hasQuickActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 gap-2 rounded-xl bg-white">
+              <Button variant="outline" className="h-10 gap-2 rounded-xl border-slate-200 bg-white shadow-sm">
                 <Zap className="h-4 w-4 text-brand-teal" />
                 Hızlı Aksiyon
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 rounded-xl border-border/40 shadow-lg">
+            <DropdownMenuContent align="end" className="w-64 rounded-xl border-border/50 shadow-xl">
               <DropdownMenuLabel>Kısayol İşlemleri</DropdownMenuLabel>
               {canManageAppointments && (
                 <DropdownMenuItem onSelect={() => router.push('/dashboard/randevular?create=1')}>
@@ -138,7 +140,7 @@ export function DashboardHeader({
             <span className="text-xs font-semibold text-brand-ink">
               {membership.isDemo ? 'Demo' : membership.planName}
             </span>
-            <span className="text-xs text-muted-foreground">Pasif: {membershipEndText}</span>
+            <span className="text-xs text-muted-foreground">Erişim: {membershipEndText}</span>
           </div>
         )}
 
@@ -180,7 +182,7 @@ export function DashboardHeader({
               <ChevronDown className="ml-1 hidden h-3.5 w-3.5 text-muted-foreground md:block" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/40 shadow-lg">
+          <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/50 shadow-xl">
             <div className="px-3 py-2.5">
               <p className="text-sm font-semibold">{session.fullName}</p>
               <p className="truncate text-xs text-muted-foreground">{session.email}</p>
@@ -198,7 +200,10 @@ export function DashboardHeader({
                 İşletme Ayarları
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="flex cursor-pointer items-center gap-2.5">
+            <DropdownMenuItem
+              onSelect={() => toast.info('Destek merkezi yakında bu alanda görünecek.')}
+              className="flex cursor-pointer items-center gap-2.5"
+            >
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
               Destek
             </DropdownMenuItem>

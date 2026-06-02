@@ -1,0 +1,32 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1350" fill="#06284C"/>
+    
+      <rect width="1080" height="1350" fill="#06284C"/>
+      <circle cx="1008" cy="210" r="404" fill="#0A5272"/>
+      <circle cx="878" cy="1240" r="344" fill="#087E80" fill-opacity=".38"/>
+      <g transform="translate(72 64)">
+    <image href="file:///D:/asistan-web/public/images/asistan-mark.svg" width="48" height="48"/>
+    <text x="62" y="37" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="209" cy="12" r="4" fill="#09BEB8"/>
+  </g>
+      <g transform="translate(72 252)">
+    <rect width="112" height="42" rx="21" fill="#D9FFFA"/>
+    <text x="22" y="28" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="2">DEMO</text>
+  </g>
+      <text x="72" y="408" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-size="87" font-weight="700" letter-spacing="-1">
+    <tspan x="72" dy="0">Kliniğinizi</tspan><tspan x="72" dy="98">birlikte</tspan><tspan x="72" dy="98">tanıyalım.</tspan>
+  </text>
+      <text x="76" y="760" fill="#C8EDEE" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="400" letter-spacing="0">
+    <tspan x="76" dy="0">Size uygun kullanım senaryosunu</tspan><tspan x="76" dy="48">birlikte değerlendirelim.</tspan>
+  </text>
+      <g transform="translate(74 936)">
+        <rect width="540" height="88" rx="44" fill="#09BEB8"/>
+        <text x="42" y="57" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Demo için iletişime geçin</text>
+      </g>
+      <g>
+    <line x1="72" y1="1244" x2="1008" y2="1244" stroke="#D8F9F7" stroke-opacity=".42"/>
+    <text x="72" y="1287" fill="#D8F9F7" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="2">ASISTAN.ONLINE</text>
+    <text x="974" y="1287" fill="#D8F9F7" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">03</text>
+  </g>
+    
+  </svg>

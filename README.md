@@ -13,6 +13,12 @@ pnpm dev
 
 [http://localhost:3000](http://localhost:3000) adresinden açabilirsiniz.
 
+Mobil web istemciyi backend ile birlikte tek komutta acmak icin:
+
+```bash
+npm run mobile:web:full
+```
+
 ## Ortam Değişkenleri
 
 `.env` dosyasında:
@@ -167,3 +173,4 @@ Ilk kurulumdan sonra Chromium gerekli ise: `pnpm exec playwright install chromiu
 
 ## Yapılacaklar (entegrasyon notları)
 - **E-posta / SMS gönderimi** — bildirim oluşturulduğunda dış servise gönderim eklemek için Supabase Edge Function ya da bir webhook ekleyin.
+

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { CalendarCheck, ChevronRight, Clock, Sparkles, Users } from 'lucide-react'
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -15,7 +16,7 @@ export function AiSuggestions({
   canViewAnalytics: boolean
 }) {
   return (
-    <Card className="shadow-sm">
+    <Card className="border-border/60 bg-white/85 shadow-sm backdrop-blur-md">
       <CardContent className="p-4 lg:p-5">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -24,6 +25,7 @@ export function AiSuggestions({
           </div>
           <span className="rounded-full bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700">AI</span>
         </div>
+
         <div className="flex flex-col gap-2">
           {suggestions.map((suggestion) => (
             <Link
@@ -33,7 +35,7 @@ export function AiSuggestions({
                 'flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-white',
                 suggestion.tone === 'teal' && 'border-emerald-100 bg-emerald-50/70',
                 suggestion.tone === 'orange' && 'border-orange-100 bg-orange-50/70',
-                suggestion.tone === 'violet' && 'border-violet-100 bg-violet-50/70'
+                suggestion.tone === 'violet' && 'border-violet-100 bg-violet-50/70',
               )}
             >
               <span
@@ -41,7 +43,7 @@ export function AiSuggestions({
                   'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
                   suggestion.tone === 'teal' && 'bg-emerald-100 text-emerald-700',
                   suggestion.tone === 'orange' && 'bg-orange-100 text-orange-700',
-                  suggestion.tone === 'violet' && 'bg-violet-100 text-violet-700'
+                  suggestion.tone === 'violet' && 'bg-violet-100 text-violet-700',
                 )}
               >
                 {suggestion.tone === 'teal' ? (
@@ -60,6 +62,7 @@ export function AiSuggestions({
             </Link>
           ))}
         </div>
+
         {canViewAnalytics && (
           <Link
             href="/dashboard/analitik"
@@ -96,8 +99,9 @@ export function AiSuggestionsSkeleton({ rows = 3 }: { rows?: number }) {
             </div>
           ))}
         </div>
-        <Skeleton className="mt-3 h-4 w-36 mx-auto" />
+        <Skeleton className="mx-auto mt-3 h-4 w-36" />
       </CardContent>
     </Card>
   )
 }
+

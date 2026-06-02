@@ -1,23 +1,18 @@
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
-import { JetBrains_Mono, Inter } from 'next/font/google'
 
 import { Toaster } from '@/components/ui/sonner'
 
 import './globals.css'
 
-const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-sans',
-  display: 'swap',
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-jetbrains-mono',
-  weight: ['400', '500'],
-  display: 'swap',
-})
+// Self-hosted fonts (bundled via npm) to avoid build-time network fetches.
+import '@fontsource/manrope/400.css'
+import '@fontsource/manrope/500.css'
+import '@fontsource/manrope/600.css'
+import '@fontsource/manrope/700.css'
+import '@fontsource/manrope/800.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kktc.asistan.online'),
@@ -25,7 +20,7 @@ export const metadata: Metadata = {
     default: 'KKTC Randevu Sistemi | Asistan Health',
     template: '%s | Asistan',
   },
-  description: 'KKTC klinikleri için AI destekli randevu, hasta takibi ve ekip yönetim platformu.',
+  description: 'KKTC klinikleri için yapay zeka destekli randevu, hasta takibi ve ekip yönetimi platformu.',
   keywords: [
     'KKTC randevu sistemi',
     'klinik yönetimi',
@@ -56,7 +51,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'KKTC Randevu Sistemi | Asistan Health',
-    description: 'KKTC klinikleri için AI destekli randevu ve iş yönetim platformu.',
+    description: 'KKTC klinikleri için yapay zeka destekli randevu ve iş yönetimi platformu.',
     images: ['/images/asistan-full-logo.png'],
   },
   icons: {
@@ -67,8 +62,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
-    { media: '(prefers-color-scheme: dark)', color: '#0F172A' },
+    { media: '(prefers-color-scheme: light)', color: '#F7FAFC' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B1220' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -81,11 +76,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr" className="bg-white">
-      <head>
-        <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet" />
-      </head>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+    <html lang="tr" className="bg-background text-foreground">
+      <body className="font-sans antialiased">
         {children}
         <Toaster position="top-right" richColors duration={4000} />
         {process.env.NODE_ENV === 'production' && <Analytics />}
@@ -93,3 +85,4 @@ export default function RootLayout({
     </html>
   )
 }
+

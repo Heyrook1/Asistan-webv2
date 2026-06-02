@@ -1,6 +1,7 @@
 'use client'
 
 import { Calendar, CalendarCheck, Clock, Users, Wallet } from 'lucide-react'
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { trMoney } from '@/lib/format'
@@ -30,7 +31,7 @@ export function StatsGrid({
       hint: 'Onay bekliyor',
     },
     {
-      title: 'Toplam Müşteri',
+      title: 'Toplam Hasta',
       value: stats.activePatients,
       icon: Users,
       tone: 'violet' as const,
@@ -57,7 +58,7 @@ export function StatsGrid({
   return (
     <div className="grid grid-cols-2 gap-2.5 md:gap-3 xl:grid-cols-5">
       {statCards.map((card) => (
-        <Card key={card.title} className="border-border/50 shadow-sm">
+        <Card key={card.title} className="border-border/60 bg-white/85 shadow-sm backdrop-blur-md">
           <CardContent className="flex items-start gap-2.5 p-3 md:items-center md:gap-3 md:p-4">
             <div
               className={cn(
@@ -66,7 +67,7 @@ export function StatsGrid({
                 card.tone === 'orange' && 'bg-orange-50 text-orange-600',
                 card.tone === 'violet' && 'bg-violet-50 text-violet-600',
                 card.tone === 'amber' && 'bg-amber-50 text-amber-600',
-                card.tone === 'green' && 'bg-emerald-50 text-emerald-600'
+                card.tone === 'green' && 'bg-emerald-50 text-emerald-600',
               )}
             >
               <card.icon className="h-5 w-5 md:h-6 md:w-6" />
@@ -76,9 +77,7 @@ export function StatsGrid({
                 {card.title}
               </p>
               <p className="mt-0.5 text-xl font-bold text-brand-ink md:text-2xl">{card.value}</p>
-              <p className="mt-0.5 hidden line-clamp-1 text-[11px] text-muted-foreground md:block">
-                {card.hint}
-              </p>
+              <p className="mt-0.5 hidden line-clamp-1 text-[11px] text-muted-foreground md:block">{card.hint}</p>
             </div>
           </CardContent>
         </Card>
@@ -91,7 +90,7 @@ export function StatsGridSkeleton({ cardCount = 5 }: { cardCount?: number }) {
   return (
     <div className="grid grid-cols-2 gap-2.5 md:gap-3 xl:grid-cols-5">
       {Array.from({ length: cardCount }).map((_, index) => (
-        <Card key={index} className="border-border/50 shadow-sm">
+        <Card key={index} className="border-border/60 shadow-sm">
           <CardContent className="flex items-start gap-2.5 p-3 md:items-center md:gap-3 md:p-4">
             <Skeleton className="h-10 w-10 shrink-0 rounded-full md:h-12 md:w-12" />
             <div className="min-w-0 flex-1 space-y-1.5">
@@ -105,3 +104,4 @@ export function StatsGridSkeleton({ cardCount = 5 }: { cardCount?: number }) {
     </div>
   )
 }
+

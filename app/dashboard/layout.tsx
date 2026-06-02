@@ -47,7 +47,7 @@ export default async function DashboardLayout({
     : null
 
   return (
-    <div className="min-h-screen bg-dashboard-bg">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(0,113,227,0.08),transparent_38%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.08),transparent_35%),linear-gradient(180deg,#F7FAFD_0%,#F3F6FA_100%)]">
       <DashboardSidebar
         unreadNotifications={unreadCount}
         session={session}
@@ -74,7 +74,7 @@ export default async function DashboardLayout({
           showPlatformAdmin={showPlatformAdmin}
           showSuperAdmin={showSuperAdmin}
         />
-        <main className="px-4 pb-28 pt-3 lg:px-6 lg:pb-6 lg:pt-6">{children}</main>
+        <main className="mx-auto max-w-[1720px] px-4 pb-28 pt-3 lg:px-6 lg:pb-8 lg:pt-6">{children}</main>
       </div>
       <MobileShell
         session={session}

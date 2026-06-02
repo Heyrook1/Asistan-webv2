@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { LogOut, User, Building2, MessageCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Building2, LogOut, MessageCircle, User } from 'lucide-react'
 import { toast } from 'sonner'
+
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -13,11 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { GlobalCommandTrigger } from '@/components/dashboard/global-command-palette'
+import { NotificationBell } from '@/components/dashboard/notification-bell'
 import { createClient } from '@/lib/supabase/client'
 import type { SessionContext } from '@/lib/rbac'
-import { NotificationBell } from '@/components/dashboard/notification-bell'
 import type { NotificationListItem } from '@/lib/notifications/types'
-import { GlobalCommandTrigger } from '@/components/dashboard/global-command-palette'
 
 export function MobileTopbar({
   session,
@@ -43,9 +44,10 @@ export function MobileTopbar({
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
   const membershipEndText = membership?.accessEndAt
     ? new Date(membership.accessEndAt).toLocaleDateString('tr-TR')
-    : 'Suresiz'
+    : 'Süresiz'
 
   async function handleLogout() {
     const supabase = createClient()
@@ -56,13 +58,14 @@ export function MobileTopbar({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/50 bg-white/85 px-3 backdrop-blur supports-[backdrop-filter]:bg-white/75 lg:hidden">
-      <Link href="/dashboard" className="flex min-w-0 items-center" aria-label="Asistan'a git">
+    <header className="sticky top-0 z-30 flex h-15 items-center gap-2 border-b border-border/60 bg-white/85 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 lg:hidden">
+      <Link href="/dashboard" className="flex min-w-0 items-center" aria-label="Asistan paneline git">
         <AsistanLogo variant="dark" size="sm" priority />
       </Link>
 
       <div className="ml-auto flex items-center gap-1">
         <GlobalCommandTrigger variant="icon" />
+
         <Link
           href="/dashboard/mesajlar"
           aria-label="Mesajlar"
@@ -75,6 +78,7 @@ export function MobileTopbar({
             </span>
           )}
         </Link>
+
         <NotificationBell
           businessId={session.businessId}
           userId={session.userId}
@@ -94,13 +98,13 @@ export function MobileTopbar({
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg">
+          <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/50 shadow-xl">
             <div className="px-3 py-2.5">
               <p className="text-sm font-semibold text-brand-ink">{session.fullName}</p>
               <p className="truncate text-xs text-muted-foreground">{session.email}</p>
               {membership && (
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  {membership.isDemo ? 'Demo' : membership.planName} • Pasif: {membershipEndText}
+                  {membership.isDemo ? 'Demo' : membership.planName} · Erişim: {membershipEndText}
                 </p>
               )}
             </div>
@@ -131,3 +135,4 @@ export function MobileTopbar({
     </header>
   )
 }
+

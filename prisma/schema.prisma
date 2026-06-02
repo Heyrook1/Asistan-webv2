@@ -44,6 +44,11 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum AppointmentSource {
+  DASHBOARD
+  CLIENT_APP
+}
+
 enum TreatmentStatus {
   PLANLANDI
   DEVAM_EDIYOR
@@ -103,6 +108,16 @@ enum ReminderPriority {
   HIGH
 }
 
+enum ClientNotificationType {
+  BOOKING_CONFIRMATION
+  BOOKING_PENDING
+  BOOKING_APPROVED
+  BOOKING_CANCELLED
+  BOOKING_RESCHEDULED
+  APPOINTMENT_REMINDER
+  REVIEW_REQUEST
+}
+
 enum TimelineEventType {
   PATIENT_CREATED
   PATIENT_UPDATED
@@ -155,10 +170,13 @@ model Business {
   email        String?
   address      String?
   city         String?
+  locationLat  Decimal? @db.Decimal(9, 6)
+  locationLng  Decimal? @db.Decimal(9, 6)
   logoUrl      String?
   primaryColor String   @default("#12C8AD")
   currency     String   @default("TRY")
   timezone     String   @default("Europe/Istanbul")
+  autoConfirmClientAppointments Boolean @default(false)
   isActive     Boolean  @default(true)
   deletedAt    DateTime?
   createdAt    DateTime @default(now())
@@ -183,6 +201,11 @@ model Business {
   pushSubscriptions PushSubscription[]
   reminders         Reminder[]
   conversations     Conversation[]
+  serviceStaff      ServiceStaff[]
+  staffAvailabilities TeamMemberAvailability[]
+  staffUnavailableBlocks TeamMemberUnavailableBlock[]
+  reviews           Review[]
+  clientNotifications ClientNotification[]
 
   @@index([slug])
 }
@@ -202,6 +225,8 @@ model Location {
 
   business     Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  availabilityRules TeamMemberAvailability[]
+  unavailableBlocks TeamMemberUnavailableBlock[]
 
   @@index([businessId, isActive])
   @@index([businessId, sortOrder, name])
@@ -240,6 +265,9 @@ model TeamMember {
   role        TeamRole  @default(PERSONEL)
   permissions String[]  @default([])
   color       String    @default("#16A9E8")
+  specialty   String?
+  bio         String?
+  isBookable  Boolean   @default(true)
   isActive    Boolean   @default(true)
   deletedAt   DateTime?
   lastSeenAt  DateTime?
@@ -250,10 +278,36 @@ model TeamMember {
   user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   appointments     Appointment[]
   assignedPatients Patient[]     @relation("PatientAssignedDoctor")
+  serviceAssignments ServiceStaff[]
+  availabilityRules TeamMemberAvailability[]
+  unavailableBlocks TeamMemberUnavailableBlock[]
+  reviews          Review[]
 
   @@unique([businessId, email])
   @@index([businessId])
   @@index([userId])
+}
+
+model ClientUser {
+  id           String    @id @default(uuid())
+  authUserId   String?   @unique
+  fullName     String
+  phone        String?
+  email        String?   @unique
+  locationLat  Decimal?  @db.Decimal(9, 6)
+  locationLng  Decimal?  @db.Decimal(9, 6)
+  address      String?
+  city         String?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  appointments       Appointment[]
+  reviews            Review[]
+  notifications      ClientNotification[]
+
+  @@index([fullName])
+  @@index([city])
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -477,8 +531,72 @@ model Service {
 
   business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  staffAssignments ServiceStaff[]
+  reviews      Review[]
 
   @@index([businessId, isActive])
+}
+
+model ServiceStaff {
+  id         String   @id @default(uuid())
+  businessId String
+  serviceId  String
+  staffId    String
+  isActive   Boolean  @default(true)
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, staffId])
+  @@index([businessId, staffId, isActive])
+  @@index([businessId, serviceId, isActive])
+}
+
+model TeamMemberAvailability {
+  id              String   @id @default(uuid())
+  businessId      String
+  staffId         String
+  locationId      String?
+  weekday         Int // 0 = Pazar, 6 = Cumartesi
+  startTime       String // HH:mm
+  endTime         String // HH:mm
+  slotIntervalMin Int    @default(15)
+  isActive        Boolean @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, staffId, weekday, isActive])
+  @@index([businessId, locationId, weekday, isActive])
+}
+
+model TeamMemberUnavailableBlock {
+  id         String   @id @default(uuid())
+  businessId String
+  staffId    String
+  locationId String?
+  date       DateTime @db.Date
+  startTime  String // HH:mm
+  endTime    String // HH:mm
+  reason     String?
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, staffId, date])
+  @@index([businessId, locationId, date])
 }
 
 model Appointment {
@@ -488,10 +606,12 @@ model Appointment {
   patientId  String
   serviceId  String
   staffId    String?
+  clientUserId String?
   date       DateTime          @db.Date
   startTime  String // HH:mm
   endTime    String // HH:mm
   status     AppointmentStatus @default(SCHEDULED)
+  source     AppointmentSource @default(DASHBOARD)
   price      Decimal?          @db.Decimal(10, 2)
   notes      String?
   deletedAt  DateTime?
@@ -503,12 +623,44 @@ model Appointment {
   patient  Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   service  Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   staff    TeamMember? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  clientUser ClientUser? @relation(fields: [clientUserId], references: [id], onDelete: SetNull)
+  review   Review?
+  clientNotifications ClientNotification[]
 
   @@index([businessId, date])
   @@index([businessId, status])
   @@index([businessId, patientId])
   @@index([businessId, staffId])
+  @@index([businessId, clientUserId, date])
   @@index([businessId, locationId, date])
+}
+
+model Review {
+  id                  String   @id @default(uuid())
+  businessId          String
+  appointmentId       String   @unique
+  clientUserId        String
+  patientId           String?
+  staffId             String?
+  serviceId           String?
+  rating              Int
+  serviceQuality      Int?
+  waitingTime         Int?
+  communication       Int?
+  comment             String?  @db.Text
+  deletedAt           DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment  Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientUser   ClientUser   @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  staff        TeamMember?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  service      Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, staffId, createdAt])
+  @@index([businessId, serviceId, createdAt])
+  @@index([clientUserId, createdAt])
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -620,6 +772,29 @@ model Reminder {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([businessId, userId, isDone, dueAt])
+}
+
+model ClientNotification {
+  id           String                 @id @default(uuid())
+  clientUserId String
+  businessId   String?
+  appointmentId String?
+  type         ClientNotificationType
+  title        String
+  message      String
+  link         String?
+  metadata     Json?
+  isRead       Boolean                @default(false)
+  readAt       DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime               @default(now())
+
+  clientUser ClientUser @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  business   Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([clientUserId, isRead, createdAt])
+  @@index([businessId, createdAt])
 }
 
 // ────────────────────────────────────────────────────────────────────────────

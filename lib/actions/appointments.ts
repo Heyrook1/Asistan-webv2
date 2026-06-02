@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
+import { createClientNotification } from '@/lib/client-marketplace/notifications'
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -422,6 +423,18 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       link: `/dashboard/randevular?id=${existing.id}`,
       metadata: meta,
     })
+    if (existing.clientUserId) {
+      await createClientNotification({
+        clientUserId: existing.clientUserId,
+        businessId: existing.businessId,
+        appointmentId: existing.id,
+        type: 'BOOKING_APPROVED',
+        title: 'Randevunuz onaylandi',
+        message: `${dateStr} ${existing.startTime} randevunuz klinik tarafindan onaylandi.`,
+        link: '/client/appointments',
+        metadata: meta,
+      })
+    }
   } else if (status === AppointmentStatus.CANCELLED || status === AppointmentStatus.NO_SHOW) {
     await createNotification({
       businessId: existing.businessId,
@@ -438,6 +451,18 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       priority: NotificationPriority.HIGH,
       metadata: meta,
     })
+    if (existing.clientUserId) {
+      await createClientNotification({
+        clientUserId: existing.clientUserId,
+        businessId: existing.businessId,
+        appointmentId: existing.id,
+        type: 'BOOKING_CANCELLED',
+        title: 'Randevunuz iptal edildi',
+        message: `${dateStr} ${existing.startTime} randevunuz iptal edildi.`,
+        link: '/client/appointments',
+        metadata: meta,
+      })
+    }
   } else if (status === AppointmentStatus.COMPLETED) {
     await createNotification({
       businessId: existing.businessId,
@@ -453,6 +478,18 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       link: `/dashboard/randevular?id=${existing.id}`,
       metadata: meta,
     })
+    if (existing.clientUserId) {
+      await createClientNotification({
+        clientUserId: existing.clientUserId,
+        businessId: existing.businessId,
+        appointmentId: existing.id,
+        type: 'REVIEW_REQUEST',
+        title: 'Randevunuz tamamlandi',
+        message: 'Deneyiminizi puanlayarak diger hastalara yardimci olabilirsiniz.',
+        link: '/client/appointments',
+        metadata: meta,
+      })
+    }
   }
 
   revalidatePath('/dashboard')
@@ -577,6 +614,23 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
       startTime: parsed.data.startTime,
     },
   })
+
+  if (existing.clientUserId) {
+    await createClientNotification({
+      clientUserId: existing.clientUserId,
+      businessId: existing.businessId,
+      appointmentId: existing.id,
+      type: 'BOOKING_RESCHEDULED',
+      title: 'Randevunuz ertelendi',
+      message: `${parsed.data.date} ${parsed.data.startTime} icin yeni randevu saatiniz olusturuldu.`,
+      link: '/client/appointments',
+      metadata: {
+        appointmentId: existing.id,
+        date: parsed.data.date,
+        startTime: parsed.data.startTime,
+      },
+    })
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/randevular')

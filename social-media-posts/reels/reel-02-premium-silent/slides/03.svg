@@ -1,0 +1,27 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1920" fill="#F7FAF8"/>
+    
+    <image href="file:///D:/asistan-web/social-media-posts/profile-v2/assets/reservation-discovery.png" width="1080" height="1920" preserveAspectRatio="xMidYMid slice"/>
+    <rect width="700" height="1920" fill="#F7FAF8" fill-opacity=".95"/>
+    <g transform="translate(82 92)">
+    <image href="file:///D:/asistan-web/public/images/asistan-mark.svg" width="58" height="58"/>
+    <text x="74" y="44" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="254" cy="14" r="5" fill="#09BEB8"/>
+  </g>
+    <g transform="translate(82 280)">
+    <rect width="182" height="54" rx="27" fill="#DDF9F6"/>
+    <text x="26" y="36" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="3">YAKINDA</text>
+  </g>
+    <text x="82" y="500" fill="#06284C" font-family="Georgia, 'Times New Roman', serif" font-size="104" font-weight="700" letter-spacing="-1">
+    <tspan x="82" dy="0">Randevunun</tspan><tspan x="82" dy="120">yeni yolu.</tspan>
+  </text>
+    <text x="86" y="840" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="400" letter-spacing="0">
+    <tspan x="86" dy="0">Yakındaki klinikleri keşfedin.</tspan><tspan x="86" dy="58">Uygun saatleri görüntüleyin.</tspan>
+  </text>
+    <text x="86" y="1104" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="33" font-weight="700" letter-spacing="0">
+    <tspan x="86" dy="0">Asistan Rezervasyon</tspan>
+  </text>
+    <text x="84" y="1770" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Gelişmeler için takip edin</text>
+  <rect x="84" y="1808" width="420" height="6" rx="3" fill="#09BEB8"/>
+  
+  </svg>

@@ -1,36 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  Home,
+  BarChart3,
+  Bell,
+  Briefcase,
   Calendar,
   CalendarDays,
-  Users,
+  CalendarPlus,
+  HelpCircle,
+  Home,
+  LogOut,
   Menu,
   Plus,
-  UserPlus,
-  CalendarPlus,
-  StickyNote,
-  Upload,
-  Briefcase,
-  UserCog,
-  Bell,
-  BarChart3,
   Settings,
   Shield,
-  LogOut,
-  HelpCircle,
+  StickyNote,
+  Upload,
+  UserCog,
+  UserPlus,
+  Users,
   X,
 } from 'lucide-react'
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
-import type { SessionContext, Permission } from '@/lib/rbac'
-import { ROLE_LABELS } from '@/lib/rbac'
+
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { createClient } from '@/lib/supabase/client'
+import { ROLE_LABELS } from '@/lib/rbac'
+import type { SessionContext, Permission } from '@/lib/rbac'
+import { cn } from '@/lib/utils'
 
 type PrimaryNav = {
   name: string
@@ -84,9 +85,7 @@ export function MobileShell({
     })
   }
 
-  const isSecondaryActive = secondaryItems.some(
-    (item) => pathname === item.href || pathname.startsWith(item.href + '/')
-  )
+  const isSecondaryActive = secondaryItems.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
 
   async function handleLogout() {
     const supabase = createClient()
@@ -100,43 +99,45 @@ export function MobileShell({
     setFabOpen(false)
     if (action === 'patient') {
       setDrawer('patient')
-    } else if (action === 'appointment') {
-      router.push('/dashboard/randevular?create=1')
-    } else if (action === 'note') {
-      toast.info('Not eklemek için bir hasta seçin')
-      router.push('/dashboard/hastalar')
-    } else {
-      toast.info('Dosya yüklemek için bir hasta seçin')
-      router.push('/dashboard/hastalar')
+      return
     }
+    if (action === 'appointment') {
+      router.push('/dashboard/randevular?create=1')
+      return
+    }
+    if (action === 'note') {
+      toast.info('Not eklemek için önce bir hasta seçin.')
+      router.push('/dashboard/hastalar')
+      return
+    }
+    toast.info('Dosya yüklemek için önce bir hasta seçin.')
+    router.push('/dashboard/hastalar')
   }
 
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-white/95 backdrop-blur pb-safe lg:hidden"
-        aria-label="Ana navigasyon"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-white/90 backdrop-blur-xl pb-safe lg:hidden"
+        aria-label="Alt gezinme"
       >
         <div className="grid grid-cols-5">
           {primaryItems.map((item) => {
             const active = item.match
               ? item.match(pathname)
-              : pathname === item.href || pathname.startsWith(item.href + '/')
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
                   'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-                  active ? 'text-brand-teal' : 'text-muted-foreground'
+                  active ? 'text-brand-teal' : 'text-muted-foreground',
                 )}
                 aria-current={active ? 'page' : undefined}
               >
                 <span className="relative">
                   <item.icon className="h-[22px] w-[22px]" />
-                  {active && (
-                    <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-brand-teal" />
-                  )}
+                  {active && <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-brand-teal" />}
                 </span>
                 {item.name}
               </Link>
@@ -147,7 +148,7 @@ export function MobileShell({
             onClick={() => setMenuOpen(true)}
             className={cn(
               'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-              menuOpen || isSecondaryActive ? 'text-brand-teal' : 'text-muted-foreground'
+              menuOpen || isSecondaryActive ? 'text-brand-teal' : 'text-muted-foreground',
             )}
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
@@ -155,7 +156,7 @@ export function MobileShell({
             <span className="relative">
               <Menu className="h-[22px] w-[22px]" />
               {unreadCount > 0 && !isSecondaryActive && (
-                <span className="absolute -right-1.5 -top-1 min-w-[16px] h-4 rounded-full bg-brand-teal text-brand-navy text-[9px] font-bold flex items-center justify-center px-1 leading-none ring-2 ring-white">
+                <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-teal px-1 text-[9px] font-bold leading-none text-brand-navy ring-2 ring-white">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -176,10 +177,7 @@ export function MobileShell({
       </button>
 
       <Sheet open={fabOpen} onOpenChange={setFabOpen}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl border-t-0 p-0 pb-safe"
-        >
+        <SheetContent side="bottom" className="rounded-t-2xl border-t-0 p-0 pb-safe">
           <SheetTitle className="sr-only">Hızlı İşlemler</SheetTitle>
           <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-slate-200" />
           <div className="px-4 pb-4 pt-3">
@@ -202,20 +200,20 @@ export function MobileShell({
                 />
               )}
               {can('medical_note.view') && (
-              <FabAction
-                icon={<StickyNote className="h-6 w-6" />}
-                label="Not Ekle"
-                onClick={() => handleFabAction('note')}
-                tone="amber"
-              />
+                <FabAction
+                  icon={<StickyNote className="h-6 w-6" />}
+                  label="Not Ekle"
+                  onClick={() => handleFabAction('note')}
+                  tone="amber"
+                />
               )}
               {can('file.view') && (
-              <FabAction
-                icon={<Upload className="h-6 w-6" />}
-                label="Dosya Yükle"
-                onClick={() => handleFabAction('upload')}
-                tone="violet"
-              />
+                <FabAction
+                  icon={<Upload className="h-6 w-6" />}
+                  label="Dosya Yükle"
+                  onClick={() => handleFabAction('upload')}
+                  tone="violet"
+                />
               )}
             </div>
           </div>
@@ -223,16 +221,13 @@ export function MobileShell({
       </Sheet>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent
-          side="right"
-          className="w-full max-w-full border-0 bg-brand-navy p-0 text-white sm:max-w-sm"
-        >
+        <SheetContent side="right" className="w-full max-w-full border-0 bg-brand-navy p-0 text-white sm:max-w-sm">
           <SheetTitle className="sr-only">Menü</SheetTitle>
           <div className="flex h-full flex-col pt-safe">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="min-w-0">
                 <p className="truncate text-base font-bold">{session.businessName}</p>
-                <p className="text-[11px] text-white/55">{ROLE_LABELS[session.role]} • {session.fullName}</p>
+                <p className="text-[11px] text-white/55">{ROLE_LABELS[session.role]} · {session.fullName}</p>
               </div>
               <button
                 type="button"
@@ -247,7 +242,7 @@ export function MobileShell({
             <div className="flex-1 overflow-y-auto px-3 py-3">
               <ul className="space-y-1">
                 {secondaryItems.map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
                   return (
                     <li key={item.href}>
                       <Link
@@ -255,20 +250,13 @@ export function MobileShell({
                         onClick={() => setMenuOpen(false)}
                         className={cn(
                           'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
-                          active
-                            ? 'bg-brand-teal/15 text-white'
-                            : 'text-white/70 hover:bg-white/5'
+                          active ? 'bg-brand-teal/15 text-white' : 'text-white/70 hover:bg-white/5',
                         )}
                       >
-                        <item.icon
-                          className={cn(
-                            'h-5 w-5 shrink-0',
-                            active ? 'text-brand-teal' : 'text-white/55'
-                          )}
-                        />
+                        <item.icon className={cn('h-5 w-5 shrink-0', active ? 'text-brand-teal' : 'text-white/55')} />
                         <span className="flex-1">{item.name}</span>
                         {item.badge && unreadCount > 0 && (
-                          <span className="min-w-[20px] h-5 rounded-full bg-brand-teal text-brand-navy text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
@@ -286,7 +274,7 @@ export function MobileShell({
                     type="button"
                     onClick={() => {
                       setMenuOpen(false)
-                      toast.info('Yardım merkezi yakında.')
+                      toast.info('Yardım merkezi yakında bu alanda görünecek.')
                     }}
                     className="tap-target flex w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-white/70 hover:bg-white/5"
                   >
@@ -310,10 +298,7 @@ export function MobileShell({
         </SheetContent>
       </Sheet>
 
-      <PatientFormDrawer
-        open={drawer === 'patient'}
-        onOpenChange={(open) => setDrawer(open ? 'patient' : null)}
-      />
+      <PatientFormDrawer open={drawer === 'patient'} onOpenChange={(open) => setDrawer(open ? 'patient' : null)} />
     </>
   )
 }
@@ -324,7 +309,7 @@ function FabAction({
   onClick,
   tone,
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
   label: string
   onClick: () => void
   tone: 'teal' | 'blue' | 'amber' | 'violet'
@@ -335,16 +320,16 @@ function FabAction({
     amber: 'bg-amber-50 text-amber-700',
     violet: 'bg-violet-50 text-violet-700',
   }[tone]
+
   return (
     <button
       type="button"
       onClick={onClick}
       className="flex min-h-[96px] flex-col items-start gap-2 rounded-2xl border border-border/40 bg-white p-3 text-left shadow-sm transition-colors active:bg-slate-50"
     >
-      <span className={cn('flex h-11 w-11 items-center justify-center rounded-xl', toneClasses)}>
-        {icon}
-      </span>
+      <span className={cn('flex h-11 w-11 items-center justify-center rounded-xl', toneClasses)}>{icon}</span>
       <span className="text-sm font-semibold text-brand-ink">{label}</span>
     </button>
   )
 }
+

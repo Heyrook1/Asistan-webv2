@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asistan Health Brand Reveal</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #021126;
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      text {
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="720" height="1280" viewBox="0 0 720 1280" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="74" y1="34" x2="680" y2="1240" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#08233D" />
+          <stop offset="0.56" stop-color="#041A31" />
+          <stop offset="1" stop-color="#020D20" />
+        </linearGradient>
+        <linearGradient id="brand" x1="18" y1="12" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#0CCEB9" />
+          <stop offset="0.46" stop-color="#06B6D4" />
+          <stop offset="1" stop-color="#2563EB" />
+        </linearGradient>
+        <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+          <stop stop-color="#0CCEB9" stop-opacity="0" />
+          <stop offset="0.55" stop-color="#0CCEB9" />
+          <stop offset="1" stop-color="#0CCEB9" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="cta" x1="190" y1="1030" x2="530" y2="1110" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#078EC8" />
+          <stop offset="1" stop-color="#2563EB" />
+        </linearGradient>
+        <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 404) rotate(90) scale(420)">
+          <stop stop-color="#0CCEB9" stop-opacity="0.19" />
+          <stop offset="1" stop-color="#0CCEB9" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="halo2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 690) rotate(90) scale(500)">
+          <stop stop-color="#2563EB" stop-opacity="0.14" />
+          <stop offset="1" stop-color="#2563EB" stop-opacity="0" />
+        </radialGradient>
+        <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="14" />
+        </filter>
+        <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#00142D" flood-opacity="0.52" />
+        </filter>
+        <clipPath id="wordClip">
+          <rect id="wordClipRect" x="160" y="0" width="0" height="170" rx="8" />
+        </clipPath>
+      </defs>
+
+      <rect width="720" height="1280" fill="url(#bg)" />
+      <circle cx="360" cy="404" r="420" fill="url(#halo)" />
+      <circle cx="360" cy="690" r="500" fill="url(#halo2)" />
+
+      <g id="grid" opacity="0.15">
+        <path d="M40 0V1280M120 0V1280M200 0V1280M280 0V1280M360 0V1280M440 0V1280M520 0V1280M600 0V1280M680 0V1280" stroke="#2D708D" stroke-width="1" />
+        <path d="M0 80H720M0 160H720M0 240H720M0 320H720M0 400H720M0 480H720M0 560H720M0 640H720M0 720H720M0 800H720M0 880H720M0 960H720M0 1040H720M0 1120H720M0 1200H720" stroke="#2D708D" stroke-width="1" />
+      </g>
+
+      <g id="ambient">
+        <path d="M-70 1110C95 1002 268 1040 422 1120C526 1175 626 1186 790 1094V1280H-70V1110Z" fill="#07385D" fill-opacity="0.44" />
+        <path d="M-90 1170C85 1094 274 1125 420 1195C532 1249 634 1258 810 1172V1280H-90V1170Z" fill="#075F7A" fill-opacity="0.25" />
+        <circle id="particle1" cx="94" cy="232" r="3" fill="#66F0E8" />
+        <circle id="particle2" cx="626" cy="300" r="3" fill="#69A5FF" />
+        <circle id="particle3" cx="590" cy="980" r="2" fill="#66F0E8" />
+        <circle id="particle4" cx="146" cy="896" r="2" fill="#69A5FF" />
+      </g>
+
+      <g id="introKicker" opacity="0">
+        <text x="360" y="118" text-anchor="middle" fill="#7CE9E1" font-size="17" font-weight="700" letter-spacing="8">ASISTAN HEALTH</text>
+        <line x1="228" y1="150" x2="492" y2="150" stroke="url(#line)" stroke-width="2" />
+        <text x="360" y="202" text-anchor="middle" fill="#D7E6F2" font-size="23" font-weight="500" letter-spacing="2">İŞİNİZİN AKIŞI DEĞİŞİYOR</text>
+      </g>
+
+      <g id="brandReveal" transform="translate(210 270)">
+        <g id="speedGlow" opacity="0.22" filter="url(#softGlow)" stroke="#06D6C5" stroke-width="11" stroke-linecap="round">
+          <line x1="6" y1="108" x2="82" y2="108" />
+          <line x1="-22" y1="154" x2="68" y2="154" />
+          <line x1="22" y1="200" x2="78" y2="200" />
+        </g>
+        <g id="speedLines" stroke="#0CCEB9" stroke-width="15" stroke-linecap="round">
+          <line id="speed1" x1="6" y1="108" x2="82" y2="108" />
+          <line id="speed2" x1="-22" y1="154" x2="68" y2="154" />
+          <line id="speed3" x1="22" y1="200" x2="78" y2="200" />
+        </g>
+        <circle id="headGlow" cx="171" cy="18" r="36" fill="#0CCEB9" opacity="0.3" filter="url(#softGlow)" />
+        <circle id="head" cx="171" cy="18" r="27" fill="#0CCEB9" />
+        <path id="body" d="M171 57C159 57 149 64 143 75L84 270C81 279 87 287 96 287H129C135 287 141 283 144 276L154 242H198C195 231 192 220 187 210H165L182 158C185 150 188 142 191 136C199 157 210 194 221 229C227 248 232 268 235 276C238 283 244 287 250 287H280C290 287 296 279 293 270L228 75C222 64 208 57 196 57H171Z" fill="url(#brand)" />
+        <path id="bodyHighlight" d="M171 78C178 78 183 82 187 88L194 110H155L162 88C164 82 168 78 171 78Z" fill="white" fill-opacity="0.16" />
+      </g>
+
+      <g id="wordReveal" clip-path="url(#wordClip)" transform="translate(0 610)">
+        <text x="360" y="102" text-anchor="middle" fill="white" font-size="124" font-weight="600" letter-spacing="-8">asistan</text>
+      </g>
+      <text id="healthWord" x="360" y="790" text-anchor="middle" fill="#58DED6" font-size="26" font-weight="700" letter-spacing="12" opacity="0">HEALTH</text>
+      <text id="tagline" x="360" y="854" text-anchor="middle" fill="#C8DFEA" font-size="25" font-weight="500" letter-spacing="1" opacity="0">İŞİNİ YÖNETEN AKILLI ASİSTAN</text>
+
+      <g id="featureScene" opacity="0">
+        <text x="360" y="252" text-anchor="middle" fill="#7CE9E1" font-size="18" font-weight="700" letter-spacing="7">TEK MERKEZDE</text>
+        <text x="360" y="332" text-anchor="middle" fill="white" font-size="46" font-weight="650">Daha düzenli bir klinik.</text>
+        <text x="360" y="390" text-anchor="middle" fill="#BBD4E2" font-size="26" font-weight="400">Daha sakin bir iş akışı.</text>
+        <g id="featureCard1" filter="url(#cardShadow)">
+          <rect x="86" y="508" width="548" height="112" rx="26" fill="#0B2943" stroke="#17617C" />
+          <circle cx="148" cy="564" r="25" fill="#0CCEB9" fill-opacity="0.15" />
+          <path d="M136 564H160M148 552V576" stroke="#62E9E0" stroke-width="4" stroke-linecap="round" />
+          <text x="198" y="554" fill="white" font-size="27" font-weight="650">Randevu yönetimi</text>
+          <text x="198" y="590" fill="#A6C5D6" font-size="19">Takviminiz her zaman net.</text>
+        </g>
+        <g id="featureCard2" filter="url(#cardShadow)">
+          <rect x="86" y="650" width="548" height="112" rx="26" fill="#0B2943" stroke="#17617C" />
+          <circle cx="148" cy="706" r="25" fill="#2B73F6" fill-opacity="0.16" />
+          <circle cx="148" cy="698" r="8" stroke="#80ADFF" stroke-width="3" />
+          <path d="M134 720C139 709 157 709 162 720" stroke="#80ADFF" stroke-width="3" stroke-linecap="round" />
+          <text x="198" y="696" fill="white" font-size="27" font-weight="650">Hasta yönetimi</text>
+          <text x="198" y="732" fill="#A6C5D6" font-size="19">Bilgileriniz tek yerde.</text>
+        </g>
+        <g id="featureCard3" filter="url(#cardShadow)">
+          <rect x="86" y="792" width="548" height="112" rx="26" fill="#0B2943" stroke="#17617C" />
+          <circle cx="148" cy="848" r="25" fill="#0CCEB9" fill-opacity="0.15" />
+          <path d="M136 852L146 862L164 836" stroke="#62E9E0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+          <text x="198" y="838" fill="white" font-size="27" font-weight="650">Ekip yönetimi</text>
+          <text x="198" y="874" fill="#A6C5D6" font-size="19">Operasyonunuz daha kolay.</text>
+        </g>
+        <text x="360" y="1008" text-anchor="middle" fill="#71E2DC" font-size="19" font-weight="700" letter-spacing="4">ASISTAN HEALTH</text>
+      </g>
+
+      <g id="reservationScene" opacity="0">
+        <rect x="82" y="246" width="556" height="724" rx="48" fill="#08243E" stroke="#1B6482" stroke-width="2" filter="url(#cardShadow)" />
+        <circle cx="360" cy="446" r="150" fill="#0CCEB9" fill-opacity="0.08" />
+        <circle cx="360" cy="446" r="110" stroke="#28CFC4" stroke-opacity="0.24" stroke-width="2" />
+        <circle cx="360" cy="446" r="67" stroke="#28CFC4" stroke-opacity="0.42" stroke-width="2" />
+        <path d="M360 374C322 374 292 404 292 442C292 496 360 554 360 554C360 554 428 496 428 442C428 404 398 374 360 374Z" fill="url(#brand)" />
+        <circle cx="360" cy="442" r="23" fill="#EAFBFF" />
+        <circle id="orbitDot1" cx="472" cy="446" r="8" fill="#58DED6" />
+        <circle id="orbitDot2" cx="278" cy="372" r="7" fill="#7CA8FF" />
+        <text x="360" y="700" text-anchor="middle" fill="#7CE9E1" font-size="18" font-weight="700" letter-spacing="6">YAKINDA</text>
+        <text x="360" y="774" text-anchor="middle" fill="white" font-size="44" font-weight="650">Asistan Rezervasyon</text>
+        <text x="360" y="838" text-anchor="middle" fill="#BBD4E2" font-size="24">Yeni nesil randevu deneyimi.</text>
+        <text x="360" y="884" text-anchor="middle" fill="#BBD4E2" font-size="24">Bölgenizdeki klinikleri keşfedin.</text>
+      </g>
+
+      <g id="finalScene" opacity="0">
+        <g transform="translate(240 166) scale(2)">
+          <g stroke="#0CCEB9" stroke-width="8" stroke-linecap="round">
+            <line x1="16" y1="56" x2="38" y2="56" />
+            <line x1="8" y1="72" x2="32" y2="72" />
+            <line x1="20" y1="88" x2="36" y2="88" />
+          </g>
+          <circle cx="68" cy="20" r="10" fill="#0CCEB9" />
+          <path d="M68 34C64 34 60 36 58 40L36 110C35 113 37 116 40 116H52C54 116 56 115 57 113L61 100H78C77 96 76 92 74 88H65L71 70C72 67 73 65 74 63C77 71 81 84 85 95C87 102 89 109 90 113C91 115 93 116 95 116H106C109 116 111 113 110 110L86 40C84 36 78 34 73 34H68Z" fill="url(#brand)" />
+          <path d="M68 42C70 42 72 43 73 45L76 53H62L65 45C66 43 67 42 68 42Z" fill="white" fill-opacity="0.16" />
+        </g>
+        <text x="360" y="522" text-anchor="middle" fill="white" font-size="104" font-weight="600" letter-spacing="-7">asistan</text>
+        <text x="360" y="590" text-anchor="middle" fill="#58DED6" font-size="25" font-weight="700" letter-spacing="12">HEALTH</text>
+        <line x1="184" y1="670" x2="536" y2="670" stroke="#1D6987" />
+        <text x="360" y="754" text-anchor="middle" fill="white" font-size="36" font-weight="650">Kliniğinizin akıllı asistanı.</text>
+        <text x="360" y="816" text-anchor="middle" fill="#BBD4E2" font-size="24">Randevu, hasta ve ekip yönetimi</text>
+        <text x="360" y="854" text-anchor="middle" fill="#BBD4E2" font-size="24">tek merkezde.</text>
+        <rect x="150" y="946" width="420" height="90" rx="45" fill="url(#cta)" />
+        <text x="360" y="1003" text-anchor="middle" fill="white" font-size="29" font-weight="700">Demo için iletişime geçin</text>
+        <text x="360" y="1128" text-anchor="middle" fill="#7CE9E1" font-size="23" font-weight="650" letter-spacing="1">kktc.asistan.online</text>
+      </g>
+    </svg>
+
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
+      const easeOut = (value) => 1 - Math.pow(1 - clamp(value), 3)
+      const easeInOut = (value) => {
+        const x = clamp(value)
+        return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
+      }
+      const range = (time, start, end) => clamp((time - start) / (end - start))
+      const fadeWindow = (time, enterStart, enterEnd, exitStart, exitEnd) =>
+        easeOut(range(time, enterStart, enterEnd)) * (1 - easeInOut(range(time, exitStart, exitEnd)))
+      const opacity = (id, value) => {
+        $(id).style.opacity = clamp(value)
+      }
+      const transform = (id, value) => {
+        $(id).setAttribute("transform", value)
+      }
+
+      window.renderAt = (time) => {
+        opacity("introKicker", fadeWindow(time, 0.1, 0.85, 2.85, 3.45))
+        opacity("grid", 0.09 + 0.06 * Math.sin(time * 0.52))
+
+        const revealIn = easeOut(range(time, 0.42, 1.72))
+        const revealOut = 1 - easeInOut(range(time, 3.12, 3.82))
+        opacity("brandReveal", revealIn * revealOut)
+        transform("brandReveal", `translate(${210 - 34 * (1 - revealIn)} ${270 + 20 * (1 - revealIn)}) scale(${0.9 + revealIn * 0.1})`)
+        transform("speedLines", `translate(${-160 * (1 - easeOut(range(time, 0.18, 1.16)))} 0)`)
+        opacity("speedLines", fadeWindow(time, 0.12, 0.76, 2.84, 3.3))
+        opacity("speedGlow", fadeWindow(time, 0.12, 0.76, 2.84, 3.3) * 0.22)
+        opacity("head", easeOut(range(time, 0.78, 1.42)) * revealOut)
+        opacity("headGlow", easeOut(range(time, 0.78, 1.42)) * revealOut * 0.3)
+        opacity("body", easeOut(range(time, 0.6, 1.44)) * revealOut)
+        opacity("bodyHighlight", easeOut(range(time, 1.0, 1.7)) * revealOut)
+
+        const wordIn = easeOut(range(time, 1.55, 2.72))
+        const wordOut = 1 - easeInOut(range(time, 3.14, 3.82))
+        $("wordClipRect").setAttribute("width", `${400 * wordIn}`)
+        $("wordClipRect").setAttribute("x", `${160}`)
+        opacity("wordReveal", wordOut)
+        opacity("healthWord", easeOut(range(time, 2.2, 2.9)) * wordOut)
+        opacity("tagline", easeOut(range(time, 2.48, 3.1)) * wordOut)
+
+        const features = fadeWindow(time, 3.54, 4.22, 7.18, 7.78)
+        opacity("featureScene", features)
+        transform("featureScene", `translate(0 ${22 * (1 - easeOut(range(time, 3.54, 4.22)))})`)
+        opacity("featureCard1", easeOut(range(time, 4.18, 4.72)) * features)
+        opacity("featureCard2", easeOut(range(time, 4.74, 5.28)) * features)
+        opacity("featureCard3", easeOut(range(time, 5.3, 5.84)) * features)
+        transform("featureCard1", `translate(${46 * (1 - easeOut(range(time, 4.18, 4.72)))} 0)`)
+        transform("featureCard2", `translate(${-46 * (1 - easeOut(range(time, 4.74, 5.28)))} 0)`)
+        transform("featureCard3", `translate(${46 * (1 - easeOut(range(time, 5.3, 5.84)))} 0)`)
+
+        const reservation = fadeWindow(time, 7.4, 8.04, 10.18, 10.8)
+        opacity("reservationScene", reservation)
+        transform("reservationScene", `translate(0 ${20 * (1 - easeOut(range(time, 7.4, 8.04)))})`)
+        const orbit = Math.max(0, time - 7.4) * 1.55
+        $("orbitDot1").setAttribute("cx", `${360 + Math.cos(orbit) * 112}`)
+        $("orbitDot1").setAttribute("cy", `${446 + Math.sin(orbit) * 112}`)
+        $("orbitDot2").setAttribute("cx", `${360 + Math.cos(orbit + Math.PI) * 104}`)
+        $("orbitDot2").setAttribute("cy", `${446 + Math.sin(orbit + Math.PI) * 104}`)
+
+        const finalIn = easeOut(range(time, 10.38, 11.06))
+        opacity("finalScene", finalIn)
+        transform("finalScene", `translate(0 ${22 * (1 - finalIn)})`)
+
+        $("particle1").setAttribute("cy", `${232 + Math.sin(time * 0.78) * 18}`)
+        $("particle2").setAttribute("cy", `${300 + Math.cos(time * 0.66) * 24}`)
+        $("particle3").setAttribute("cy", `${980 + Math.sin(time * 0.58) * 20}`)
+        $("particle4").setAttribute("cy", `${896 + Math.cos(time * 0.72) * 17}`)
+      }
+
+      window.renderAt(0)
+    </script>
+  </body>
+</html>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -52,7 +53,7 @@ export function MiniCalendar({ calendarEvents }: { calendarEvents: CalendarEvent
   }, [calendarEvents])
 
   return (
-    <Card className="shadow-sm">
+    <Card className="border-border/60 bg-white/85 shadow-sm backdrop-blur-md">
       <CardContent className="p-4 lg:p-5">
         <button
           type="button"
@@ -63,12 +64,7 @@ export function MiniCalendar({ calendarEvents }: { calendarEvents: CalendarEvent
           <h2 className="text-sm font-bold text-brand-ink">Aylık Takvim</h2>
           <span className="flex items-center gap-2">
             <span className="text-xs font-medium capitalize text-muted-foreground">{monthFormatter.format(cursor)}</span>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-muted-foreground transition-transform xl:hidden',
-                calendarOpen && 'rotate-180'
-              )}
-            />
+            <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform xl:hidden', calendarOpen && 'rotate-180')} />
           </span>
         </button>
 
@@ -122,14 +118,12 @@ export function MiniCalendar({ calendarEvents }: { calendarEvents: CalendarEvent
                   className={cn(
                     'mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition-colors hover:bg-cyan-50',
                     !inMonth && 'text-slate-300',
-                    isToday && 'bg-brand-teal text-white hover:bg-brand-teal'
+                    isToday && 'bg-brand-teal text-white hover:bg-brand-teal',
                   )}
                   title={dayEvents.length ? `${dayEvents.length} onaylı randevu` : 'Randevu yok'}
                 >
                   <span>{day.getDate()}</span>
-                  {dayEvents.length > 0 && (
-                    <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-brand-teal')} />
-                  )}
+                  {dayEvents.length > 0 && <span className={cn('mt-0.5 h-1 w-1 rounded-full', isToday ? 'bg-white' : 'bg-brand-teal')} />}
                 </Link>
               )
             })}
@@ -172,3 +166,4 @@ export function MiniCalendarSkeleton() {
     </Card>
   )
 }
+

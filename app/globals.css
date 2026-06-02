@@ -3,34 +3,43 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Asistan Brand Colors - Premium SaaS Design */
+/* Global theme tokens (Tailwind v4 + shadcn/ui) */
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #07182D;
+  /* Surfaces */
+  --background: #F7F7F5;
+  --foreground: #1D1D1F;
   --card: #FFFFFF;
-  --card-foreground: #06142A;
+  --card-foreground: #1D1D1F;
   --popover: #FFFFFF;
-  --popover-foreground: #06142A;
-  --primary: #2563EB;
+  --popover-foreground: #1D1D1F;
+
+  /* Brand */
+  --primary: #0071E3;
   --primary-foreground: #FFFFFF;
-  --secondary: #F9FAFB;
-  --secondary-foreground: #07182D;
+  --primary-hover: #0063C8;
+  --primary-soft: #EDF5FF;
+  --accent-pop: #0071E3;
+
+  /* UI */
+  --secondary: #F1F1EF;
+  --secondary-foreground: #1D1D1F;
   --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
-  --accent: #2563EB;
-  --accent-foreground: #FFFFFF;
+  --muted-foreground: #5D6068;
+  --accent: #EDF5FF;
+  --accent-foreground: #1D1D1F;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #2563EB;
-  --chart-1: #06B6D4;
-  --chart-2: #185FA5;
-  --chart-3: #06142A;
-  --chart-4: #6B7280;
-  --chart-5: #F9FAFB;
-  --radius: 0.75rem;
+  --border: #E0E2E7;
+  --input: #E0E2E7;
+  --ring: #0071E3;
+  --chart-1: #0071E3;
+  --chart-2: #0EA5E9;
+  --chart-3: #1D1D1F;
+  --chart-4: #5D6068;
+  --chart-5: #F1F1EF;
+  --radius: 1rem;
+  --ease-apple: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Sidebar - Dark theme */
   --sidebar: #07182D;
@@ -43,22 +52,22 @@
   --sidebar-ring: #2563EB;
 
   /* Brand specific */
-  --deep-navy: #07182D;
-  --teal: #16D4C5;
-  --light-blue: #1E8BFF;
-  --brand-ink: #0F172A;
-  --brand-navy: #07182D;
-  --brand-dark: #0F172A;
-  --brand-blue: #1E8BFF;
-  --brand-teal: #0FB9AB;
-  --brand-teal-hover: #0A9C90;
-  --brand-teal-bright: #16D4C5;
-  --brand-teal-accessible: #0FB9AB;
-  --brand-teal-dark: #0A6159;
-  --brand-cyan: #16D4C5;
+  --deep-navy: #1D1D1F;
+  --teal: #2DD4BF;
+  --light-blue: #0071E3;
+  --brand-ink: #1D1D1F;
+  --brand-navy: #1D1D1F;
+  --brand-dark: #1D1D1F;
+  --brand-blue: #0071E3;
+  --brand-teal: #0071E3;
+  --brand-teal-hover: #0063C8;
+  --brand-teal-bright: #60A5FA;
+  --brand-teal-accessible: #0071E3;
+  --brand-teal-dark: #0063C8;
+  --brand-cyan: #60A5FA;
   --brand-danger: #FF4D4F;
   --brand-danger-strong: #C22326;
-  --brand-light: #F8FAFC;
+  --brand-light: #F7F7F5;
   --dashboard-bg: #F7FAFD;
   --dashboard-surface: #F7F9FB;
   --dashboard-hover: #F7F8FB;
@@ -123,44 +132,47 @@
 }
 
 .dark {
-  --background: #06142A;
-  --foreground: #FFFFFF;
-  --card: #0A1F3D;
-  --card-foreground: #FFFFFF;
-  --popover: #0A1F3D;
-  --popover-foreground: #FFFFFF;
-  --primary: #2563EB;
-  --primary-foreground: #FFFFFF;
-  --secondary: #0A1F3D;
-  --secondary-foreground: #FFFFFF;
-  --muted: #0A1F3D;
-  --muted-foreground: #9CA3AF;
-  --accent: #185FA5;
-  --accent-foreground: #FFFFFF;
+  --background: #0B1220;
+  --foreground: #F8FAFC;
+  --card: #0F1B2F;
+  --card-foreground: #F8FAFC;
+  --popover: #0F1B2F;
+  --popover-foreground: #F8FAFC;
+  --primary: #2DD4BF;
+  --primary-foreground: #0B1220;
+  --primary-hover: #26BBA9;
+  --primary-soft: #0B2A2A;
+  --accent-pop: #60A5FA;
+  --secondary: #0F172A;
+  --secondary-foreground: #F8FAFC;
+  --muted: #0F172A;
+  --muted-foreground: #94A3B8;
+  --accent: #0B2A2A;
+  --accent-foreground: #E8F8F7;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
-  --border: #1A3050;
-  --input: #1A3050;
-  --ring: #2563EB;
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #2DD4BF;
   --chart-1: #06B6D4;
-  --chart-2: #185FA5;
-  --chart-3: #FFFFFF;
-  --chart-4: #9CA3AF;
-  --chart-5: #0A1F3D;
+  --chart-2: #2563EB;
+  --chart-3: #F8FAFC;
+  --chart-4: #94A3B8;
+  --chart-5: #0F172A;
   --sidebar: #040D1A;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #2563EB;
+  --sidebar-primary: #2DD4BF;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #0A1F3D;
+  --sidebar-accent: #0F172A;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #0A1F3D;
-  --sidebar-ring: #2563EB;
+  --sidebar-border: #0F172A;
+  --sidebar-ring: #2DD4BF;
 }
 
 @theme inline {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Satoshi', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'SF Pro Text', 'SF Pro Display', 'Inter', 'Manrope', system-ui, sans-serif;
+  --font-heading: 'SF Pro Display', 'SF Pro Text', 'Inter', 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -197,6 +209,11 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* New design tokens */
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent-pop: var(--accent-pop);
 
   /* Brand colors */
   --color-deep-navy: var(--deep-navy);
@@ -265,6 +282,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    letter-spacing: -0.005em;
   }
 
   :focus-visible {
@@ -356,6 +374,43 @@
 
   .tap-target { min-height: 44px; min-width: 44px; }
 
+  .noise-overlay {
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.72), transparent 42%),
+      radial-gradient(circle at 80% 0%, rgba(0, 113, 227, 0.05), transparent 35%),
+      radial-gradient(rgba(29, 29, 31, 0.032) 0.75px, transparent 0.75px);
+    background-size: auto, auto, 3px 3px;
+    mix-blend-mode: soft-light;
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.56) 45%,
+      transparent 100%
+    );
+    animation: shimmer-sweep 1.4s ease-in-out infinite;
+  }
+
+  .search-glow {
+    transition: box-shadow 200ms ease, border-color 200ms ease;
+  }
+
+  .search-glow:focus-within {
+    box-shadow: 0 0 0 3px rgba(14, 154, 167, 0.15);
+    border-color: var(--primary);
+  }
+
   .glass-panel {
     background: rgba(255, 255, 255, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.6);
@@ -443,6 +498,12 @@
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes shimmer-sweep {
+  100% {
+    transform: translateX(100%);
   }
 }
 

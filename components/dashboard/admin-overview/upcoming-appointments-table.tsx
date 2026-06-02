@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { CalendarPlus, ChevronRight, PlayCircle, Share2 } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,7 +34,7 @@ export function UpcomingAppointmentsTable({
   onOpenQuickStart: () => void
 }) {
   return (
-    <Card className="shadow-sm">
+    <Card className="border-border/60 bg-white/85 shadow-sm backdrop-blur-md">
       <CardContent className="p-4 lg:p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-bold text-brand-ink">Yaklaşan Randevular</h2>
@@ -47,9 +48,9 @@ export function UpcomingAppointmentsTable({
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal">
               <PlayCircle className="h-6 w-6" />
             </div>
-            <p className="text-sm font-semibold text-brand-ink">Yaklaşan randevu yok</p>
+            <p className="text-sm font-semibold text-brand-ink">Yaklaşan randevu görünmüyor</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Yeni bir randevu oluşturabilir veya online takvim bağlantısını paylaşabilirsiniz.
+              Yeni bir randevu oluşturabilir veya online rezervasyon bağlantınızı paylaşabilirsiniz.
             </p>
             <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
               {canCreateAppointment && (
@@ -73,10 +74,7 @@ export function UpcomingAppointmentsTable({
             <ul className="space-y-2 md:hidden">
               {upcomingAppointments.map((appointment) => (
                 <li key={appointment.id}>
-                  <Link
-                    href={`/dashboard/hastalar/${appointment.patientId}`}
-                    className="flex items-center gap-3 rounded-xl border bg-white p-3 active:bg-slate-50"
-                  >
+                  <Link href={`/dashboard/hastalar/${appointment.patientId}`} className="flex items-center gap-3 rounded-xl border bg-white p-3 active:bg-slate-50">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[12px] font-bold text-violet-700">
                       {initials(appointment.patientName)}
                     </span>
@@ -84,7 +82,7 @@ export function UpcomingAppointmentsTable({
                       <span className="block truncate text-sm font-semibold text-brand-ink">{appointment.patientName}</span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {appointment.serviceName}
-                        {appointment.staffName ? ` • ${appointment.staffName}` : ''}
+                        {appointment.staffName ? ` · ${appointment.staffName}` : ''}
                       </span>
                     </span>
                     <span className="text-right">
@@ -92,7 +90,7 @@ export function UpcomingAppointmentsTable({
                       <span
                         className={cn(
                           'mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                          appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
+                          appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700',
                         )}
                       >
                         {appointment.status === 'CONFIRMED' ? 'Onaylı' : 'Bekliyor'}
@@ -108,9 +106,9 @@ export function UpcomingAppointmentsTable({
                 <thead>
                   <tr className="text-left text-[11px] font-medium text-muted-foreground">
                     <th className="pb-3">Saat</th>
-                    <th className="pb-3">Müşteri</th>
+                    <th className="pb-3">Hasta</th>
                     <th className="pb-3">Hizmet</th>
-                    <th className="pb-3">Çalışan</th>
+                    <th className="pb-3">Personel</th>
                     <th className="pb-3">Durum</th>
                   </tr>
                 </thead>
@@ -135,7 +133,7 @@ export function UpcomingAppointmentsTable({
                         <span
                           className={cn(
                             'rounded-full px-2 py-1 text-[11px] font-semibold',
-                            appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
+                            appointment.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700',
                           )}
                         >
                           {appointment.status === 'CONFIRMED' ? 'Onaylandı' : 'Onay Bekliyor'}

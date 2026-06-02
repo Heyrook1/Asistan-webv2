@@ -39,3 +39,13 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# temp log/pid files
+*.err.log
+*.out.log
+*.pid
+tmp-*.log
+
+.vercel
+
+.vercel

@@ -1,0 +1,56 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="navy-overlay" x1="0" y1="0" x2="760" y2="1350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00142F" stop-opacity="0.98"/>
+      <stop offset="0.58" stop-color="#00295B" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#00366D" stop-opacity="0.24"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="118" y1="110" x2="438" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#05D1BD"/>
+      <stop offset="1" stop-color="#12B9EE"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#00142F" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <image href="reservation-discovery-background.png" width="1080" height="1350" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="1080" height="1350" fill="url(#navy-overlay)"/>
+
+  <g transform="translate(86 76)">
+    <rect width="372" height="72" rx="36" fill="white" fill-opacity="0.96" filter="url(#shadow)"/>
+    <image href="../public/images/asistan-mark.svg" x="18" y="9" width="54" height="54"/>
+    <text x="86" y="48" fill="#001D42" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="259" cy="22" r="4.5" fill="#05C8BC"/>
+    <text x="282" y="45" fill="#0B709A" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="2">KKTC</text>
+  </g>
+
+  <rect x="86" y="242" width="246" height="50" rx="25" fill="url(#accent)"/>
+  <text x="118" y="275" fill="#001D42" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="4">YAKINDA</text>
+
+  <text x="86" y="398" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="79" font-weight="700" letter-spacing="-3">
+    <tspan x="86" dy="0">Asistan</tspan>
+    <tspan x="86" dy="89">Rezervasyon</tspan>
+  </text>
+
+  <text x="90" y="632" fill="#D8F8FF" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="400" letter-spacing="-0.7">
+    <tspan x="90" dy="0">Bölgenizdeki klinikleri keşfedin.</tspan>
+    <tspan x="90" dy="56">Uygun saatleri görün.</tspan>
+  </text>
+
+  <g transform="translate(86 810)">
+    <rect width="554" height="210" rx="26" fill="#001D42" fill-opacity="0.72" stroke="white" stroke-opacity="0.18"/>
+    <circle cx="57" cy="58" r="24" fill="#07C5C2" fill-opacity="0.2"/>
+    <path d="M57 45C50.925 45 46 49.925 46 56C46 64.25 57 75 57 75C57 75 68 64.25 68 56C68 49.925 63.075 45 57 45ZM57 60C54.79 60 53 58.21 53 56C53 53.79 54.79 52 57 52C59.21 52 61 53.79 61 56C61 58.21 59.21 60 57 60Z" fill="#33E1D0"/>
+    <text x="102" y="68" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Yakındaki klinikler</text>
+
+    <circle cx="57" cy="145" r="24" fill="#0EA5E9" fill-opacity="0.2"/>
+    <path d="M49 145L55 151L67 137" stroke="#4CCAF5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="102" y="155" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Uygun randevu saatleri</text>
+  </g>
+
+  <text x="88" y="1190" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="0.4">
+    GELİŞMELER İÇİN TAKİP EDİN
+  </text>
+  <rect x="88" y="1220" width="350" height="5" rx="2.5" fill="url(#accent)"/>
+</svg>

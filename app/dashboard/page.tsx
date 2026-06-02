@@ -1,7 +1,7 @@
-import { requireSession, can } from '@/lib/session'
+import { AdminOverview } from '@/components/dashboard/admin-overview'
+import { can, requireSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { getDashboardStats, getReminders } from '@/lib/queries'
-import { AdminOverview } from '@/components/dashboard/admin-overview'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,8 +17,8 @@ export default async function DashboardPage() {
   const session = await requireSession()
   const now = new Date()
   const today = dateOnly(now)
-  const calendarFrom = new Date(now.getFullYear(), now.getMonth() - 6, 1)
-  const calendarTo = new Date(now.getFullYear(), now.getMonth() + 7, 0)
+  const calendarFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const calendarTo = new Date(now.getFullYear(), now.getMonth() + 2, 0)
 
   const [
     stats,
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       where: { businessId: session.businessId, isArchived: false },
       orderBy: { fullName: 'asc' },
       select: { id: true, fullName: true, patientNumber: true },
-      take: 500,
+      take: 50,
     }),
     prisma.service.findMany({
       where: { businessId: session.businessId, isActive: true },
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
 
   const setupSteps = [
     {
-      title: 'İşletme bilgilerinizi ekleyin',
+      title: 'İşletme bilgilerinizi tamamlayın',
       done: Boolean(business?.phone || business?.email || business?.address || business?.city),
     },
     {
@@ -124,15 +124,15 @@ export default async function DashboardPage() {
       done: services.length > 0,
     },
     {
-      title: 'Çalışma ekibinizi ayarlayın',
+      title: 'Ekip üyelerini ekleyin',
       done: staff.length > 1,
     },
     {
-      title: 'Takviminizi bağlayın',
+      title: 'Takvim planlamasını başlatın',
       done: confirmedAppointments > 0,
     },
     {
-      title: 'Ödeme ayarlarınızı tamamlayın',
+      title: 'Ödeme ayarlarını tamamlayın',
       done: Boolean(business?.currency),
     },
   ]
@@ -140,26 +140,28 @@ export default async function DashboardPage() {
   const suggestions = [
     stats.todayAppointments === 0
       ? {
-          title: 'Bugün ajandada boşluk var',
-          description: 'Onaylanan randevu yok. Bekleyen talepleri kontrol edebilirsiniz.',
+          title: 'Bugün ajandanızda boşluk var',
+          description: 'Onaylı randevu görünmüyor. Bekleyen talepleri hemen değerlendirebilirsiniz.',
           tone: 'teal' as const,
           href: '/dashboard/randevular',
         }
       : {
           title: `Bugün ${stats.todayAppointments} onaylı randevu var`,
-          description: 'Ajandadaki randevuları takvimden yönetebilirsiniz.',
+          description: 'Gün içi yoğunluğu takvim ekranından hızlıca yönetebilirsiniz.',
           tone: 'teal' as const,
           href: '/dashboard/takvim',
         },
     {
       title: `${stats.pendingAppointments} randevu onay bekliyor`,
-      description: 'Onaylanan randevular otomatik olarak ajandaya eklenir.',
+      description: 'Onaylanan randevular otomatik olarak ajandaya aktarılır.',
       tone: 'orange' as const,
       href: '/dashboard/randevular',
     },
     {
-      title: patients.length > 0 ? 'Bekleyen müşteriye uygun saat önerilebilir' : 'İlk müşteri kaydını oluşturun',
-      description: patients.length > 0 ? `${patients[0].fullName} için uygun saatleri kontrol edin.` : 'Hasta/müşteri kaydı olmadan randevu akışı başlatılamaz.',
+      title: patients.length > 0 ? 'Öncelikli hastaya uygun saat önerilebilir' : 'İlk hasta kaydınızı oluşturun',
+      description: patients.length > 0
+        ? `${patients[0].fullName} için uygun randevu saatlerini kontrol edin.`
+        : 'Hasta kaydı olmadan randevu akışı başlatılamaz.',
       tone: 'violet' as const,
       href: patients.length > 0 ? '/dashboard/takvim' : '/dashboard/hastalar',
     },
@@ -208,3 +210,4 @@ export default async function DashboardPage() {
     />
   )
 }
+

@@ -1,0 +1,387 @@
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.3.127:3000
+- Environments: .env.local, .env
+✓ Ready in 1631ms
+Creating turbopack project { dir: 'D:\\asistan-web', testMode: true }
+
+ GET / 200 in 3.0s (next.js: 308ms, proxy.ts: 603ms, application-code: 2.1s)
+ GET /urun 200 in 862ms (next.js: 87ms, proxy.ts: 17ms, application-code: 758ms)
+ GET /fiyatlandirma 200 in 899ms (next.js: 140ms, proxy.ts: 69ms, application-code: 690ms)
+○ Compiling /fiyatlandirma ...
+ GET /contact 200 in 4.6s (next.js: 4.2s, proxy.ts: 73ms, application-code: 345ms)
+ GET /cozumler/health 200 in 8.6s (next.js: 7.3s, proxy.ts: 65ms, application-code: 1275ms)
+ GET /cozumler/health 200 in 437ms (next.js: 31ms, proxy.ts: 15ms, application-code: 391ms)
+ GET /cozumler/beauty 200 in 461ms (next.js: 26ms, proxy.ts: 15ms, application-code: 421ms)
+ GET / 200 in 2.1s (next.js: 10ms, proxy.ts: 1132ms, application-code: 928ms)
+✓ Finished filesystem cache database compaction in 11.5s
+ GET / 200 in 1854ms (next.js: 257ms, proxy.ts: 1197ms, application-code: 399ms)
+ GET /cozumler/pro 200 in 1181ms (next.js: 106ms, proxy.ts: 17ms, application-code: 1058ms)
+ GET /cozumler/beauty 200 in 1199ms (next.js: 762ms, proxy.ts: 19ms, application-code: 418ms)
+ GET /cozumler/legal 200 in 379ms (next.js: 11ms, proxy.ts: 53ms, application-code: 315ms)
+ GET / 200 in 2.2s (next.js: 11ms, proxy.ts: 1025ms, application-code: 1160ms)
+ GET /urun 200 in 627ms (next.js: 52ms, proxy.ts: 352ms, application-code: 223ms)
+ GET / 200 in 832ms (next.js: 12ms, proxy.ts: 322ms, application-code: 498ms)
+✓ Compiled in 3.3s
+ GET / 200 in 6.7s (next.js: 2.3s, proxy.ts: 2.9s, application-code: 1544ms)
+ GET / 200 in 1672ms (next.js: 343ms, proxy.ts: 307ms, application-code: 1021ms)
+ GET / 200 in 653ms (next.js: 8ms, proxy.ts: 312ms, application-code: 333ms)
+ GET / 200 in 615ms (next.js: 8ms, proxy.ts: 211ms, application-code: 396ms)
+ GET / 200 in 832ms (next.js: 10ms, proxy.ts: 233ms, application-code: 589ms)
+ GET / 200 in 673ms (next.js: 14ms, proxy.ts: 230ms, application-code: 429ms)
+ GET / 200 in 641ms (next.js: 6ms, proxy.ts: 215ms, application-code: 419ms)
+ GET / 200 in 764ms (next.js: 13ms, proxy.ts: 436ms, application-code: 315ms)
+ GET / 200 in 844ms (next.js: 57ms, proxy.ts: 302ms, application-code: 484ms)
+ GET / 200 in 501ms (next.js: 8ms, proxy.ts: 242ms, application-code: 251ms)
+ GET / 200 in 451ms (next.js: 6ms, proxy.ts: 203ms, application-code: 241ms)
+ GET / 200 in 521ms (next.js: 7ms, proxy.ts: 214ms, application-code: 300ms)
+ GET / 200 in 510ms (next.js: 7ms, proxy.ts: 200ms, application-code: 302ms)
+ GET / 200 in 506ms (next.js: 7ms, proxy.ts: 253ms, application-code: 245ms)
+ GET / 200 in 460ms (next.js: 6ms, proxy.ts: 221ms, application-code: 234ms)
+ GET / 200 in 551ms (next.js: 7ms, proxy.ts: 243ms, application-code: 300ms)
+ GET / 200 in 555ms (next.js: 8ms, proxy.ts: 312ms, application-code: 235ms)
+ GET / 200 in 432ms (next.js: 8ms, proxy.ts: 204ms, application-code: 220ms)
+ GET / 200 in 559ms (next.js: 6ms, proxy.ts: 214ms, application-code: 340ms)
+ GET / 200 in 465ms (next.js: 8ms, proxy.ts: 208ms, application-code: 249ms)
+ GET / 200 in 441ms (next.js: 9ms, proxy.ts: 204ms, application-code: 227ms)
+ GET / 200 in 849ms (next.js: 430ms, proxy.ts: 213ms, application-code: 206ms)
+ GET / 200 in 476ms (next.js: 8ms, proxy.ts: 233ms, application-code: 236ms)
+ GET / 200 in 501ms (next.js: 7ms, proxy.ts: 243ms, application-code: 251ms)
+ GET / 200 in 434ms (next.js: 7ms, proxy.ts: 213ms, application-code: 214ms)
+ GET / 200 in 2.3s (next.js: 82ms, proxy.ts: 250ms, application-code: 1978ms)
+ GET / 200 in 2.3s (next.js: 10ms, proxy.ts: 576ms, application-code: 1699ms)
+ GET / 200 in 2.3s (next.js: 912ms, proxy.ts: 971ms, application-code: 417ms)
+ GET / 200 in 2.3s (next.js: 29ms, proxy.ts: 976ms, application-code: 1319ms)
+ GET / 200 in 2.3s (next.js: 419ms, proxy.ts: 973ms, application-code: 944ms)
+ GET / 200 in 2.3s (next.js: 642ms, proxy.ts: 963ms, application-code: 721ms)
+ GET / 200 in 2.0s (next.js: 9ms, proxy.ts: 206ms, application-code: 1801ms)
+ GET / 200 in 2.4s (next.js: 271ms, proxy.ts: 235ms, application-code: 1885ms)
+ GET / 200 in 2.3s (next.js: 18ms, proxy.ts: 773ms, application-code: 1545ms)
+ GET / 200 in 2.3s (next.js: 273ms, proxy.ts: 769ms, application-code: 1292ms)
+ GET / 200 in 2.3s (next.js: 538ms, proxy.ts: 769ms, application-code: 1028ms)
+ GET / 200 in 2.4s (next.js: 742ms, proxy.ts: 777ms, application-code: 847ms)
+ GET / 200 in 1899ms (next.js: 9ms, proxy.ts: 246ms, application-code: 1643ms)
+ GET / 200 in 1922ms (next.js: 21ms, proxy.ts: 512ms, application-code: 1389ms)
+ GET / 200 in 1886ms (next.js: 229ms, proxy.ts: 467ms, application-code: 1189ms)
+ GET / 200 in 1873ms (next.js: 582ms, proxy.ts: 446ms, application-code: 845ms)
+ GET / 200 in 1879ms (next.js: 814ms, proxy.ts: 445ms, application-code: 620ms)
+✓ Compiled in 1644ms
+ GET / 200 in 5.5s (next.js: 1994ms, proxy.ts: 1616ms, application-code: 1847ms)
+ GET / 200 in 3.6s (next.js: 1657ms, proxy.ts: 652ms, application-code: 1323ms)
+ GET / 200 in 3.1s (next.js: 20ms, proxy.ts: 2.1s, application-code: 939ms)
+ GET / 200 in 3.1s (next.js: 346ms, proxy.ts: 2.1s, application-code: 616ms)
+ GET / 200 in 3.1s (next.js: 649ms, proxy.ts: 2.1s, application-code: 377ms)
+ GET / 200 in 4.7s (next.js: 20ms, proxy.ts: 3.2s, application-code: 1449ms)
+ GET / 200 in 1659ms (next.js: 22ms, proxy.ts: 470ms, application-code: 1166ms)
+ GET / 200 in 1564ms (next.js: 299ms, proxy.ts: 374ms, application-code: 890ms)
+ GET / 200 in 1497ms (next.js: 765ms, proxy.ts: 308ms, application-code: 424ms)
+ GET / 200 in 1569ms (next.js: 527ms, proxy.ts: 374ms, application-code: 668ms)
+ GET / 200 in 5.7s (next.js: 15ms, proxy.ts: 1669ms, application-code: 4.0s)
+ GET / 200 in 4.4s (next.js: 24ms, proxy.ts: 391ms, application-code: 4.0s)
+ GET / 200 in 4.6s (next.js: 427ms, proxy.ts: 421ms, application-code: 3.7s)
+ GET / 200 in 4.5s (next.js: 997ms, proxy.ts: 380ms, application-code: 3.1s)
+ GET / 200 in 4.5s (next.js: 1507ms, proxy.ts: 379ms, application-code: 2.6s)
+ GET / 200 in 5.0s (next.js: 351ms, proxy.ts: 2.9s, application-code: 1711ms)
+ GET / 200 in 4.0s (next.js: 134ms, proxy.ts: 725ms, application-code: 3.2s)
+ GET / 200 in 3.4s (next.js: 756ms, proxy.ts: 1133ms, application-code: 1498ms)
+ GET / 200 in 3.6s (next.js: 1147ms, proxy.ts: 1273ms, application-code: 1169ms)
+ GET / 200 in 3.6s (next.js: 1584ms, proxy.ts: 1292ms, application-code: 739ms)
+ GET / 200 in 3.6s (next.js: 1385ms, proxy.ts: 1287ms, application-code: 950ms)
+ GET / 200 in 3.7s (next.js: 1825ms, proxy.ts: 1315ms, application-code: 526ms)
+ GET / 200 in 3.8s (next.js: 7ms, proxy.ts: 271ms, application-code: 3.5s)
+ GET / 200 in 3.6s (next.js: 897ms, proxy.ts: 520ms, application-code: 2.2s)
+ GET / 200 in 3.6s (next.js: 1550ms, proxy.ts: 526ms, application-code: 1564ms)
+ GET / 200 in 3.6s (next.js: 26ms, proxy.ts: 524ms, application-code: 3.1s)
+ GET / 200 in 3.6s (next.js: 2.4s, proxy.ts: 525ms, application-code: 682ms)
+ GET / 200 in 3.6s (next.js: 1910ms, proxy.ts: 525ms, application-code: 1205ms)
+ GET / 200 in 3.0s (next.js: 15ms, proxy.ts: 219ms, application-code: 2.8s)
+ GET / 200 in 3.0s (next.js: 34ms, proxy.ts: 868ms, application-code: 2.1s)
+ GET / 200 in 3.0s (next.js: 460ms, proxy.ts: 868ms, application-code: 1686ms)
+ GET / 200 in 3.0s (next.js: 924ms, proxy.ts: 875ms, application-code: 1231ms)
+ GET / 200 in 3.0s (next.js: 1309ms, proxy.ts: 868ms, application-code: 846ms)
+ GET / 200 in 3.0s (next.js: 1694ms, proxy.ts: 877ms, application-code: 463ms)
+ GET / 200 in 582ms (next.js: 8ms, proxy.ts: 256ms, application-code: 318ms)
+ GET / 200 in 523ms (next.js: 6ms, proxy.ts: 227ms, application-code: 290ms)
+ GET / 200 in 1341ms (next.js: 36ms, proxy.ts: 275ms, application-code: 1031ms)
+ GET / 200 in 1111ms (next.js: 11ms, proxy.ts: 429ms, application-code: 672ms)
+ GET / 200 in 1088ms (next.js: 9ms, proxy.ts: 695ms, application-code: 384ms)
+ GET / 200 in 3.5s (next.js: 10ms, proxy.ts: 1276ms, application-code: 2.2s)
+ GET / 200 in 2.4s (next.js: 23ms, proxy.ts: 524ms, application-code: 1846ms)
+ GET / 200 in 3.5s (next.js: 629ms, proxy.ts: 1595ms, application-code: 1296ms)
+ GET / 200 in 3.6s (next.js: 335ms, proxy.ts: 1589ms, application-code: 1662ms)
+ GET / 200 in 2.5s (next.js: 959ms, proxy.ts: 489ms, application-code: 1036ms)
+ GET / 200 in 2.5s (next.js: 13ms, proxy.ts: 1796ms, application-code: 722ms)
+ GET / 200 in 2.9s (next.js: 64ms, proxy.ts: 310ms, application-code: 2.5s)
+ GET / 200 in 2.8s (next.js: 370ms, proxy.ts: 626ms, application-code: 1786ms)
+ GET / 200 in 2.8s (next.js: 22ms, proxy.ts: 622ms, application-code: 2.1s)
+ GET / 200 in 2.6s (next.js: 653ms, proxy.ts: 478ms, application-code: 1505ms)
+ GET / 200 in 2.6s (next.js: 1570ms, proxy.ts: 479ms, application-code: 587ms)
+ GET / 200 in 2.6s (next.js: 1091ms, proxy.ts: 483ms, application-code: 1071ms)
+✓ Finished filesystem cache database compaction in 14.3s
+ GET / 200 in 2.6s (next.js: 8ms, proxy.ts: 201ms, application-code: 2.4s)
+ GET / 200 in 2.5s (next.js: 1193ms, proxy.ts: 578ms, application-code: 765ms)
+ GET / 200 in 2.6s (next.js: 97ms, proxy.ts: 581ms, application-code: 1874ms)
+ GET / 200 in 2.6s (next.js: 470ms, proxy.ts: 581ms, application-code: 1512ms)
+ GET / 200 in 2.6s (next.js: 764ms, proxy.ts: 579ms, application-code: 1214ms)
+ GET / 200 in 2.6s (next.js: 9ms, proxy.ts: 2.1s, application-code: 505ms)
+ GET / 200 in 2.5s (next.js: 29ms, proxy.ts: 222ms, application-code: 2.2s)
+ GET / 200 in 2.4s (next.js: 351ms, proxy.ts: 610ms, application-code: 1479ms)
+ GET / 200 in 2.5s (next.js: 28ms, proxy.ts: 620ms, application-code: 1821ms)
+ GET / 200 in 2.5s (next.js: 625ms, proxy.ts: 613ms, application-code: 1219ms)
+ GET / 200 in 2.4s (next.js: 1095ms, proxy.ts: 537ms, application-code: 754ms)
+ GET / 200 in 2.5s (next.js: 1362ms, proxy.ts: 614ms, application-code: 504ms)
+ GET / 200 in 4.0s (next.js: 690ms, proxy.ts: 320ms, application-code: 3.0s)
+ GET / 200 in 4.1s (next.js: 318ms, proxy.ts: 249ms, application-code: 3.5s)
+ GET / 200 in 4.0s (next.js: 1051ms, proxy.ts: 326ms, application-code: 2.6s)
+ GET / 200 in 4.0s (next.js: 1358ms, proxy.ts: 321ms, application-code: 2.3s)
+ GET / 200 in 4.0s (next.js: 1821ms, proxy.ts: 320ms, application-code: 1885ms)
+ GET / 200 in 4.0s (next.js: 2.2s, proxy.ts: 313ms, application-code: 1498ms)
+✓ Compiled in 2.6s
+ GET / 200 in 4.9s (next.js: 1501ms, proxy.ts: 1933ms, application-code: 1463ms)
+ GET / 200 in 5.0s (next.js: 2.6s, proxy.ts: 1932ms, application-code: 472ms)
+ GET / 200 in 7.5s (next.js: 355ms, proxy.ts: 5.2s, application-code: 2.0s)
+ GET / 200 in 7.5s (next.js: 13ms, proxy.ts: 5.2s, application-code: 2.4s)
+ GET / 200 in 2.6s (next.js: 33ms, proxy.ts: 960ms, application-code: 1595ms)
+ GET / 200 in 7.6s (next.js: 489ms, proxy.ts: 6.0s, application-code: 1135ms)
+ GET / 200 in 2.6s (next.js: 877ms, proxy.ts: 989ms, application-code: 759ms)
+ GET / 200 in 7.6s (next.js: 1215ms, proxy.ts: 6.0s, application-code: 429ms)
+ GET / 200 in 3.3s (next.js: 7ms, proxy.ts: 202ms, application-code: 3.1s)
+ GET / 200 in 3.3s (next.js: 23ms, proxy.ts: 460ms, application-code: 2.8s)
+ GET / 200 in 3.3s (next.js: 829ms, proxy.ts: 458ms, application-code: 1973ms)
+ GET / 200 in 3.4s (next.js: 2.2s, proxy.ts: 510ms, application-code: 602ms)
+ GET / 200 in 3.3s (next.js: 1523ms, proxy.ts: 451ms, application-code: 1310ms)
+ GET / 200 in 3.3s (next.js: 432ms, proxy.ts: 438ms, application-code: 2.4s)
+ GET / 200 in 8.5s (next.js: 4.6s, proxy.ts: 217ms, application-code: 3.6s)
+ GET / 200 in 8.4s (next.js: 5.3s, proxy.ts: 228ms, application-code: 2.8s)
+ GET / 200 in 8.4s (next.js: 6.1s, proxy.ts: 279ms, application-code: 2.0s)
+ GET / 200 in 8.4s (next.js: 5.8s, proxy.ts: 253ms, application-code: 2.4s)
+ GET / 200 in 8.4s (next.js: 6.5s, proxy.ts: 283ms, application-code: 1563ms)
+ GET / 200 in 8.4s (next.js: 7.0s, proxy.ts: 288ms, application-code: 1112ms)
+ GET / 200 in 7.7s (next.js: 374ms, proxy.ts: 2.3s, application-code: 5.0s)
+ GET / 200 in 7.7s (next.js: 493ms, proxy.ts: 4.2s, application-code: 2.9s)
+ GET / 200 in 7.7s (next.js: 50ms, proxy.ts: 4.2s, application-code: 3.4s)
+ GET / 200 in 7.7s (next.js: 1787ms, proxy.ts: 4.2s, application-code: 1648ms)
+ GET / 200 in 7.7s (next.js: 1382ms, proxy.ts: 4.2s, application-code: 2.1s)
+ GET / 200 in 7.7s (next.js: 1052ms, proxy.ts: 4.2s, application-code: 2.4s)
+ GET / 200 in 5.9s (next.js: 3.8s, proxy.ts: 1425ms, application-code: 660ms)
+ GET / 200 in 5.9s (next.js: 2.4s, proxy.ts: 1416ms, application-code: 2.1s)
+ GET / 200 in 5.9s (next.js: 1555ms, proxy.ts: 1421ms, application-code: 2.9s)
+ GET / 200 in 5.9s (next.js: 1178ms, proxy.ts: 1290ms, application-code: 3.5s)
+ GET / 200 in 5.9s (next.js: 2.9s, proxy.ts: 1416ms, application-code: 1564ms)
+ GET / 200 in 5.9s (next.js: 3.3s, proxy.ts: 1417ms, application-code: 1187ms)
+✓ Finished filesystem cache database compaction in 13.1s
+✓ Compiled in 553ms
+ GET / 200 in 3.8s (next.js: 578ms, proxy.ts: 935ms, application-code: 2.3s)
+ GET /auth/login 200 in 565ms (next.js: 151ms, proxy.ts: 12ms, application-code: 402ms)
+○ Compiling /privacy ...
+ GET /privacy 200 in 8.6s (next.js: 7.2s, proxy.ts: 21ms, application-code: 1321ms)
+ GET /terms 200 in 8.1s (next.js: 7.1s, proxy.ts: 37ms, application-code: 986ms)
+✓ Finished filesystem cache database compaction in 14.7s
+ GET / 200 in 2.8s (next.js: 9ms, proxy.ts: 1226ms, application-code: 1607ms)
+ GET /auth/login 200 in 492ms (next.js: 11ms, proxy.ts: 370ms, application-code: 111ms)
+ GET / 200 in 743ms (next.js: 8ms, proxy.ts: 463ms, application-code: 272ms)
+○ Compiling /auth/sign-up ...
+ GET /auth/sign-up 200 in 3.8s (next.js: 3.5s, proxy.ts: 212ms, application-code: 152ms)
+ GET /auth/login 200 in 416ms (next.js: 7ms, proxy.ts: 331ms, application-code: 77ms)
+ GET / 200 in 588ms (next.js: 5ms, proxy.ts: 233ms, application-code: 350ms)
+ GET /urun 200 in 1130ms (next.js: 316ms, proxy.ts: 281ms, application-code: 533ms)
+ GET /fiyatlandirma 200 in 1173ms (next.js: 363ms, proxy.ts: 498ms, application-code: 312ms)
+ GET /fiyatlandirma 200 in 477ms (next.js: 7ms, proxy.ts: 303ms, application-code: 167ms)
+ GET / 200 in 546ms (next.js: 5ms, proxy.ts: 334ms, application-code: 207ms)
+ GET /cozumler 200 in 2.0s (next.js: 129ms, proxy.ts: 452ms, application-code: 1438ms)
+ GET / 200 in 619ms (next.js: 5ms, proxy.ts: 340ms, application-code: 273ms)
+✓ Compiled in 6s
+ GET / 200 in 8.9s (next.js: 7.0s, proxy.ts: 1429ms, application-code: 474ms)
+ GET / 200 in 8.3s (next.js: 2.4s, proxy.ts: 830ms, application-code: 5.1s)
+✓ Compiled in 1225ms
+ GET / 200 in 1481ms (next.js: 296ms, proxy.ts: 697ms, application-code: 488ms)
+ GET / 200 in 606ms (next.js: 53ms, proxy.ts: 206ms, application-code: 347ms)
+✓ Compiled in 597ms
+ GET / 200 in 1350ms (next.js: 255ms, proxy.ts: 681ms, application-code: 414ms)
+ GET / 200 in 518ms (next.js: 6ms, proxy.ts: 227ms, application-code: 286ms)
+✓ Compiled in 2.9s
+ GET / 200 in 1605ms (next.js: 265ms, proxy.ts: 700ms, application-code: 639ms)
+ GET / 200 in 580ms (next.js: 7ms, proxy.ts: 230ms, application-code: 342ms)
+ GET / 200 in 537ms (next.js: 13ms, proxy.ts: 214ms, application-code: 310ms)
+ GET / 200 in 550ms (next.js: 7ms, proxy.ts: 233ms, application-code: 311ms)
+ GET / 200 in 2.2s (next.js: 436ms, proxy.ts: 997ms, application-code: 782ms)
+✓ Compiled in 1051ms
+✓ Compiled in 3.5s
+ GET / 200 in 2.4s (next.js: 284ms, proxy.ts: 1320ms, application-code: 807ms)
+ GET / 200 in 1055ms (next.js: 76ms, proxy.ts: 609ms, application-code: 370ms)
+ GET / 200 in 489ms (next.js: 7ms, proxy.ts: 205ms, application-code: 277ms)
+ GET / 200 in 495ms (next.js: 6ms, proxy.ts: 217ms, application-code: 272ms)
+ GET / 200 in 459ms (next.js: 7ms, proxy.ts: 211ms, application-code: 241ms)
+✓ Compiled in 937ms
+✓ Compiled in 721ms
+ GET / 200 in 1259ms (next.js: 202ms, proxy.ts: 754ms, application-code: 304ms)
+ GET / 200 in 597ms (next.js: 12ms, proxy.ts: 209ms, application-code: 375ms)
+ GET / 200 in 519ms (next.js: 6ms, proxy.ts: 213ms, application-code: 300ms)
+ GET / 200 in 512ms (next.js: 11ms, proxy.ts: 196ms, application-code: 305ms)
+✓ Compiled in 2.1s
+✓ Compiled in 1425ms
+ GET / 200 in 1982ms (next.js: 245ms, proxy.ts: 751ms, application-code: 987ms)
+ GET / 200 in 782ms (next.js: 64ms, proxy.ts: 387ms, application-code: 331ms)
+ GET / 200 in 1331ms (next.js: 229ms, proxy.ts: 664ms, application-code: 438ms)
+ GET / 200 in 1050ms (next.js: 161ms, proxy.ts: 537ms, application-code: 352ms)
+○ Compiling /fiyatlandirma ...
+ GET / 200 in 6.6s (next.js: 37ms, proxy.ts: 22ms, application-code: 6.6s)
+ GET /auth/login 200 in 6.7s (next.js: 3.2s, proxy.ts: 20ms, application-code: 3.4s)
+ GET /fiyatlandirma 200 in 6.7s (next.js: 4.0s, proxy.ts: 19ms, application-code: 2.7s)
+ GET /contact 200 in 6.7s (next.js: 4.7s, proxy.ts: 24ms, application-code: 2.0s)
+ GET / 200 in 1565ms (next.js: 11ms, proxy.ts: 599ms, application-code: 955ms)
+ GET /auth/login 200 in 680ms (next.js: 15ms, proxy.ts: 310ms, application-code: 355ms)
+ GET /dashboard 200 in 18.1s (next.js: 410ms, proxy.ts: 397ms, application-code: 17.3s)
+ GET /dashboard 200 in 21.1s (next.js: 10ms, proxy.ts: 369ms, application-code: 20.7s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.0s (next.js: 354ms, proxy.ts: 469ms, application-code: 7.2s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.3s (next.js: 6ms, proxy.ts: 862ms, application-code: 7.4s)
+✓ Finished filesystem cache database compaction in 10.0s
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.4s (next.js: 8ms, proxy.ts: 365ms, application-code: 7.1s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.0s (next.js: 13ms, proxy.ts: 347ms, application-code: 7.7s)
+ GET /dashboard/takvim 200 in 9.1s (next.js: 117ms, proxy.ts: 325ms, application-code: 8.7s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.4s (next.js: 8ms, proxy.ts: 345ms, application-code: 7.0s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.8s (next.js: 15ms, proxy.ts: 341ms, application-code: 7.4s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 6.9s (next.js: 17ms, proxy.ts: 289ms, application-code: 6.6s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.4s (next.js: 6ms, proxy.ts: 430ms, application-code: 6.9s)
+ POST /dashboard/takvim 200 in 8.9s (next.js: 10ms, proxy.ts: 201ms, application-code: 8.7s)
+  └─ ƒ searchGlobalPalette("Er") in 8522ms lib/actions/global-search.ts
+ POST /dashboard/takvim 200 in 8.8s (next.js: 6ms, proxy.ts: 523ms, application-code: 8.3s)
+  └─ ƒ searchGlobalPalette("Ers") in 8235ms lib/actions/global-search.ts
+ GET /dashboard/hastalar 200 in 8.1s (next.js: 116ms, proxy.ts: 209ms, application-code: 7.8s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.7s (next.js: 31ms, proxy.ts: 276ms, application-code: 7.4s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.9s (next.js: 24ms, proxy.ts: 276ms, application-code: 7.6s)
+ POST /dashboard/hastalar 200 in 9.7s (next.js: 9ms, proxy.ts: 401ms, application-code: 9.3s)
+  └─ ƒ searchGlobalPalette("Ersan") in 9287ms lib/actions/global-search.ts
+ POST /dashboard/hastalar 200 in 8.3s (next.js: 8ms, proxy.ts: 369ms, application-code: 7.9s)
+  └─ ƒ searchGlobalPalette("Ersan") in 7914ms lib/actions/global-search.ts
+ POST /dashboard/hastalar 200 in 9.1s (next.js: 6ms, proxy.ts: 203ms, application-code: 8.9s)
+  └─ ƒ searchGlobalPalette("Ersan al") in 8841ms lib/actions/global-search.ts
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.4s (next.js: 5ms, proxy.ts: 450ms, application-code: 6.9s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.4s (next.js: 5ms, proxy.ts: 474ms, application-code: 7.9s)
+ POST /dashboard/hastalar 200 in 9.4s (next.js: 6ms, proxy.ts: 608ms, application-code: 8.7s)
+  └─ ƒ searchGlobalPalette("Ersan altun") in 8730ms lib/actions/global-search.ts
+ POST /dashboard/hastalar 200 in 8.4s (next.js: 8ms, proxy.ts: 209ms, application-code: 8.1s)
+  └─ ƒ searchGlobalPalette("Ersan altu") in 8114ms lib/actions/global-search.ts
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.5s (next.js: 7ms, proxy.ts: 477ms, application-code: 7.1s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.0s (next.js: 5ms, proxy.ts: 419ms, application-code: 7.6s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.7s (next.js: 24ms, proxy.ts: 353ms, application-code: 7.3s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.9s (next.js: 9ms, proxy.ts: 352ms, application-code: 7.5s)
+ POST /dashboard/hastalar 200 in 9.3s (next.js: 12ms, proxy.ts: 275ms, application-code: 9.0s)
+  └─ ƒ searchGlobalPalette("mustafa") in 8956ms lib/actions/global-search.ts
+ POST /dashboard/hastalar 200 in 9.2s (next.js: 9ms, proxy.ts: 679ms, application-code: 8.5s)
+  └─ ƒ searchGlobalPalette("mustafa kaya") in 8473ms lib/actions/global-search.ts
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.3s (next.js: 22ms, proxy.ts: 338ms, application-code: 6.9s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.1s (next.js: 14ms, proxy.ts: 219ms, application-code: 7.9s)
+ GET /dashboard 200 in 10.7s (next.js: 8ms, proxy.ts: 335ms, application-code: 10.3s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.6s (next.js: 9ms, proxy.ts: 440ms, application-code: 7.1s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 7.8s (next.js: 5ms, proxy.ts: 379ms, application-code: 7.4s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 8.7s (next.js: 45ms, proxy.ts: 805ms, application-code: 7.9s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 9.4s (next.js: 46ms, proxy.ts: 806ms, application-code: 8.5s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 9.6s (next.js: 30ms, proxy.ts: 781ms, application-code: 8.7s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 9.7s (next.js: 52ms, proxy.ts: 813ms, application-code: 8.8s)
+ GET /dashboard 200 in 16.9s (next.js: 379ms, proxy.ts: 260ms, application-code: 16.2s)
+ GET /dashboard 200 in 18.7s (next.js: 58ms, proxy.ts: 784ms, application-code: 17.8s)
+ GET /dashboard 200 in 23.2s (next.js: 8ms, proxy.ts: 435ms, application-code: 22.8s)
+ GET /dashboard 200 in 26.9s (next.js: 7ms, proxy.ts: 384ms, application-code: 26.6s)
+ GET /dashboard 200 in 27.2s (next.js: 7ms, proxy.ts: 306ms, application-code: 26.9s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 12.4s (next.js: 35ms, proxy.ts: 780ms, application-code: 11.6s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 12.5s (next.js: 11ms, proxy.ts: 995ms, application-code: 11.5s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 12.6s (next.js: 89ms, proxy.ts: 783ms, application-code: 11.8s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 13.0s (next.js: 14ms, proxy.ts: 1073ms, application-code: 12.0s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 13.1s (next.js: 28ms, proxy.ts: 832ms, application-code: 12.3s)
+ GET /api/notifications/since?after=2026-05-19T16%3A57%3A19.356Z 200 in 13.4s (next.js: 80ms, proxy.ts: 836ms, application-code: 12.5s)
+ GET /dashboard 200 in 18.2s (next.js: 10ms, proxy.ts: 321ms, application-code: 17.8s)
+ GET /dashboard 200 in 22.4s (next.js: 28ms, proxy.ts: 412ms, application-code: 21.9s)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].teamMember.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:108:140
+
+  105         durationMin: true
+  106     }
+  107 }),
+→ 108 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].teamMember.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].service.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:94:137
+
+  91     },
+  92     take: 500
+  93 }),
+→ 94 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].service.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].appointment.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:199:141
+
+  196         }
+  197     }
+  198 }),
+→ 199 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].appointment.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].location.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:121:138
+
+  118         fullName: true
+  119     }
+  120 }),
+→ 121 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].location.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].appointment.count()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:153:141
+
+  150         currency: true
+  151     }
+  152 }),
+→ 153 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].appointment.count(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].business.findUnique()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:139:138
+
+  136         name: true
+  137     }
+  138 }),
+→ 139 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].business.findUnique(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].reminder.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\_0aa13_-._.js:2115:151
+
+  2112     return [];
+  2113 }
+  2114 try {
+→ 2115     return await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].reminder.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].appointment.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:159:141
+
+  156         status: 'CONFIRMED'
+  157     }
+  158 }),
+→ 159 __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].appointment.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].patient.findMany()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\[root-of-the-server]__0qjpv8n._.js:79:137
+
+  76 const calendarTo = new Date(now.getFullYear(), now.getMonth() + 7, 0);
+  77 const [stats, patients, services, staff, locations, business, confirmedAppointments, calendarAppointments, upcomingAppointments, reminders] = await Promise.all([
+  78     (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$queries$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getDashboardStats"])(session.businessId),
+→ 79     __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].patient.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].message.groupBy()` invocation in
+D:\asistan-web\.next\dev\server\chunks\ssr\_0aa13_-._.js:1888:155
+
+  1885 }
+  1886 async function countUnreadByConversation(userId, participants) {
+  1887     if (participants.length === 0) return new Map();
+→ 1888     const grouped = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].message.groupBy(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 5)
+ GET /dashboard 200 in 28.0s (next.js: 20ms, proxy.ts: 251ms, application-code: 27.7s)
+ GET /dashboard 200 in 28.9s (next.js: 30ms, proxy.ts: 543ms, application-code: 28.4s)
+ GET /dashboard 200 in 28.9s (next.js: 194ms, proxy.ts: 1463ms, application-code: 27.3s)

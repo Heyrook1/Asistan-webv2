@@ -1,0 +1,35 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1350" fill="#001D42"/>
+    <image href="../../../public/images/medical-team.jpg" width="1080" height="1350" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="1080" height="1350" fill="#001D42" fill-opacity=".82"/>
+    <g transform="translate(74 60)">
+    <rect width="304" height="74" rx="37" fill="#FFFFFF" fill-opacity=".97"/>
+    <image href="../../../public/images/asistan-mark.svg" x="18" y="10" width="54" height="54"/>
+    <text x="84" y="49" fill="#001D42" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="258" cy="24" r="5" fill="#05C8BC"/>
+  </g>
+    <g transform="translate(76 190)">
+    <rect width="290" height="50" rx="25" fill="#08C8C5"/>
+    <text x="28" y="33" fill="#001D42" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" letter-spacing="3">EKİP YÖNETİMİ</text>
+  </g>
+    <text x="76" y="350" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" letter-spacing="-1">
+    <tspan x="76" dy="0">Ekibiniz aynı</tspan><tspan x="76" dy="84">akışta ilerlesin.</tspan>
+  </text>
+    <text x="80" y="560" fill="#D8F8FF" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="400" letter-spacing="-1">
+    <tspan x="80" dy="0">Doktor, sekreter ve yöneticiler</tspan><tspan x="80" dy="46">için ortak operasyon görünümü.</tspan>
+  </text>
+    
+    <g transform="translate(76 820)">
+    <rect width="430" height="164" rx="26" fill="#001D42" fill-opacity=".74" stroke="#FFFFFF" stroke-opacity=".16"/>
+    <g transform="translate(30 28)"><rect x="0" y="16" width="94" height="86" rx="14" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 0v32M74 0v32M0 48h94" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <text x="158" y="67" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Ortak takvim</text>
+    <text x="158" y="110" fill="#D8F8FF" font-family="Arial, Helvetica, sans-serif" font-size="20">Günün akışı tek yerde</text>
+  </g><g transform="translate(550 820)">
+    <rect width="430" height="164" rx="26" fill="#001D42" fill-opacity=".74" stroke="#FFFFFF" stroke-opacity=".16"/>
+    <g transform="translate(30 28)"><circle cx="33" cy="35" r="18" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="75" cy="38" r="15" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><path d="M0 106c4-24 15-38 33-38 19 0 29 14 34 38M58 106c3-18 12-30 27-30 13 0 22 10 25 30" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <text x="158" y="67" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Ekip rolleri</text>
+    <text x="158" y="110" fill="#D8F8FF" font-family="Arial, Helvetica, sans-serif" font-size="20">Yetkiye göre erişim</text>
+  </g>
+    <text x="78" y="1210" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing=".4">DEMO İÇİN İLETİŞİME GEÇİN</text>
+  <rect x="78" y="1240" width="390" height="5" rx="2.5" fill="#13D5CC"/>
+  </svg>

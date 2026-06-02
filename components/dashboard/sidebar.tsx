@@ -3,26 +3,37 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Calendar, CalendarDays, Users, Briefcase,
-  Bell, BarChart3, Settings, Sparkles, HelpCircle,
-  UserCog, LogOut, Shield,
+  BarChart3,
+  Bell,
+  Briefcase,
+  Calendar,
+  CalendarDays,
+  HelpCircle,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  Shield,
+  Sparkles,
+  UserCog,
+  Users,
 } from 'lucide-react'
+import { toast } from 'sonner'
+
 import { AsistanLogo } from '@/components/asistan-logo'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ROLE_LABELS } from '@/lib/rbac'
+import type { Permission, SessionContext } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-import type { SessionContext, Permission } from '@/lib/rbac'
-import { ROLE_LABELS } from '@/lib/rbac'
 
 type NavItem = {
   name: string
   href: string
   icon: typeof LayoutDashboard
   permission?: Permission
-  badge?: boolean
   adminOnly?: boolean
   superAdminOnly?: boolean
+  badge?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -52,13 +63,11 @@ export function DashboardSidebar({
   const pathname = usePathname()
   const router = useRouter()
 
-  const visibleItems = navItems.filter(
-    (item) => {
-      if (item.adminOnly && !showPlatformAdmin) return false
-      if (item.superAdminOnly && !showSuperAdmin) return false
-      return !item.permission || session.permissions.includes(item.permission)
-    }
-  )
+  const visibleItems = navItems.filter((item) => {
+    if (item.adminOnly && !showPlatformAdmin) return false
+    if (item.superAdminOnly && !showSuperAdmin) return false
+    return !item.permission || session.permissions.includes(item.permission)
+  })
 
   async function handleLogout() {
     const supabase = createClient()
@@ -70,45 +79,36 @@ export function DashboardSidebar({
 
   function SidebarContent() {
     return (
-      <div className="flex h-full flex-col bg-brand-navy relative overflow-hidden">
-        <div className="absolute -top-32 -left-20 h-64 w-64 rounded-full bg-brand-teal/5 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-brand-cyan/5 blur-3xl pointer-events-none" />
+      <div className="relative flex h-full flex-col overflow-hidden bg-brand-navy">
+        <div className="pointer-events-none absolute -left-20 -top-32 h-64 w-64 rounded-full bg-brand-teal/7 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-brand-cyan/7 blur-3xl" />
 
-        <div className="relative flex h-[68px] shrink-0 items-center px-5 border-b border-sidebar-border">
-          <Link href="/dashboard">
+        <div className="relative flex h-[72px] shrink-0 items-center border-b border-sidebar-border px-5">
+          <Link href="/dashboard" aria-label="Asistan paneli">
             <AsistanLogo variant="light" size="lg" priority />
           </Link>
         </div>
 
         <ScrollArea className="relative flex-1 py-4">
-          <nav className="px-3 space-y-1">
+          <nav className="space-y-1 px-3">
             {visibleItems.map((item) => {
-              const active =
-                pathname === item.href ||
-                (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group',
+                    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     active
-                      ? 'bg-gradient-to-r from-brand-teal/15 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(11,127,111,0.2)]'
-                      : 'text-white/55 hover:bg-white/[0.04] hover:text-white/90'
+                      ? 'bg-gradient-to-r from-brand-teal/15 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(11,127,111,0.24)]'
+                      : 'text-white/60 hover:bg-white/[0.05] hover:text-white/95',
                   )}
                 >
-                  {active && (
-                    <span className="absolute left-0 inset-y-2 w-[3px] rounded-r-full bg-brand-teal" />
-                  )}
-                  <item.icon
-                    className={cn(
-                      'h-[18px] w-[18px] shrink-0 transition-colors',
-                      active ? 'text-brand-teal' : 'group-hover:text-white/90'
-                    )}
-                  />
+                  {active && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand-teal" />}
+                  <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-teal' : 'group-hover:text-white/90')} />
                   <span className="flex-1 truncate">{item.name}</span>
                   {item.badge && unreadNotifications > 0 && (
-                    <span className="min-w-[20px] h-5 rounded-full bg-brand-teal text-brand-navy text-[11px] font-bold flex items-center justify-center px-1.5 leading-none">
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
                     </span>
                   )}
@@ -118,39 +118,42 @@ export function DashboardSidebar({
           </nav>
         </ScrollArea>
 
-        <div className="relative shrink-0 px-3 pb-4 pt-2 space-y-2">
+        <div className="relative shrink-0 space-y-2 px-3 pb-4 pt-2">
           <div
-            className="relative overflow-hidden rounded-2xl p-4 border border-sidebar-card-border"
-            style={{ background: 'linear-gradient(155deg, var(--sidebar-card) 0%, var(--sidebar-card-mid) 60%, var(--sidebar-card-end) 100%)' }}
+            className="relative overflow-hidden rounded-2xl border p-4"
+            style={{
+              borderColor: 'var(--sidebar-card-border)',
+              background: 'linear-gradient(155deg, var(--sidebar-card) 0%, var(--sidebar-card-mid) 60%, var(--sidebar-card-end) 100%)',
+            }}
           >
             <div className="absolute -right-4 -top-4 opacity-90">
               <Sparkles className="h-12 w-12 text-brand-teal/30" />
             </div>
-            <p className="relative text-sm font-bold text-white mb-1 leading-tight truncate">
-              {session.businessName}
-            </p>
-            <p className="relative text-[11px] text-white/55 mb-3 leading-relaxed">
-              {ROLE_LABELS[session.role]} • {session.fullName}
+            <p className="relative mb-1 truncate text-sm font-bold text-white">{session.businessName}</p>
+            <p className="relative mb-3 text-[11px] text-white/55">
+              {ROLE_LABELS[session.role]} · {session.fullName}
             </p>
             <Link
               href="/dashboard/ayarlar"
-              className="relative inline-block rounded-lg px-4 py-1.5 text-xs font-bold bg-brand-teal hover:bg-brand-teal-hover text-brand-navy transition-colors"
+              className="relative inline-block rounded-lg bg-brand-teal px-4 py-1.5 text-xs font-bold text-brand-navy transition-colors hover:bg-brand-teal-hover"
             >
               İşletme Ayarları
             </Link>
           </div>
 
           <button
-            onClick={() => toast.info('Yardım merkezi yakında.')}
-            className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04] hover:text-white/90 transition-all duration-200"
+            type="button"
+            onClick={() => toast.info('Yardım merkezi yakında bu alanda görünecek.')}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition-all duration-200 hover:bg-white/[0.05] hover:text-white/90"
           >
             <HelpCircle className="h-[18px] w-[18px] shrink-0" />
             <span className="flex-1 text-left">Yardım Merkezi</span>
           </button>
 
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/55 hover:bg-white/[0.04] hover:text-rose-300 transition-all duration-200"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition-all duration-200 hover:bg-white/[0.05] hover:text-rose-300"
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" />
             <span className="flex-1 text-left">Çıkış Yap</span>
@@ -166,3 +169,4 @@ export function DashboardSidebar({
     </aside>
   )
 }
+
