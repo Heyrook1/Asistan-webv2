@@ -173,6 +173,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
   } = await supabase.auth.getUser()
 
   if (!authUser?.email) return { session: null, blockedReason: null }
+  if (!authUser.email_confirmed_at) return { session: null, blockedReason: null }
 
   const fullName =
     (authUser.user_metadata?.full_name as string | undefined) ||

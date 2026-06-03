@@ -57,8 +57,8 @@ export function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [language])
 
-  const loginUrl = language === 'tr' ? '/tr/giris' : '/en/login'
-  const registerUrl = language === 'tr' ? '/tr/kayit' : '/en/register'
+  const loginUrl = '/login'
+  const registerUrl = '/register'
 
   return (
     <header

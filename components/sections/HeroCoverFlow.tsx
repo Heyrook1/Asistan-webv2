@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage, Language } from '@/contexts/LanguageContext'
+import { HomeCTA } from '@/components/sections/HomeCTA'
 
 interface CarouselItem {
   id: number
@@ -218,6 +219,7 @@ export function HeroCoverFlow() {
               en: 'Complete ecosystem for clinics and patients — web dashboard + mobile app (coming soon). Manage your clinic professionally, let patients book in seconds.'
             })}
           </p>
+          <HomeCTA />
         </div>
 
         {/* 3D Cover Flow Carousel Container */}

@@ -15,6 +15,13 @@ type BillingCycle = 'monthly' | 'annual'
 
 const BASE_PLANS = [
   {
+    name: { tr: 'Ücretsiz Deneme', en: 'Free Trial' },
+    monthlyPrice: 0,
+    annualPrice: 0,
+    popular: false,
+    trial: true,
+  },
+  {
     name: { tr: 'Başlangıç', en: 'Starter' },
     monthlyPrice: 1290,
     annualPrice: 1090,
@@ -47,6 +54,11 @@ const PRICING_COPY = {
     customLabel: 'Satış ekibiyle görüşün',
     popular: 'En Çok Tercih Edilen',
     plans: [
+      {
+        note: '14 Günlük deneme süreci',
+        features: ['1 Klinik Lokasyonu', '1 Doktor / Hekim', 'Sınırlı Randevu Akışı', 'Temel Hasta Kayıtları'],
+        cta: 'Ücretsiz Denemeyi Başlat',
+      },
       {
         note: 'Tek muayenehane veya hekim için',
         features: ['1 Klinik Lokasyonu', 'Temel Randevu Orkestrasyonu', 'Hasta Sağlık Kayıtları', 'Temel Raporlama'],
@@ -101,6 +113,11 @@ const PRICING_COPY = {
     customLabel: 'Contact sales',
     popular: 'Most Popular Plan',
     plans: [
+      {
+        note: '14-day risk-free trial',
+        features: ['1 Clinic Location', '1 Doctor / Practitioner', 'Limited Appointment Volume', 'Basic Patient Records'],
+        cta: 'Start Free Trial',
+      },
       {
         note: 'Single practitioner setup',
         features: ['1 Clinic Location', 'Core Appointment Flow', 'Patient Records', 'Basic Reports'],
@@ -264,7 +281,7 @@ export function PricingSection() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid gap-6 lg:grid-cols-3 items-stretch">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {BASE_PLANS.map((plan, index) => {
             const content = copy.plans[index]
             const value = cycle === 'monthly' ? plan.monthlyPrice : plan.annualPrice
@@ -332,7 +349,7 @@ export function PricingSection() {
                           plan.popular ? 'bg-[#0071E3] hover:bg-[#0063C8] text-white shadow-md' : 'bg-[#1D1D1F] hover:bg-black text-white'
                         )}
                       >
-                        <Link href="/auth/sign-up">{content.cta}</Link>
+                        <Link href="/register">{content.cta}</Link>
                       </Button>
                     )}
                   </div>

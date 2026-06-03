@@ -1,59 +1,104 @@
 // components/auth/LoginForm.tsx
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage } from '@/hooks/useLanguage'
-import { CheckCircle2, Mail, Lock, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, Mail, Lock, ShieldAlert, Loader2, ArrowRight } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 export function LoginForm() {
+  const router = useRouter()
   const { t, language } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailError, setEmailError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const supabase = createClient()
+
+  // Real-time email validation
+  useEffect(() => {
+    if (!email) {
+      setEmailError('')
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setEmailError(t({ tr: 'Geçersiz e-posta formatı', en: 'Invalid email format' }))
+    } else {
+      setEmailError('')
+    }
+  }, [email, t])
+
+  // Redirect if already logged in with verified session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email_confirmed_at) {
+        router.push('/dashboard')
+      }
+    })
+  }, [router, supabase.auth])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    // Basic Validation
-    if (!email.includes('@')) {
-      setError(t({
-        tr: 'Lütfen geçerli bir e-posta adresi girin.',
-        en: 'Please enter a valid email address.'
-      }))
-      return
-    }
-
-    if (password.length < 6) {
-      setError(t({
-        tr: 'Şifreniz en az 6 karakter olmalıdır.',
-        en: 'Password must be at least 6 characters.'
-      }))
-      return
-    }
+    if (emailError) return
 
     setLoading(true)
-    console.log('Login submitted:', { email, password })
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    setTimeout(() => {
-      setLoading(false)
-      alert(t({
-        tr: 'Başarıyla giriş yapıldı (Demo mod).',
-        en: 'Successfully logged in (Demo mode).'
+      if (signInError) {
+        setError(
+          signInError.message === 'Invalid login credentials'
+            ? t({ tr: 'E-posta veya şifre hatalı.', en: 'Incorrect email or password.' })
+            : signInError.message
+        )
+        toast.error(t({ tr: 'Giriş Başarısız', en: 'Login Failed' }))
+        setLoading(false)
+        return
+      }
+
+      const user = data?.user
+      if (user && !user.email_confirmed_at) {
+        // Enforce verified email
+        await supabase.auth.signOut()
+        setError(t({
+          tr: 'Lütfen giriş yapmadan önce e-postanızı doğrulayın. Doğrulama linki gönderildi.',
+          en: 'Please verify your email before logging in. A verification link has been sent.'
+        }))
+        toast.warning(t({ tr: 'E-posta Doğrulanmadı', en: 'Email Unverified' }))
+        setLoading(false)
+        return
+      }
+
+      toast.success(t({ tr: 'Giriş Başarılı', en: 'Login Successful' }))
+      router.push('/dashboard')
+      router.refresh()
+    } catch {
+      setError(t({
+        tr: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+        en: 'An error occurred. Please try again.'
       }))
-    }, 1000)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const registerUrl = language === 'tr' ? '/tr/kayit' : '/en/register'
 
   return (
     <div className="w-full max-w-4xl grid gap-8 lg:grid-cols-2 items-center">
-      
       {/* LEFT COLUMN: Premium Copy & Benefits */}
       <div className="space-y-6 text-left hidden lg:block">
         <h1 className="text-3xl font-extrabold tracking-tight text-[#1D1D1F] leading-tight">
@@ -111,29 +156,32 @@ export function LoginForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4.5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5">
+              <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="login-email">
                 {t({ tr: 'E-posta Adresi', en: 'Email Address' })}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
                 <Input
+                  id="login-email"
                   type="email"
                   required
+                  disabled={loading}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
                 />
               </div>
+              {emailError && <p className="text-xs text-red-500 font-medium px-0.5">{emailError}</p>}
             </div>
 
             {/* Password Field */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center px-0.5">
-                <label className="text-xs font-bold text-[#1D1D1F]/80">
+                <label className="text-xs font-bold text-[#1D1D1F]/80" htmlFor="login-password">
                   {t({ tr: 'Şifre', en: 'Password' })}
                 </label>
                 <Link href="#" className="text-xs text-[#0071E3] hover:underline font-semibold">
@@ -143,8 +191,10 @@ export function LoginForm() {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
                 <Input
+                  id="login-password"
                   type="password"
                   required
+                  disabled={loading}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -156,38 +206,22 @@ export function LoginForm() {
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !!emailError}
               className="w-full h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0063C8] font-bold text-sm shadow-md transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] mt-6"
             >
-              {loading ? t({ tr: 'Giriş Yapılıyor...', en: 'Signing In...' }) : t({ tr: 'Giriş Yap', en: 'Sign In' })}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
+                  {t({ tr: 'Giriş Yapılıyor...', en: 'Signing In...' })}
+                </>
+              ) : (
+                <>
+                  {t({ tr: 'Giriş Yap', en: 'Sign In' })}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </form>
-
-          {/* Divider */}
-          <div className="relative flex items-center justify-center my-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <span className="relative bg-transparent px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 z-10">
-              {t({ tr: 'veya', en: 'or' })}
-            </span>
-          </div>
-
-          {/* Social Auth Mockup */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              onClick={() => alert('Google auth mock')}
-              className="h-10 rounded-xl border border-slate-200 bg-white/80 hover:bg-white text-xs font-bold text-slate-700 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
-            >
-              <span>Google</span>
-            </button>
-            <button
-              onClick={() => alert('Apple auth mock')}
-              className="h-10 rounded-xl border border-slate-200 bg-white/80 hover:bg-white text-xs font-bold text-slate-700 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
-            >
-              <span>Apple</span>
-            </button>
-          </div>
 
           {/* Footer Link */}
           <div className="text-center pt-2">
@@ -200,7 +234,6 @@ export function LoginForm() {
           </div>
         </div>
       </GlassCard>
-
     </div>
   )
 }

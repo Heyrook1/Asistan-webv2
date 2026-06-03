@@ -1,66 +1,19 @@
 'use client'
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-} from 'react'
+import React, { type ReactNode } from 'react'
+import { useLanguage, type Language } from '@/contexts/LanguageContext'
 
-export type LandingLocale = 'tr' | 'en'
-
-interface LandingLocaleContextValue {
-  locale: LandingLocale
-  setLocale: Dispatch<SetStateAction<LandingLocale>>
-}
-
-const STORAGE_KEY = 'asistan-landing-locale'
-
-const LandingLocaleContext = createContext<LandingLocaleContextValue | null>(null)
+export type LandingLocale = Language
 
 export function LandingLocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<LandingLocale>('tr')
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored === 'tr' || stored === 'en') {
-      setLocale(stored)
-      return
-    }
-
-    window.localStorage.setItem(STORAGE_KEY, 'tr')
-  }, [])
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, locale)
-  }, [locale])
-
-  const value = useMemo(
-    () => ({
-      locale,
-      setLocale,
-    }),
-    [locale],
-  )
-
-  return (
-    <LandingLocaleContext.Provider value={value}>
-      {children}
-    </LandingLocaleContext.Provider>
-  )
+  // Now a transparent wrapper, since LanguageProvider is placed at root layout level
+  return <>{children}</>
 }
 
 export function useLandingLocale() {
-  const context = useContext(LandingLocaleContext)
-
-  if (!context) {
-    throw new Error('useLandingLocale must be used inside LandingLocaleProvider')
+  const { language, setLanguage } = useLanguage()
+  return {
+    locale: language as LandingLocale,
+    setLocale: setLanguage as React.Dispatch<React.SetStateAction<LandingLocale>>,
   }
-
-  return context
 }
-

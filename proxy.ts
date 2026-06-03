@@ -1,5 +1,6 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 const CLIENT_API_PREFIX = '/api/client'
 const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081']
@@ -76,6 +77,50 @@ function applyCorsHeaders(
 // before matched requests; implementation details live under lib/supabase.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Protect /dashboard route
+  if (pathname.startsWith('/dashboard')) {
+    const config = {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL,
+      key:
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+        process.env.SUPABASE_ANON_KEY ??
+        process.env.SUPABASE_PUBLISHABLE_KEY
+    }
+
+    if (config.url && config.key) {
+      let tempResponse = NextResponse.next({ request })
+      const supabase = createServerClient(
+        config.url,
+        config.key,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll()
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value }) =>
+                request.cookies.set(name, value),
+              )
+              tempResponse = NextResponse.next({
+                request,
+              })
+              cookiesToSet.forEach(({ name, value, options }) =>
+                tempResponse.cookies.set(name, value, options),
+              )
+            },
+          },
+        }
+      )
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !user.email_confirmed_at) {
+        const lang = request.cookies.get('asistan-lang')?.value || 'tr'
+        const redirectUrl = lang === 'tr' ? '/tr/giris' : '/en/login'
+        return NextResponse.redirect(new URL(redirectUrl, request.url))
+      }
+    }
+  }
 
   // Localized auth route redirects and rewrites
   if (pathname === '/giris') {

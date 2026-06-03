@@ -73,6 +73,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+import { LanguageProvider } from '@/contexts/LanguageContext'
+import { FloatingCTA } from '@/components/ui/FloatingCTA'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -81,7 +84,10 @@ export default function RootLayout({
   return (
     <html lang="tr" translate="no" className="bg-background text-foreground">
       <body className="font-sans antialiased">
-        {children}
+        <LanguageProvider>
+          {children}
+          <FloatingCTA />
+        </LanguageProvider>
         <Toaster position="top-right" richColors duration={4000} />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

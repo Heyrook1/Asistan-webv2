@@ -78,9 +78,9 @@ export default function HomePage() {
             <HeroCoverFlow />
             <MobileAppShowcaseSection />
             <EcosystemFlowSection />
+            <PricingSection />
             <ForWhomSection />
             <FeaturesSection />
-            <PricingSection />
             <TrustSection />
           </main>
           <SiteFooter />
