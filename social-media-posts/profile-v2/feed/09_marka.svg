@@ -1,0 +1,31 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1350" fill="#06284C"/>
+    
+      <rect width="1080" height="1350" fill="#06284C"/>
+      <circle cx="1060" cy="176" r="382" fill="#0A5272"/>
+      <circle cx="850" cy="1260" r="320" fill="#087E80" fill-opacity=".38"/>
+      <g transform="translate(72 64)">
+    <image href="file:///D:/asistan-web/public/images/asistan-mark.svg" width="48" height="48"/>
+    <text x="62" y="37" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="209" cy="12" r="4" fill="#09BEB8"/>
+  </g>
+      <g transform="translate(72 252)">
+    <rect width="160" height="42" rx="21" fill="#D9FFFA"/>
+    <text x="22" y="28" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="2">ASİSTAN</text>
+  </g>
+      <text x="72" y="420" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-size="88" font-weight="700" letter-spacing="-1">
+    <tspan x="72" dy="0">İşinizi yöneten</tspan><tspan x="72" dy="100">akıllı asistan.</tspan>
+  </text>
+      <text x="76" y="748" fill="#C8EDEE" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="400" letter-spacing="0">
+    <tspan x="76" dy="0">Sağlık ekipleri için klinik yönetimi.</tspan><tspan x="76" dy="48">Kullanıcılar için yeni nesil rezervasyon.</tspan>
+  </text>
+      <text x="76" y="1020" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="0">
+    <tspan x="76" dy="0">@asistan.kktc</tspan>
+  </text>
+      <g>
+    <line x1="72" y1="1244" x2="1008" y2="1244" stroke="#D8F9F7" stroke-opacity=".42"/>
+    <text x="72" y="1287" fill="#D8F9F7" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="2">ASISTAN.ONLINE</text>
+    <text x="974" y="1287" fill="#D8F9F7" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">09</text>
+  </g>
+    
+  </svg>

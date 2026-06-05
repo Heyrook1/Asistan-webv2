@@ -1,0 +1,29 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1920" fill="#06284C"/>
+    
+    <rect width="1080" height="1920" fill="#06284C"/>
+    <circle cx="1040" cy="220" r="520" fill="#0A5272"/>
+    <circle cx="860" cy="1830" r="470" fill="#087E80" fill-opacity=".42"/>
+    <g transform="translate(82 92)">
+    <image href="file:///D:/asistan-web/public/images/asistan-mark.svg" width="58" height="58"/>
+    <text x="74" y="44" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="254" cy="14" r="5" fill="#09BEB8"/>
+  </g>
+    <g transform="translate(82 280)">
+    <rect width="128" height="54" rx="27" fill="#DDF9F6"/>
+    <text x="26" y="36" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="3">DEMO</text>
+  </g>
+    <text x="82" y="520" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-size="104" font-weight="700" letter-spacing="-1">
+    <tspan x="82" dy="0">Kliniğinizi</tspan><tspan x="82" dy="116">birlikte</tspan><tspan x="82" dy="116">tanıyalım.</tspan>
+  </text>
+    <text x="86" y="930" fill="#C8EDEE" font-family="Arial, Helvetica, sans-serif" font-size="39" font-weight="400" letter-spacing="0">
+    <tspan x="86" dy="0">Size uygun kullanım senaryosunu</tspan><tspan x="86" dy="59">birlikte değerlendirelim.</tspan>
+  </text>
+    <g transform="translate(84 1210)">
+      <rect width="692" height="112" rx="56" fill="#09BEB8"/>
+      <text x="48" y="72" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Demo için iletişime geçin</text>
+    </g>
+    <text x="84" y="1770" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">@asistan.kktc</text>
+  <rect x="84" y="1808" width="420" height="6" rx="3" fill="#09BEB8"/>
+  
+  </svg>

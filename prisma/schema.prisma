@@ -1,0 +1,897 @@
+// Asistan Health — production data model
+// Single Postgres database (Supabase). Supabase Auth is the source of truth
+// for credentials; this schema mirrors the auth.user.id into User.id.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Enums
+// ────────────────────────────────────────────────────────────────────────────
+
+enum TeamRole {
+  SUPER_ADMIN
+  ISLETME_SAHIBI
+  DOKTOR
+  SEKRETER
+  PERSONEL
+}
+
+enum VendorMembershipStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum VendorAccountSource {
+  SELF_SIGNUP
+  ADMIN_CREATED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentSource {
+  DASHBOARD
+  CLIENT_APP
+}
+
+enum TreatmentStatus {
+  PLANLANDI
+  DEVAM_EDIYOR
+  TAMAMLANDI
+  IPTAL
+}
+
+enum PlanItemStatus {
+  AKTIF
+  PLANLANDI
+  BEKLIYOR
+  TAMAMLANDI
+}
+
+enum FileCategory {
+  TAHLIL
+  GORUNTU
+  RECETE
+  RAPOR
+  KIMLIK
+  DIGER
+}
+
+enum NotificationType {
+  APPOINTMENT
+  PATIENT
+  TEAM
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationActionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationActionType {
+  APPOINTMENT_APPROVE
+  APPOINTMENT_CANCEL
+  APPOINTMENT_RESCHEDULE
+  OPEN_LINK
+  OPEN_PATIENT
+  OPEN_APPOINTMENT
+  ACK
+}
+
+enum ReminderPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum ClientNotificationType {
+  BOOKING_CONFIRMATION
+  BOOKING_PENDING
+  BOOKING_APPROVED
+  BOOKING_CANCELLED
+  BOOKING_RESCHEDULED
+  APPOINTMENT_REMINDER
+  REVIEW_REQUEST
+}
+
+enum TimelineEventType {
+  PATIENT_CREATED
+  PATIENT_UPDATED
+  NOTE_ADDED
+  MEDICATION_ADDED
+  ALLERGY_ADDED
+  TREATMENT_ADDED
+  LAB_RESULT_ADDED
+  FILE_UPLOADED
+  APPOINTMENT_CREATED
+  APPOINTMENT_UPDATED
+  APPOINTMENT_COMPLETED
+  APPOINTMENT_CANCELLED
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Core
+// ────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                       String                    @id @default(uuid()) // mirrors supabase auth.uid
+  email                    String                    @unique
+  fullName                 String
+  phone                    String?
+  avatarUrl                String?
+  isActive                 Boolean                   @default(true)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  ownedBusiness            Business?                 @relation("BusinessOwner")
+  memberships              TeamMember[]
+  notifications            Notification[]
+  notificationsActor       Notification[]            @relation("NotificationActor")
+  pushSubscriptions        PushSubscription[]
+  reminders                Reminder[]
+  conversationParticipants ConversationParticipant[]
+  sentMessages             Message[]                 @relation("MessageSender")
+  messageReactions         MessageReaction[]
+  patientNotesCreated      PatientNote[]             @relation("PatientNoteCreator")
+
+  @@index([email])
+}
+
+model Business {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  ownerUserId  String   @unique
+  description  String?
+  phone        String?
+  email        String?
+  address      String?
+  city         String?
+  locationLat  Decimal? @db.Decimal(9, 6)
+  locationLng  Decimal? @db.Decimal(9, 6)
+  logoUrl      String?
+  primaryColor String   @default("#12C8AD")
+  currency     String   @default("TRY")
+  timezone     String   @default("Europe/Istanbul")
+  autoConfirmClientAppointments Boolean @default(false)
+  isActive     Boolean  @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner             User                @relation("BusinessOwner", fields: [ownerUserId], references: [id])
+  vendorAccount     VendorAccount?
+  members           TeamMember[]
+  patients          Patient[]
+  services          Service[]
+  appointments      Appointment[]
+  locations         Location[]
+  notes             PatientNote[]
+  medications       Medication[]
+  allergies         Allergy[]
+  treatments        Treatment[]
+  treatmentPlans    TreatmentPlanItem[]
+  labResults        LabResult[]
+  files             PatientFile[]
+  timeline          TimelineEvent[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+  reminders         Reminder[]
+  conversations     Conversation[]
+  serviceStaff      ServiceStaff[]
+  staffAvailabilities TeamMemberAvailability[]
+  staffUnavailableBlocks TeamMemberUnavailableBlock[]
+  reviews           Review[]
+  clientNotifications ClientNotification[]
+
+  @@index([slug])
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  businessId String
+  name      String
+  address   String?
+  city      String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business     Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  availabilityRules TeamMemberAvailability[]
+  unavailableBlocks TeamMemberUnavailableBlock[]
+
+  @@index([businessId, isActive])
+  @@index([businessId, sortOrder, name])
+}
+
+model VendorAccount {
+  id                  String                 @id @default(uuid())
+  businessId          String                 @unique
+  status              VendorMembershipStatus @default(TRIAL)
+  source              VendorAccountSource    @default(ADMIN_CREATED)
+  isDemo              Boolean                @default(false)
+  plan                String                 @default("STARTER")
+  balance             Decimal                @default(0) @db.Decimal(12, 2)
+  currency            String                 @default("TRY")
+  accessStartAt       DateTime?
+  accessEndAt         DateTime?
+  packageDurationDays Int?
+  notes               String?
+  deletedAt           DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([isDemo, accessEndAt])
+}
+
+model TeamMember {
+  id          String    @id @default(uuid())
+  businessId  String
+  userId      String? // null until invite is accepted
+  fullName    String
+  email       String
+  phone       String?
+  role        TeamRole  @default(PERSONEL)
+  permissions String[]  @default([])
+  color       String    @default("#16A9E8")
+  specialty   String?
+  bio         String?
+  isBookable  Boolean   @default(true)
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  lastSeenAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business         Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments     Appointment[]
+  assignedPatients Patient[]     @relation("PatientAssignedDoctor")
+  serviceAssignments ServiceStaff[]
+  availabilityRules TeamMemberAvailability[]
+  unavailableBlocks TeamMemberUnavailableBlock[]
+  reviews          Review[]
+
+  @@unique([businessId, email])
+  @@index([businessId])
+  @@index([userId])
+}
+
+model ClientUser {
+  id           String    @id @default(uuid())
+  authUserId   String?   @unique
+  fullName     String
+  phone        String?
+  email        String?   @unique
+  locationLat  Decimal?  @db.Decimal(9, 6)
+  locationLng  Decimal?  @db.Decimal(9, 6)
+  address      String?
+  city         String?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  appointments       Appointment[]
+  reviews            Review[]
+  notifications      ClientNotification[]
+
+  @@index([fullName])
+  @@index([city])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Clinical
+// ────────────────────────────────────────────────────────────────────────────
+
+model Patient {
+  id                    String    @id @default(uuid())
+  businessId            String
+  patientNumber         String
+  fullName              String
+  identityNumber        String?
+  birthDate             DateTime?
+  gender                String?
+  bloodType             String?
+  phone                 String
+  email                 String?
+  address               String?
+  city                  String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  occupation            String?
+  insuranceProvider     String?
+  chronicDiseases       String?
+  familyHistory         String?
+  patientStory          String?   @db.Text
+  // Hasta kartı için "hızlı bakış" alanları
+  lastDiagnosis         String?
+  currentTreatment      String?
+  riskNote              String?   @db.Text
+  summary               String?   @db.Text
+  aiSuggestions         Json? // [{ icon, title, type }]
+  assignedDoctorId      String?
+  tags                  String[]  @default([])
+  isArchived            Boolean   @default(false)
+  deletedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assignedDoctor TeamMember?         @relation("PatientAssignedDoctor", fields: [assignedDoctorId], references: [id], onDelete: SetNull)
+  notes          PatientNote[]
+  medications    Medication[]
+  allergies      Allergy[]
+  treatments     Treatment[]
+  treatmentPlan  TreatmentPlanItem[]
+  labResults     LabResult[]
+  files          PatientFile[]
+  appointments   Appointment[]
+  timeline       TimelineEvent[]
+
+  @@unique([businessId, patientNumber])
+  @@index([businessId, fullName])
+  @@index([businessId, phone])
+  @@index([businessId, email])
+  @@index([businessId, identityNumber])
+  @@index([businessId, isArchived])
+}
+
+model PatientNote {
+  id              String   @id @default(uuid())
+  businessId      String
+  patientId       String
+  title           String
+  note            String   @db.Text
+  createdBy       String // display snapshot for legacy rows/fallback
+  createdByUserId String?
+  isPinned        Boolean  @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  creator  User?    @relation("PatientNoteCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, patientId])
+  @@index([createdByUserId])
+}
+
+model Medication {
+  id         String    @id @default(uuid())
+  businessId String
+  patientId  String
+  name       String
+  dosage     String?
+  frequency  String?
+  startDate  DateTime?
+  endDate    DateTime?
+  notes      String?
+  active     Boolean   @default(true)
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId])
+}
+
+model Allergy {
+  id         String   @id @default(uuid())
+  businessId String
+  patientId  String
+  name       String
+  severity   String   @default("ORTA") // HAFIF | ORTA | SIDDETLI
+  reaction   String?
+  notes      String?
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId])
+}
+
+model Treatment {
+  id          String          @id @default(uuid())
+  businessId  String
+  patientId   String
+  title       String
+  description String?         @db.Text
+  doctorName  String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      TreatmentStatus @default(PLANLANDI)
+  cost        Decimal?        @db.Decimal(10, 2)
+  notes       String?         @db.Text
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId])
+}
+
+model TreatmentPlanItem {
+  id         String         @id @default(uuid())
+  businessId String
+  patientId  String
+  title      String
+  frequency  String? // "Her gün", "2 hafta içinde", "Gerektiğinde"
+  status     PlanItemStatus @default(PLANLANDI)
+  order      Int            @default(0)
+  notes      String?
+  deletedAt  DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId, order])
+}
+
+model LabResult {
+  id          String   @id @default(uuid())
+  businessId  String
+  patientId   String
+  title       String
+  description String?  @db.Text
+  resultDate  DateTime
+  labName     String?
+  fileUrl     String?
+  notes       String?  @db.Text
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId])
+}
+
+model PatientFile {
+  id          String       @id @default(uuid())
+  businessId  String
+  patientId   String
+  fileName    String
+  fileType    String
+  fileSize    Int?
+  category    FileCategory @default(DIGER)
+  storageKey  String
+  fileUrl     String
+  description String?
+  uploadedBy  String?
+  deletedAt   DateTime?
+  uploadedAt  DateTime     @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId])
+  @@index([businessId, category])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Scheduling
+// ────────────────────────────────────────────────────────────────────────────
+
+model Service {
+  id          String   @id @default(uuid())
+  businessId  String
+  name        String
+  description String?
+  category    String?
+  durationMin Int      @default(30)
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+  currency    String   @default("TRY")
+  color       String   @default("#12C8AD")
+  isActive    Boolean  @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  staffAssignments ServiceStaff[]
+  reviews      Review[]
+
+  @@index([businessId, isActive])
+}
+
+model ServiceStaff {
+  id         String   @id @default(uuid())
+  businessId String
+  serviceId  String
+  staffId    String
+  isActive   Boolean  @default(true)
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, staffId])
+  @@index([businessId, staffId, isActive])
+  @@index([businessId, serviceId, isActive])
+}
+
+model TeamMemberAvailability {
+  id              String   @id @default(uuid())
+  businessId      String
+  staffId         String
+  locationId      String?
+  weekday         Int // 0 = Pazar, 6 = Cumartesi
+  startTime       String // HH:mm
+  endTime         String // HH:mm
+  slotIntervalMin Int    @default(15)
+  isActive        Boolean @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, staffId, weekday, isActive])
+  @@index([businessId, locationId, weekday, isActive])
+}
+
+model TeamMemberUnavailableBlock {
+  id         String   @id @default(uuid())
+  businessId String
+  staffId    String
+  locationId String?
+  date       DateTime @db.Date
+  startTime  String // HH:mm
+  endTime    String // HH:mm
+  reason     String?
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, staffId, date])
+  @@index([businessId, locationId, date])
+}
+
+model Appointment {
+  id         String            @id @default(uuid())
+  businessId String
+  locationId String?
+  patientId  String
+  serviceId  String
+  staffId    String?
+  clientUserId String?
+  date       DateTime          @db.Date
+  startTime  String // HH:mm
+  endTime    String // HH:mm
+  status     AppointmentStatus @default(SCHEDULED)
+  source     AppointmentSource @default(DASHBOARD)
+  price      Decimal?          @db.Decimal(10, 2)
+  notes      String?
+  deletedAt  DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location Location?   @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  patient  Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  service  Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  staff    TeamMember? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  clientUser ClientUser? @relation(fields: [clientUserId], references: [id], onDelete: SetNull)
+  review   Review?
+  clientNotifications ClientNotification[]
+
+  @@index([businessId, date])
+  @@index([businessId, status])
+  @@index([businessId, patientId])
+  @@index([businessId, staffId])
+  @@index([businessId, clientUserId, date])
+  @@index([businessId, locationId, date])
+}
+
+model Review {
+  id                  String   @id @default(uuid())
+  businessId          String
+  appointmentId       String   @unique
+  clientUserId        String
+  patientId           String?
+  staffId             String?
+  serviceId           String?
+  rating              Int
+  serviceQuality      Int?
+  waitingTime         Int?
+  communication       Int?
+  comment             String?  @db.Text
+  deletedAt           DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment  Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientUser   ClientUser   @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  staff        TeamMember?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  service      Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, staffId, createdAt])
+  @@index([businessId, serviceId, createdAt])
+  @@index([clientUserId, createdAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Activity
+// ────────────────────────────────────────────────────────────────────────────
+
+model TimelineEvent {
+  id          String            @id @default(uuid())
+  businessId  String
+  patientId   String?
+  type        TimelineEventType
+  title       String
+  description String?
+  actorName   String?
+  actorId     String?
+  metadata    Json?
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, patientId, createdAt])
+}
+
+model Notification {
+  id             String               @id @default(uuid())
+  businessId     String
+  userId         String? // recipient; null = broadcast to all members
+  actorUserId    String? // who triggered the event
+  type           NotificationType     @default(SYSTEM)
+  subtype        String? // appointment_assigned | patient_created | …
+  title          String
+  message        String
+  link           String?
+  entityType     String? // appointment | patient | team_member | system
+  entityId       String?
+  priority       NotificationPriority @default(NORMAL)
+  actionRequired Boolean              @default(false)
+  metadata       Json?
+  isRead         Boolean              @default(false)
+  readAt         DateTime?
+  archivedAt     DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime             @default(now())
+
+  business Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actor    User?                @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actions  NotificationAction[]
+
+  @@index([businessId, isRead, createdAt])
+  @@index([userId, isRead, createdAt])
+  @@index([businessId, entityType, entityId])
+  @@index([businessId, archivedAt])
+}
+
+model NotificationAction {
+  id             String                   @id @default(uuid())
+  notificationId String
+  label          String
+  actionType     NotificationActionType
+  payload        Json?
+  status         NotificationActionStatus @default(PENDING)
+  completedBy    String?
+  completedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime                 @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId, status])
+}
+
+model PushSubscription {
+  id         String    @id @default(uuid())
+  businessId String
+  userId     String
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([businessId])
+}
+
+model Reminder {
+  id         String           @id @default(uuid())
+  businessId String
+  userId     String
+  title      String
+  note       String?
+  dueAt      DateTime?
+  isDone     Boolean          @default(false)
+  priority   ReminderPriority @default(NORMAL)
+  deletedAt  DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, userId, isDone, dueAt])
+}
+
+model ClientNotification {
+  id           String                 @id @default(uuid())
+  clientUserId String
+  businessId   String?
+  appointmentId String?
+  type         ClientNotificationType
+  title        String
+  message      String
+  link         String?
+  metadata     Json?
+  isRead       Boolean                @default(false)
+  readAt       DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime               @default(now())
+
+  clientUser ClientUser @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  business   Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([clientUserId, isRead, createdAt])
+  @@index([businessId, createdAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Messaging (team chat)
+// ────────────────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id            String    @id @default(uuid())
+  businessId    String
+  title         String? // null for DMs, set for group chats
+  isGroup       Boolean   @default(false)
+  directKey     String?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastMessageAt DateTime?
+
+  business     Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([businessId, lastMessageAt])
+  @@index([businessId, directKey])
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+  isActive       Boolean   @default(true)
+  deletedAt      DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, lastReadAt])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderUserId   String
+  body           String    @default("") @db.Text
+  createdAt      DateTime  @default(now())
+  editedAt       DateTime?
+  deletedAt      DateTime?
+
+  conversation Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                 @relation("MessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
+  reactions    MessageReaction[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderUserId])
+}
+
+model MessageAttachment {
+  id         String   @id @default(uuid())
+  messageId  String
+  fileName   String
+  fileType   String
+  fileSize   Int
+  storageKey String
+  fileUrl    String
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Waitlist (early app registrations)
+// ────────────────────────────────────────────────────────────────────────────
+
+model Waitlist {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

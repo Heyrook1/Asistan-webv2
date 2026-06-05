@@ -1,0 +1,52 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# Supabase local link/cache
+supabase/.temp/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Claude Code workspace
+.claude/
+
+# v0.dev generated drafts/injection helpers
+.v0/
+
+# test artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# temp log/pid files
+*.err.log
+*.out.log
+*.pid
+tmp-*.log
+
+.vercel
+
+.vercel
+.blackboxcli/

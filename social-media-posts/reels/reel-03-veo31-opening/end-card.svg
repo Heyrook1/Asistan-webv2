@@ -1,0 +1,51 @@
+<svg width="720" height="1280" viewBox="0 0 720 1280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="84" y1="80" x2="650" y2="1220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071B33"/>
+      <stop offset="1" stop-color="#021126"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="20" y1="20" x2="100" y2="115" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0CCEB9"/>
+      <stop offset="0.5" stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="cta" x1="161" y1="984" x2="559" y2="1070" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#078EC8"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 390) rotate(90) scale(450)">
+      <stop stop-color="#06B6D4" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#06B6D4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="720" height="1280" fill="url(#bg)"/>
+  <circle cx="360" cy="390" r="450" fill="url(#glow)"/>
+  <path d="M0 1050C165 963 309 1015 422 1085C518 1145 618 1161 720 1103V1280H0V1050Z" fill="#07385D" fill-opacity="0.38"/>
+  <path d="M0 1100C173 1045 291 1088 398 1144C519 1207 610 1218 720 1170V1280H0V1100Z" fill="#075F7A" fill-opacity="0.24"/>
+
+  <g transform="translate(235 255) scale(2.08)">
+    <g stroke="#0CCEB9" stroke-width="8" stroke-linecap="round">
+      <line x1="16" y1="56" x2="38" y2="56"/>
+      <line x1="8" y1="72" x2="32" y2="72"/>
+      <line x1="20" y1="88" x2="36" y2="88"/>
+    </g>
+    <circle cx="68" cy="20" r="10" fill="#0CCEB9"/>
+    <path d="M68 34C64 34 60 36 58 40L36 110C35 113 37 116 40 116H52C54 116 56 115 57 113L61 100H78C77 96 76 92 74 88H65L71 70C72 67 73 65 74 63C77 71 81 84 85 95C87 102 89 109 90 113C91 115 93 116 95 116H106C109 116 111 113 110 110L86 40C84 36 78 34 73 34H68Z" fill="url(#brand)"/>
+    <path d="M68 42C70 42 72 43 73 45L76 53H62L65 45C66 43 67 42 68 42Z" fill="white" fill-opacity="0.18"/>
+  </g>
+
+  <text x="360" y="590" text-anchor="middle" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="94" font-weight="600" letter-spacing="-5">asistan</text>
+  <text x="360" y="654" text-anchor="middle" fill="#45D8D0" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="8">HEALTH</text>
+
+  <line x1="190" y1="727" x2="530" y2="727" stroke="#1A6C89" stroke-width="1"/>
+
+  <text x="360" y="804" text-anchor="middle" fill="#F7FBFF" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="600">Kliniğinizin akıllı asistanı.</text>
+  <text x="360" y="862" text-anchor="middle" fill="#B9D3E4" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400">Randevu, hasta ve ekip yönetimi</text>
+  <text x="360" y="898" text-anchor="middle" fill="#B9D3E4" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400">tek merkezde.</text>
+
+  <rect x="161" y="984" width="398" height="86" rx="43" fill="url(#cta)"/>
+  <text x="360" y="1039" text-anchor="middle" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="700">Demo için iletişime geçin</text>
+
+  <text x="360" y="1157" text-anchor="middle" fill="#7CE9E1" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="1">kktc.asistan.online</text>
+</svg>

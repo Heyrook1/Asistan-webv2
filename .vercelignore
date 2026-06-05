@@ -1,0 +1,14 @@
+.git
+.next
+.v0
+.claude
+node_modules
+mobile/node_modules
+mobile/dist
+test-results
+social-media-posts
+tmp-*.log
+.tmp-*.log
+*.log
+*.pid
+docs

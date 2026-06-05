@@ -1,0 +1,43 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1350" fill="#F5F7F5"/>
+    
+      <g transform="translate(72 64)">
+    <image href="file:///D:/asistan-web/public/images/asistan-mark.svg" width="48" height="48"/>
+    <text x="62" y="37" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="209" cy="12" r="4" fill="#09BEB8"/>
+  </g>
+      <g transform="translate(72 218)">
+    <rect width="288" height="42" rx="21" fill="#DDF9F6"/>
+    <text x="22" y="28" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="2">KOLAY BAŞLANGIÇ</text>
+  </g>
+      <text x="72" y="354" fill="#06284C" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="700" letter-spacing="-1">
+    <tspan x="72" dy="0">Üç adım.</tspan><tspan x="72" dy="86">Daha net bir başlangıç.</tspan>
+  </text>
+      <g transform="translate(76 700)">
+        
+          <g transform="translate(0 0)">
+            <text x="0" y="38" fill="#09BEB8" font-family="Georgia, serif" font-size="44" font-weight="700">01</text>
+            <text x="108" y="26" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Hesabınızı oluşturun</text>
+            <text x="108" y="68" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="23">Kliniğiniz için başlangıç yapın.</text>
+          </g>
+        
+          <g transform="translate(0 150)">
+            <text x="0" y="38" fill="#09BEB8" font-family="Georgia, serif" font-size="44" font-weight="700">02</text>
+            <text x="108" y="26" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Ekibinizi tanımlayın</text>
+            <text x="108" y="68" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="23">Hizmet ve ekip bilgilerini ekleyin.</text>
+          </g>
+        
+          <g transform="translate(0 300)">
+            <text x="0" y="38" fill="#09BEB8" font-family="Georgia, serif" font-size="44" font-weight="700">03</text>
+            <text x="108" y="26" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Akışı yönetin</text>
+            <text x="108" y="68" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="23">Takviminizi tek noktadan görün.</text>
+          </g>
+        
+      </g>
+      <g>
+    <line x1="72" y1="1244" x2="1008" y2="1244" stroke="#46708A" stroke-opacity=".42"/>
+    <text x="72" y="1287" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="2">ASISTAN.ONLINE</text>
+    <text x="974" y="1287" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">08</text>
+  </g>
+    
+  </svg>

@@ -1,0 +1,417 @@
+import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
+import { config } from 'dotenv'
+
+config({ path: '.env.local' })
+config({ path: '.env' })
+
+const prisma = new PrismaClient()
+
+type Check = {
+  name: string
+  pass: boolean
+  detail?: string
+}
+
+function ok(name: string, detail?: string): Check {
+  return { name, pass: true, detail }
+}
+
+function fail(name: string, detail?: string): Check {
+  return { name, pass: false, detail }
+}
+
+async function main() {
+  const checks: Check[] = []
+
+  const requiredRlsTables = [
+    'Business',
+    'User',
+    'Patient',
+    'Appointment',
+    'PatientFile',
+    'PatientNote',
+    'Medication',
+    'Allergy',
+    'Treatment',
+    'TreatmentPlanItem',
+    'LabResult',
+    'Service',
+    'TeamMember',
+    'TimelineEvent',
+    'Notification',
+    'NotificationAction',
+    'PushSubscription',
+    'Reminder',
+    'Conversation',
+    'ConversationParticipant',
+    'Message',
+    'MessageAttachment',
+    'MessageReaction',
+  ]
+
+  const rlsRows = await prisma.$queryRawUnsafe<Array<{ relname: string; relrowsecurity: boolean }>>(
+    `
+      select c.relname, c.relrowsecurity
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public'
+        and c.relname = any($1::text[])
+    `,
+    requiredRlsTables
+  )
+  const rlsMap = new Map(rlsRows.map((row) => [row.relname, row.relrowsecurity]))
+  for (const table of requiredRlsTables) {
+    checks.push(
+      rlsMap.get(table) === true
+        ? ok(`RLS enabled: ${table}`)
+        : fail(`RLS enabled: ${table}`, 'missing or disabled')
+    )
+  }
+
+  const requiredColumns = [
+    ['Patient', 'lastDiagnosis'],
+    ['Patient', 'currentTreatment'],
+    ['Patient', 'riskNote'],
+    ['Patient', 'summary'],
+    ['Patient', 'aiSuggestions'],
+    ['Patient', 'assignedDoctorId'],
+    ['PatientNote', 'createdByUserId'],
+    ['Notification', 'actorUserId'],
+    ['Notification', 'subtype'],
+    ['Notification', 'entityType'],
+    ['Notification', 'entityId'],
+    ['Notification', 'priority'],
+    ['Notification', 'actionRequired'],
+    ['Notification', 'metadata'],
+    ['Notification', 'archivedAt'],
+    ['NotificationAction', 'actionType'],
+    ['PushSubscription', 'endpoint'],
+    ['Reminder', 'priority'],
+    ['Conversation', 'lastMessageAt'],
+    ['Conversation', 'directKey'],
+    ['ConversationParticipant', 'lastReadAt'],
+    ['Message', 'deletedAt'],
+    ['MessageAttachment', 'storageKey'],
+    ['MessageReaction', 'emoji'],
+    ['TreatmentPlanItem', 'order'],
+  ] as const
+  const columnRows = await prisma.$queryRawUnsafe<Array<{ table_name: string; column_name: string }>>(
+    `
+      select table_name, column_name
+      from information_schema.columns
+      where table_schema = 'public'
+        and (table_name, column_name) in (
+          select *
+          from unnest($1::text[], $2::text[])
+        )
+    `,
+    requiredColumns.map(([table]) => table),
+    requiredColumns.map(([, column]) => column)
+  )
+  const existingColumns = new Set(columnRows.map((row) => `${row.table_name}.${row.column_name}`))
+  for (const [table, column] of requiredColumns) {
+    const key = `${table}.${column}`
+    checks.push(existingColumns.has(key) ? ok(`Schema column: ${key}`) : fail(`Schema column: ${key}`, 'missing'))
+  }
+
+  const patientNumberRuntime = await prisma.$queryRawUnsafe<
+    Array<{ routine_name: string; trigger_name: string | null }>
+  >(
+    `
+      select r.routine_name, t.trigger_name
+      from information_schema.routines r
+      left join information_schema.triggers t
+        on t.event_object_schema = 'public'
+       and t.event_object_table = 'Patient'
+       and t.trigger_name = 'Patient_set_patient_number'
+      where r.specific_schema = 'public'
+        and r.routine_name = 'next_patient_number'
+      limit 1
+    `
+  )
+  checks.push(
+    patientNumberRuntime.length > 0
+      ? ok('Race-free patient number function')
+      : fail('Race-free patient number function', 'missing public.next_patient_number')
+  )
+  checks.push(
+    patientNumberRuntime.some((row) => row.trigger_name === 'Patient_set_patient_number')
+      ? ok('Patient number insert trigger')
+      : fail('Patient number insert trigger', 'missing Patient_set_patient_number')
+  )
+
+  const patientNoteFk = await prisma.$queryRawUnsafe<Array<{ conname: string }>>(
+    `
+      select conname
+      from pg_constraint
+      where conname = 'PatientNote_createdByUserId_fkey'
+    `
+  )
+  checks.push(
+    patientNoteFk.length > 0
+      ? ok('PatientNote creator FK')
+      : fail('PatientNote creator FK', 'missing PatientNote_createdByUserId_fkey')
+  )
+
+  const directConversationIndex = await prisma.$queryRawUnsafe<Array<{ indexname: string }>>(
+    `
+      select indexname
+      from pg_indexes
+      where schemaname = 'public'
+        and tablename = 'Conversation'
+        and indexname = 'Conversation_business_directKey_unique'
+        and indexdef ilike '%unique%'
+    `
+  )
+  checks.push(
+    directConversationIndex.length > 0
+      ? ok('Direct conversation unique key')
+      : fail('Direct conversation unique key', 'missing Conversation_business_directKey_unique')
+  )
+
+  const policies = await prisma.$queryRawUnsafe<
+    Array<{ tablename: string; policyname: string; cmd: string; qual: string | null; with_check: string | null }>
+  >(
+    `
+      select tablename, policyname, cmd, qual, with_check
+      from pg_policies
+      where schemaname = 'public'
+    `
+  )
+  const findPolicy = (table: string, name: string) =>
+    policies.find((policy) => policy.tablename === table && policy.policyname === name)
+
+  const patientSelect = findPolicy('Patient', 'patient_select')
+  checks.push(
+    patientSelect?.qual?.includes('patient.view') && patientSelect.qual.includes('businessId')
+      ? ok('Patient tenant select policy')
+      : fail('Patient tenant select policy', patientSelect?.qual ?? 'missing')
+  )
+
+  const noteSelect = findPolicy('PatientNote', 'patient_note_select')
+  checks.push(
+    noteSelect?.qual?.includes('medical_note.view') && noteSelect.qual.includes('patient_belongs_to_business')
+      ? ok('Secretary blocked from medical notes by DB policy')
+      : fail('Secretary blocked from medical notes by DB policy', noteSelect?.qual ?? 'missing')
+  )
+
+  const patientFileSelect = findPolicy('PatientFile', 'patient_file_select')
+  checks.push(
+    patientFileSelect?.qual?.includes('file.view') && patientFileSelect.qual.includes('patient_belongs_to_business')
+      ? ok('PatientFile tenant/file.view policy')
+      : fail('PatientFile tenant/file.view policy', patientFileSelect?.qual ?? 'missing')
+  )
+
+  const inlinePatientFiles = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+    `
+      select count(*)::bigint as count
+      from "PatientFile"
+      where "fileUrl" !~ '^storage://patient-files/'
+         or "fileUrl" ~* '^data:'
+         or octet_length("fileUrl") > 1200
+         or "storageKey" is null
+         or "storageKey" = ''
+         or "storageKey" !~ ('^' || "businessId"::text || '/' || "patientId"::text || '/')
+    `
+  )
+  const inlinePatientFileCount = Number(inlinePatientFiles[0]?.count ?? 0)
+  checks.push(
+    inlinePatientFileCount === 0
+      ? ok('PatientFile stores storage references only')
+      : fail('PatientFile stores storage references only', `${inlinePatientFileCount} invalid rows`)
+  )
+
+  const invalidLabResultFiles = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+    `
+      select count(*)::bigint as count
+      from "LabResult"
+      where "fileUrl" is not null
+        and (
+          "fileUrl" !~ ('^storage://patient-files/' || "businessId"::text || '/' || "patientId"::text || '/')
+          or octet_length("fileUrl") > 1200
+        )
+    `
+  )
+  const invalidLabResultFileCount = Number(invalidLabResultFiles[0]?.count ?? 0)
+  checks.push(
+    invalidLabResultFileCount === 0
+      ? ok('LabResult file references are tenant/patient scoped')
+      : fail('LabResult file references are tenant/patient scoped', `${invalidLabResultFileCount} invalid rows`)
+  )
+
+  const storageConstraints = await prisma.$queryRawUnsafe<Array<{ conname: string }>>(
+    `
+      select conname
+      from pg_constraint
+      where conname in (
+        'PatientFile_storage_reference_check',
+        'MessageAttachment_storage_reference_check',
+        'LabResult_storage_reference_check'
+      )
+    `
+  )
+  const constraintNames = new Set(storageConstraints.map((constraint) => constraint.conname))
+  checks.push(
+    constraintNames.has('PatientFile_storage_reference_check')
+      ? ok('PatientFile DB storage reference constraint')
+      : fail('PatientFile DB storage reference constraint')
+  )
+  checks.push(
+    constraintNames.has('MessageAttachment_storage_reference_check')
+      ? ok('MessageAttachment DB storage reference constraint')
+      : fail('MessageAttachment DB storage reference constraint')
+  )
+  checks.push(
+    constraintNames.has('LabResult_storage_reference_check')
+      ? ok('LabResult DB storage tenant/patient constraint')
+      : fail('LabResult DB storage tenant/patient constraint')
+  )
+
+  const actionSelect = findPolicy('NotificationAction', 'notification_action_member_select')
+  const actionUpdate = findPolicy('NotificationAction', 'notification_action_member_update')
+  checks.push(
+    actionSelect?.qual?.includes('is_business_member') && actionSelect.qual.includes('auth.uid')
+      ? ok('NotificationAction select RLS')
+      : fail('NotificationAction select RLS', actionSelect?.qual ?? 'missing')
+  )
+  checks.push(
+    actionUpdate?.qual?.includes('is_business_member') && actionUpdate.with_check?.includes('auth.uid')
+      ? ok('NotificationAction update RLS')
+      : fail('NotificationAction update RLS', actionUpdate?.with_check ?? actionUpdate?.qual ?? 'missing')
+  )
+
+  const participantInsert = findPolicy('ConversationParticipant', 'conversation_participant_member_insert')
+  checks.push(
+    participantInsert?.with_check?.includes('is_conversation_participant') &&
+      participantInsert.with_check.includes('user_belongs_to_business')
+      ? ok('Group chat add-member RLS')
+      : fail('Group chat add-member RLS', participantInsert?.with_check ?? 'missing')
+  )
+
+  const reactionManage = findPolicy('MessageReaction', 'message_reaction_self_manage')
+  checks.push(
+    reactionManage?.qual?.includes('"userId" = auth.uid()') &&
+      reactionManage.qual.includes('is_conversation_participant')
+      ? ok('Emoji reaction self/manage RLS')
+      : fail('Emoji reaction self/manage RLS', reactionManage?.qual ?? 'missing')
+  )
+
+  const reminderSelect = findPolicy('Reminder', 'reminder_self_select')
+  const reminderUpdate = findPolicy('Reminder', 'reminder_self_update')
+  checks.push(
+    reminderSelect?.qual?.includes('"userId" = auth.uid()') && reminderSelect.qual.includes('is_business_member')
+      ? ok('Reminder self/business select RLS')
+      : fail('Reminder self/business select RLS', reminderSelect?.qual ?? 'missing')
+  )
+  checks.push(
+    reminderUpdate?.qual?.includes('"userId" = auth.uid()') &&
+      reminderUpdate.with_check?.includes('"userId" = auth.uid()')
+      ? ok('Reminder self update RLS')
+      : fail('Reminder self update RLS', reminderUpdate?.with_check ?? reminderUpdate?.qual ?? 'missing')
+  )
+
+  const pushInsert = findPolicy('PushSubscription', 'push_subscription_self_insert')
+  const pushDelete = findPolicy('PushSubscription', 'push_subscription_self_delete')
+  checks.push(
+    pushInsert?.with_check?.includes('"userId" = auth.uid()') && pushInsert.with_check.includes('is_business_member')
+      ? ok('Push subscription self insert RLS')
+      : fail('Push subscription self insert RLS', pushInsert?.with_check ?? 'missing')
+  )
+  checks.push(
+    pushDelete?.qual?.includes('"userId" = auth.uid()') && pushDelete.qual.includes('is_business_member')
+      ? ok('Push subscription self delete RLS')
+      : fail('Push subscription self delete RLS', pushDelete?.qual ?? 'missing')
+  )
+
+  const buckets = await prisma.$queryRawUnsafe<Array<{ id: string; public: boolean }>>(
+    `
+      select id, public
+      from storage.buckets
+      where id in ('patient-files', 'message-media')
+    `
+  )
+  const bucketMap = new Map(buckets.map((bucket) => [bucket.id, bucket.public]))
+  checks.push(bucketMap.get('patient-files') === false ? ok('patient-files bucket is private') : fail('patient-files bucket is private'))
+  checks.push(bucketMap.get('message-media') === false ? ok('message-media bucket is private') : fail('message-media bucket is private'))
+
+  const storagePolicies = await prisma.$queryRawUnsafe<Array<{ policyname: string; qual: string | null; with_check: string | null }>>(
+    `
+      select policyname, qual, with_check
+      from pg_policies
+      where schemaname = 'storage'
+        and tablename = 'objects'
+        and policyname in ('patient_files_select', 'message_media_select', 'message_media_insert')
+    `
+  )
+  const storagePolicyNames = new Set(storagePolicies.map((policy) => policy.policyname))
+  checks.push(storagePolicyNames.has('patient_files_select') ? ok('patient file storage select policy') : fail('patient file storage select policy'))
+  checks.push(storagePolicyNames.has('message_media_select') ? ok('message media storage select policy') : fail('message media storage select policy'))
+  checks.push(storagePolicyNames.has('message_media_insert') ? ok('message media storage insert policy') : fail('message media storage insert policy'))
+
+  const realtimeTables = await prisma.$queryRawUnsafe<Array<{ tablename: string }>>(
+    `
+      select tablename
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename in ('Notification', 'Message', 'MessageReaction', 'ConversationParticipant')
+    `
+  )
+  const realtimeSet = new Set(realtimeTables.map((row) => row.tablename))
+  for (const table of ['Notification', 'Message', 'MessageReaction', 'ConversationParticipant']) {
+    checks.push(realtimeSet.has(table) ? ok(`Realtime enabled: ${table}`) : fail(`Realtime enabled: ${table}`))
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
+  if (supabaseUrl && serviceRoleKey) {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const storageKey = `smoke-tests/${crypto.randomUUID()}.txt`
+    const upload = await supabase.storage
+      .from('message-media')
+      .upload(storageKey, new Blob(['signed-url-smoke-test'], { type: 'text/plain' }), {
+        contentType: 'text/plain',
+        upsert: false,
+      })
+
+    if (upload.error) {
+      checks.push(fail('message-media signed URL smoke upload', upload.error.message))
+    } else {
+      const signed = await supabase.storage.from('message-media').createSignedUrl(storageKey, 60)
+      if (signed.error || !signed.data?.signedUrl) {
+        checks.push(fail('message-media signed URL create', signed.error?.message ?? 'missing URL'))
+      } else {
+        const response = await fetch(signed.data.signedUrl)
+        checks.push(
+          response.ok
+            ? ok('message-media private signed URL opens')
+            : fail('message-media private signed URL opens', `HTTP ${response.status}`)
+        )
+      }
+      await supabase.storage.from('message-media').remove([storageKey])
+    }
+  } else {
+    checks.push(fail('message-media signed URL smoke test', 'missing Supabase service role env'))
+  }
+
+  const failed = checks.filter((check) => !check.pass)
+  for (const check of checks) {
+    console.log(`${check.pass ? 'PASS' : 'FAIL'} ${check.name}${check.detail ? ` - ${check.detail}` : ''}`)
+  }
+
+  if (failed.length > 0) {
+    process.exitCode = 1
+  }
+}
+
+main()
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

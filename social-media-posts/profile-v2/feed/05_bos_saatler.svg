@@ -1,0 +1,23 @@
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="1350" fill="#F5F7F5"/>
+    
+      <image href="file:///D:/asistan-web/social-media-posts/profile-v2/assets/reception-operations.png" width="1080" height="1350" preserveAspectRatio="xMidYMid slice"/>
+      <rect width="1080" height="1350" fill="#06284C" fill-opacity=".10"/>
+      <rect x="54" y="720" width="752" height="484" rx="34" fill="#F8FBFA" fill-opacity=".96"/>
+      <g transform="translate(74 68)">
+    <image href="file:///D:/asistan-web/public/images/asistan-mark.svg" width="48" height="48"/>
+    <text x="62" y="37" fill="#06284C" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" letter-spacing="-1">asistan</text>
+    <circle cx="209" cy="12" r="4" fill="#09BEB8"/>
+  </g>
+      <g transform="translate(96 782)">
+    <rect width="256" height="42" rx="21" fill="#DDF9F6"/>
+    <text x="22" y="28" fill="#087E80" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="2">RANDEVU AKIŞI</text>
+  </g>
+      <text x="96" y="902" fill="#06284C" font-family="Georgia, 'Times New Roman', serif" font-size="70" font-weight="700" letter-spacing="-1">
+    <tspan x="96" dy="0">Boş saatler</tspan><tspan x="96" dy="82">kaybolmasın.</tspan>
+  </text>
+      <text x="100" y="1094" fill="#46708A" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" letter-spacing="0">
+    <tspan x="100" dy="0">Takviminizi ekipçe izleyin.</tspan><tspan x="100" dy="42">Günün akışını daha net planlayın.</tspan>
+  </text>
+    
+  </svg>
