@@ -7,8 +7,11 @@ import { ArrowRight, Mail, Shield, Users, Globe, Lock } from 'lucide-react'
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 
-const footerLinks = [
+function buildFooterLinks(language: 'tr' | 'en') {
+  return [
   {
     title: 'Urun',
     links: [
@@ -41,11 +44,12 @@ const footerLinks = [
     links: [
       { label: 'SSS', href: '/fiyatlandirma#sss' },
       { label: 'Destek Merkezi', href: '/kaynaklar' },
-      { label: 'Canli Destek', href: '/auth/login' },
-      { label: 'Demo Talep Et', href: '/auth/sign-up' },
+      { label: 'Canli Destek', href: getLoginPath(language) },
+      { label: 'Demo Talep Et', href: getRegisterPath(language) },
     ],
   },
 ]
+}
 
 const trustBadges = [
   { icon: Shield, label: 'KVKK' },
@@ -55,6 +59,8 @@ const trustBadges = [
 ]
 
 export function Footer() {
+  const { language } = useLanguage()
+  const footerLinks = buildFooterLinks(language)
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'success'>('idle')
 

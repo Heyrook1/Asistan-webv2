@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { Analytics } from '@vercel/analytics/react'
 
 import { Toaster } from '@/components/ui/sonner'
 
@@ -75,6 +74,9 @@ export const viewport: Viewport = {
 
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { FloatingCTA } from '@/components/ui/FloatingCTA'
+import { ErrorBoundary } from '@/components/error-boundary'
+import { QueryProvider } from '@/lib/query-provider'
+import { SkipToContent } from '@/components/skip-to-content'
 
 export default function RootLayout({
   children,
@@ -82,14 +84,21 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr" translate="no" className="bg-background text-foreground">
+    <html lang="tr" translate="no" data-scroll-behavior="smooth" className="bg-background text-foreground">
       <body className="font-sans antialiased">
-        <LanguageProvider>
-          {children}
-          <FloatingCTA />
-        </LanguageProvider>
-        <Toaster position="top-right" richColors duration={4000} />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <SkipToContent />
+        <ErrorBoundary>
+          <QueryProvider>
+            <LanguageProvider>
+              <main id="main-content" className="min-h-screen">
+                {children}
+              </main>
+              <FloatingCTA />
+            </LanguageProvider>
+          </QueryProvider>
+          <Toaster position="top-right" richColors duration={4000} />
+          {/* Vercel Web Analytics: Vercel Dashboard > Analytics > Enable to re-activate */}
+        </ErrorBoundary>
       </body>
     </html>
   )

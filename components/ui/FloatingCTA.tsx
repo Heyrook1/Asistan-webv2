@@ -7,9 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { LogIn, LayoutDashboard, UserPlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath } from '@/lib/auth-routes'
 
 export function FloatingCTA() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const supabase = createClient()
@@ -48,7 +49,7 @@ export function FloatingCTA() {
     en: isLoggedIn ? 'Dashboard' : 'Login / Sign Up',
   })
 
-  const href = isLoggedIn ? '/dashboard' : '/login'
+  const href = isLoggedIn ? '/dashboard' : getLoginPath(language)
 
   return (
     <AnimatePresence>

@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { FlatList, Pressable, RefreshControl, View } from 'react-native'
+import { AppCard, AppText, EmptyState, Screen, ScreenHeader, Skeleton } from '@/components/ui'
 import { apiGet, apiPatch } from '@/lib/api'
-import { palette, radii, shadows, spacing } from '@/lib/theme'
+import { useAppTheme } from '@/lib/use-app-theme'
 
 type NotificationItem = {
   id: string
@@ -25,6 +17,7 @@ type NotificationItem = {
 type NotificationsResponse = { notifications: NotificationItem[] }
 
 export default function ClientNotificationsScreen() {
+  const theme = useAppTheme()
   const [rows, setRows] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -59,123 +52,105 @@ export default function ClientNotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Bildirimler</Text>
-          <Text style={styles.subtitle}>Yeni gelismeleri aninda takip et</Text>
-        </View>
-        <Pressable onPress={markAllRead} style={styles.markAllBtn}>
-          <Ionicons name="checkmark-done-outline" size={14} color={palette.accent} />
-          <Text style={styles.markAll}>Tumunu okundu yap</Text>
-        </Pressable>
-      </View>
+    <Screen>
+      <ScreenHeader
+        title="Bildirimler"
+        subtitle="Yeni gelismeleri aninda takip et"
+        rightSlot={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tum bildirimleri okundu yap"
+            onPress={markAllRead}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radii.pill,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              backgroundColor: theme.colors.surfaceSoft,
+            }}
+          >
+            <Ionicons name="checkmark-done-outline" size={14} color={theme.colors.secondary} />
+            <AppText variant="micro" color={theme.colors.secondary}>
+              Tumunu oku
+            </AppText>
+          </Pressable>
+        }
+      />
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={palette.primary} />
+        <View style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}>
+          {Array.from({ length: 4 }).map((_, index) => (
+            <AppCard key={`notification-skeleton-${index}`}>
+              <Skeleton height={14} width="40%" />
+              <Skeleton height={12} width="90%" style={{ marginTop: theme.spacing.sm }} />
+            </AppCard>
+          ))}
         </View>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.error}>{error}</Text>
-        </View>
+        <EmptyState
+          icon="warning-outline"
+          title="Bildirimler yuklenemedi"
+          description={error}
+          primaryActionLabel="Tekrar Dene"
+          onPrimaryAction={() => load()}
+        />
       ) : (
         <FlatList
           data={rows}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} />}
+          contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: 120, gap: theme.spacing.sm }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor={theme.colors.primary} />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="notifications-outline"
+              title="Yeni bildiriminiz yok"
+              description="Randevu ve klinik guncellemeleri burada gorunecek."
+            />
+          }
           renderItem={({ item }) => (
-            <View style={[styles.card, !item.isRead && styles.cardUnread]}>
-              <View style={styles.cardTop}>
-                <View style={[styles.iconWrap, !item.isRead && styles.iconWrapUnread]}>
+            <AppCard
+              style={{
+                borderColor: item.isRead ? theme.colors.border : theme.colors.primary,
+                backgroundColor: item.isRead ? theme.colors.surface : theme.colors.successSoft,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: theme.radii.sm,
+                    backgroundColor: item.isRead ? theme.colors.surfaceSoft : theme.colors.primarySoft,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   <Ionicons
                     name={item.isRead ? 'notifications-outline' : 'notifications'}
                     size={15}
-                    color={item.isRead ? '#64748B' : palette.primary}
+                    color={item.isRead ? theme.colors.textMuted : theme.colors.primary}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardMessage}>{item.message}</Text>
+                  <AppText variant="subtitle">{item.title}</AppText>
+                  <AppText variant="body" color={theme.colors.textMuted} style={{ marginTop: 2 }}>
+                    {item.message}
+                  </AppText>
                 </View>
               </View>
-              <Text style={styles.cardTime}>{new Date(item.createdAt).toLocaleString('tr-TR')}</Text>
-            </View>
+              <AppText variant="micro" color={theme.colors.textMuted} style={{ marginTop: theme.spacing.xs }}>
+                {new Date(item.createdAt).toLocaleString('tr-TR')}
+              </AppText>
+            </AppCard>
           )}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.empty}>Yeni bildiriminiz yok.</Text>
-            </View>
-          }
         />
       )}
-    </SafeAreaView>
+    </Screen>
   )
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.bg },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.border,
-    backgroundColor: palette.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  title: { fontSize: 22, fontWeight: '700', color: palette.text },
-  subtitle: { color: palette.textMuted, fontSize: 13 },
-  markAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
-    borderColor: '#BCD6FF',
-    borderRadius: radii.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#F5F9FF',
-  },
-  markAll: { color: palette.accent, fontWeight: '700', fontSize: 12 },
-  list: { padding: spacing.md, gap: spacing.sm },
-  card: {
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    backgroundColor: palette.surface,
-    gap: 8,
-    ...shadows.card,
-  },
-  cardUnread: {
-    borderColor: '#B7F3E7',
-    backgroundColor: '#F2FFFB',
-  },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.sm,
-    backgroundColor: '#F4F7FC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWrapUnread: {
-    backgroundColor: '#E7FBF7',
-  },
-  cardTitle: { fontWeight: '700', color: palette.text, marginBottom: 3 },
-  cardMessage: { color: '#334762', lineHeight: 19 },
-  cardTime: { color: '#6A7A95', fontSize: 12 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  error: { color: palette.danger, textAlign: 'center' },
-  empty: { color: palette.textMuted },
-})

@@ -9,8 +9,8 @@ test.describe('Login page', () => {
   test('renders the login form and validates empty submission', async ({ page }) => {
     await page.goto('/login')
 
-    // Page reaches an interactive state.
-    await expect(page).toHaveURL(/\/login/)
+    // Page reaches localized login route.
+    await expect(page).toHaveURL(/\/(tr\/giris|en\/login)/)
 
     // Core form fields are present (Turkish UI).
     const emailField = page.getByLabel(/e-?posta/i).first()

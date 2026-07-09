@@ -7,6 +7,8 @@ import { ChevronDown, Globe, Menu, X } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +49,9 @@ function baseHref(path: string) {
 
 export function Navbar() {
   const pathname = usePathname()
+  const { language } = useLanguage()
+  const loginPath = getLoginPath(language)
+  const registerPath = getRegisterPath(language)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [solutionsOpen, setSolutionsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -176,10 +181,10 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Button asChild variant="ghost" className="h-10 px-3 text-sm font-semibold text-slate-600 hover:text-brand-navy">
-              <Link href="/auth/login">Giris Yap</Link>
+              <Link href={loginPath}>Giris Yap</Link>
             </Button>
             <Button asChild className="h-10 rounded-lg bg-brand-blue px-4 text-sm font-semibold text-white hover:bg-brand-blue/90">
-              <Link href="/auth/sign-up">Ekran Erisim</Link>
+              <Link href={registerPath}>Ekran Erisim</Link>
             </Button>
           </div>
 
@@ -236,12 +241,12 @@ export function Navbar() {
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-brand-blue/10 pt-3">
               <Button asChild variant="outline" className="h-10 rounded-lg border-brand-blue/20">
-                <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
+                <Link href={loginPath} onClick={() => setMobileMenuOpen(false)}>
                   Giris Yap
                 </Link>
               </Button>
               <Button asChild className="h-10 rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
-                <Link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>
+                <Link href={registerPath} onClick={() => setMobileMenuOpen(false)}>
                   Ekran Erisim
                 </Link>
               </Button>

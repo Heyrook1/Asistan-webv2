@@ -8,6 +8,7 @@ import { CalendarDays, Check, CircleX, Smartphone, Calendar, Clock, X, ChevronRi
 import { useLandingLocale } from '@/components/sections/landing-locale'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
+import { getRegisterPath } from '@/lib/auth-routes'
 import { baseSpring, revealSoft, staggerContainer, appleEase } from '@/lib/animations'
 import { cn } from '@/lib/utils'
 
@@ -384,7 +385,7 @@ export function PricingSection() {
                           plan.popular ? 'bg-[#0071E3] hover:bg-[#0063C8] text-white shadow-md' : 'bg-[#1D1D1F] hover:bg-black text-white'
                         )}
                       >
-                        <Link href="/register">{content.cta}</Link>
+                        <Link href={getRegisterPath(locale)}>{content.cta}</Link>
                       </Button>
                     )}
                   </div>

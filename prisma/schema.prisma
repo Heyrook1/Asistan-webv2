@@ -286,6 +286,8 @@ model TeamMember {
   @@unique([businessId, email])
   @@index([businessId])
   @@index([userId])
+  @@index([businessId, isActive])
+  @@index([businessId, role])
 }
 
 model ClientUser {

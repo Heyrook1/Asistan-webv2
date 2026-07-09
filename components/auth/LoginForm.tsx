@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 import { CheckCircle2, Mail, Lock, ShieldAlert, Loader2, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -95,7 +96,7 @@ export function LoginForm() {
     }
   }
 
-  const registerUrl = language === 'tr' ? '/tr/kayit' : '/en/register'
+  const registerUrl = getRegisterPath(language)
 
   return (
     <div className="w-full max-w-4xl grid gap-8 lg:grid-cols-2 items-center">

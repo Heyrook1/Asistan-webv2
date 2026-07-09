@@ -1,10 +1,12 @@
 import { Redirect, Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSessionContext } from '@/lib/session-context'
-import { palette, radii, shadows } from '@/lib/theme'
+import { useAppTheme } from '@/lib/use-app-theme'
+import { Platform } from 'react-native'
 
 export default function ClientLayout() {
   const { loading, isAuthenticated } = useSessionContext()
+  const theme = useAppTheme()
 
   if (loading) return null
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />
@@ -13,25 +15,33 @@ export default function ClientLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: palette.primary,
-        tabBarInactiveTintColor: '#6A7A95',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
-          marginBottom: 2,
+          marginTop: 1,
         },
         tabBarStyle: {
-          borderTopColor: palette.border,
-          backgroundColor: 'rgba(255,255,255,0.98)',
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: Platform.OS === 'ios' ? 18 : 12,
+          borderTopColor: 'transparent',
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.dark ? 'rgba(16, 32, 56, 0.96)' : 'rgba(255, 255, 255, 0.94)',
           height: 72,
-          paddingTop: 6,
+          paddingTop: 8,
           paddingBottom: 8,
-          ...shadows.floating,
+          borderRadius: theme.radii.xl,
+          ...theme.elevations.glass,
         },
         tabBarItemStyle: {
-          borderRadius: radii.md,
-          marginHorizontal: 3,
+          borderRadius: theme.radii.lg,
+          marginHorizontal: 2,
         },
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen

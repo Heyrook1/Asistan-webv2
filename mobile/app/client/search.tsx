@@ -2,20 +2,29 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native'
 import { BrandLogo } from '@/components/brand-logo'
+import {
+  AppButton,
+  AppCard,
+  AppText,
+  Badge,
+  Chip,
+  EmptyState,
+  FloatingActionButton,
+  SearchField,
+  SectionHeader,
+  Skeleton,
+} from '@/components/ui'
 import { apiGet } from '@/lib/api'
-import { palette, radii, shadows, spacing } from '@/lib/theme'
+import { useAppTheme } from '@/lib/use-app-theme'
 import type { DiscoveryItem } from '@/lib/types'
 
 type SearchResponse = { items: DiscoveryItem[] }
@@ -45,6 +54,7 @@ function parseAttemptedAddresses(errorMessage: string | null) {
 
 export default function ClientSearchScreen() {
   const router = useRouter()
+  const theme = useAppTheme()
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'>('nearest')
   const [availableToday, setAvailableToday] = useState(false)
@@ -86,304 +96,284 @@ export default function ClientSearchScreen() {
     load()
   }, [load])
 
+  const now = useMemo(
+    () =>
+      new Date().toLocaleDateString('tr-TR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+      }),
+    []
+  )
+  const topRecommended = items.slice(0, 4)
+  const featuredClinics = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; reviewCount: number }>()
+    for (const item of items) {
+      if (!map.has(item.businessId)) {
+        map.set(item.businessId, { id: item.businessId, name: item.businessName, reviewCount: item.reviewCount ?? 0 })
+      }
+    }
+    return Array.from(map.values()).slice(0, 5)
+  }, [items])
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.hero}>
-        <BrandLogo variant="light" height={30} />
-        <Text style={styles.heroTitle}>Kendine en uygun doktoru bul</Text>
-        <Text style={styles.heroSubtitle}>Konumuna ve degerlendirmelere gore hizli secim yap.</Text>
-      </View>
-
-      <View style={styles.headerCard}>
-        <View style={styles.searchWrap}>
-          <Ionicons name="search" size={18} color="#6A7A95" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Doktor, klinik veya uzmanlik ara"
-            placeholderTextColor="#94a3b8"
-            style={styles.search}
-            onSubmitEditing={() => load()}
-          />
-        </View>
-
-        <View style={styles.segment}>
-          <Pressable
-            style={[styles.segmentItem, viewMode === 'list' && styles.segmentItemActive]}
-            onPress={() => setViewMode('list')}
-          >
-            <Ionicons
-              name={viewMode === 'list' ? 'list' : 'list-outline'}
-              size={16}
-              color={viewMode === 'list' ? '#FFFFFF' : '#5A6A85'}
-            />
-            <Text style={[styles.segmentText, viewMode === 'list' && styles.segmentTextActive]}>Liste</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.segmentItem, viewMode === 'map' && styles.segmentItemActive]}
-            onPress={() => setViewMode('map')}
-          >
-            <Ionicons
-              name={viewMode === 'map' ? 'map' : 'map-outline'}
-              size={16}
-              color={viewMode === 'map' ? '#FFFFFF' : '#5A6A85'}
-            />
-            <Text style={[styles.segmentText, viewMode === 'map' && styles.segmentTextActive]}>Harita</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <Pressable
-            style={[styles.chip, sort === 'nearest' && styles.chipActive]}
-            onPress={() => setSort('nearest')}
-          >
-            <Text style={[styles.chipText, sort === 'nearest' && styles.chipTextActive]}>En yakin</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.chip, sort === 'highest-rated' && styles.chipActive]}
-            onPress={() => setSort('highest-rated')}
-          >
-            <Text style={[styles.chipText, sort === 'highest-rated' && styles.chipTextActive]}>En iyi puan</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.chip, sort === 'most-reviewed' && styles.chipActive]}
-            onPress={() => setSort('most-reviewed')}
-          >
-            <Text style={[styles.chipText, sort === 'most-reviewed' && styles.chipTextActive]}>Cok yorum</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.chip, availableToday && styles.chipActive]}
-            onPress={() => setAvailableToday((value) => !value)}
-          >
-            <Text style={[styles.chipText, availableToday && styles.chipTextActive]}>Bugun musait</Text>
-          </Pressable>
-        </ScrollView>
-      </View>
-
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={palette.primary} />
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorTitle}>
-            {isBackendUnavailable ? 'API sunucusuna baglanilamadi.' : 'Bir hata olustu.'}
-          </Text>
-          <Text style={styles.error}>
-            {isBackendUnavailable
-              ? '`mobile` klasorunden `npm.cmd run web:full` (veya kokten `npm.cmd run mobile:web:full`) komutunu calistirin, sonra tekrar deneyin.'
-              : error}
-          </Text>
-          {isBackendUnavailable ? (
-            <View style={styles.helpBox}>
-              <Text style={styles.helpLine}>
-                `mobile` klasoru: `npm.cmd run web:full`
-              </Text>
-              <Text style={styles.helpLine}>
-                Kok klasor: `npm.cmd run mobile:web:full`
-              </Text>
-              {attemptedAddresses ? (
-                <Text style={styles.helpMeta}>Denenen adresler: {attemptedAddresses}</Text>
-              ) : null}
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+      <FlatList
+        data={viewMode === 'list' ? items : []}
+        keyExtractor={(item) => `${item.businessId}-${item.doctorId}`}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor={theme.colors.primary} />}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <>
+            <View style={[styles.hero, { backgroundColor: theme.colors.heroDark }]}>
+              <BrandLogo variant="light" height={28} />
+              <Badge label={now} tone="info" />
+              <AppText variant="hero" color={theme.colors.textInverse}>
+                Merhaba, saglik asistani hazir.
+              </AppText>
+              <AppText variant="body" color="#BCD1EF">
+                Hizli arama, guvenilir uzmanlar ve bugun icin uygun saatler tek ekranda.
+              </AppText>
             </View>
-          ) : null}
-          <Pressable style={styles.retry} onPress={() => load()}>
-            <Text style={styles.retryText}>Tekrar Dene</Text>
-          </Pressable>
-        </View>
-      ) : viewMode === 'map' ? (
-        <View style={styles.center}>
-          <View style={styles.mapIconWrap}>
-            <Ionicons name="map-outline" size={26} color={palette.primary} />
-          </View>
-          <Text style={styles.emptyTitle}>Harita Gorunumu</Text>
-          <Text style={styles.emptySubtitle}>Harita modulu hazirlaniyor, liste ile devam edebilirsin.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => `${item.businessId}-${item.doctorId}`}
-          contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} />}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
-              onPress={() => router.push(`/client/doctors/${item.doctorId}`)}
-            >
+
+            <View style={[styles.headerCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+              <SearchField
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Doktor, klinik veya uzmanlik ara"
+                onSubmit={() => load()}
+              />
+
+              <View style={styles.segment}>
+                <Chip label="Liste" selected={viewMode === 'list'} onPress={() => setViewMode('list')} />
+                <Chip label="Harita" selected={viewMode === 'map'} onPress={() => setViewMode('map')} />
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                <Chip label="En yakin" selected={sort === 'nearest'} onPress={() => setSort('nearest')} />
+                <Chip label="En iyi puan" selected={sort === 'highest-rated'} onPress={() => setSort('highest-rated')} />
+                <Chip label="Erken saat" selected={sort === 'earliest-available'} onPress={() => setSort('earliest-available')} />
+                <Chip label="Cok yorum" selected={sort === 'most-reviewed'} onPress={() => setSort('most-reviewed')} />
+                <Chip label="Bugun musait" selected={availableToday} onPress={() => setAvailableToday((v) => !v)} />
+              </ScrollView>
+            </View>
+
+            <View style={styles.sectionWrap}>
+              <SectionHeader title="Hizli islem" subtitle="Randevu olusturmayi hizlandir" />
+              <View style={styles.quickRow}>
+                <AppButton label="Randevularim" variant="secondary" onPress={() => router.push('/client/appointments')} style={{ flex: 1 }} />
+                <AppButton label="Bildirimler" variant="ghost" onPress={() => router.push('/client/notifications')} style={{ flex: 1 }} />
+              </View>
+            </View>
+
+            {!loading && !error ? (
+              <View style={styles.sectionWrap}>
+                <SectionHeader title="One cikan doktorlar" subtitle="Puan ve yorumlara gore secildi" />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalCards}>
+                  {topRecommended.map((item) => (
+                    <AppCard key={`featured-${item.doctorId}`} style={styles.miniDoctorCard}>
+                      <View style={styles.cardTop}>
+                        <View style={[styles.avatar, { backgroundColor: theme.colors.primarySoft }]}>
+                          <Ionicons name="person" size={18} color={theme.colors.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <AppText variant="caption">{item.doctorName}</AppText>
+                          <AppText variant="micro" color={theme.colors.textMuted}>
+                            {item.specialty ?? 'Uzmanlik'}
+                          </AppText>
+                        </View>
+                      </View>
+                      <AppText variant="micro" color={theme.colors.textMuted} numberOfLines={1}>
+                        {item.businessName}
+                      </AppText>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${item.doctorName} icin hizli randevu`}
+                        style={styles.quickCta}
+                        onPress={() => router.push({ pathname: '/client/book/[doctorId]', params: { doctorId: item.doctorId } })}
+                      >
+                        <Ionicons name="flash-outline" size={13} color="#FFFFFF" />
+                        <AppText variant="micro" color="#FFFFFF">
+                          Hizli Randevu
+                        </AppText>
+                      </Pressable>
+                    </AppCard>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            {!loading && !error && featuredClinics.length > 0 ? (
+              <View style={styles.sectionWrap}>
+                <SectionHeader title="Klinikler" subtitle="Son goruntulenen bolgen icin" />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalCards}>
+                  {featuredClinics.map((clinic) => (
+                    <AppCard key={clinic.id} style={styles.clinicCard}>
+                      <AppText variant="caption" numberOfLines={1}>
+                        {clinic.name}
+                      </AppText>
+                      <AppText variant="micro" color={theme.colors.textMuted}>
+                        {clinic.reviewCount} degerlendirme
+                      </AppText>
+                      <AppButton label="Klinige git" variant="secondary" onPress={() => router.push(`/client/clinics/${clinic.id}`)} />
+                    </AppCard>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </>
+        }
+        renderItem={({ item }) => (
+          <AppCard style={{ marginBottom: theme.spacing.sm }}>
+            <Pressable accessibilityRole="button" onPress={() => router.push(`/client/doctors/${item.doctorId}`)}>
               <View style={styles.cardTop}>
-                <View style={styles.avatar}>
-                  <Ionicons name="person" size={18} color={palette.primary} />
+                <View style={[styles.avatar, { backgroundColor: theme.colors.primarySoft }]}>
+                  <Ionicons name="person" size={18} color={theme.colors.primary} />
                 </View>
                 <View style={styles.cardTopContent}>
-                  <Text style={styles.cardTitle}>{item.doctorName}</Text>
-                  <Text style={styles.cardSubtitle}>
+                  <AppText variant="subtitle">{item.doctorName}</AppText>
+                  <AppText variant="caption" color={theme.colors.textMuted}>
                     {item.specialty ?? 'Uzmanlik belirtilmedi'} - {item.businessName}
-                  </Text>
+                  </AppText>
                 </View>
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={12} color="#F59E0B" />
-                  <Text style={styles.ratingText}>
-                    {item.ratingAverage ? item.ratingAverage.toFixed(1) : '-'}
-                  </Text>
-                </View>
+                <Badge
+                  label={item.ratingAverage ? `${item.ratingAverage.toFixed(1)} Puan` : 'Yeni'}
+                  tone={item.ratingAverage ? 'warning' : 'info'}
+                />
               </View>
 
               <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Fiyat</Text>
-                <Text style={styles.metaValue}>{formatPrice(item.minPrice)}</Text>
+                <AppText variant="micro" color={theme.colors.textMuted}>
+                  Fiyat
+                </AppText>
+                <AppText variant="caption">{formatPrice(item.minPrice)}</AppText>
               </View>
               <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Yorum</Text>
-                <Text style={styles.metaValue}>{item.reviewCount}</Text>
+                <AppText variant="micro" color={theme.colors.textMuted}>
+                  Yorum
+                </AppText>
+                <AppText variant="caption">{item.reviewCount}</AppText>
               </View>
               <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Sonraki saat</Text>
-                <Text style={styles.metaValue}>{formatDateLabel(item.nextAvailableAt)}</Text>
-              </View>
-
-              <View style={styles.cardActions}>
-                <Pressable
-                  style={styles.secondaryAction}
-                  onPress={() => router.push(`/client/clinics/${item.businessId}`)}
-                >
-                  <Ionicons name="business-outline" size={14} color={palette.accent} />
-                  <Text style={styles.secondaryActionText}>Klinik</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.primaryAction}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/client/book/[doctorId]',
-                      params: { doctorId: item.doctorId },
-                    })
-                  }
-                >
-                  <Ionicons name="calendar-outline" size={14} color="#FFFFFF" />
-                  <Text style={styles.primaryActionText}>Randevu Al</Text>
-                </Pressable>
+                <AppText variant="micro" color={theme.colors.textMuted}>
+                  Sonraki saat
+                </AppText>
+                <AppText variant="caption">{formatDateLabel(item.nextAvailableAt)}</AppText>
               </View>
             </Pressable>
-          )}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyTitle}>Sonuc bulunamadi</Text>
-              <Text style={styles.emptySubtitle}>Filtreleri degistirip tekrar deneyin.</Text>
+
+            <View style={styles.cardActions}>
+              <AppButton label="Klinik" variant="ghost" onPress={() => router.push(`/client/clinics/${item.businessId}`)} style={{ flex: 1 }} />
+              <AppButton
+                label="Randevu Al"
+                onPress={() => router.push({ pathname: '/client/book/[doctorId]', params: { doctorId: item.doctorId } })}
+                style={{ flex: 1 }}
+              />
             </View>
-          }
+          </AppCard>
+        )}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.skeletonWrap}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <AppCard key={`skeleton-${index}`} style={{ marginBottom: theme.spacing.sm }}>
+                  <Skeleton height={18} width="45%" />
+                  <Skeleton height={12} width="70%" style={{ marginTop: theme.spacing.sm }} />
+                  <Skeleton height={38} width="100%" style={{ marginTop: theme.spacing.md }} />
+                </AppCard>
+              ))}
+            </View>
+          ) : error ? (
+            <EmptyState
+              icon="warning-outline"
+              title={isBackendUnavailable ? 'API baglantisi kurulamadi' : 'Bir hata olustu'}
+              description={
+                isBackendUnavailable
+                  ? 'Web API aktif degil. `npm run dev` ile sunucuyu calistirip tekrar deneyin.'
+                  : attemptedAddresses
+                    ? `${error}\nDenenen adresler: ${attemptedAddresses}`
+                    : (error ?? 'Bilinmeyen hata')
+              }
+              primaryActionLabel="Tekrar Dene"
+              onPrimaryAction={() => load()}
+            />
+          ) : viewMode === 'map' ? (
+            <EmptyState
+              icon="map-outline"
+              title="Harita gorunumu yakinda"
+              description="Premium harita deneyimi bir sonraki surumde aktif olacak. Simdilik liste gorunumu ile devam edebilirsin."
+              primaryActionLabel="Listeye don"
+              onPrimaryAction={() => setViewMode('list')}
+            />
+          ) : (
+            <EmptyState
+              icon="search-outline"
+              title="Sonuc bulunamadi"
+              description="Filtreleri sadeleştirip tekrar dene. Alternatif olarak en yakin siralama ile goruntule."
+              primaryActionLabel="Filtreleri sifirla"
+              onPrimaryAction={() => {
+                setSort('nearest')
+                setAvailableToday(false)
+                setQuery('')
+              }}
+            />
+          )
+        }
+      />
+      <View style={[styles.fabWrap, { bottom: 98 }]}>
+        <FloatingActionButton
+          icon="sparkles"
+          accessibilityLabel="AI asistani ac"
+          onPress={() => router.push('/client/notifications')}
         />
-      )}
+      </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.bg },
+  safe: { flex: 1 },
   hero: {
-    backgroundColor: palette.heroDark,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    gap: spacing.xs,
-  },
-  heroTitle: {
-    marginTop: 6,
-    fontSize: 23,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  heroSubtitle: {
-    color: '#B8CBE8',
-    fontSize: 13,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 8,
   },
   headerCard: {
-    marginHorizontal: spacing.md,
-    marginTop: -16,
-    padding: spacing.md,
-    borderRadius: radii.lg,
+    marginHorizontal: 16,
+    marginTop: -14,
+    padding: 14,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-    gap: spacing.sm,
-    ...shadows.floating,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radii.md,
-    backgroundColor: palette.surfaceSoft,
-    paddingHorizontal: 12,
-  },
-  search: {
-    flex: 1,
-    paddingVertical: 11,
-    color: palette.text,
-    fontSize: 14,
+    gap: 12,
   },
   segment: {
-    borderRadius: radii.md,
-    backgroundColor: palette.primarySoft,
-    padding: 4,
     flexDirection: 'row',
-    gap: 4,
-  },
-  segmentItem: {
-    flex: 1,
-    height: 34,
-    borderRadius: radii.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  segmentItemActive: {
-    backgroundColor: palette.accent,
-  },
-  segmentText: {
-    color: palette.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  segmentTextActive: {
-    color: '#FFFFFF',
+    gap: 8,
   },
   filterRow: {
     gap: 8,
     paddingRight: 10,
   },
-  chip: {
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: palette.surface,
-  },
-  chipActive: {
-    borderColor: palette.primary,
-    backgroundColor: palette.successSoft,
-  },
-  chipText: { color: palette.textMuted, fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: palette.primaryDark },
   listContent: {
-    padding: spacing.md,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
+    paddingBottom: 120,
+    paddingHorizontal: 16,
+    paddingTop: 14,
   },
-  card: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-    padding: spacing.md,
-    gap: spacing.xs,
-    ...shadows.card,
+  sectionWrap: { marginTop: 18 },
+  quickRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  horizontalCards: { gap: 10, paddingTop: 10, paddingRight: 12 },
+  miniDoctorCard: { width: 190, gap: 8 },
+  clinicCard: { width: 190, gap: 10 },
+  quickCta: {
+    marginTop: 8,
+    borderRadius: 12,
+    height: 34,
+    backgroundColor: '#0FAE9F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 5,
   },
   cardTop: {
     flexDirection: 'row',
@@ -394,106 +384,25 @@ const styles = StyleSheet.create({
   avatar: {
     width: 34,
     height: 34,
-    borderRadius: radii.sm,
-    backgroundColor: palette.primarySoft,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTopContent: {
     flex: 1,
   },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    borderRadius: radii.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#FFF7E5',
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: palette.text,
-  },
-  cardSubtitle: { color: palette.textMuted, fontSize: 12 },
-  ratingText: { color: '#B45309', fontSize: 12, fontWeight: '700' },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 2,
+    paddingTop: 3,
+    paddingBottom: 3,
   },
-  metaLabel: { color: palette.textMuted, fontSize: 12 },
-  metaValue: { color: palette.text, fontSize: 12, fontWeight: '600' },
   cardActions: {
-    marginTop: 8,
+    marginTop: 10,
     flexDirection: 'row',
     gap: 8,
   },
-  secondaryAction: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#BFD7FF',
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    height: 38,
-    backgroundColor: '#F4F9FF',
-  },
-  secondaryActionText: { color: palette.accent, fontWeight: '700', fontSize: 13 },
-  primaryAction: {
-    flex: 1,
-    borderRadius: radii.md,
-    backgroundColor: palette.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    height: 38,
-  },
-  primaryActionText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  errorTitle: { color: palette.danger, textAlign: 'center', fontWeight: '700', marginBottom: 6 },
-  error: { color: palette.text, textAlign: 'center', lineHeight: 20 },
-  helpBox: {
-    marginTop: 10,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radii.md,
-    backgroundColor: '#FFFFFF',
-    padding: spacing.sm,
-    gap: 6,
-  },
-  helpLine: { color: palette.textMuted, fontSize: 12, lineHeight: 18 },
-  helpMeta: { color: palette.textMuted, fontSize: 11, lineHeight: 16 },
-  retry: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: palette.primary,
-    borderRadius: radii.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  retryText: { color: palette.primary, fontWeight: '700' },
-  mapIconWrap: {
-    width: 54,
-    height: 54,
-    borderRadius: radii.lg,
-    backgroundColor: palette.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: palette.text },
-  emptySubtitle: { marginTop: 6, color: palette.textMuted, textAlign: 'center', lineHeight: 19 },
+  skeletonWrap: { marginTop: 14 },
+  fabWrap: { position: 'absolute', right: 20 },
 })

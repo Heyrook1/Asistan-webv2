@@ -15,10 +15,11 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 import { submitContactForm } from '@/app/contact/actions'
 
 export default function ContactPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -49,7 +50,7 @@ export default function ContactPage() {
         en: 'Let us map out the setup flow matching your clinic structure in a quick session.',
       }),
       action: t({ tr: 'Kayıt Ol', en: 'Sign Up' }),
-      href: '/register',
+      href: getRegisterPath(language),
     },
     {
       icon: ShieldCheck,
@@ -59,7 +60,7 @@ export default function ContactPage() {
         en: 'If you already have an account, proceed to secure login.',
       }),
       action: t({ tr: 'Giriş Yap', en: 'Login' }),
-      href: '/login',
+      href: getLoginPath(language),
     },
   ]
 

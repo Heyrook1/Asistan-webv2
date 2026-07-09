@@ -2,18 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import {
-  ActivityIndicator,
   Alert,
+  type DimensionValue,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native'
+import { AppButton, AppCard, AppInput, AppText, Badge, Chip, EmptyState, SectionHeader, Skeleton } from '@/components/ui'
 import { apiGet, apiPost } from '@/lib/api'
-import { palette, radii, shadows, spacing } from '@/lib/theme'
+import { useAppTheme } from '@/lib/use-app-theme'
 import type { AvailabilitySlot } from '@/lib/types'
 
 type DoctorDetailResponse = {
@@ -49,6 +48,7 @@ function todayIso() {
 }
 
 export default function ClientBookDoctorScreen() {
+  const theme = useAppTheme()
   const router = useRouter()
   const params = useLocalSearchParams<{ doctorId: string; serviceId?: string; startTime?: string }>()
   const doctorId = useMemo(() => String(params.doctorId ?? ''), [params.doctorId])
@@ -68,6 +68,7 @@ export default function ClientBookDoctorScreen() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
   const [slots, setSlots] = useState<AvailabilitySlot[]>([])
   const [selectedStart, setSelectedStart] = useState<string | null>(prefStart)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -113,6 +114,26 @@ export default function ClientBookDoctorScreen() {
       })
       .catch(() => setSlots([]))
   }, [doctor, selectedServiceId, date, selectedStart])
+
+  const dateOptions = useMemo(() => {
+    const today = new Date()
+    return Array.from({ length: 7 }).map((_, index) => {
+      const value = new Date(today)
+      value.setDate(today.getDate() + index)
+      return {
+        iso: value.toISOString().slice(0, 10),
+        label: value.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: '2-digit' }),
+      }
+    })
+  }, [])
+  const selectedService = useMemo(
+    () => doctor?.services.find((service) => service.id === selectedServiceId) ?? null,
+    [doctor, selectedServiceId]
+  )
+  const selectedSlot = useMemo(() => slots.find((slot) => slot.startTime === selectedStart) ?? null, [slots, selectedStart])
+  const canContinueStep1 = Boolean(selectedServiceId)
+  const canContinueStep2 = Boolean(selectedStart)
+  const canContinueStep3 = Boolean(fullName.trim() && phone.trim())
 
   async function submitBooking() {
     if (!doctor || !selectedServiceId || !selectedStart) {
@@ -160,106 +181,197 @@ export default function ClientBookDoctorScreen() {
 
   if (loading || !doctor) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={palette.primary} />
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+        <View style={{ padding: 16, gap: 10 }}>
+          <Skeleton height={140} />
+          <Skeleton height={110} />
+          <Skeleton height={110} />
         </View>
       </SafeAreaView>
     )
   }
 
+  const progressWidth = `${(step / 4) * 100}%` as DimensionValue
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.title}>Randevu Olustur</Text>
-          <Text style={styles.subtitle}>
+        <View style={[styles.hero, { backgroundColor: theme.colors.heroMid }]}>
+          <AppText variant="title" color="#FFFFFF">
+            Premium Randevu
+          </AppText>
+          <AppText variant="caption" color="#D5E5FF">
             {doctor.fullName} - {doctor.clinic.name}
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1) Hizmet Sec</Text>
-          <View style={styles.rowWrap}>
-            {doctor.services.map((service) => (
-              <Pressable
-                key={service.id}
-                style={[
-                  styles.chip,
-                  selectedServiceId === service.id && styles.chipActive,
-                ]}
-                onPress={() => setSelectedServiceId(service.id)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    selectedServiceId === service.id && styles.chipTextActive,
-                  ]}
-                >
-                  {service.name}
-                </Text>
-              </Pressable>
-            ))}
+          </AppText>
+          <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+            <View style={[styles.progressValue, { width: progressWidth }]} />
+          </View>
+          <View style={styles.progressMeta}>
+            <Badge label={`Adim ${step}/4`} tone="info" />
+            <AppText variant="micro" color="#D5E5FF">
+              Hatasiz onay icin bilgilerini adim adim tamamla
+            </AppText>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2) Tarih ve Saat Sec</Text>
-          <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
-          <View style={styles.rowWrap}>
-            {slots.length === 0 ? (
-              <Text style={styles.empty}>Secilen gun icin uygun saat bulunamadi.</Text>
-            ) : (
-              slots.map((slot) => (
-                <Pressable
-                  key={slot.startTime}
-                  style={[
-                    styles.slot,
-                    selectedStart === slot.startTime && styles.slotActive,
-                  ]}
-                  onPress={() => setSelectedStart(slot.startTime)}
-                >
-                  <Text
+        {step === 1 ? (
+          <AppCard>
+            <SectionHeader title="1) Hizmet secimi" subtitle="Ihtiyacina uygun hizmeti belirle" />
+            <View style={styles.rowWrap}>
+              {doctor.services.map((service) => (
+                <Chip
+                  key={service.id}
+                  label={`${service.name} · ${service.durationMin} dk`}
+                  selected={selectedServiceId === service.id}
+                  onPress={() => setSelectedServiceId(service.id)}
+                />
+              ))}
+            </View>
+            <AppButton
+              label="Devam et"
+              disabled={!canContinueStep1}
+              onPress={() => setStep(2)}
+              style={{ marginTop: theme.spacing.sm }}
+            />
+          </AppCard>
+        ) : null}
+
+        {step === 2 ? (
+          <AppCard>
+            <SectionHeader title="2) Tarih ve saat secimi" subtitle="Müsait zamanlari gor ve sec" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
+              {dateOptions.map((option) => (
+                <Chip key={option.iso} label={option.label} selected={date === option.iso} onPress={() => setDate(option.iso)} />
+              ))}
+            </ScrollView>
+            <View style={styles.rowWrap}>
+              {slots.length === 0 ? (
+                <EmptyState
+                  icon="time-outline"
+                  title="Müsait saat bulunamadi"
+                  description="Farkli bir tarih secerek devam edebilirsin."
+                />
+              ) : (
+                slots.map((slot) => (
+                  <Pressable
+                    key={slot.startTime}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${slot.startTime} saatini sec`}
                     style={[
-                      styles.slotText,
-                      selectedStart === slot.startTime && styles.slotTextActive,
+                      styles.slot,
+                      {
+                        borderColor: selectedStart === slot.startTime ? theme.colors.primary : theme.colors.border,
+                        backgroundColor: selectedStart === slot.startTime ? theme.colors.primary : theme.colors.surfaceSoft,
+                      },
                     ]}
+                    onPress={() => setSelectedStart(slot.startTime)}
                   >
-                    {slot.startTime}
-                  </Text>
-                </Pressable>
-              ))
-            )}
-          </View>
-        </View>
+                    <AppText variant="caption" color={selectedStart === slot.startTime ? '#FFFFFF' : theme.colors.text}>
+                      {slot.startTime}
+                    </AppText>
+                  </Pressable>
+                ))
+              )}
+            </View>
+            <View style={styles.wizardRow}>
+              <AppButton label="Geri" variant="ghost" onPress={() => setStep(1)} style={{ flex: 1 }} />
+              <AppButton label="Devam et" disabled={!canContinueStep2} onPress={() => setStep(3)} style={{ flex: 1 }} />
+            </View>
+          </AppCard>
+        ) : null}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3) Bilgilerini Gir</Text>
-          <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Ad Soyad" />
-          <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Telefon" keyboardType="phone-pad" />
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="E-posta (opsiyonel)" autoCapitalize="none" />
-          <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Adres (opsiyonel)" />
-          <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="Sehir (opsiyonel)" />
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={note}
-            onChangeText={setNote}
-            placeholder="Not (opsiyonel)"
-            multiline
-          />
-        </View>
+        {step === 3 ? (
+          <AppCard>
+            <SectionHeader title="3) Hasta bilgileri" subtitle="Onay icin gerekli bilgileri gir" />
+            <AppInput label="Ad Soyad" value={fullName} onChangeText={setFullName} accessibilityLabel="Ad soyad" />
+            <AppInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" accessibilityLabel="Telefon" />
+            <AppInput
+              label="E-posta (opsiyonel)"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              accessibilityLabel="E-posta"
+            />
+            <AppInput label="Adres (opsiyonel)" value={address} onChangeText={setAddress} accessibilityLabel="Adres" />
+            <AppInput label="Sehir (opsiyonel)" value={city} onChangeText={setCity} accessibilityLabel="Sehir" />
+            <AppInput
+              label="Not (opsiyonel)"
+              value={note}
+              onChangeText={setNote}
+              multiline
+              style={{ minHeight: 82, textAlignVertical: 'top' }}
+              accessibilityLabel="Randevu notu"
+            />
+            <View style={styles.wizardRow}>
+              <AppButton label="Geri" variant="ghost" onPress={() => setStep(2)} style={{ flex: 1 }} />
+              <AppButton label="Ozeti gor" disabled={!canContinueStep3} onPress={() => setStep(4)} style={{ flex: 1 }} />
+            </View>
+          </AppCard>
+        ) : null}
+
+        {step === 4 ? (
+          <AppCard>
+            <SectionHeader title="4) Onay ve kontrol" subtitle="Randevu ozetini son kez kontrol et" />
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>Doktor</AppText>
+              <AppText variant="caption">{doctor.fullName}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>Klinik</AppText>
+              <AppText variant="caption">{doctor.clinic.name}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>Hizmet</AppText>
+              <AppText variant="caption">{selectedService?.name ?? '-'}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>Tarih / Saat</AppText>
+              <AppText variant="caption">{date} {selectedSlot?.startTime ?? '-'}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>Hasta</AppText>
+              <AppText variant="caption">{fullName || '-'}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>Iletisim</AppText>
+              <AppText variant="caption">{phone || '-'}</AppText>
+            </View>
+            <View style={styles.wizardRow}>
+              <AppButton label="Geri" variant="ghost" onPress={() => setStep(3)} style={{ flex: 1 }} />
+              <AppButton label="Randevuyu Onayla" loading={saving} onPress={submitBooking} style={{ flex: 1 }} />
+            </View>
+          </AppCard>
+        ) : null}
+
+        <AppCard style={{ backgroundColor: theme.colors.surfaceSoft }}>
+          <SectionHeader title="Guvenli rezervasyon" subtitle="Bilgilerin gizlilik standartlarina uygun islenir" />
+          <View style={styles.trustRow}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.success} />
+            <AppText variant="caption" color={theme.colors.textMuted}>
+              Verilerin sifrelenerek saklanir.
+            </AppText>
+          </View>
+          <View style={styles.trustRow}>
+            <Ionicons name="time-outline" size={16} color={theme.colors.info} />
+            <AppText variant="caption" color={theme.colors.textMuted}>
+              Randevu sonrasinda otomatik hatirlatma alirsin.
+            </AppText>
+          </View>
+        </AppCard>
       </ScrollView>
 
-      <View style={styles.sticky}>
-        <Pressable style={styles.confirmButton} disabled={saving} onPress={submitBooking}>
-          {saving ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.confirmText}>4) Randevuyu Onayla</Text>
-            </>
-          )}
+      <View style={[styles.sticky, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Randevuyu dogrudan onayla"
+          style={[styles.confirmButton, { backgroundColor: theme.colors.primary }]}
+          disabled={saving}
+          onPress={submitBooking}
+        >
+          <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
+          <AppText variant="button" color="#FFFFFF">
+            Hizli Onay
+          </AppText>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -267,98 +379,82 @@ export default function ClientBookDoctorScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  safe: { flex: 1 },
   container: {
-    padding: spacing.md,
-    paddingBottom: 110,
-    gap: spacing.sm,
+    padding: 16,
+    paddingBottom: 120,
+    gap: 12,
   },
   hero: {
-    borderRadius: radii.lg,
-    backgroundColor: palette.heroMid,
-    padding: spacing.lg,
-    gap: 4,
+    borderRadius: 20,
+    padding: 18,
+    gap: 8,
   },
-  title: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
-  subtitle: { color: '#BCD1EF', fontWeight: '600' },
-  section: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-    padding: spacing.md,
-    gap: 10,
-    ...shadows.card,
+  progressTrack: {
+    marginTop: 6,
+    height: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: palette.text },
-  rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: '#CAD8EC',
-    borderRadius: radii.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+  progressValue: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#22C8B8',
   },
-  chipActive: {
-    borderColor: palette.primary,
-    backgroundColor: '#ECFFFA',
+  progressMeta: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  chipText: { color: '#334762', fontWeight: '600' },
-  chipTextActive: { color: palette.primaryDark },
-  input: {
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: palette.text,
-    backgroundColor: '#FFFFFF',
-  },
-  textarea: {
-    minHeight: 84,
-    textAlignVertical: 'top',
-  },
+  rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  dateRow: { gap: 8, paddingVertical: 8, paddingRight: 10 },
   slot: {
+    minWidth: 78,
     borderWidth: 1,
-    borderColor: '#B8EFE4',
-    backgroundColor: '#ECFFFA',
-    borderRadius: radii.sm,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wizardRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#DCE5F2',
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    gap: 10,
   },
-  slotActive: {
-    borderColor: palette.primary,
-    backgroundColor: palette.primary,
+  trustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
   },
-  slotText: { color: palette.primaryDark, fontWeight: '700' },
-  slotTextActive: { color: '#ffffff' },
-  empty: { color: palette.textMuted },
   sticky: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 14,
-    backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderTopColor: palette.border,
   },
   confirmButton: {
-    height: 48,
-    borderRadius: radii.md,
-    backgroundColor: palette.primary,
+    minHeight: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-  },
-  confirmText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 16,
   },
 })

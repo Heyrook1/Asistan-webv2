@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath } from '@/lib/auth-routes'
 import { CheckCircle2, User, Mail, Lock, ShieldAlert, Loader2, ArrowRight, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { checkDuplicateEmail } from '@/app/register/actions'
@@ -162,7 +163,7 @@ export function RegisterForm() {
     }
   }
 
-  const loginUrl = language === 'tr' ? '/tr/giris' : '/en/login'
+  const loginUrl = getLoginPath(language)
 
   return (
     <div className="w-full max-w-4xl grid gap-8 lg:grid-cols-2 items-center">

@@ -3,9 +3,10 @@
     "name": "Asistan Mobile",
     "slug": "asistan-mobile",
     "scheme": "asistanmobile",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/branding/asistan-icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -13,14 +14,33 @@
       "typedRoutes": true
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.asistan.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Size en yakın klinikleri ve doktorları bulabilmek ve haritada göstermek için konum iznine ihtiyaç duymaktayız."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.asistan.mobile",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "INTERNET"
+      ]
+    },
     "web": {
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Size en yakın klinikleri ve doktorları bulabilmek ve haritada göstermek için konum iznine ihtiyaç duymaktayız."
+        }
+      ]
     ]
   }
 }

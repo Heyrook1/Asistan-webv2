@@ -46,9 +46,8 @@ export function AsistanLogo({
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      unoptimized
       className={`block max-w-full select-none ${className}`}
-      style={{ height: `${height}px`, width: 'auto' }}
+      style={{ width: 'auto' }}
     />
   )
 }

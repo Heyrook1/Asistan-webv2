@@ -7,11 +7,12 @@ import { Menu, X } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLanguage } from '@/hooks/useLanguage'
+import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 import { Button } from '@/components/ui/button'
 import { appleEase } from '@/lib/animations'
 import { cn } from '@/lib/utils'
 
-const NAV_COPY = {
+const HOME_NAV_COPY = {
   tr: {
     links: [
       { href: '#ecosystem', label: 'Ekosistem' },
@@ -44,11 +45,48 @@ const NAV_COPY = {
   },
 } as const
 
-export function SiteHeader() {
+const SITE_NAV_COPY = {
+  tr: {
+    links: [
+      { href: '/urun', label: 'Özellikler' },
+      { href: '/cozumler', label: 'Çözümler' },
+      { href: '/fiyatlandirma', label: 'Fiyatlandırma' },
+      { href: '/kaynaklar', label: 'Kaynaklar' },
+      { href: '/contact', label: 'İletişim' },
+    ],
+    joinPatient: 'Hasta Olarak Katıl',
+    startTrial: 'Ücretsiz Deneyin',
+    startTrialShort: 'Ücretsiz Deneyin',
+    openMenu: 'Gezinme menüsünü aç',
+    closeMenu: 'Gezinme menüsünü kapat',
+    login: 'Giriş Yap',
+  },
+  en: {
+    links: [
+      { href: '/urun', label: 'Features' },
+      { href: '/cozumler', label: 'Solutions' },
+      { href: '/fiyatlandirma', label: 'Pricing' },
+      { href: '/kaynaklar', label: 'Resources' },
+      { href: '/contact', label: 'Contact' },
+    ],
+    joinPatient: 'Join as Patient',
+    startTrial: 'Start Free Trial',
+    startTrialShort: 'Start Trial',
+    openMenu: 'Open navigation menu',
+    closeMenu: 'Close navigation menu',
+    login: 'Login',
+  },
+} as const
+
+type SiteHeaderProps = {
+  variant?: 'home' | 'site'
+}
+
+export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { language, setLanguage } = useLanguage()
-  const copy = NAV_COPY[language]
+  const copy = (variant === 'site' ? SITE_NAV_COPY : HOME_NAV_COPY)[language]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -57,8 +95,8 @@ export function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [language])
 
-  const loginUrl = '/login'
-  const registerUrl = '/register'
+  const loginUrl = getLoginPath(language)
+  const registerUrl = getRegisterPath(language)
 
   return (
     <header
@@ -73,15 +111,25 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-5 md:flex">
-          {copy.links.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="tap-target inline-flex items-center text-sm font-medium tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
-            >
-              {item.label}
-            </a>
-          ))}
+          {copy.links.map((item) =>
+            item.href.startsWith('#') ? (
+              <a
+                key={item.href}
+                href={item.href}
+                className="tap-target inline-flex items-center text-sm font-medium tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="tap-target inline-flex items-center text-sm font-medium tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -170,16 +218,27 @@ export function SiteHeader() {
               </button>
             </div>
             <div className="grid gap-1">
-              {copy.links.map((item) => (
-                <a
-                  key={`mobile-${item.href}`}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
-                >
-                  {item.label}
-                </a>
-              ))}
+              {copy.links.map((item) =>
+                item.href.startsWith('#') ? (
+                  <a
+                    key={`mobile-${item.href}`}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={`mobile-${item.href}`}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                  >
+                    {item.label}
+                  </Link>
+                ),
+              )}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-black/8 pt-3">
               <Button

@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { BrandLogo } from '@/components/brand-logo'
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  Screen,
+  SectionHeader,
+  Skeleton,
+} from '@/components/ui'
 import { apiGet, apiPut } from '@/lib/api'
 import { useSessionContext } from '@/lib/session-context'
-import { palette, radii, shadows, spacing } from '@/lib/theme'
+import { useAppTheme } from '@/lib/use-app-theme'
 
 type ProfileResponse = {
   profile: {
@@ -28,10 +27,12 @@ type ProfileResponse = {
 
 export default function ClientProfileScreen() {
   const router = useRouter()
+  const theme = useAppTheme()
   const { signOut } = useSessionContext()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -66,6 +67,7 @@ export default function ClientProfileScreen() {
   async function saveProfile() {
     setSaving(true)
     setError(null)
+    setSaved(false)
     try {
       await apiPut('/api/client/profile', {
         fullName,
@@ -74,6 +76,7 @@ export default function ClientProfileScreen() {
         address: address || null,
         city: city || null,
       })
+      setSaved(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Profil kaydedilemedi')
     } finally {
@@ -88,137 +91,64 @@ export default function ClientProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={palette.primary} />
+      <Screen>
+        <View style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}>
+          <Skeleton height={120} />
+          <Skeleton height={180} />
+          <Skeleton height={140} />
         </View>
-      </SafeAreaView>
+      </Screen>
     )
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.hero}>
+    <Screen>
+      <ScrollView contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: 120, gap: theme.spacing.sm }}>
+        <View
+          style={{
+            borderRadius: theme.radii.lg,
+            backgroundColor: theme.colors.heroMid,
+            padding: theme.spacing.lg,
+            gap: 4,
+          }}
+        >
           <BrandLogo variant="light" height={28} />
-          <Text style={styles.title}>Profil</Text>
-          <Text style={styles.subtitle}>Hesap ve iletisim bilgilerini yonetin</Text>
+          <AppText variant="title" color="#FFFFFF">
+            Profil
+          </AppText>
+          <AppText variant="caption" color="#BCD1EF">
+            Hesap ve iletisim bilgilerini yonetin
+          </AppText>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>Kisisel Bilgiler</Text>
-          <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Ad Soyad" />
-          <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Telefon" />
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="E-posta" autoCapitalize="none" />
-        </View>
+        <AppCard>
+          <SectionHeader title="Kisisel Bilgiler" />
+          <AppInput label="Ad Soyad" value={fullName} onChangeText={setFullName} />
+          <AppInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <AppInput label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" />
+        </AppCard>
 
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>Adres Bilgileri</Text>
-          <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Adres" />
-          <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="Sehir" />
-        </View>
+        <AppCard>
+          <SectionHeader title="Adres Bilgileri" />
+          <AppInput label="Adres" value={address} onChangeText={setAddress} />
+          <AppInput label="Sehir" value={city} onChangeText={setCity} />
+        </AppCard>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <AppText variant="caption" color={theme.colors.danger}>
+            {error}
+          </AppText>
+        ) : null}
+        {saved ? (
+          <AppText variant="caption" color={theme.colors.success}>
+            Profil kaydedildi.
+          </AppText>
+        ) : null}
 
-        <Pressable style={styles.primary} onPress={saveProfile} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <>
-              <Ionicons name="save-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.primaryText}>Kaydet</Text>
-            </>
-          )}
-        </Pressable>
-
-        <Pressable style={styles.secondary} onPress={() => router.push('/client/onboarding')}>
-          <Ionicons name="location-outline" size={16} color={palette.accent} />
-          <Text style={styles.secondaryText}>Konum Ayari</Text>
-        </Pressable>
-
-        <Pressable style={styles.logout} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={16} color={palette.danger} />
-          <Text style={styles.logoutText}>Cikis Yap</Text>
-        </Pressable>
+        <AppButton label="Kaydet" loading={saving} onPress={saveProfile} />
+        <AppButton label="Konum Ayari" variant="secondary" onPress={() => router.push('/client/onboarding')} />
+        <AppButton label="Cikis Yap" variant="ghost" onPress={handleSignOut} />
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   )
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: {
-    padding: spacing.md,
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  hero: {
-    backgroundColor: palette.heroMid,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: 4,
-  },
-  title: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
-  subtitle: { color: '#BCD1EF', fontSize: 13 },
-  panel: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-    padding: spacing.md,
-    gap: spacing.sm,
-    ...shadows.card,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: palette.text,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    backgroundColor: palette.surfaceSoft,
-    color: palette.text,
-  },
-  error: { color: palette.danger, marginTop: 4 },
-  primary: {
-    height: 46,
-    borderRadius: radii.md,
-    backgroundColor: palette.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  primaryText: { color: '#ffffff', fontWeight: '700' },
-  secondary: {
-    height: 44,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: '#BCD6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F9FF',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  secondaryText: { color: palette.accent, fontWeight: '700' },
-  logout: {
-    marginTop: 4,
-    height: 44,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: '#F7C2C8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF5F6',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  logoutText: { color: palette.danger, fontWeight: '700' },
-})

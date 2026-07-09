@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
-import { Footer } from '@/components/marketing/footer'
+import { SiteFooter } from '@/components/sections/site-footer'
+import { SiteHeader } from '@/components/sections/site-header'
 import { SmoothScroll } from '@/components/marketing/motion-wrappers'
-import { Navbar } from '@/components/marketing/navbar'
 import { cn } from '@/lib/utils'
 
 export function MarketingPageShell({
@@ -14,10 +14,16 @@ export function MarketingPageShell({
 }) {
   return (
     <SmoothScroll>
-      <div className={cn('min-h-screen bg-white font-sans text-brand-dark selection:bg-brand-blue/20', className)}>
-        <Navbar />
+      <div
+        className={cn(
+          'min-h-screen bg-[#F6F7F9] text-[#1D1D1F] selection:bg-[#0071E3]/18',
+          className,
+        )}
+      >
+        <div className="noise-overlay pointer-events-none fixed inset-0 opacity-[0.18]" />
+        <SiteHeader variant="site" />
         <main className="marketing-page-enter">{children}</main>
-        <Footer />
+        <SiteFooter />
       </div>
     </SmoothScroll>
   )

@@ -1,6 +1,11 @@
+import { getLoginPath, getRegisterPath, normalizeAuthLanguage } from '@/lib/auth-routes'
 import { updateSession } from '@/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+
+function authLanguageFromRequest(request: NextRequest) {
+  return normalizeAuthLanguage(request.cookies.get('asistan-lang')?.value)
+}
 
 const CLIENT_API_PREFIX = '/api/client'
 const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081']
@@ -115,25 +120,30 @@ export async function proxy(request: NextRequest) {
       )
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !user.email_confirmed_at) {
-        const lang = request.cookies.get('asistan-lang')?.value || 'tr'
-        const redirectUrl = lang === 'tr' ? '/tr/giris' : '/en/login'
+        const redirectUrl = getLoginPath(authLanguageFromRequest(request))
         return NextResponse.redirect(new URL(redirectUrl, request.url))
       }
     }
   }
 
   // Localized auth route redirects and rewrites
+  if (pathname === '/auth/login') {
+    return NextResponse.redirect(new URL(getLoginPath(authLanguageFromRequest(request)), request.url))
+  }
+  if (pathname === '/auth/sign-up') {
+    return NextResponse.redirect(new URL(getRegisterPath(authLanguageFromRequest(request)), request.url))
+  }
   if (pathname === '/giris') {
     return NextResponse.redirect(new URL('/tr/giris', request.url))
   }
   if (pathname === '/login') {
-    return NextResponse.redirect(new URL('/en/login', request.url))
+    return NextResponse.redirect(new URL(getLoginPath(authLanguageFromRequest(request)), request.url))
   }
   if (pathname === '/kayit') {
     return NextResponse.redirect(new URL('/tr/kayit', request.url))
   }
   if (pathname === '/register') {
-    return NextResponse.redirect(new URL('/en/register', request.url))
+    return NextResponse.redirect(new URL(getRegisterPath(authLanguageFromRequest(request)), request.url))
   }
 
   if (pathname === '/tr/login') {
