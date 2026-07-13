@@ -10,10 +10,12 @@ import {
   TimelineEventType,
 } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { writeAuditLog } from '@/lib/audit'
 import { requirePermission } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
 import { createClientNotification } from '@/lib/client-marketplace/notifications'
+import { canTransitionAppointmentStatus } from '@/lib/appointment-transitions'
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -299,10 +301,25 @@ export async function createAppointment(rawInput: unknown): Promise<ActionResult
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/ajanda')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
   revalidatePath('/dashboard/bildirimler')
   revalidatePath(`/dashboard/hastalar/${input.patientId}`)
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'appointment.create',
+    entityType: 'Appointment',
+    entityId: created.id,
+    summary: `Randevu oluşturuldu: ${input.date} ${input.startTime}`,
+    metadata: {
+      patientId: input.patientId,
+      serviceId: input.serviceId,
+      date: input.date,
+      startTime: input.startTime,
+    },
+  })
   return ok({ id: created.id })
 }
 
@@ -322,6 +339,12 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
     where: { id: parsed.data.id, businessId: session.businessId },
   })
   if (!existing) return err('Randevu bulunamadı')
+
+  if (!canTransitionAppointmentStatus(existing.status, parsed.data.status)) {
+    return err(
+      `Bu randevu ${existing.status} durumundan ${parsed.data.status} durumuna geçirilemez`
+    )
+  }
 
   if (parsed.data.status === 'CONFIRMED' && existing.staffId) {
     const overlap = await hasActiveStaffConflict({
@@ -431,7 +454,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
         type: 'BOOKING_APPROVED',
         title: 'Randevunuz onaylandi',
         message: `${dateStr} ${existing.startTime} randevunuz klinik tarafindan onaylandi.`,
-        link: '/client/appointments',
+        link: `/client/bookings?id=${existing.id}`,
         metadata: meta,
       })
     }
@@ -459,7 +482,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
         type: 'BOOKING_CANCELLED',
         title: 'Randevunuz iptal edildi',
         message: `${dateStr} ${existing.startTime} randevunuz iptal edildi.`,
-        link: '/client/appointments',
+        link: `/client/bookings?id=${existing.id}`,
         metadata: meta,
       })
     }
@@ -486,17 +509,28 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
         type: 'REVIEW_REQUEST',
         title: 'Randevunuz tamamlandi',
         message: 'Deneyiminizi puanlayarak diger hastalara yardimci olabilirsiniz.',
-        link: '/client/appointments',
+        link: `/client/bookings?id=${existing.id}`,
         metadata: meta,
       })
     }
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/ajanda')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
   revalidatePath('/dashboard/bildirimler')
   revalidatePath(`/dashboard/hastalar/${existing.patientId}`)
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: parsed.data.status === 'CANCELLED' ? 'appointment.cancel' : 'appointment.update',
+    entityType: 'Appointment',
+    entityId: existing.id,
+    severity: parsed.data.status === 'CANCELLED' ? 'WARN' : 'INFO',
+    summary: `Randevu durumu güncellendi: ${parsed.data.status}`,
+    metadata: { status: parsed.data.status, patientId: existing.patientId },
+  })
   return ok(undefined)
 }
 
@@ -623,7 +657,7 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
       type: 'BOOKING_RESCHEDULED',
       title: 'Randevunuz ertelendi',
       message: `${parsed.data.date} ${parsed.data.startTime} icin yeni randevu saatiniz olusturuldu.`,
-      link: '/client/appointments',
+      link: `/client/bookings?id=${existing.id}`,
       metadata: {
         appointmentId: existing.id,
         date: parsed.data.date,
@@ -633,10 +667,25 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/ajanda')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
   revalidatePath('/dashboard/bildirimler')
   revalidatePath(`/dashboard/hastalar/${existing.patientId}`)
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'appointment.reschedule',
+    entityType: 'Appointment',
+    entityId: existing.id,
+    severity: 'WARN',
+    summary: `Randevu yeniden planlandı: ${parsed.data.date} ${parsed.data.startTime}`,
+    metadata: {
+      patientId: existing.patientId,
+      date: parsed.data.date,
+      startTime: parsed.data.startTime,
+    },
+  })
   return ok(undefined)
 }
 
@@ -648,6 +697,16 @@ export async function deleteAppointment(rawInput: unknown): Promise<ActionResult
   await prisma.appointment.deleteMany({
     where: { id: parsed.data.id, businessId: session.businessId },
   })
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'appointment.cancel',
+    entityType: 'Appointment',
+    entityId: parsed.data.id,
+    severity: 'WARN',
+    summary: 'Randevu silindi',
+  })
+  revalidatePath('/dashboard/ajanda')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
   return ok(undefined)

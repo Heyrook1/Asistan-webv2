@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,7 +10,14 @@ import { Input } from '@/components/ui/input'
 import { CalendarDays, ChevronLeft, ChevronRight, Share2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
+import { AjandaModeSwitch } from '@/components/dashboard/ajanda-mode-switch'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_DOT, formatTime } from '@/lib/format'
+import {
+  readUiPreference,
+  UI_PREF_KEYS,
+  writeUiPreference,
+  type CalendarPrefs,
+} from '@/lib/ui-preferences'
 import { cn } from '@/lib/utils'
 
 type Event = {
@@ -34,6 +41,7 @@ type View = 'day' | 'week' | 'month'
 
 const VIEW_LABEL: Record<View, string> = { day: 'Gün', week: 'Hafta', month: 'Ay' }
 const STATUS_FILTERS = [
+  { value: 'agenda', label: 'Ajanda (bekleyen + onaylı)' },
   { value: 'all', label: 'Tüm durumlar' },
   { value: 'SCHEDULED', label: APPOINTMENT_STATUS_LABELS.SCHEDULED },
   { value: 'CONFIRMED', label: APPOINTMENT_STATUS_LABELS.CONFIRMED },
@@ -70,6 +78,29 @@ function addDays(date: Date, days: number) {
 const WEEK_DAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
 const FULL_WEEK_DAY_LABELS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar']
 
+function formatAccessibleDate(date: Date) {
+  return date.toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function hourSlotAriaLabel(date: Date, hour: number, eventCount: number, canCreateSlot: boolean) {
+  const hourLabel = `${String(hour).padStart(2, '0')}:00`
+  const dateLabel = formatAccessibleDate(date)
+  if (eventCount > 0) return `${dateLabel}, ${hourLabel}, ${eventCount} randevu`
+  if (canCreateSlot) return `${dateLabel}, ${hourLabel}, müsait, randevu oluştur`
+  return `${dateLabel}, ${hourLabel}, müsait`
+}
+
+function dayCellAriaLabel(day: Date, eventCount: number) {
+  const dateLabel = formatAccessibleDate(day)
+  if (eventCount > 0) return `${dateLabel}, ${eventCount} randevu, güne git`
+  return `${dateLabel}, randevu oluştur`
+}
+
 export function CalendarBoard({
   events,
   patients,
@@ -78,6 +109,9 @@ export function CalendarBoard({
   locations,
   canCreate,
   bookingSlug,
+  defaultStaffId,
+  pendingCount = 0,
+  initialDate,
 }: {
   events: Event[]
   patients: { id: string; label: string }[]
@@ -86,18 +120,47 @@ export function CalendarBoard({
   locations: { id: string; label: string }[]
   canCreate: boolean
   bookingSlug: string
+  defaultStaffId?: string
+  pendingCount?: number
+  initialDate?: string
 }) {
   const [view, setView] = useState<View>('week')
   const [cursor, setCursor] = useState<Date>(() => {
+    if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
+      const parsed = new Date(`${initialDate}T00:00:00`)
+      if (!Number.isNaN(parsed.getTime())) return parsed
+    }
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   })
   const [staffFilter, setStaffFilter] = useState<string>('all')
   const [serviceFilter, setServiceFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('agenda')
   const [create, setCreate] = useState<{ open: boolean; date?: string; startTime?: string }>({ open: false })
   const [shareOpen, setShareOpen] = useState(false)
+  const prefsReady = useRef(false)
+
+  useEffect(() => {
+    if (prefsReady.current) return
+    prefsReady.current = true
+    const saved = readUiPreference<CalendarPrefs>(UI_PREF_KEYS.calendarPrefs)
+    if (!saved) return
+    if (saved.view === 'day' || saved.view === 'week' || saved.view === 'month') setView(saved.view)
+    if (saved.staffFilter) setStaffFilter(saved.staffFilter)
+    if (saved.serviceFilter) setServiceFilter(saved.serviceFilter)
+    if (saved.statusFilter) setStatusFilter(saved.statusFilter)
+  }, [])
+
+  useEffect(() => {
+    if (!prefsReady.current) return
+    writeUiPreference<CalendarPrefs>(UI_PREF_KEYS.calendarPrefs, {
+      view,
+      staffFilter,
+      serviceFilter,
+      statusFilter,
+    })
+  }, [view, staffFilter, serviceFilter, statusFilter])
 
   const bookingLink = useMemo(() => {
     if (typeof window === 'undefined') return `/randevu/${bookingSlug}`
@@ -106,12 +169,13 @@ export function CalendarBoard({
 
   const filtered = useMemo(
     () =>
-      events.filter(
-        (e) =>
-          (staffFilter === 'all' || e.staffId === staffFilter) &&
-          (serviceFilter === 'all' || e.serviceId === serviceFilter) &&
-          (statusFilter === 'all' || e.status === statusFilter)
-      ),
+      events.filter((e) => {
+        if (staffFilter !== 'all' && e.staffId !== staffFilter) return false
+        if (serviceFilter !== 'all' && e.serviceId !== serviceFilter) return false
+        if (statusFilter === 'agenda') return e.status === 'SCHEDULED' || e.status === 'CONFIRMED'
+        if (statusFilter === 'all') return true
+        return e.status === statusFilter
+      }),
     [events, staffFilter, serviceFilter, statusFilter]
   )
 
@@ -159,16 +223,37 @@ export function CalendarBoard({
   return (
     <div className="space-y-3 lg:space-y-4">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-brand-ink lg:text-2xl">Takvim</h1>
-          <p className="text-[12px] text-muted-foreground lg:text-sm">{title}</p>
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-brand-ink lg:text-2xl">Ajanda</h1>
+              <p className="text-[12px] text-muted-foreground lg:text-sm">
+                Takvim modu · {title}
+                {pendingCount > 0 ? (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <Link
+                      href="/dashboard/ajanda?mode=liste&status=SCHEDULED"
+                      className="font-semibold text-brand-teal hover:underline"
+                    >
+                      {pendingCount} onay bekliyor
+                    </Link>
+                  </>
+                ) : null}
+              </p>
+            </div>
+            <AjandaModeSwitch mode="takvim" />
+          </div>
         </div>
         <div className="hidden flex-wrap items-center gap-2 md:flex">
           <div className="flex rounded-xl border bg-white p-1">
             {(['day', 'week', 'month'] as View[]).map((v) => (
               <button
                 key={v}
+                type="button"
                 onClick={() => setView(v)}
+                aria-pressed={view === v}
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-medium',
                   view === v ? 'bg-brand-teal text-white' : 'text-muted-foreground hover:text-brand-ink'
@@ -208,32 +293,41 @@ export function CalendarBoard({
       {/* Tablet+/desktop view */}
       <Card className="hidden md:block">
         <CardContent className="p-3 grid gap-2 md:grid-cols-3">
-          <Select value={staffFilter} onValueChange={setStaffFilter}>
-            <SelectTrigger><SelectValue placeholder="Personel filtrele" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm personel</SelectItem>
-              {staff.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={serviceFilter} onValueChange={setServiceFilter}>
-            <SelectTrigger><SelectValue placeholder="Hizmet filtrele" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm hizmetler</SelectItem>
-              {services.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger><SelectValue placeholder="Durum filtrele" /></SelectTrigger>
-            <SelectContent>
-              {STATUS_FILTERS.map((s) => (
-                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div>
+            <label htmlFor="calendar-staff-filter" className="sr-only">Personel filtrele</label>
+            <Select value={staffFilter} onValueChange={setStaffFilter}>
+              <SelectTrigger id="calendar-staff-filter" aria-label="Personel filtrele"><SelectValue placeholder="Personel filtrele" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm personel</SelectItem>
+                {staff.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="calendar-service-filter" className="sr-only">Hizmet filtrele</label>
+            <Select value={serviceFilter} onValueChange={setServiceFilter}>
+              <SelectTrigger id="calendar-service-filter" aria-label="Hizmet filtrele"><SelectValue placeholder="Hizmet filtrele" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm hizmetler</SelectItem>
+                {services.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="calendar-status-filter" className="sr-only">Durum filtrele</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="calendar-status-filter" aria-label="Durum filtrele"><SelectValue placeholder="Durum filtrele" /></SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
@@ -265,13 +359,17 @@ export function CalendarBoard({
         staff={staff.map((s) => ({ id: s.id, label: s.name }))}
         defaultDate={create.date}
         defaultStartTime={create.startTime}
+        defaultStaffId={defaultStaffId}
       />
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Takvimi Paylaş</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Takvimi Paylaş</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-3">
-            <Input readOnly value={bookingLink} />
+            <label htmlFor="calendar-share-link" className="sr-only">Online randevu bağlantısı</label>
+            <Input id="calendar-share-link" readOnly value={bookingLink} aria-label="Online randevu bağlantısı" />
             <Button
               onClick={() => {
                 navigator.clipboard.writeText(bookingLink)
@@ -443,6 +541,7 @@ function MobileAgenda({
                 type="button"
                 onClick={() => canCreate && onCreate(cursorIso, hourLabel)}
                 disabled={!canCreate}
+                aria-label={hourSlotAriaLabel(cursor, hour, hourEvents.length, canCreate)}
                 className={cn(
                   'flex w-full items-start gap-3 px-3 py-2 text-left transition-colors',
                   hourEvents.length === 0 && canCreate && 'hover:bg-slate-50 active:bg-slate-100',
@@ -529,7 +628,9 @@ function MonthGrid({
         return (
           <button
             key={iso}
+            type="button"
             onClick={() => onSlotClick(iso)}
+            aria-label={dayCellAriaLabel(day, dayEvents.length)}
             className={`text-left min-h-[110px] border-b border-r p-2 hover:bg-dashboard-surface ${
               !inMonth ? 'bg-dashboard-surface text-muted-foreground' : 'bg-white'
             }`}
@@ -608,7 +709,9 @@ function DayWeekGrid({
               return (
                 <button
                   key={`${iso}-${hour}`}
+                  type="button"
                   onClick={() => onSlotClick(iso, `${String(hour).padStart(2, '0')}:00`)}
+                  aria-label={hourSlotAriaLabel(d, hour, hourEvents.length, true)}
                   className="relative min-h-[60px] border-b border-r p-1 text-left hover:bg-dashboard-surface"
                 >
                   {hourEvents.map((ev) => (

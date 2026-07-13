@@ -68,6 +68,12 @@ type DoctorDetailResponse = {
       rating: number
       count: number
     }>
+    verification?: {
+      level: 'verified' | 'partial' | 'unverified'
+      label: string
+      labelEn: string
+      reasons: string[]
+    }
     credentials: Array<{
       id: string
       title: string
@@ -170,6 +176,25 @@ export default function DoctorDetailScreen() {
             <View style={styles.heroInfo}>
               <Text style={styles.title}>{data.fullName}</Text>
               <Text style={styles.subtitle}>{data.specialty ?? 'Uzmanlik bilgisi yakinda eklenecek'}</Text>
+              {data.verification ? (
+                <View
+                  style={[
+                    styles.verificationBadge,
+                    data.verification.level === 'verified'
+                      ? styles.verificationVerified
+                      : data.verification.level === 'partial'
+                        ? styles.verificationPartial
+                        : styles.verificationPending,
+                  ]}
+                >
+                  <Ionicons
+                    name={data.verification.level === 'verified' ? 'shield-checkmark' : 'shield-outline'}
+                    size={12}
+                    color={data.verification.level === 'verified' ? '#047857' : data.verification.level === 'partial' ? '#B45309' : '#475569'}
+                  />
+                  <Text style={styles.verificationText}>{data.verification.label}</Text>
+                </View>
+              ) : null}
               <Text style={styles.clinic}>
                 {data.clinic.name}
                 {data.clinic.city ? ` - ${data.clinic.city}` : ''}
@@ -410,6 +435,20 @@ const styles = StyleSheet.create({
   heroInfo: { flex: 1, gap: 3 },
   title: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
   subtitle: { fontSize: 14, color: '#96F5EA', fontWeight: '700' },
+  verificationBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  verificationVerified: { backgroundColor: 'rgba(16,185,129,0.18)' },
+  verificationPartial: { backgroundColor: 'rgba(245,158,11,0.18)' },
+  verificationPending: { backgroundColor: 'rgba(148,163,184,0.2)' },
+  verificationText: { fontSize: 11, fontWeight: '700', color: '#E2E8F0' },
   clinic: { color: '#BCD1EF', fontSize: 12 },
   heroMetrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metricChip: {

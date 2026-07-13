@@ -9,12 +9,14 @@ import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
+import { ENTRY_CTA } from '@/lib/entry-routes'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { FocusTrapPanel } from '@/components/a11y/focus-trap-panel'
 import { cn } from '@/lib/utils'
 
 type NavItem = {
@@ -49,9 +51,9 @@ function baseHref(path: string) {
 
 export function Navbar() {
   const pathname = usePathname()
-  const { language } = useLanguage()
-  const loginPath = getLoginPath(language)
-  const registerPath = getRegisterPath(language)
+  const { language: currentLanguage } = useLanguage()
+  const loginPath = getLoginPath(currentLanguage)
+  const registerPath = getRegisterPath(currentLanguage)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [solutionsOpen, setSolutionsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -115,6 +117,7 @@ export function Navbar() {
                     onMouseLeave={() => setSolutionsOpen(false)}
                   >
                     <button
+                      id="solutions-menu-button"
                       type="button"
                       className={cn(
                         'relative flex min-h-11 items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
@@ -129,11 +132,16 @@ export function Navbar() {
                       {active && <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-teal" />}
                     </button>
                     {solutionsOpen && (
-                      <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-brand-blue/15 bg-white p-2 shadow-xl">
+                      <div
+                        role="menu"
+                        aria-labelledby="solutions-menu-button"
+                        className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-brand-blue/15 bg-white p-2 shadow-xl"
+                      >
                         {solutionItems.map((solution) => (
                           <Link
                             key={`${solution.label}-${solution.status}`}
                             href={solution.href}
+                            role="menuitem"
                             className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-sm text-brand-navy hover:bg-brand-light"
                             onClick={() => setSolutionsOpen(false)}
                           >
@@ -167,8 +175,11 @@ export function Navbar() {
 
           <div className="hidden items-center gap-2 lg:flex">
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-brand-blue/15 px-3 text-xs font-semibold text-slate-600 hover:bg-brand-light">
-                <Globe className="size-3.5" />
+              <DropdownMenuTrigger
+                className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-brand-blue/15 px-3 text-xs font-semibold text-slate-600 hover:bg-brand-light"
+                aria-label="Dil seçimi"
+              >
+                <Globe className="size-3.5" aria-hidden="true" />
                 TR
                 <ChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
@@ -181,10 +192,10 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Button asChild variant="ghost" className="h-10 px-3 text-sm font-semibold text-slate-600 hover:text-brand-navy">
-              <Link href={loginPath}>Giris Yap</Link>
+              <Link href={loginPath}>{ENTRY_CTA.clinicLogin.tr}</Link>
             </Button>
             <Button asChild className="h-10 rounded-lg bg-brand-blue px-4 text-sm font-semibold text-white hover:bg-brand-blue/90">
-              <Link href={registerPath}>Ekran Erisim</Link>
+              <Link href={registerPath}>{ENTRY_CTA.clinicTrial.short.tr}</Link>
             </Button>
           </div>
 
@@ -201,7 +212,12 @@ export function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-brand-blue/10 bg-white py-3 lg:hidden">
+        <FocusTrapPanel
+          role="dialog"
+          label="Mobil menü"
+          onEscape={() => setMobileMenuOpen(false)}
+          className="border-t border-brand-blue/10 bg-white py-3 lg:hidden"
+        >
           <div className="marketing-container flex flex-col gap-1">
             {navItems.map((item) => {
               const active = pathname === baseHref(item.href) || pathname.startsWith(`${baseHref(item.href)}/`)
@@ -225,16 +241,18 @@ export function Navbar() {
                 Dil
               </span>
               <div className="inline-flex overflow-hidden rounded-lg border border-brand-blue/15">
-                {languageItems.map((language) => (
+                {languageItems.map((languageItem) => (
                   <button
-                    key={language.code}
+                    key={languageItem.code}
                     type="button"
+                    aria-pressed={currentLanguage === languageItem.code.toLowerCase()}
+                    aria-label={`${languageItem.label} dilini seç`}
                     className={cn(
                       'min-h-8 px-2.5 font-semibold',
-                      language.code === 'TR' ? 'bg-brand-blue text-white' : 'bg-white text-slate-600'
+                      languageItem.code === 'TR' ? 'bg-brand-blue text-white' : 'bg-white text-slate-600'
                     )}
                   >
-                    {language.code}
+                    {languageItem.code}
                   </button>
                 ))}
               </div>
@@ -242,17 +260,17 @@ export function Navbar() {
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-brand-blue/10 pt-3">
               <Button asChild variant="outline" className="h-10 rounded-lg border-brand-blue/20">
                 <Link href={loginPath} onClick={() => setMobileMenuOpen(false)}>
-                  Giris Yap
+                  {ENTRY_CTA.clinicLogin.tr}
                 </Link>
               </Button>
               <Button asChild className="h-10 rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
                 <Link href={registerPath} onClick={() => setMobileMenuOpen(false)}>
-                  Ekran Erisim
+                  {ENTRY_CTA.clinicTrial.short.tr}
                 </Link>
               </Button>
             </div>
           </div>
-        </div>
+        </FocusTrapPanel>
       )}
     </nav>
   )

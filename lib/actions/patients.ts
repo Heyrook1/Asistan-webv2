@@ -9,6 +9,7 @@ import {
   TimelineEventType,
 } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { writeAuditLog } from '@/lib/audit'
 import { requirePermission, requireSession } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
@@ -142,7 +143,7 @@ function toDate(value?: string) {
 
 async function nextPatientNumber(tx: Prisma.TransactionClient, businessId: string) {
   const rows = await tx.$queryRaw<Array<{ next_patient_number: string }>>`
-    select public.next_patient_number(${businessId}::uuid) as next_patient_number
+    select public.next_patient_number(${businessId}) as next_patient_number
   `
   const patientNumber = rows[0]?.next_patient_number
   if (!patientNumber) throw new Error('Hasta numarası üretilemedi')
@@ -363,6 +364,15 @@ export async function createPatient(rawInput: unknown): Promise<ActionResult<{ i
     revalidatePath('/dashboard')
     revalidatePath('/dashboard/hastalar')
     revalidatePath('/dashboard/bildirimler')
+    await writeAuditLog({
+      businessId: session.businessId,
+      actorUserId: session.userId,
+      action: 'patient.create',
+      entityType: 'Patient',
+      entityId: patient.id,
+      summary: `Hasta oluşturuldu: ${patient.fullName} (#${patient.patientNumber})`,
+      metadata: { patientNumber: patient.patientNumber, phone: input.phone },
+    })
     return ok({ id: patient.id })
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Hasta oluşturulamadı')
@@ -446,6 +456,16 @@ export async function archivePatient(rawInput: unknown): Promise<ActionResult> {
   await prisma.patient.updateMany({
     where: { id: parsed.data.id, businessId: session.businessId },
     data: { isArchived: parsed.data.archived },
+  })
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'patient.archive',
+    entityType: 'Patient',
+    entityId: parsed.data.id,
+    severity: 'WARN',
+    summary: parsed.data.archived ? 'Hasta arşivlendi' : 'Hasta arşivden çıkarıldı',
+    metadata: { archived: parsed.data.archived },
   })
   revalidatePath('/dashboard/hastalar')
   return ok(undefined)

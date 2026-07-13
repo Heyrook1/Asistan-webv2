@@ -8,6 +8,7 @@ import { FadeLeft, FadeUp, MouseParallax, ScaleIn } from '@/components/marketing
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 export const metadata: Metadata = {
   title: 'Cozumler | Asistan Health ve Sektor Yol Haritasi',
@@ -89,9 +90,9 @@ export default function SolutionsPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/auth/sign-up">
+              <Link href={getClinicTrialPath('tr')}>
                 <Button size="lg" variant="outline" className="h-12 rounded-xl border-brand-teal/30 px-6 text-brand-teal hover:bg-brand-teal/5">
-                  Erken Erisim Talep Et
+                  {ENTRY_CTA.clinicTrial.tr}
                 </Button>
               </Link>
             </div>

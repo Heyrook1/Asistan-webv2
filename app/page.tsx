@@ -59,8 +59,8 @@ const PricingSection = dynamic(
 
 const TrustSection = dynamic(
   () =>
-    import('@/components/sections/trust-section').then(
-      (mod) => mod.TrustSection,
+    import('@/components/sections/trust-section-server').then(
+      (mod) => mod.TrustSectionServer,
     ),
   {
     loading: () => <SectionSkeleton lines={3} />,
@@ -74,7 +74,7 @@ export default function HomePage() {
         <div className="min-h-screen bg-[#F6F7F9] text-[#1D1D1F] selection:bg-[#0071E3]/18">
           <div className="noise-overlay pointer-events-none fixed inset-0 opacity-[0.18]" />
           <SiteHeader />
-          <main>
+          <main id="main-content" tabIndex={-1}>
             <HeroCoverFlow />
             <MobileAppShowcaseSection />
             <EcosystemFlowSection />

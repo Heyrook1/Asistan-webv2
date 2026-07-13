@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { AccessibleField } from '@/components/ui/accessible-field'
 import {
   MoreVertical,
   CalendarPlus,
@@ -33,13 +33,15 @@ import {
   Check,
   Calendar as CalendarIcon,
   Frown,
-  SlidersHorizontal,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { setAppointmentStatus, rescheduleAppointment, deleteAppointment } from '@/lib/actions/appointments'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
+import { AjandaModeSwitch } from '@/components/dashboard/ajanda-mode-switch'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { APPOINTMENT_STATUS_LABELS, formatTime } from '@/lib/format'
+import { allowedNextStatuses } from '@/lib/appointment-transitions'
+import { readUiPreference, UI_PREF_KEYS, writeUiPreference } from '@/lib/ui-preferences'
 import { cn } from '@/lib/utils'
 
 type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
@@ -167,6 +169,7 @@ export function AppointmentsBoard({
   staff,
   locations,
   canManage,
+  defaultStaffId,
 }: {
   initialStatus: string
   initialCreateOpen?: boolean
@@ -176,6 +179,7 @@ export function AppointmentsBoard({
   staff: Option[]
   locations: Option[]
   canManage: boolean
+  defaultStaffId?: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -187,6 +191,29 @@ export function AppointmentsBoard({
   const [createOpen, setCreateOpen] = useState(initialCreateOpen)
   const [reschedule, setReschedule] = useState<PlainAppointment | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PlainAppointment | null>(null)
+  const focusId = searchParams.get('id')
+  const prefsHydrated = useRef(false)
+
+  useEffect(() => {
+    if (prefsHydrated.current) return
+    prefsHydrated.current = true
+    if (initialStatus && initialStatus !== 'ALL') return
+    const saved = readUiPreference<FilterValue>(UI_PREF_KEYS.appointmentStatusFilter)
+    if (!saved || saved === 'ALL') return
+    if (!FILTERS.some((filter) => filter.value === saved)) return
+    setStatus(saved)
+  }, [initialStatus])
+
+  function selectStatusFilter(next: FilterValue) {
+    setStatus(next)
+    writeUiPreference(UI_PREF_KEYS.appointmentStatusFilter, next)
+    const params = new URLSearchParams(searchParams.toString())
+    if (pathname.includes('/ajanda')) params.set('mode', 'liste')
+    if (next === 'ALL') params.delete('status')
+    else params.set('status', next)
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
 
   useEffect(() => {
     if (!initialCreateOpen) return
@@ -198,6 +225,12 @@ export function AppointmentsBoard({
     const href = queryString ? `${pathname}?${queryString}` : pathname
     router.replace(href, { scroll: false })
   }, [initialCreateOpen, pathname, router, searchParams])
+
+  useEffect(() => {
+    if (!focusId) return
+    const el = document.getElementById(`appointment-${focusId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [focusId, appointments])
 
   const filtered = useMemo(
     () => (status === 'ALL' ? appointments : appointments.filter((a) => a.status === status)),
@@ -227,16 +260,21 @@ export function AppointmentsBoard({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-brand-ink lg:text-[28px]">Randevular</h1>
-          <p className="mt-0.5 text-[13px] text-muted-foreground lg:text-sm">
-            Tüm randevularınızı görüntüleyin ve yönetin.
-          </p>
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-brand-ink lg:text-[28px]">Ajanda</h1>
+              <p className="mt-0.5 text-[13px] text-muted-foreground lg:text-sm">
+                Liste modu — onay, iptal ve durum yönetimi.
+              </p>
+            </div>
+            <AjandaModeSwitch mode="liste" />
+          </div>
         </div>
         {canManage && (
           <Button
             onClick={() => setCreateOpen(true)}
-            className="hidden h-11 gap-2 bg-brand-teal text-white shadow-sm hover:bg-brand-teal-hover md:inline-flex"
+            className="hidden h-11 shrink-0 gap-2 bg-brand-teal text-white shadow-sm hover:bg-brand-teal-hover md:inline-flex"
           >
             <CalendarPlus className="h-4 w-4" />
             Randevu Oluştur
@@ -254,7 +292,7 @@ export function AppointmentsBoard({
               <button
                 key={filter.value}
                 type="button"
-                onClick={() => setStatus(filter.value)}
+                onClick={() => selectStatusFilter(filter.value)}
                 aria-pressed={active}
                 className={cn(
                   'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition-colors md:h-10',
@@ -269,28 +307,47 @@ export function AppointmentsBoard({
             )
           })}
         </div>
-        <button
-          type="button"
-          className="hidden h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 text-[13px] font-semibold text-brand-ink transition-colors hover:border-brand-teal/40 md:inline-flex"
-          onClick={() => toast.info('Gelişmiş filtreleme yakında.')}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          Filtrele
-        </button>
       </div>
 
       {/* List */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Bu filtrede randevu yok"
-          description={canManage ? 'Yeni bir randevu oluşturarak başlayın.' : 'Yetkiniz dahilinde gösterilecek kayıt yok.'}
+          title={
+            status === 'ALL'
+              ? 'Henüz randevu yok'
+              : 'Bu filtrede randevu yok'
+          }
+          description={
+            status !== 'ALL'
+              ? 'Filtreyi temizleyerek tüm randevuları görebilir veya yeni bir randevu oluşturabilirsiniz.'
+              : canManage
+                ? 'İlk randevuyu oluşturarak ajandayı doldurun.'
+                : 'Yetkiniz dahilinde gösterilecek kayıt yok.'
+          }
+          ctaLabel={
+            status !== 'ALL'
+              ? 'Filtreyi temizle'
+              : canManage
+                ? 'Randevu oluştur'
+                : undefined
+          }
+          onCtaClick={
+            status !== 'ALL'
+              ? () => selectStatusFilter('ALL')
+              : canManage
+                ? () => setCreateOpen(true)
+                : undefined
+          }
+          secondaryCtaLabel={status !== 'ALL' && canManage ? 'Randevu oluştur' : undefined}
+          onSecondaryCtaClick={status !== 'ALL' && canManage ? () => setCreateOpen(true) : undefined}
         />
       ) : (
         <ul className="space-y-2.5">
           {filtered.map((appointment) => (
-            <li key={appointment.id}>
+            <li key={appointment.id} id={`appointment-${appointment.id}`}>
               <AppointmentRow
                 appointment={appointment}
+                focused={focusId === appointment.id}
                 canManage={canManage}
                 pending={pending}
                 onConfirm={() => changeStatus(appointment.id, 'CONFIRMED')}
@@ -314,6 +371,7 @@ export function AppointmentsBoard({
         patients={patients}
         services={services}
         staff={staff}
+        defaultStaffId={defaultStaffId}
       />
 
       <RescheduleDialog
@@ -348,6 +406,7 @@ export function AppointmentsBoard({
 
 function AppointmentRow({
   appointment,
+  focused,
   canManage,
   pending,
   onConfirm,
@@ -358,6 +417,7 @@ function AppointmentRow({
   onDelete,
 }: {
   appointment: PlainAppointment
+  focused?: boolean
   canManage: boolean
   pending: boolean
   onConfirm: () => void
@@ -375,9 +435,20 @@ function AppointmentRow({
   const weekday = weekdayFormatter.format(date)
   const shortDate = shortDateFormatter.format(date)
   const duration = durationMinutes(appointment.startTime, appointment.endTime)
+  const next = allowedNextStatuses(appointment.status)
+  const canConfirm = next.includes('CONFIRMED')
+  const canComplete = next.includes('COMPLETED')
+  const canCancelStatus = next.includes('CANCELLED')
+  const canMarkNoShow = next.includes('NO_SHOW')
+  const canReschedule = appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED'
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <article
+      className={cn(
+        'overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm transition-shadow hover:shadow-md',
+        focused && 'ring-2 ring-brand-teal/40'
+      )}
+    >
       <div className="flex items-stretch gap-3 p-3 md:gap-4 md:p-4">
         {/* Date badge */}
         <div
@@ -498,21 +569,31 @@ function AppointmentRow({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={onConfirm} disabled={pending}>
-                  <CalendarCheck className="mr-2 h-4 w-4 text-sky-600" /> Onayla
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onComplete} disabled={pending}>
-                  <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> Tamamlandı
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onReschedule} disabled={pending}>
-                  <RotateCcw className="mr-2 h-4 w-4" /> Yeniden Planla
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onCancel} disabled={pending}>
-                  <XCircle className="mr-2 h-4 w-4 text-rose-600" /> İptal
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onNoShow} disabled={pending}>
-                  <Frown className="mr-2 h-4 w-4 text-slate-600" /> Gelmedi
-                </DropdownMenuItem>
+                {canConfirm ? (
+                  <DropdownMenuItem onClick={onConfirm} disabled={pending}>
+                    <CalendarCheck className="mr-2 h-4 w-4 text-sky-600" /> Onayla
+                  </DropdownMenuItem>
+                ) : null}
+                {canComplete ? (
+                  <DropdownMenuItem onClick={onComplete} disabled={pending}>
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> Tamamlandı
+                  </DropdownMenuItem>
+                ) : null}
+                {canReschedule ? (
+                  <DropdownMenuItem onClick={onReschedule} disabled={pending}>
+                    <RotateCcw className="mr-2 h-4 w-4" /> Yeniden Planla
+                  </DropdownMenuItem>
+                ) : null}
+                {canCancelStatus ? (
+                  <DropdownMenuItem onClick={onCancel} disabled={pending}>
+                    <XCircle className="mr-2 h-4 w-4 text-rose-600" /> İptal
+                  </DropdownMenuItem>
+                ) : null}
+                {canMarkNoShow ? (
+                  <DropdownMenuItem onClick={onNoShow} disabled={pending}>
+                    <Frown className="mr-2 h-4 w-4 text-slate-600" /> Gelmedi
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onClick={onDelete} disabled={pending} className="text-rose-600 focus:text-rose-600">
                   Sil
                 </DropdownMenuItem>
@@ -562,20 +643,21 @@ function RescheduleDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Randevuyu Yeniden Planla</DialogTitle>
+          <DialogDescription>
+            {appointment.patientName} için yeni tarih ve saat seçin.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-3">
           <p className="text-sm text-muted-foreground">
             {appointment.patientName} • {appointment.serviceName}
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Tarih</Label>
+            <AccessibleField label="Tarih" required labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Saat</Label>
+            </AccessibleField>
+            <AccessibleField label="Saat" required labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
-            </div>
+            </AccessibleField>
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>İptal</Button>

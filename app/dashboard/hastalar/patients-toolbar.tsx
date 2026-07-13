@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Archive, Search, UserPlus, X, Users } from 'lucide-react'
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
+import { readUiPreference, UI_PREF_KEYS, writeUiPreference, type PatientsToolbarPref } from '@/lib/ui-preferences'
 import { cn } from '@/lib/utils'
 
 type Chip = { key: 'active' | 'archived'; label: string; icon: typeof Users }
@@ -28,6 +29,24 @@ export function PatientsToolbar({
   const [query, setQuery] = useState(params.get('q') ?? '')
   const archived = params.get('archived') === '1'
   const [, startTransition] = useTransition()
+  const prefsApplied = useRef(false)
+
+  useEffect(() => {
+    if (prefsApplied.current) return
+    prefsApplied.current = true
+    const hasUrlState = params.has('q') || params.has('archived') || params.has('create')
+    if (hasUrlState) return
+    const saved = readUiPreference<PatientsToolbarPref>(UI_PREF_KEYS.patientsToolbar)
+    if (!saved) return
+    const next = new URLSearchParams()
+    if (saved.archived) next.set('archived', '1')
+    if (saved.q?.trim()) {
+      next.set('q', saved.q.trim())
+      setQuery(saved.q.trim())
+    }
+    if ([...next.keys()].length === 0) return
+    startTransition(() => router.replace(`/dashboard/hastalar?${next.toString()}`, { scroll: false }))
+  }, [params, router, startTransition])
 
   useEffect(() => {
     if (!initialCreateOpen) return
@@ -41,6 +60,10 @@ export function PatientsToolbar({
   }, [initialCreateOpen, params, router, startTransition])
 
   function pushParams(next: URLSearchParams) {
+    writeUiPreference<PatientsToolbarPref>(UI_PREF_KEYS.patientsToolbar, {
+      archived: next.get('archived') === '1',
+      q: next.get('q') ?? undefined,
+    })
     const queryString = next.toString()
     const href = queryString ? `/dashboard/hastalar?${queryString}` : '/dashboard/hastalar'
     startTransition(() => router.replace(href, { scroll: false }))
@@ -70,13 +93,18 @@ export function PatientsToolbar({
           }}
           className="relative flex-1 lg:flex-none"
         >
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+          <label htmlFor="patients-search" className="sr-only">
+            Hasta ara
+          </label>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden="true" />
           <Input
+            id="patients-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="İsim, telefon, no..."
             className="h-11 w-full bg-white pl-9 pr-9 lg:h-10 lg:w-64"
             inputMode="search"
+            aria-label="Hasta ara"
           />
           {query && (
             <button

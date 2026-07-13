@@ -18,9 +18,4 @@ export type CalendarEvent = {
   status: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 }
 
-export type Suggestion = {
-  title: string
-  description: string
-  tone: 'teal' | 'orange' | 'violet'
-  href?: string
-}
+export type { PriorityItem } from '@/lib/priority-engine'

@@ -52,7 +52,11 @@ export default function PrivacyPage() {
             </h1>
             <p className="mt-5 text-base leading-8 text-slate-600 md:text-lg">
               Bu sayfa, Asistan icindeki veri toplama, erisim ve isleme prensiplerini genel seviyede
-              ozetler. Kurulum ozelindeki kapsam, canliya gecis oncesinde ayrica netlestirilir.
+              ozetler. Dogrulanabilir guven kontrolleri icin{' '}
+              <Link href="/guven" className="font-semibold text-brand-blue underline-offset-2 hover:underline">
+                Guven Merkezi
+              </Link>
+              &apos;ni inceleyin.
             </p>
           </FadeUp>
         </div>

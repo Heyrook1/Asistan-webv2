@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
+import { ENTRY_CTA } from '@/lib/entry-routes'
 import { submitContactForm } from '@/app/contact/actions'
 
 export default function ContactPage() {
@@ -44,22 +45,22 @@ export default function ContactPage() {
     },
     {
       icon: MessageSquare,
-      title: t({ tr: 'Canlı Akış', en: 'Live Flow' }),
+      title: t(ENTRY_CTA.clinicTrial.short),
       description: t({
-        tr: 'Hızlı bir görüşmede klinik yapınıza uygun kurulum akışını çıkaralım.',
-        en: 'Let us map out the setup flow matching your clinic structure in a quick session.',
+        tr: 'Hesap oluşturup paneli kendi kliniğiniz için hemen deneyin.',
+        en: 'Create an account and try the clinic panel for your practice right away.',
       }),
-      action: t({ tr: 'Kayıt Ol', en: 'Sign Up' }),
+      action: t(ENTRY_CTA.clinicTrial),
       href: getRegisterPath(language),
     },
     {
       icon: ShieldCheck,
-      title: t({ tr: 'Panel Erişimi', en: 'Dashboard Access' }),
+      title: t(ENTRY_CTA.clinicLogin),
       description: t({
         tr: 'Hesabınız varsa doğrudan güvenli giriş ekranına geçin.',
         en: 'If you already have an account, proceed to secure login.',
       }),
-      action: t({ tr: 'Giriş Yap', en: 'Login' }),
+      action: t(ENTRY_CTA.clinicLogin),
       href: getLoginPath(language),
     },
   ]
@@ -155,7 +156,7 @@ export default function ContactPage() {
                 ) : (
                   <>
                     <h2 className="text-xl font-bold text-brand-navy">
-                      {t({ tr: 'Bize Ulaşın / Demo Talep Edin', en: 'Contact Us / Request a Demo' })}
+                      {t({ tr: 'Bize Ulaşın / Demo talep et', en: 'Contact us / Request a demo' })}
                     </h2>
                     <p className="mt-2 text-sm text-slate-500">
                       {t({ tr: 'Ekibimiz size en kısa sürede dönüş yapar.', en: 'Our team will get back to you shortly.' })}

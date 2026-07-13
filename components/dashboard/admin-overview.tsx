@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   Check,
   ChevronRight,
+  ClipboardList,
   Clock,
   Scissors,
   Send,
@@ -19,11 +20,11 @@ import { toast } from 'sonner'
 import { AppointmentFormDrawer, type AppointmentOption } from '@/components/dashboard/appointment-form-drawer'
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
 import { ServiceFormDialog } from '@/components/dashboard/service-form-dialog'
-import { AiSuggestions } from '@/components/dashboard/admin-overview/ai-suggestions'
+import { PriorityCards } from '@/components/dashboard/admin-overview/priority-cards'
 import { MiniCalendar } from '@/components/dashboard/admin-overview/mini-calendar'
 import { QuickStartTour } from '@/components/dashboard/admin-overview/quick-start-tour'
 import { StatsGrid } from '@/components/dashboard/admin-overview/stats-grid'
-import type { CalendarEvent, OverviewStats, Suggestion } from '@/components/dashboard/admin-overview/types'
+import type { CalendarEvent, OverviewStats, PriorityItem } from '@/components/dashboard/admin-overview/types'
 import { UpcomingAppointmentsTable } from '@/components/dashboard/admin-overview/upcoming-appointments-table'
 import { RemindersCard, type ReminderItem } from '@/components/dashboard/reminders-card'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ type LookupData = {
 type SetupStep = {
   title: string
   done: boolean
+  href?: string
 }
 
 type Modal = 'appointment' | 'patient' | 'service' | 'share' | null
@@ -54,7 +56,7 @@ export function AdminOverview({
   businessName,
   stats,
   setupSteps,
-  suggestions,
+  priorities,
   calendarEvents,
   upcomingAppointments,
   reminders,
@@ -63,11 +65,12 @@ export function AdminOverview({
   canCreateAppointment,
   canManageService,
   canViewAnalytics,
+  defaultStaffId,
 }: {
   businessName: string
   stats: OverviewStats
   setupSteps: SetupStep[]
-  suggestions: Suggestion[]
+  priorities: PriorityItem[]
   calendarEvents: CalendarEvent[]
   upcomingAppointments: CalendarEvent[]
   reminders: ReminderItem[]
@@ -76,6 +79,7 @@ export function AdminOverview({
   canCreateAppointment: boolean
   canManageService: boolean
   canViewAnalytics: boolean
+  defaultStaffId?: string
 }) {
   const router = useRouter()
   const [modal, setModal] = useState<Modal>(null)
@@ -146,6 +150,25 @@ export function AdminOverview({
     setQuickStartOpen(false)
   }
 
+  const mobilePrimary =
+    stats.pendingAppointments > 0
+      ? {
+          kind: 'link' as const,
+          href: '/dashboard/ajanda?mode=liste&status=SCHEDULED',
+          label:
+            stats.pendingAppointments === 1
+              ? '1 onay bekleyen'
+              : `${stats.pendingAppointments} onay bekleyen`,
+          icon: ClipboardList,
+        }
+      : canCreateAppointment
+        ? {
+            kind: 'create' as const,
+            label: 'Randevu oluştur',
+            icon: CalendarPlus,
+          }
+        : null
+
   return (
     <div className="space-y-4 lg:space-y-5">
       <Card className="overflow-hidden border-border/60 shadow-sm">
@@ -157,6 +180,28 @@ export function AdminOverview({
               <h1 className="text-xl font-bold tracking-tight text-brand-ink lg:text-[26px]">Klinik Operasyon Özeti</h1>
               <p className="mt-1 text-[13px] text-muted-foreground lg:text-sm">{businessName}</p>
             </div>
+
+            {mobilePrimary && (
+              <div className="lg:hidden">
+                {mobilePrimary.kind === 'link' ? (
+                  <Button asChild className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover">
+                    <Link href={mobilePrimary.href}>
+                      <mobilePrimary.icon className="h-4 w-4" />
+                      {mobilePrimary.label}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setModal('appointment')}
+                    className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover"
+                  >
+                    <mobilePrimary.icon className="h-4 w-4" />
+                    {mobilePrimary.label}
+                  </Button>
+                )}
+              </div>
+            )}
+
             <div className="hidden flex-wrap gap-2 lg:flex">
               {canCreateAppointment && (
                 <Button
@@ -202,29 +247,50 @@ export function AdminOverview({
                 <div className="h-full rounded-full bg-brand-teal transition-[width]" style={{ width: `${setupProgress}%` }} />
               </div>
               <ul className="space-y-2.5">
-                {setupSteps.map((step, index) => (
-                  <li key={step.title} className="flex items-center gap-3 text-sm">
-                    <span
-                      className={cn(
-                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                        step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
-                      )}
-                    >
-                      {step.done ? <Check className="h-3.5 w-3.5" /> : index + 1}
-                    </span>
-                    <span className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-brand-ink')}>
-                      {step.title}
-                    </span>
-                    {!step.done && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  </li>
-                ))}
+                {setupSteps.map((step, index) => {
+                  const row = (
+                    <>
+                      <span
+                        className={cn(
+                          'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                          step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+                        )}
+                      >
+                        {step.done ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                      </span>
+                      <span className={cn('flex-1', step.done ? 'text-muted-foreground line-through' : 'font-semibold text-brand-ink')}>
+                        {step.title}
+                      </span>
+                      {!step.done && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    </>
+                  )
+
+                  if (!step.done && step.href) {
+                    return (
+                      <li key={step.title}>
+                        <Link
+                          href={step.href}
+                          className="flex items-center gap-3 rounded-xl px-1 py-1.5 text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal/40"
+                        >
+                          {row}
+                        </Link>
+                      </li>
+                    )
+                  }
+
+                  return (
+                    <li key={step.title} className="flex items-center gap-3 px-1 py-1.5 text-sm">
+                      {row}
+                    </li>
+                  )
+                })}
               </ul>
             </CardContent>
           </Card>
         )}
 
         <MiniCalendar calendarEvents={calendarEvents} />
-        <AiSuggestions suggestions={suggestions} canViewAnalytics={canViewAnalytics} />
+        <PriorityCards items={priorities} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
@@ -243,12 +309,8 @@ export function AdminOverview({
               {canCreateAppointment && <QuickAction icon={<CalendarPlus />} label="Randevu Oluştur" onClick={() => setModal('appointment')} />}
               {canCreatePatient && <QuickAction icon={<UserPlus />} label="Hasta Ekle" onClick={() => setModal('patient')} />}
               {canManageService && <QuickAction icon={<Scissors />} label="Hizmet Ekle" onClick={() => setModal('service')} />}
-              <QuickAction icon={<Clock />} label="Müsaitlik Düzenle" href="/dashboard/takvim" />
-              <QuickAction
-                icon={<Send />}
-                label="Toplu Mesaj Gönder"
-                onClick={() => toast.info('Toplu mesaj özelliği sonraki entegrasyon adımında bağlanacak.')}
-              />
+              <QuickAction icon={<Clock />} label="Müsaitlik Düzenle" href="/dashboard/ajanda?mode=takvim" />
+              <QuickAction icon={<Send />} label="Mesajlar" href="/dashboard/mesajlar" />
               {canViewAnalytics && <QuickAction icon={<BarChart3 />} label="Rapor Oluştur" href="/dashboard/analitik" />}
             </div>
           </CardContent>
@@ -262,6 +324,7 @@ export function AdminOverview({
         patients={lookups.patients}
         services={lookups.services}
         staff={lookups.staff}
+        defaultStaffId={defaultStaffId}
       />
       <PatientFormDrawer open={modal === 'patient'} onOpenChange={(open) => setModal(open ? 'patient' : null)} />
       <ServiceFormDialog open={modal === 'service'} onOpenChange={(open) => setModal(open ? 'service' : null)} onSaved={() => router.refresh()} />
@@ -299,10 +362,41 @@ export function AdminOverview({
         }}
         onOpenCalendar={() => {
           setQuickStartOpen(false)
-          router.push('/dashboard/takvim')
+          router.push('/dashboard/ajanda?mode=takvim')
         }}
         onDismissForever={dismissQuickStartForever}
       />
+
+      {mobilePrimary && (
+        <div
+          className="fixed z-30 lg:hidden"
+          style={{
+            left: '1rem',
+            right: '5.5rem',
+            bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          {mobilePrimary.kind === 'link' ? (
+            <Button
+              asChild
+              className="h-12 w-full gap-2 rounded-2xl bg-brand-teal text-sm font-bold text-white shadow-xl shadow-teal-600/30 hover:bg-brand-teal-hover"
+            >
+              <Link href={mobilePrimary.href}>
+                <mobilePrimary.icon className="h-4 w-4" />
+                {mobilePrimary.label}
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setModal('appointment')}
+              className="h-12 w-full gap-2 rounded-2xl bg-brand-teal text-sm font-bold text-white shadow-xl shadow-teal-600/30 hover:bg-brand-teal-hover"
+            >
+              <mobilePrimary.icon className="h-4 w-4" />
+              {mobilePrimary.label}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

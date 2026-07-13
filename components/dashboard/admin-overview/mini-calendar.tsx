@@ -114,7 +114,7 @@ export function MiniCalendar({ calendarEvents }: { calendarEvents: CalendarEvent
               return (
                 <Link
                   key={iso}
-                  href={`/dashboard/takvim?date=${iso}`}
+                  href={`/dashboard/ajanda?mode=takvim&date=${iso}`}
                   className={cn(
                     'mx-auto flex h-9 w-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition-colors hover:bg-cyan-50',
                     !inMonth && 'text-slate-300',

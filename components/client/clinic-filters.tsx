@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { SlidersHorizontal, X } from 'lucide-react'
 
@@ -12,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  readUiPreference,
+  UI_PREF_KEYS,
+  writeUiPreference,
+  type ClientDiscoveryPref,
+} from '@/lib/ui-preferences'
 import { cn } from '@/lib/utils'
 
 type Chip = {
@@ -40,10 +46,63 @@ const FILTER_PARAMS = new Set([
   'sort',
 ])
 
+function persistFromParams(params: URLSearchParams) {
+  writeUiPreference<ClientDiscoveryPref>(UI_PREF_KEYS.clientDiscovery, {
+    sort: params.get('sort') ?? undefined,
+    availableToday: params.get('availableToday') === 'true',
+    minRating: params.get('minRating') ?? undefined,
+    maxDistanceKm: params.get('maxDistanceKm') ?? undefined,
+    maxPrice: params.get('maxPrice') ?? undefined,
+    city: params.get('city') ?? undefined,
+  })
+}
+
 export function ClinicFilters() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const restored = useRef(false)
+
+  useEffect(() => {
+    if (restored.current) return
+    restored.current = true
+    const hasFilter = [...FILTER_PARAMS].some((key) => searchParams.get(key))
+    if (hasFilter) {
+      persistFromParams(searchParams)
+      return
+    }
+    const saved = readUiPreference<ClientDiscoveryPref>(UI_PREF_KEYS.clientDiscovery)
+    if (!saved) return
+    const next = new URLSearchParams(searchParams.toString())
+    let changed = false
+    if (saved.sort) {
+      next.set('sort', saved.sort)
+      changed = true
+    }
+    if (saved.availableToday) {
+      next.set('availableToday', 'true')
+      changed = true
+    }
+    if (saved.minRating) {
+      next.set('minRating', saved.minRating)
+      changed = true
+    }
+    if (saved.maxDistanceKm) {
+      next.set('maxDistanceKm', saved.maxDistanceKm)
+      changed = true
+    }
+    if (saved.maxPrice) {
+      next.set('maxPrice', saved.maxPrice)
+      changed = true
+    }
+    if (saved.city) {
+      next.set('city', saved.city)
+      changed = true
+    }
+    if (!changed) return
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname)
+  }, [pathname, router, searchParams])
 
   const currentSort = searchParams.get('sort') ?? 'nearest'
 
@@ -69,6 +128,7 @@ export function ClinicFilters() {
         if (value == null || value === '') next.delete(key)
         else next.set(key, value)
       }
+      persistFromParams(next)
       const qs = next.toString()
       router.push(qs ? `${pathname}?${qs}` : pathname)
     },
@@ -83,6 +143,7 @@ export function ClinicFilters() {
   function clearFilters() {
     const next = new URLSearchParams(searchParams.toString())
     for (const key of FILTER_PARAMS) next.delete(key)
+    writeUiPreference<ClientDiscoveryPref>(UI_PREF_KEYS.clientDiscovery, {})
     const qs = next.toString()
     router.push(qs ? `${pathname}?${qs}` : pathname)
   }
@@ -141,4 +202,3 @@ export function ClinicFilters() {
     </div>
   )
 }
-

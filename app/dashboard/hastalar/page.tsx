@@ -48,11 +48,41 @@ export default async function HastalarPage({
 
       {patients.length === 0 ? (
         <EmptyState
-          title={sp.q ? 'Eşleşen hasta bulunamadı' : 'Henüz hasta yok'}
-          description={
+          title={
             sp.q
-              ? 'Farklı bir arama deneyin ya da yeni hasta ekleyin.'
-              : 'İlk hastayı kaydederek randevu, takip ve raporlama akışını başlatın.'
+              ? 'Eşleşen hasta bulunamadı'
+              : archived
+                ? 'Arşivde hasta yok'
+                : 'Henüz hasta yok'
+          }
+          description={
+            sp.q || archived
+              ? 'Filtreyi temizleyerek tüm aktif hastaları görebilirsiniz.'
+              : can(session, 'patient.edit')
+                ? 'İlk hastayı kaydederek randevu, takip ve raporlama akışını başlatın.'
+                : 'Yetkiniz dahilinde gösterilecek hasta kaydı yok.'
+          }
+          ctaLabel={
+            sp.q || archived
+              ? 'Filtreyi temizle'
+              : can(session, 'patient.edit')
+                ? 'Hasta ekle'
+                : undefined
+          }
+          ctaHref={
+            sp.q || archived
+              ? '/dashboard/hastalar'
+              : can(session, 'patient.edit')
+                ? '/dashboard/hastalar?create=1'
+                : undefined
+          }
+          secondaryCtaLabel={
+            (sp.q || archived) && can(session, 'patient.edit') ? 'Hasta ekle' : undefined
+          }
+          secondaryCtaHref={
+            (sp.q || archived) && can(session, 'patient.edit')
+              ? '/dashboard/hastalar?create=1'
+              : undefined
           }
         />
       ) : (
@@ -118,7 +148,7 @@ export default async function HastalarPage({
                       <th className="px-4 py-3 font-medium hidden lg:table-cell">Yaş / Cinsiyet</th>
                       <th className="px-4 py-3 font-medium hidden lg:table-cell">Etiketler</th>
                       <th className="px-4 py-3 font-medium">Aktivite</th>
-                      <th className="px-4 py-3"></th>
+                      <th className="px-4 py-3 font-medium"><span className="sr-only">İşlemler</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -134,7 +164,12 @@ export default async function HastalarPage({
                               className="flex items-center gap-1.5 font-medium text-brand-ink hover:text-brand-teal"
                             >
                               {p.fullName}
-                              {hasAllergy && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                              {hasAllergy && (
+                                <>
+                                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
+                                  <span className="sr-only">, alerji kaydı var</span>
+                                </>
+                              )}
                               {hasRisk && <Badge className="bg-rose-100 text-rose-700 border-0 text-[10px]">Riskli</Badge>}
                             </Link>
                             <span className="text-[11px] text-muted-foreground">#{p.patientNumber}</span>

@@ -88,7 +88,7 @@ export function MobileTopbar({
         />
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="tap-target flex items-center justify-center rounded-xl hover:bg-dashboard-hover">
+          <DropdownMenuTrigger className="tap-target flex items-center justify-center rounded-xl hover:bg-dashboard-hover" aria-label="Hesap menüsü">
             <Avatar className="h-9 w-9">
               <AvatarFallback
                 className="text-xs font-bold text-white"
@@ -110,17 +110,19 @@ export function MobileTopbar({
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/ayarlar" className="flex items-center gap-2.5">
+              <Link href="/dashboard/ayarlar?tab=hesap" className="flex items-center gap-2.5">
                 <User className="h-4 w-4 text-muted-foreground" />
                 Profilim
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/ayarlar" className="flex items-center gap-2.5">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                İşletme Ayarları
-              </Link>
-            </DropdownMenuItem>
+            {session.isOwner && (
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/ayarlar?tab=isletme" className="flex items-center gap-2.5">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  İşletme Ayarları
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}

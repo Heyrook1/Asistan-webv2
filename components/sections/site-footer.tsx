@@ -27,9 +27,10 @@ const FOOTER_COPY = {
         title: 'Kaynaklar',
         links: [
           { href: '/kaynaklar', label: 'Eğitim & Kılavuzlar' },
-          { href: '/contact', label: 'Demo Görüşmesi Talep Et' },
+          { href: '/contact', label: 'Demo talep et' },
           { href: '/fiyatlandirma#sss', label: 'Sıkça Sorulan Sorular' },
           { href: '/privacy', label: 'Gizlilik ve Veri Güvenliği' },
+          { href: '/guven', label: 'Güven Merkezi' },
         ],
       },
       {
@@ -37,17 +38,16 @@ const FOOTER_COPY = {
         links: [
           { href: '/hakkimizda', label: 'Hakkımızda' },
           { href: '/terms', label: 'Kullanım Koşulları' },
-          { href: '/contact', label: 'İletişim Adresleri' },
+          { href: '/contact', label: 'İletişim' },
           { href: '/cozumler', label: 'İş Ortaklıkları' },
         ],
       },
     ],
     summary:
-      'Klinik yönetimi için bulut tabanlı modern panel, hastalar içinse yakında çıkacak olan GPS entegrasyonlu anlık rezervasyon mobil uygulaması.',
-    appStore: 'Çok Yakında',
-    playStore: 'Çok Yakında',
-    soon: 'Yakında',
-    queue: 'Asistan Rezervasyon bekleme listesi açık',
+      'Klinik yönetimi için bulut tabanlı modern panel ve hastalar için GPS destekli anlık rezervasyon mobil uygulaması.',
+    appStore: 'Mağaza bekleme listesi',
+    playStore: 'Mağaza bekleme listesi',
+    queue: 'Mağaza yayını için bekleme listesi açık',
     newsletter: 'Bültene Abone Olun',
     newsletterDesc: 'Ürün güncellemeleri, operasyonel rehberler ve hekim büyüme taktikleri.',
     placeholder: 'E-posta adresiniz...',
@@ -72,9 +72,10 @@ const FOOTER_COPY = {
         title: 'Resources',
         links: [
           { href: '/kaynaklar', label: 'Guides & Academy' },
-          { href: '/contact', label: 'Book a Live Demo' },
+          { href: '/contact', label: 'Request a demo' },
           { href: '/fiyatlandirma#sss', label: 'FAQ & Help Center' },
           { href: '/privacy', label: 'Privacy & Data Compliance' },
+          { href: '/guven', label: 'Trust Center' },
         ],
       },
       {
@@ -82,17 +83,16 @@ const FOOTER_COPY = {
         links: [
           { href: '/hakkimizda', label: 'About Us' },
           { href: '/terms', label: 'Terms of Use' },
-          { href: '/contact', label: 'Contact Support' },
+          { href: '/contact', label: 'Contact' },
           { href: '/cozumler', label: 'Partnership Program' },
         ],
       },
     ],
     summary:
-      'A premium cloud-native operations stack for clinics, plus a coming-soon patient mobile app that turns local search into booked appointments.',
-    appStore: 'Coming Soon',
-    playStore: 'Coming Soon',
-    soon: 'Soon',
-    queue: 'Asistan Rezervasyon waiting list open',
+      'A premium cloud-native operations stack for clinics, plus a patient mobile app that turns local search into booked appointments.',
+    appStore: 'Join store waitlist',
+    playStore: 'Join store waitlist',
+    queue: 'Join the waitlist for store release updates',
     newsletter: 'Subscribe to Newsletter',
     newsletterDesc: 'Product milestones, operational guides, and growth tactics.',
     placeholder: 'you@clinic.com',
@@ -168,7 +168,10 @@ export function SiteFooter() {
 
             {/* App download block */}
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm select-none">
+              <Link
+                href="/#waitlist"
+                className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm transition-colors hover:border-[#0071E3]/30 hover:bg-white"
+              >
                 <div className="flex items-center gap-3">
                   <Apple className="h-5 w-5 text-[#1D1D1F]" />
                   <div>
@@ -176,10 +179,13 @@ export function SiteFooter() {
                     <p className="text-xs font-bold text-[#1D1D1F]">{copy.appStore}</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[9px] font-bold text-[#0071E3] uppercase tracking-wider">{copy.soon}</span>
-              </div>
+                <ArrowRight className="h-4 w-4 text-[#0071E3]" />
+              </Link>
 
-              <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm select-none">
+              <Link
+                href="/#waitlist"
+                className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm transition-colors hover:border-[#0071E3]/30 hover:bg-white"
+              >
                 <div className="flex items-center gap-3">
                   <Play className="h-5 w-5 text-[#1D1D1F]" />
                   <div>
@@ -187,8 +193,8 @@ export function SiteFooter() {
                     <p className="text-xs font-bold text-[#1D1D1F]">{copy.playStore}</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[9px] font-bold text-[#0071E3] uppercase tracking-wider">{copy.soon}</span>
-              </div>
+                <ArrowRight className="h-4 w-4 text-[#0071E3]" />
+              </Link>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-2 text-xs">

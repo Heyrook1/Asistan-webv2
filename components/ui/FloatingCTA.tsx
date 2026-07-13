@@ -4,10 +4,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogIn, LayoutDashboard, UserPlus } from 'lucide-react'
+import { LogIn, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath } from '@/lib/auth-routes'
+import { ENTRY_CTA } from '@/lib/entry-routes'
 
 export function FloatingCTA() {
   const { t, language } = useLanguage()
@@ -45,8 +46,8 @@ export function FloatingCTA() {
   }, [supabase.auth])
 
   const text = t({
-    tr: isLoggedIn ? 'Klinik Paneli' : 'Giriş Yap / Kaydol',
-    en: isLoggedIn ? 'Dashboard' : 'Login / Sign Up',
+    tr: isLoggedIn ? 'Klinik paneli' : ENTRY_CTA.clinicLogin.tr,
+    en: isLoggedIn ? 'Dashboard' : ENTRY_CTA.clinicLogin.en,
   })
 
   const href = isLoggedIn ? '/dashboard' : getLoginPath(language)

@@ -26,11 +26,13 @@ export function QuickActions({
   canCreatePatient = true,
   canCreateAppointment = true,
   canManageService = true,
+  defaultStaffId,
 }: {
   lookups: QuickActionsLookups
   canCreatePatient?: boolean
   canCreateAppointment?: boolean
   canManageService?: boolean
+  defaultStaffId?: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState<Modal>(null)
@@ -78,6 +80,7 @@ export function QuickActions({
         patients={lookups.patients}
         services={lookups.services}
         staff={lookups.staff}
+        defaultStaffId={defaultStaffId}
       />
       <ServiceFormDialog
         open={open === 'service'}

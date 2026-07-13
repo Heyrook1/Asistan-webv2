@@ -173,6 +173,10 @@ export async function GET(
     ? business.description
     : `${business.name}, ${business.city ?? 'bolgesinde'} hasta odakli muayene, takip ve randevu sureci yurutmektedir.`
 
+  const verifiedDoctorCount = business.members.filter(
+    (member) => Boolean(member.medicalLicenseNo || member.diplomaNo || member.kktcIdentityNo)
+  ).length
+
   const credentials = [
     {
       id: 'operations',
@@ -188,9 +192,9 @@ export async function GET(
     },
     {
       id: 'team',
-      title: `${business.members.length} aktif uzman hekim`,
-      issuer: 'Klinik kaydi',
-      status: business.members.length > 0 ? 'Dogrulandi' : 'Beklemede',
+      title: `${business.members.length} aktif hekim · ${verifiedDoctorCount} kimlik kayitli`,
+      issuer: 'Asistan dogrulama',
+      status: verifiedDoctorCount > 0 ? 'Kismi/Dogrulanmis' : 'Beklemede',
     },
   ]
 

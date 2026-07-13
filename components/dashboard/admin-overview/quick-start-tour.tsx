@@ -89,7 +89,7 @@ export function QuickStartTour({
                 <p className="mt-1 text-xs text-muted-foreground">Takvimde uygun slotu açıp saat planlayın.</p>
                 <Button size="sm" variant="outline" className="mt-3 w-full" onClick={onOpenCalendar}>
                   <CalendarDays className="mr-2 h-4 w-4" />
-                  Takvime Git
+                  Ajandaya Git
                 </Button>
               </li>
               <li className="rounded-xl border bg-white p-3">

@@ -44,16 +44,16 @@ export function HeroCoverFlow() {
       },
       bullets: {
         tr: [
-          'Çift rezervasyonu engelleyen akıllı takvim altyapısı',
-          'Hasta randevu geçmişine anlık ve dinamik erişim',
-          'SMS/e-posta yoluyla otomatik hasta hatırlatmaları',
-          'Mobil uygulamadan gelen rezervasyonları canlı yakalama'
+          'Çift rezervasyonu engelleyen takvim altyapısı',
+          'Hasta randevu geçmişine anlık erişim',
+          'Panel içi hatırlatmalar ve bildirimler',
+          'Mobil ve webden gelen rezervasyon taleplerini yakalama'
         ],
         en: [
-          'Smart calendar with double-booking prevention engine',
+          'Calendar with double-booking prevention',
           'Instant access to patient appointment history',
-          'Automated SMS/email patient reminders',
-          'Reservations from mobile app captured live'
+          'In-panel reminders and notifications',
+          'Capture booking requests from mobile and web'
         ]
       }
     },
@@ -91,21 +91,21 @@ export function HeroCoverFlow() {
         en: 'Analytics & Reports'
       },
       badgeText: {
-        tr: 'Derin Öngörü',
-        en: 'Deep Insights'
+        tr: 'Operasyon Özeti',
+        en: 'Ops Summary'
       },
       bullets: {
         tr: [
-          'Gelir tahmini, klinik doluluk oranları ve hekim performansı',
-          'Aylık ve yıllık gelişim ile büyüme grafikleri analizi',
-          'Klinik gider kalemleri, operasyonel maliyet ve ciro takibi',
-          'Detaylı hekim hakediş ve çalışma süresi raporlaması'
+          'Doluluk, ciro ve iptal oranlarını tek ekranda görün',
+          'Son 6 aylık randevu ve gelir özetleri',
+          'Hekim ve hizmet bazlı aktivite görünümü',
+          'Günlük operasyon için sade raporlama'
         ],
         en: [
-          'Revenue forecasting, occupancy rates, and doctor metrics',
-          'Monthly and annual progress charts and growth analytics',
-          'Clinic expense tracking and financial turnover reporting',
-          'Detailed physician commission and schedule statistics'
+          'See occupancy, revenue, and cancellation rates in one view',
+          'Last 6 months of appointment and revenue summaries',
+          'Activity by doctor and service',
+          'Simple reporting for daily operations'
         ]
       }
     },
@@ -122,16 +122,16 @@ export function HeroCoverFlow() {
       },
       bullets: {
         tr: [
-          'Personel, oda, tıbbi ekipman ve cihaz planlaması',
-          'Ortak takvimler, anlık görev dağılımları ve takip panelleri',
-          'Çalışma saatleri, esnek vardiyalar ve izin günü koordinasyonu',
-          'Gelişmiş yetkilendirme ve rol tanımlama modülleri'
+          'Hekim ve personel takvimlerini tek yerden yönetin',
+          'Ortak takvimler ve görev takibi',
+          'Çalışma saatleri ve müsaitlik kuralları',
+          'Rol bazlı yetkilendirme (doktor, sekreter, personel)'
         ],
         en: [
-          'Staff, consultation room, and medical device coordination',
-          'Shared calendars, quick task assignments, and monitoring',
-          'Working hours, dynamic shifts, and vacation scheduling',
-          'Advanced permission access control and custom roles'
+          'Manage doctor and staff calendars in one place',
+          'Shared calendars and task tracking',
+          'Working hours and availability rules',
+          'Role-based permissions (doctor, secretary, staff)'
         ]
       }
     },
@@ -148,16 +148,16 @@ export function HeroCoverFlow() {
       },
       bullets: {
         tr: [
-          'Mobil uygulamadan gelen rezervasyonların otomatik işlenmesi',
-          'Hastaların yaptığı doğrulanmış geri bildirim ve değerlendirmeler',
-          'Randevu onay, iptal veya değişiklik durum takibi',
-          'Klinik yoğunluğuna göre akıllı bekleme listesi yönetimi'
+          'Mobil ve webden gelen rezervasyon taleplerini işleyin',
+          'Tamamlanan randevuya bağlı hasta yorumları',
+          'Randevu onay, iptal ve yeniden planlama takibi',
+          'Klinik ayarına göre otomatik veya manuel onay'
         ],
         en: [
-          'Direct booking feed processed instantly from the mobile app',
-          'Verified patient reviews and feedback loops updated live',
-          'Real-time tracking of booking confirmations and modifications',
-          'Smart waitlist queue management during peak clinical hours'
+          'Process booking requests from mobile and web',
+          'Patient reviews tied to completed appointments',
+          'Track confirmations, cancellations, and reschedules',
+          'Auto or manual approval based on clinic settings'
         ]
       }
     }
@@ -206,8 +206,8 @@ export function HeroCoverFlow() {
           </h1>
           <p className="mx-auto max-w-3xl text-[1.1rem] leading-relaxed text-[#5D6068] font-medium">
             {t({
-              tr: 'Klinikler ve hastalar için eksiksiz ekosistem – web panel + mobil uygulama (yakında). Kliniğinizi profesyonelce yönetin, hastalar saniyeler içinde randevu oluştursun.',
-              en: 'Complete ecosystem for clinics and patients — web dashboard + mobile app (coming soon). Manage your clinic professionally, let patients book in seconds.'
+              tr: 'Klinikler için web panel; hastalar için web ve mobil randevu. Randevu, hasta kartı, ekip rolleri ve temel analitik — abartısız, çalışan akışlar.',
+              en: 'Web dashboard for clinics; web and mobile booking for patients. Appointments, patient records, team roles, and core analytics — honest, working flows.',
             })}
           </p>
           <HomeCTA />

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { transporter, MAIL_FROM, DEMO_NOTIFY_TO } from '@/lib/email'
+import { getTransporter, MAIL_FROM, DEMO_NOTIFY_TO } from '@/lib/email'
 
 const demoBookingSchema = z.object({
   name: z.string().min(2, 'İsim en az 2 karakter olmalı'),
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
 
     // ── 2a. Admin bildirim e-postası ────────────────────────────────────────
     try {
-      await transporter.sendMail({
+      await getTransporter().sendMail({
         from: `"Asistan Health" <${MAIL_FROM}>`,
         to: DEMO_NOTIFY_TO,
         replyTo: email,
@@ -245,7 +245,7 @@ export async function POST(request: Request) {
     `
 
     try {
-      await transporter.sendMail({
+      await getTransporter().sendMail({
         from: `"Asistan Health" <${MAIL_FROM}>`,
         to: email,
         subject: `✅ Demo Talebiniz Alındı — ${date} ${time}`,

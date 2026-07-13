@@ -118,6 +118,12 @@ enum ClientNotificationType {
   REVIEW_REQUEST
 }
 
+enum PrescriptionStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
 enum TimelineEventType {
   PATIENT_CREATED
   PATIENT_UPDATED
@@ -131,6 +137,31 @@ enum TimelineEventType {
   APPOINTMENT_UPDATED
   APPOINTMENT_COMPLETED
   APPOINTMENT_CANCELLED
+}
+
+enum AuditSeverity {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}
+
+enum ConsentType {
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  KVKK_EXPLICIT
+  MARKETING_EMAILS
+  MARKETING_SMS
+  DATA_SHARING_THIRD_PARTY
+  HEALTH_DATA_PROCESSING
+}
+
+enum DataDeletionStatus {
+  PENDING
+  IN_REVIEW
+  COMPLETED
+  REJECTED
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -156,6 +187,10 @@ model User {
   sentMessages             Message[]                 @relation("MessageSender")
   messageReactions         MessageReaction[]
   patientNotesCreated      PatientNote[]             @relation("PatientNoteCreator")
+  auditLogs                AuditLog[]                @relation("AuditActor")
+  auditLogsProcessed       DataDeletionRequest[]     @relation("DeletionProcessor")
+  consents                 UserConsent[]
+  deletionRequests         DataDeletionRequest[]     @relation("DeletionRequester")
 
   @@index([email])
 }
@@ -206,6 +241,10 @@ model Business {
   staffUnavailableBlocks TeamMemberUnavailableBlock[]
   reviews           Review[]
   clientNotifications ClientNotification[]
+  prescriptions       Prescription[]
+  auditLogs           AuditLog[]
+  deletionRequests    DataDeletionRequest[]
+  complianceDocs      ComplianceDocument[]
 
   @@index([slug])
 }
@@ -267,6 +306,10 @@ model TeamMember {
   color       String    @default("#16A9E8")
   specialty   String?
   bio         String?
+  prescriptionTitle   String?  @default("Dr.")
+  kktcIdentityNo      String?
+  medicalLicenseNo    String?
+  diplomaNo           String?
   isBookable  Boolean   @default(true)
   isActive    Boolean   @default(true)
   deletedAt   DateTime?
@@ -282,6 +325,7 @@ model TeamMember {
   availabilityRules TeamMemberAvailability[]
   unavailableBlocks TeamMemberUnavailableBlock[]
   reviews          Review[]
+  prescriptions    Prescription[] @relation("PrescribingDoctor")
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -360,6 +404,7 @@ model Patient {
   files          PatientFile[]
   appointments   Appointment[]
   timeline       TimelineEvent[]
+  prescriptions  Prescription[]
 
   @@unique([businessId, patientNumber])
   @@index([businessId, fullName])
@@ -510,6 +555,68 @@ model PatientFile {
 
   @@index([businessId, patientId])
   @@index([businessId, category])
+}
+
+model Prescription {
+  id                    String             @id @default(uuid())
+  businessId            String
+  patientId             String
+  doctorId              String
+  appointmentId         String?
+  protocolNo            String
+  status                PrescriptionStatus @default(ISSUED)
+  diagnosis             String
+  notes                 String?
+  allergyWarning        String?
+  issuedAt              DateTime           @default(now())
+  validUntil            DateTime?
+  patientFullName       String
+  patientIdentityNumber String?
+  patientBirthDate      DateTime?
+  patientGender         String?
+  patientPhone          String?
+  patientAddress        String?
+  patientCity           String?
+  doctorTitle           String?
+  doctorFullName        String
+  doctorSpecialty       String?
+  doctorKktcIdentityNo  String?
+  doctorMedicalLicenseNo String?
+  doctorDiplomaNo       String?
+  doctorPhone           String?
+  clinicName            String
+  clinicAddress         String?
+  clinicCity            String?
+  clinicPhone           String?
+  createdByUserId       String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  business Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  patient  Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor   TeamMember         @relation("PrescribingDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
+  lines    PrescriptionLine[]
+
+  @@unique([businessId, protocolNo])
+  @@index([businessId, patientId, issuedAt])
+  @@index([businessId, doctorId])
+}
+
+model PrescriptionLine {
+  id             String  @id @default(uuid())
+  prescriptionId String
+  sortOrder      Int     @default(0)
+  drugName       String
+  dosage         String?
+  frequency      String?
+  durationDays   Int?
+  quantity       Int?
+  form           String?
+  instructions   String?
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId, sortOrder])
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -886,6 +993,92 @@ model MessageReaction {
   @@unique([messageId, userId, emoji])
   @@index([messageId])
   @@index([userId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Governance — auditability & compliance workflows
+// ────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String        @id @default(uuid())
+  businessId String?
+  actorUserId String?
+  action     String
+  entityType String
+  entityId   String?
+  severity   AuditSeverity @default(INFO)
+  summary    String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime      @default(now())
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  actor    User?     @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@index([severity, createdAt])
+}
+
+model UserConsent {
+  id          String      @id @default(uuid())
+  userId      String
+  consentType ConsentType
+  version     String
+  granted     Boolean
+  ipAddress   String?
+  userAgent   String?
+  grantedAt   DateTime    @default(now())
+  revokedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consentType])
+  @@index([consentType, grantedAt])
+}
+
+model DataDeletionRequest {
+  id            String             @id @default(uuid())
+  businessId    String?
+  userId        String
+  patientId     String?
+  status        DataDeletionStatus @default(PENDING)
+  reason        String?
+  requestedAt   DateTime           @default(now())
+  processedAt   DateTime?
+  processedById String?
+  notes         String?
+
+  business    Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  user        User      @relation("DeletionRequester", fields: [userId], references: [id], onDelete: Cascade)
+  processedBy User?     @relation("DeletionProcessor", fields: [processedById], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status, requestedAt])
+  @@index([userId, requestedAt])
+  @@index([status, requestedAt])
+}
+
+model ComplianceDocument {
+  id          String    @id @default(uuid())
+  businessId  String?
+  title       String
+  category    String
+  version     String
+  status      String    @default("ACTIVE")
+  fileUrl     String?
+  notes       String?
+  effectiveAt DateTime  @default(now())
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, category, status])
+  @@index([expiresAt])
 }
 
 // ────────────────────────────────────────────────────────────────────────────

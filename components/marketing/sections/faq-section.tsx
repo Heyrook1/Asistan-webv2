@@ -15,7 +15,7 @@ const faqs = [
   {
     question: 'SMS ve hatirlatma akislarini destekliyor mu?',
     answer:
-      'Platform hatirlatma altyapisini destekler. Saglayici entegrasyonuna gore klinige ozel kurulumla otomatik mesaj akisina gecilebilir.',
+      'Panel ici ve e-posta hatirlatmalari kullanima hazirdir. SMS, opsiyonel webhook kurulumuyla saglayiciniza baglanabilir; kutudan cikar cikmaz acik bir SMS servisi degildir.',
   },
   {
     question: 'Veri guvenligi ve yetki yonetimi nasil saglaniyor?',

@@ -594,7 +594,7 @@ function NotificationDetail({
                   size="sm"
                   className="mt-3 w-full gap-1"
                 >
-                  <Link href={`/dashboard/randevular?id=${appointmentId}`}>
+                  <Link href={`/dashboard/ajanda?mode=liste&id=${appointmentId}`}>
                     <CalendarCheck className="h-4 w-4" />
                     Randevuya Git
                   </Link>

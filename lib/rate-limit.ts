@@ -1,39 +1,48 @@
-import { Ratelimit } from '@upstash/ratelimit'
-import { env } from '@/lib/env'
-
-// Create a new ratelimiter that allows 10 requests per 1 minute
-const ratelimit = env.upstashRedisRestUrl
-  ? new Ratelimit({
-      redis: env.upstashRedisRestUrl,
-      limiter: Ratelimit.slidingWindow(10, '1 m'),
-    })
-  : null
-
-export async function checkRateLimit(key: string, _limit: number = 10, _window: string = '1 m'): Promise<boolean> {
-  if (!ratelimit) {
-    // If Upstash not configured, allow all (development mode)
-    return true
-  }
-
-  try {
-    const result = await ratelimit.limit(key)
-    return result.success
-  } catch (error) {
-    console.error('Rate limit check failed:', error)
-    // Fail open - allow request if service unavailable
-    return true
-  }
+type Bucket = {
+  count: number
+  resetAt: number
 }
 
-// Specific rate limits for different endpoints
+const buckets = new Map<string, Bucket>()
+
+function parseWindowMs(window: string): number {
+  const match = window.trim().match(/^(\d+)\s*(s|m|h)$/i)
+  if (!match) return 60_000
+
+  const value = Number(match[1])
+  const unit = match[2].toLowerCase()
+
+  if (unit === 's') return value * 1_000
+  if (unit === 'm') return value * 60_000
+  return value * 3_600_000
+}
+
+export async function checkRateLimit(
+  key: string,
+  limit = 10,
+  window = '1 m'
+): Promise<boolean> {
+  const windowMs = parseWindowMs(window)
+  const now = Date.now()
+  const existing = buckets.get(key)
+
+  if (!existing || existing.resetAt <= now) {
+    buckets.set(key, { count: 1, resetAt: now + windowMs })
+    return true
+  }
+
+  if (existing.count >= limit) {
+    return false
+  }
+
+  existing.count += 1
+  return true
+}
+
 export const RATE_LIMITS = {
-  // General public endpoints
   public: { limit: 10, window: '1 m' },
-  // Authentication endpoints (stricter)
   auth: { limit: 5, window: '15 m' },
-  // API endpoints (moderate)
   api: { limit: 100, window: '1 m' },
-  // File uploads (strict)
   upload: { limit: 5, window: '1 h' },
 } as const
 

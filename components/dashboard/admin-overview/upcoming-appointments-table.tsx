@@ -26,20 +26,34 @@ export function UpcomingAppointmentsTable({
   onCreateAppointment,
   onShareCalendar,
   onOpenQuickStart,
+  title = 'Yaklaşan Randevular',
+  allHref = '/dashboard/ajanda?mode=liste',
+  allLabel = 'Tümü',
+  emptyTitle = 'Yaklaşan randevu görünmüyor',
+  emptyDescription = 'Yeni bir randevu oluşturabilir veya online rezervasyon bağlantınızı paylaşabilirsiniz.',
+  showShare = true,
+  showQuickStart = true,
 }: {
   upcomingAppointments: CalendarEvent[]
   canCreateAppointment: boolean
   onCreateAppointment: () => void
   onShareCalendar: () => void
   onOpenQuickStart: () => void
+  title?: string
+  allHref?: string
+  allLabel?: string
+  emptyTitle?: string
+  emptyDescription?: string
+  showShare?: boolean
+  showQuickStart?: boolean
 }) {
   return (
     <Card className="border-border/60 bg-white/85 shadow-sm backdrop-blur-md">
       <CardContent className="p-4 lg:p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-brand-ink">Yaklaşan Randevular</h2>
-          <Link href="/dashboard/randevular" className="inline-flex items-center gap-1 text-xs font-medium text-brand-teal">
-            Tümü <ChevronRight className="h-4 w-4" />
+          <h2 className="text-sm font-bold text-brand-ink">{title}</h2>
+          <Link href={allHref} className="inline-flex items-center gap-1 text-xs font-medium text-brand-teal">
+            {allLabel} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
 
@@ -48,10 +62,8 @@ export function UpcomingAppointmentsTable({
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal">
               <PlayCircle className="h-6 w-6" />
             </div>
-            <p className="text-sm font-semibold text-brand-ink">Yaklaşan randevu görünmüyor</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Yeni bir randevu oluşturabilir veya online rezervasyon bağlantınızı paylaşabilirsiniz.
-            </p>
+            <p className="text-sm font-semibold text-brand-ink">{emptyTitle}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{emptyDescription}</p>
             <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
               {canCreateAppointment && (
                 <Button size="sm" onClick={onCreateAppointment} className="bg-brand-teal text-white hover:bg-brand-teal-hover">
@@ -59,14 +71,18 @@ export function UpcomingAppointmentsTable({
                   Randevu Oluştur
                 </Button>
               )}
-              <Button size="sm" variant="outline" onClick={onShareCalendar}>
-                <Share2 className="mr-2 h-4 w-4" />
-                Takvimi Paylaş
-              </Button>
-              <Button size="sm" variant="outline" onClick={onOpenQuickStart}>
-                <PlayCircle className="mr-2 h-4 w-4" />
-                Hızlı başlangıç turu
-              </Button>
+              {showShare && (
+                <Button size="sm" variant="outline" onClick={onShareCalendar}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Takvimi Paylaş
+                </Button>
+              )}
+              {showQuickStart && (
+                <Button size="sm" variant="outline" onClick={onOpenQuickStart}>
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Hızlı başlangıç turu
+                </Button>
+              )}
             </div>
           </div>
         ) : (

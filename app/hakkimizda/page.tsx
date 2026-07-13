@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 export const metadata: Metadata = {
   title: 'Hakkimizda',
-  description: "Asistan, KKTC'deki klinikler ve hizmet isletmeleri icin gelistirilen AI destekli is yonetim platformudur.",
+  description: "Asistan, KKTC'deki klinikler ve hizmet isletmeleri icin gelistirilen randevu ve is yonetim platformudur.",
 }
 
 const principles = [
@@ -81,17 +82,17 @@ export default function AboutPage() {
               Daha iyi bir saglik deneyimi icin buradayiz.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Asistan, kliniklerin tum is akislarini tek platformda toplayan, yapay zeka destekli is yonetim platformudur.
+              Asistan, kliniklerin tum is akislarini tek platformda toplayan randevu ve is yonetim platformudur.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild className="min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">
-                <Link href="/auth/sign-up" aria-label="Asistan erken erisim basvurusu yap">
-                  Ekibimizle Tanisin
+                <Link href={getClinicTrialPath('tr')} aria-label={ENTRY_CTA.clinicTrial.tr}>
+                  {ENTRY_CTA.clinicTrial.tr}
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
               <Button asChild variant="outline" className="min-h-11 rounded-xl border-slate-300 text-brand-navy hover:bg-white">
-                <Link href="/cozumler/health">Health'i Incele</Link>
+                <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
               </Button>
             </div>
           </FadeUp>
@@ -188,7 +189,7 @@ export default function AboutPage() {
           <ScaleIn>
             <Card className="rounded-2xl border-slate-200">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-brand-navy">Bize Ulasin / Demo Talep Edin</h3>
+                <h3 className="text-xl font-bold text-brand-navy">Bize ulasin / {ENTRY_CTA.demoRequest.tr}</h3>
                 <p className="mt-2 text-sm text-slate-500">Ekibimiz size en kisa surede donus yapacaktir.</p>
                 <form className="mt-6 space-y-3">
                   <Input id="contact-name" name="name" placeholder="Ad Soyad" autoComplete="name" />
@@ -212,10 +213,10 @@ export default function AboutPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild className="min-h-11 rounded-xl bg-white text-brand-navy hover:bg-white/90">
-                <Link href="/auth/sign-up">Ekran Erisim</Link>
+                <Link href={getClinicTrialPath('tr')}>{ENTRY_CTA.clinicTrial.short.tr}</Link>
               </Button>
               <Button asChild variant="outline" className="min-h-11 rounded-xl border-white/30 bg-transparent text-white hover:bg-white/10">
-                <Link href="/auth/sign-up">Demo Talep Et</Link>
+                <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
               </Button>
             </div>
           </div>

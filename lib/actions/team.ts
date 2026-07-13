@@ -6,6 +6,7 @@ import { headers } from 'next/headers'
 import { NotificationType, TeamRole } from '@prisma/client'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
+import { writeAuditLog } from '@/lib/audit'
 import { requirePermission, requireSession, can, ROLE_DEFAULT_PERMISSIONS, PERMISSIONS, ROLE_LABELS } from '@/lib/session'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { env } from '@/lib/env'
@@ -368,6 +369,19 @@ export async function updateTeamMember(input: unknown): Promise<ActionResult> {
 
   revalidatePath('/dashboard/takim')
   revalidatePath('/dashboard/bildirimler')
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'team.member.update',
+    entityType: 'TeamMember',
+    entityId: id,
+    severity: 'WARN',
+    summary: 'Takım üyesi güncellendi',
+    metadata: {
+      previousRole: owned.role,
+      newRole: patch.role ?? owned.role,
+    },
+  })
   return ok(undefined)
 }
 
@@ -386,6 +400,20 @@ export async function updateRolePermissions(input: unknown): Promise<ActionResul
       role: parsed.data.role as TeamRole,
     },
     data: { permissions: parsed.data.permissions },
+  })
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'team.permission.update',
+    entityType: 'TeamRole',
+    entityId: parsed.data.role,
+    severity: 'CRITICAL',
+    summary: `${parsed.data.role} rol yetkileri güncellendi`,
+    metadata: {
+      role: parsed.data.role,
+      permissions: parsed.data.permissions,
+      updatedCount: result.count,
+    },
   })
   revalidatePath('/dashboard/takim')
   return ok({ updated: result.count })
@@ -441,6 +469,16 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
   await prisma.teamMember.updateMany({
     where: { id: parsed.data.id, businessId: session.businessId },
     data: { isActive: parsed.data.isActive },
+  })
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'team.access.change',
+    entityType: 'TeamMember',
+    entityId: parsed.data.id,
+    severity: 'CRITICAL',
+    summary: parsed.data.isActive ? 'Takım üyesi erişimi açıldı' : 'Takım üyesi erişimi durduruldu',
+    metadata: { isActive: parsed.data.isActive },
   })
   revalidatePath('/dashboard/takim')
   return ok(undefined)

@@ -83,6 +83,16 @@ export async function getDashboardStats(businessId: string) {
   }
 }
 
+/** Pending approvals for nav badge — respects own-view staff scope. */
+export async function getPendingAppointmentCount(businessId: string, viewer: SessionContext) {
+  const where: Prisma.AppointmentWhereInput = {
+    businessId,
+    status: 'SCHEDULED',
+  }
+  applyAppointmentViewScope(where, viewer)
+  return prisma.appointment.count({ where })
+}
+
 export async function getPatientsList(
   businessId: string,
   options: { query?: string; tag?: string; archived?: boolean; take?: number } = {}

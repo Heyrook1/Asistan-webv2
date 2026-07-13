@@ -35,7 +35,11 @@ export function ComplianceSection() {
           </p>
           <h2 className="font-heading text-3xl font-black md:text-5xl">Guvenlik ve mevzuat uyumu temel tasarim ilkesidir.</h2>
           <p className="mt-5 text-base leading-7 text-white/75">
-            KVKK, isletme bazli veri ayrimi ve rol guvenligi; platformun islevinden bagimsiz bir temel katman olarak ele alinmistir.
+            KVKK, isletme bazli veri ayrimi ve rol guvenligi; platformun islevinden bagimsiz bir temel katman olarak ele alinmistir.{' '}
+            <a href="/guven" className="font-semibold text-brand-cyan underline-offset-2 hover:underline">
+              Guven Merkezi
+            </a>
+            &apos;nde dogrulanabilir kontrolleri inceleyin.
           </p>
         </FadeUp>
 

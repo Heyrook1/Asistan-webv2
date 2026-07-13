@@ -6,11 +6,12 @@ import {
   BarChart3,
   Bell,
   Briefcase,
-  Calendar,
   CalendarDays,
   HelpCircle,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
+  Scale,
   Settings,
   Shield,
   Sparkles,
@@ -21,7 +22,7 @@ import { toast } from 'sonner'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ROLE_LABELS } from '@/lib/rbac'
+import { ROLE_LABELS, canViewAppointmentSchedule, appointmentScheduleNavLabels } from '@/lib/rbac'
 import type { Permission, SessionContext } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -31,43 +32,90 @@ type NavItem = {
   href: string
   icon: typeof LayoutDashboard
   permission?: Permission
+  /** Show if the session has any of these permissions (OR). */
+  anyOfPermissions?: Permission[]
   adminOnly?: boolean
   superAdminOnly?: boolean
-  badge?: boolean
+  badge?: 'notifications' | 'messages' | 'pendingAppointments'
 }
 
 const navItems: NavItem[] = [
   { name: 'Genel Bakış', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Randevular', href: '/dashboard/randevular', icon: Calendar, permission: 'appointment.manage' },
-  { name: 'Takvim', href: '/dashboard/takvim', icon: CalendarDays, permission: 'appointment.manage' },
+  {
+    name: 'Ajanda',
+    href: '/dashboard/ajanda',
+    icon: CalendarDays,
+    anyOfPermissions: ['appointment.manage', 'appointment.view', 'appointment.own.view'],
+    badge: 'pendingAppointments',
+  },
   { name: 'Hastalar', href: '/dashboard/hastalar', icon: Users, permission: 'patient.view' },
   { name: 'Hizmetler', href: '/dashboard/hizmetler', icon: Briefcase, permission: 'service.manage' },
   { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
-  { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: true },
+  { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
+  { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
   { name: 'Analitik', href: '/dashboard/analitik', icon: BarChart3, permission: 'analytics.view' },
+  { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Scale, superAdminOnly: true },
   { name: 'Super Admin', href: '/dashboard/super-admin', icon: Shield, superAdminOnly: true },
-  { name: 'Ayarlar', href: '/dashboard/ayarlar', icon: Settings },
+  { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
 ]
 
 export function DashboardSidebar({
   unreadNotifications,
+  unreadMessages = 0,
+  pendingAppointments = 0,
   session,
   showPlatformAdmin = false,
   showSuperAdmin = false,
 }: {
   unreadNotifications: number
+  unreadMessages?: number
+  pendingAppointments?: number
   session: SessionContext
   showPlatformAdmin?: boolean
   showSuperAdmin?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const scheduleLabels = appointmentScheduleNavLabels(session)
 
   const visibleItems = navItems.filter((item) => {
     if (item.adminOnly && !showPlatformAdmin) return false
     if (item.superAdminOnly && !showSuperAdmin) return false
+    if (item.anyOfPermissions?.length) {
+      if (item.href === '/dashboard/ajanda' || item.href.startsWith('/dashboard/ajanda?')) {
+        return canViewAppointmentSchedule(session)
+      }
+      return item.anyOfPermissions.some((permission) => session.permissions.includes(permission))
+    }
     return !item.permission || session.permissions.includes(item.permission)
   })
+
+  function navLabel(item: NavItem) {
+    if (
+      item.href === '/dashboard/ajanda' ||
+      item.href.startsWith('/dashboard/ajanda?') ||
+      item.href === '/dashboard/randevular' ||
+      item.href === '/dashboard/takvim'
+    ) {
+      return scheduleLabels.agenda
+    }
+    return item.name
+  }
+
+  function isActive(href: string) {
+    const path = href.split('?')[0]
+    if (path === '/dashboard/ajanda') {
+      return (
+        pathname === '/dashboard/ajanda' ||
+        pathname.startsWith('/dashboard/ajanda/') ||
+        pathname === '/dashboard/randevular' ||
+        pathname.startsWith('/dashboard/randevular/') ||
+        pathname === '/dashboard/takvim' ||
+        pathname.startsWith('/dashboard/takvim/')
+      )
+    }
+    return pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
+  }
 
   async function handleLogout() {
     const supabase = createClient()
@@ -79,7 +127,7 @@ export function DashboardSidebar({
 
   function SidebarContent() {
     return (
-      <div className="relative flex h-full flex-col overflow-hidden bg-brand-navy">
+      <div className="relative flex h-full flex-col overflow-hidden bg-sidebar">
         <div className="pointer-events-none absolute -left-20 -top-32 h-64 w-64 rounded-full bg-brand-teal/7 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-brand-cyan/7 blur-3xl" />
 
@@ -92,7 +140,7 @@ export function DashboardSidebar({
         <ScrollArea className="relative flex-1 py-4">
           <nav className="space-y-1 px-3">
             {visibleItems.map((item) => {
-              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              const active = isActive(item.href)
               return (
                 <Link
                   key={item.href}
@@ -106,10 +154,23 @@ export function DashboardSidebar({
                 >
                   {active && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand-teal" />}
                   <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-teal' : 'group-hover:text-white/90')} />
-                  <span className="flex-1 truncate">{item.name}</span>
-                  {item.badge && unreadNotifications > 0 && (
+                  <span className="flex-1 truncate">{navLabel(item)}</span>
+                  {item.badge === 'notifications' && unreadNotifications > 0 && (
                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                  {item.badge === 'messages' && unreadMessages > 0 && (
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
+                  {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
+                    <span
+                      className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-none text-amber-950"
+                      title="Onay bekleyen randevu"
+                    >
+                      {pendingAppointments > 9 ? '9+' : pendingAppointments}
                     </span>
                   )}
                 </Link>
@@ -134,21 +195,20 @@ export function DashboardSidebar({
               {ROLE_LABELS[session.role]} · {session.fullName}
             </p>
             <Link
-              href="/dashboard/ayarlar"
+              href={session.isOwner ? '/dashboard/ayarlar?tab=isletme' : '/dashboard/ayarlar?tab=hesap'}
               className="relative inline-block rounded-lg bg-brand-teal px-4 py-1.5 text-xs font-bold text-brand-navy transition-colors hover:bg-brand-teal-hover"
             >
-              İşletme Ayarları
+              {session.isOwner ? 'İşletme Ayarları' : 'Profilim'}
             </Link>
           </div>
 
-          <button
-            type="button"
-            onClick={() => toast.info('Yardım merkezi yakında bu alanda görünecek.')}
+          <Link
+            href="/contact"
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition-all duration-200 hover:bg-white/[0.05] hover:text-white/90"
           >
             <HelpCircle className="h-[18px] w-[18px] shrink-0" />
             <span className="flex-1 text-left">Yardım Merkezi</span>
-          </button>
+          </Link>
 
           <button
             type="button"

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { DEMO_CONTACT_PATH, ENTRY_CTA } from '@/lib/entry-routes'
 
 export const metadata: Metadata = {
   title: 'Kaynaklar',
@@ -97,8 +98,8 @@ export default function ResourcesPage() {
                     Randevu degisiklikleri, hasta hatirlatmalari ve ekip ici bilgi paylasimi ayni anda buyudugunde operasyon dagilmaya baslar.
                   </p>
                   <Button asChild className="mt-6 min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">
-                    <Link href="/auth/sign-up" aria-label="One cikan rehber hakkinda demo talep et">
-                      Demo Talep Et
+                    <Link href={DEMO_CONTACT_PATH} aria-label={`${ENTRY_CTA.demoRequest.tr} — kaynaklar`}>
+                      {ENTRY_CTA.demoRequest.tr}
                       <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                     </Link>
                   </Button>

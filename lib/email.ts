@@ -11,6 +11,11 @@
  */
 
 import nodemailer from 'nodemailer'
+import type { Transporter } from 'nodemailer'
+
+function isBuildTime() {
+  return process.env.NEXT_PHASE === 'phase-production-build'
+}
 
 function createTransport() {
   const host = process.env.SMTP_HOST
@@ -19,15 +24,13 @@ function createTransport() {
   const pass = process.env.SMTP_PASS
 
   if (!host || !user || !pass) {
-    // Geliştirme ortamında SMTP ayarlanmadıysa Nodemailer Ethereal preview kullan
-    // (production'da eksik değişken hata verir — kasıtlı olarak throw ediyoruz)
-    if (process.env.NODE_ENV === 'production') {
+    // Build sırasında modül import edilirken hata verme; runtime'da kontrol et.
+    if (process.env.NODE_ENV === 'production' && !isBuildTime()) {
       throw new Error(
         'E-posta gönderilemedi: SMTP_HOST, SMTP_USER ve SMTP_PASS ortam değişkenleri eksik.',
       )
     }
 
-    // Dev: sessizce loglama modu
     return nodemailer.createTransport({ jsonTransport: true })
   }
 
@@ -39,7 +42,14 @@ function createTransport() {
   })
 }
 
-export const transporter = createTransport()
+let transporterInstance: Transporter | null = null
+
+export function getTransporter(): Transporter {
+  if (!transporterInstance) {
+    transporterInstance = createTransport()
+  }
+  return transporterInstance
+}
 
 export const MAIL_FROM =
   process.env.SMTP_FROM ?? process.env.SMTP_USER ?? 'noreply@asistan.online'

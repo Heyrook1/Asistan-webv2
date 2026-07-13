@@ -3,6 +3,7 @@ import { ArrowRight, CalendarCheck, Mail } from 'lucide-react'
 
 import { FadeUp } from '@/components/marketing/motion-wrappers'
 import { Button } from '@/components/ui/button'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 export function CtaSection() {
   return (
@@ -22,13 +23,13 @@ export function CtaSection() {
 
         <FadeUp delay={0.1} className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="h-12 rounded-xl bg-brand-blue px-7 text-sm font-bold text-white hover:bg-brand-blue/90">
-            <Link href="/auth/sign-up">
-              Ucretsiz Demo Talep Et
+            <Link href={DEMO_CONTACT_PATH}>
+              {ENTRY_CTA.demoRequest.tr}
               <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="h-12 rounded-xl border-slate-200 px-7 text-sm font-bold text-brand-navy">
-            <Link href="/auth/sign-up">Hesap Ac</Link>
+            <Link href={getClinicTrialPath('tr')}>{ENTRY_CTA.clinicTrial.short.tr}</Link>
           </Button>
         </FadeUp>
 

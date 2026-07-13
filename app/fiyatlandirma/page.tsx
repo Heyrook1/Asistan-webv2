@@ -7,10 +7,11 @@ import { FadeUp } from '@/components/marketing/motion-wrappers'
 import { PricingPageSections } from '@/components/marketing/pricing-page-sections'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicLoginPath, getClinicTrialPath } from '@/lib/entry-routes'
 
 export const metadata: Metadata = {
   title: 'Fiyatlandirma',
-  description: 'Asistan Health erken erisim, kesif gorusmesi ve klinige ozel kurulum seceneklerini inceleyin.',
+  description: 'Asistan Health klinik planlari, deneme ve demo seceneklerini inceleyin.',
 }
 
 export default function PricingPage() {
@@ -43,18 +44,21 @@ export default function PricingPage() {
               <Sparkles className="mb-5 h-8 w-8 text-brand-cyan" aria-hidden="true" />
               <h2 className="font-heading text-3xl font-black">Kliniginiz icin en dogru cozumu birlikte bulalim.</h2>
               <p className="mt-4 max-w-2xl text-white/75">
-                Ucretsiz demo alin, tum ozellikleri yakindan gorun.
+                Demo talep edin veya klinik denemesini baslatin.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild className="min-h-11 rounded-xl bg-white text-brand-navy hover:bg-white/90">
-                <Link href="/auth/sign-up" aria-label="Asistan Health demo talep et">
-                  Demo Talep Et
+                <Link href={DEMO_CONTACT_PATH} aria-label={ENTRY_CTA.demoRequest.tr}>
+                  {ENTRY_CTA.demoRequest.tr}
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
               <Button asChild variant="outline" className="min-h-11 rounded-xl border-white/25 bg-transparent text-white hover:bg-white/10">
-                <Link href="/auth/login">Ekran Erisim</Link>
+                <Link href={getClinicTrialPath('tr')}>{ENTRY_CTA.clinicTrial.short.tr}</Link>
+              </Button>
+              <Button asChild variant="outline" className="min-h-11 rounded-xl border-white/25 bg-transparent text-white hover:bg-white/10">
+                <Link href={getClinicLoginPath('tr')}>{ENTRY_CTA.clinicLogin.tr}</Link>
               </Button>
             </div>
           </div>

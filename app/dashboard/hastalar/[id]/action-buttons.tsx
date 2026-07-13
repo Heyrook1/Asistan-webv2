@@ -1,22 +1,41 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { AccessibleField } from '@/components/ui/accessible-field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Archive, ArchiveRestore, CalendarPlus, FilePlus, Pill, ShieldAlert, ClipboardList, FlaskConical, NotebookPen } from 'lucide-react'
+import { Archive, ArchiveRestore, CalendarPlus, ChevronDown, FilePlus, FileText, Pill, ShieldAlert, ClipboardList, FlaskConical, NotebookPen } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   addAllergy, addLabResult, addMedication, addPatientFile, addPatientNote, addTreatment, archivePatient,
 } from '@/lib/actions/patients'
 import { uploadPatientFile } from '@/lib/storage'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
+import { PrescriptionFormDrawer } from '@/components/dashboard/prescription-form-drawer'
 
-type Modal = 'note' | 'medication' | 'allergy' | 'treatment' | 'lab' | 'file' | 'appointment' | null
+type Modal = 'note' | 'medication' | 'allergy' | 'treatment' | 'lab' | 'file' | 'appointment' | 'prescription' | null
+
+type DoctorOption = {
+  id: string
+  fullName: string
+  specialty: string | null
+  prescriptionTitle: string | null
+  kktcIdentityNo: string | null
+  medicalLicenseNo: string | null
+  diplomaNo: string | null
+  phone: string | null
+}
 
 export function PatientActionButtons({
   patientId,
@@ -24,20 +43,27 @@ export function PatientActionButtons({
   isArchived,
   services,
   staff,
+  doctors,
   locations,
   patientLabel,
+  defaultStaffId,
+  initialAction,
 }: {
   patientId: string
   businessId: string
   isArchived: boolean
   services: { id: string; name: string; durationMin: number }[]
   staff: { id: string; fullName: string }[]
+  doctors: DoctorOption[]
   locations: { id: string; name: string }[]
   patientLabel: string
+  defaultStaffId?: string
+  initialAction?: 'note' | 'file'
 }) {
   const router = useRouter()
   const [open, setOpen] = useState<Modal>(null)
   const [pending, startTransition] = useTransition()
+  const deepLinkHandled = useRef(false)
 
   // shared form state
   const noteRef = useRef({ title: '', note: '' })
@@ -47,6 +73,13 @@ export function PatientActionButtons({
   const labRef = useRef({ title: '', description: '', resultDate: '', labName: '', notes: '' })
   const fileRef = useRef<{ file: File | null; category: string; description: string }>({ file: null, category: 'DIGER', description: '' })
 
+  useEffect(() => {
+    if (deepLinkHandled.current || !initialAction) return
+    deepLinkHandled.current = true
+    setOpen(initialAction)
+    router.replace(`/dashboard/hastalar/${patientId}`, { scroll: false })
+  }, [initialAction, patientId, router])
+
   function withTransition(fn: () => Promise<void>) {
     startTransition(() => {
       fn().catch((e) => toast.error(e instanceof Error ? e.message : 'İşlem başarısız'))
@@ -55,39 +88,67 @@ export function PatientActionButtons({
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           onClick={() => setOpen('appointment')}
-          className="h-11 w-full bg-brand-teal text-white hover:bg-brand-teal-hover md:h-9 md:w-auto"
+          className="h-11 bg-brand-teal text-white hover:bg-brand-teal-hover md:h-9"
         >
           <CalendarPlus className="mr-2 h-4 w-4" /> Randevu Oluştur
         </Button>
-        <div className="grid grid-cols-2 gap-2 md:inline-flex md:flex-wrap md:gap-2">
-          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('note')}><NotebookPen className="mr-2 h-4 w-4" /> Not</Button>
-          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('medication')}><Pill className="mr-2 h-4 w-4" /> İlaç</Button>
-          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('allergy')}><ShieldAlert className="mr-2 h-4 w-4" /> Alerji</Button>
-          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('treatment')}><ClipboardList className="mr-2 h-4 w-4" /> Tedavi</Button>
-          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('lab')}><FlaskConical className="mr-2 h-4 w-4" /> Tahlil</Button>
-          <Button variant="outline" className="h-11 justify-start md:h-9" onClick={() => setOpen('file')}><FilePlus className="mr-2 h-4 w-4" /> Dosya</Button>
+        {doctors.length > 0 && (
           <Button
+            onClick={() => setOpen('prescription')}
             variant="outline"
-            className="col-span-2 h-11 justify-start md:col-span-1 md:h-9"
-            onClick={() =>
-              withTransition(async () => {
-                const result = await archivePatient({ id: patientId, archived: !isArchived })
-                if (!result.ok) {
-                  toast.error(result.error)
-                  return
-                }
-                toast.success(isArchived ? 'Hasta aktifleştirildi' : 'Hasta arşivlendi')
-                router.refresh()
-              })
-            }
+            className="h-11 border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 md:h-9"
           >
-            {isArchived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
-            {isArchived ? 'Aktifleştir' : 'Arşivle'}
+            <FileText className="mr-2 h-4 w-4" /> E-Reçete
           </Button>
-        </div>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="h-11 md:h-9">
+              Daha fazla
+              <ChevronDown className="ml-1.5 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={() => setOpen('note')}>
+              <NotebookPen className="mr-2 h-4 w-4" /> Not ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen('medication')}>
+              <Pill className="mr-2 h-4 w-4" /> İlaç ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen('allergy')}>
+              <ShieldAlert className="mr-2 h-4 w-4" /> Alerji ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen('treatment')}>
+              <ClipboardList className="mr-2 h-4 w-4" /> Tedavi ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen('lab')}>
+              <FlaskConical className="mr-2 h-4 w-4" /> Tahlil ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen('file')}>
+              <FilePlus className="mr-2 h-4 w-4" /> Dosya ekle
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() =>
+                withTransition(async () => {
+                  const result = await archivePatient({ id: patientId, archived: !isArchived })
+                  if (!result.ok) {
+                    toast.error(result.error)
+                    return
+                  }
+                  toast.success(isArchived ? 'Hasta aktifleştirildi' : 'Hasta arşivlendi')
+                  router.refresh()
+                })
+              }
+            >
+              {isArchived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
+              {isArchived ? 'Aktifleştir' : 'Arşivle'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <AppointmentFormDrawer
@@ -98,6 +159,7 @@ export function PatientActionButtons({
         services={services.map((s) => ({ id: s.id, label: s.name, durationMin: s.durationMin }))}
         staff={staff.map((s) => ({ id: s.id, label: s.fullName }))}
         defaultPatientId={patientId}
+        defaultStaffId={defaultStaffId}
       />
 
       <Dialog open={open === 'note'} onOpenChange={(v) => !v && setOpen(null)}>
@@ -336,16 +398,22 @@ export function PatientActionButtons({
           </form>
         </DialogContent>
       </Dialog>
+
+      <PrescriptionFormDrawer
+        open={open === 'prescription'}
+        onOpenChange={(value) => setOpen(value ? 'prescription' : null)}
+        patientId={patientId}
+        doctors={doctors}
+      />
     </>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactElement }) {
   return (
-    <div>
-      <Label className="text-xs text-muted-foreground mb-1.5 block">{label}</Label>
+    <AccessibleField label={label} labelClassName="text-xs text-muted-foreground mb-1.5 block">
       {children}
-    </div>
+    </AccessibleField>
   )
 }
 

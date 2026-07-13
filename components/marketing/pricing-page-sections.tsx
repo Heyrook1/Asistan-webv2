@@ -6,6 +6,7 @@ import { ArrowRight, Check, ShieldCheck } from 'lucide-react'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 type BillingMode = 'monthly' | 'yearly'
 
@@ -28,14 +29,16 @@ type Plan = {
   }
 }
 
+const clinicTrialHref = getClinicTrialPath('tr')
+
 const plans: Plan[] = [
   {
     name: 'Baslangic',
     eyebrow: 'Kucuk klinikler',
     description: 'Tek hekim veya kucuk ekipler icin sade randevu ve hasta yonetimi.',
     monthlyPrice: 1290,
-    cta: 'Plani Sec',
-    href: '/auth/sign-up',
+    cta: ENTRY_CTA.clinicTrial.tr,
+    href: clinicTrialHref,
     features: ['1 kullanici', '500 hasta', 'Randevu yonetimi', 'Temel raporlama'],
     matrix: {
       users: '1',
@@ -51,9 +54,9 @@ const plans: Plan[] = [
     eyebrow: 'Buyuyen ekipler',
     description: 'Sekreter + doktor yapisinda ekip koordinasyonunu guclendirir.',
     monthlyPrice: 2490,
-    cta: 'Plani Sec',
-    href: '/auth/sign-up',
-    features: ['5 kullanici', '2.000 hasta', 'Gelismis raporlama', 'SMS + E-posta hatirlatma'],
+    cta: ENTRY_CTA.clinicTrial.tr,
+    href: clinicTrialHref,
+    features: ['5 kullanici', '2.000 hasta', 'Gelismis raporlama', 'Panel + e-posta hatirlatma'],
     matrix: {
       users: '5',
       patients: '2.000',
@@ -68,8 +71,8 @@ const plans: Plan[] = [
     eyebrow: 'En populer',
     description: 'Operasyon otomasyonu ve ileri panel ihtiyaci olan klinikler icin.',
     monthlyPrice: 4890,
-    cta: 'Plani Sec',
-    href: '/auth/sign-up',
+    cta: ENTRY_CTA.clinicTrial.tr,
+    href: clinicTrialHref,
     highlighted: true,
     features: ['Sinirsiz kullanici', 'Sinirsiz hasta', 'Otomasyon akislari', 'API erisimi'],
     matrix: {
@@ -86,8 +89,8 @@ const plans: Plan[] = [
     eyebrow: 'Ozel kurulum',
     description: 'Cok subeli yapilar ve ozel guvenlik/entegrasyon talepleri.',
     monthlyPrice: null,
-    cta: 'Demo Talep Et',
-    href: '/contact',
+    cta: ENTRY_CTA.demoRequest.tr,
+    href: DEMO_CONTACT_PATH,
     features: ['Ozel entegrasyonlar', 'KVKK odakli destek', 'Egitim + danismanlik', 'Ozel raporlama'],
     matrix: {
       users: 'Sinirsiz',
@@ -242,7 +245,7 @@ export function PricingPageSections() {
                   ))}
                 </tr>
                 <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">Hatirlatma otomasyonu</td>
+                  <td className="px-4 py-3 font-medium text-slate-600">Panel / e-posta hatirlatma</td>
                   {plans.map((plan) => (
                     <td key={`reminders-${plan.name}`} className="px-4 py-3 text-center">{valueOrDash(plan.matrix.reminders)}</td>
                   ))}
@@ -288,8 +291,8 @@ export function PricingPageSections() {
               Satin alma oncesi en kritik konulari tek ekranda cevapladik.
             </p>
             <Button asChild className="mt-8 min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">
-              <Link href="/contact">
-                Demo Talep Et
+              <Link href={DEMO_CONTACT_PATH}>
+                {ENTRY_CTA.demoRequest.tr}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

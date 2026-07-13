@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAvailableSlots } from '@/lib/client-marketplace/availability'
 import { getDoctorReviewSummary } from '@/lib/client-marketplace/reviews'
+import { getDoctorVerification } from '@/lib/trust/public'
 
 export const dynamic = 'force-dynamic'
 
@@ -142,18 +143,39 @@ export async function GET(
     ? doctor.bio
     : `${doctor.fullName}, ${doctor.business.name} bunyesinde ${expertiseLabel.toLowerCase()} odakli muayene ve takip hizmeti sunuyor.`
 
+  const verification = getDoctorVerification({
+    specialty: doctor.specialty,
+    medicalLicenseNo: doctor.medicalLicenseNo,
+    diplomaNo: doctor.diplomaNo,
+    kktcIdentityNo: doctor.kktcIdentityNo,
+    hasAvailability: doctor.availabilityRules.length > 0,
+    hasServices: services.length > 0,
+  })
+
   const credentials = [
+    {
+      id: 'verification',
+      title: verification.label,
+      issuer: 'Asistan Platform',
+      status: verification.level === 'verified' ? 'Dogrulandi' : verification.level === 'partial' ? 'Devam ediyor' : 'Beklemede',
+    },
+    {
+      id: 'license',
+      title: doctor.medicalLicenseNo ? 'Tibbi ruhsat kaydi' : 'Tibbi ruhsat bilgisi',
+      issuer: 'Klinik beyanı',
+      status: doctor.medicalLicenseNo ? 'Kayitli' : 'Paylasilmadi',
+    },
+    {
+      id: 'diploma',
+      title: doctor.diplomaNo ? 'Diploma kaydi' : 'Diploma bilgisi',
+      issuer: 'Klinik beyanı',
+      status: doctor.diplomaNo ? 'Kayitli' : 'Paylasilmadi',
+    },
     {
       id: 'specialty',
       title: doctor.specialty ? `${doctor.specialty} uzmanlik alani` : 'Uzmanlik alani bilgisi',
       issuer: 'Klinik beyani',
       status: doctor.specialty ? 'Beyan edildi' : 'Paylasilmadi',
-    },
-    {
-      id: 'services',
-      title: `${services.length} aktif tedavi/hizmet kalemi`,
-      issuer: doctor.business.name,
-      status: services.length > 0 ? 'Dogrulandi' : 'Beklemede',
     },
     {
       id: 'schedule',
@@ -191,6 +213,7 @@ export async function GET(
       slots,
       reviews: reviewSummary,
       ratingDistribution,
+      verification,
       credentials,
       careApproach: [
         'Kisisellestirilmis muayene ve takip plani',

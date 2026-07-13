@@ -30,6 +30,10 @@ import { cn } from '@/lib/utils'
 import { APPOINTMENT_STATUS_LABELS, formatPhone, formatShortDate, formatTime } from '@/lib/format'
 import { searchGlobalPalette, type GlobalSearchPayload } from '@/lib/actions/global-search'
 import type { Permission, SessionContext } from '@/lib/rbac'
+import {
+  appointmentScheduleNavLabels,
+  canViewAppointmentSchedule,
+} from '@/lib/rbac'
 
 const DASHBOARD_COMMAND_OPEN_EVENT = 'dashboard:command-open'
 
@@ -58,10 +62,8 @@ export function GlobalCommandPalette({
 
   const hasPermission = (permission: Permission) => session.permissions.includes(permission)
   const canSeePatients = hasPermission('patient.view') || hasPermission('patient.edit') || hasPermission('patient.create')
-  const canSeeAppointments =
-    hasPermission('appointment.manage') ||
-    hasPermission('appointment.view') ||
-    hasPermission('appointment.own.view')
+  const canSeeAppointments = canViewAppointmentSchedule(session)
+  const scheduleLabels = appointmentScheduleNavLabels(session)
 
   const pages: PageEntry[] = [
     {
@@ -72,17 +74,24 @@ export function GlobalCommandPalette({
       visible: true,
     },
     {
-      title: 'Randevular',
-      href: '/dashboard/randevular',
-      icon: Calendar,
-      keywords: 'appointment randevu ajanda',
+      title: scheduleLabels.agenda,
+      href: '/dashboard/ajanda',
+      icon: CalendarDays,
+      keywords: 'appointment randevu ajanda takvim liste benim',
       visible: canSeeAppointments,
     },
     {
-      title: 'Takvim',
-      href: '/dashboard/takvim',
+      title: `${scheduleLabels.agenda} · Liste`,
+      href: '/dashboard/ajanda?mode=liste',
+      icon: Calendar,
+      keywords: 'liste kuyruk onay randevu',
+      visible: canSeeAppointments,
+    },
+    {
+      title: `${scheduleLabels.agenda} · Takvim`,
+      href: '/dashboard/ajanda?mode=takvim',
       icon: CalendarDays,
-      keywords: 'calendar gunluk haftalik aylik',
+      keywords: 'calendar gunluk haftalik aylik takvim',
       visible: canSeeAppointments,
     },
     {
@@ -128,11 +137,25 @@ export function GlobalCommandPalette({
       visible: hasPermission('analytics.view'),
     },
     {
-      title: 'Ayarlar',
-      href: '/dashboard/ayarlar',
+      title: 'Yönetişim',
+      href: '/dashboard/yonetisim',
+      icon: Shield,
+      keywords: 'denetim audit kvkk uyumluluk silme riza',
+      visible: showSuperAdmin,
+    },
+    {
+      title: 'Profilim',
+      href: '/dashboard/ayarlar?tab=hesap',
       icon: Settings,
-      keywords: 'settings profil isletme',
+      keywords: 'settings profil hesap',
       visible: true,
+    },
+    {
+      title: 'İşletme Ayarları',
+      href: '/dashboard/ayarlar?tab=isletme',
+      icon: Settings,
+      keywords: 'settings isletme marka para birimi',
+      visible: session.isOwner,
     },
     {
       title: 'Sistem Admin',
@@ -265,7 +288,7 @@ export function GlobalCommandPalette({
               <CommandItem
                 key={appointment.id}
                 value={`${appointment.patientName} ${appointment.serviceName} ${appointment.staffName ?? ''} ${appointment.date} ${appointment.startTime}`}
-                onSelect={() => go(`/dashboard/takvim?date=${appointment.date}`)}
+                onSelect={() => go(`/dashboard/ajanda?mode=takvim&date=${appointment.date}`)}
               >
                 <Calendar className="h-4 w-4" />
                 <div className="min-w-0 flex-1">
@@ -324,6 +347,7 @@ export function GlobalCommandTrigger({
     <button
       type="button"
       onClick={openPalette}
+      aria-label="Global arama"
       className={cn(
         'flex h-10 w-full items-center gap-2 rounded-xl border border-border/40 bg-dashboard-hover px-3 text-left text-sm text-muted-foreground transition hover:border-brand-teal/30 hover:bg-white',
         className

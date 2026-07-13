@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
+import { writeAuditLog } from '@/lib/audit'
 import { requireSession } from '@/lib/session'
 import { ok, err, type ActionResult } from './result'
 
@@ -17,6 +18,7 @@ const businessSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#0B7F6F'),
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
   timezone: z.string().default('Europe/Istanbul'),
+  autoConfirmClientAppointments: z.boolean().optional(),
 })
 
 export async function updateBusinessSettings(input: unknown): Promise<ActionResult> {
@@ -25,6 +27,16 @@ export async function updateBusinessSettings(input: unknown): Promise<ActionResu
   const session = await requireSession()
   if (!session.isOwner) return err('Sadece işletme sahibi bu ayarları değiştirebilir')
   await prisma.business.update({ where: { id: session.businessId }, data: parsed.data })
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'settings.business.update',
+    entityType: 'Business',
+    entityId: session.businessId,
+    severity: 'WARN',
+    summary: 'İşletme ayarları güncellendi',
+    metadata: { fields: Object.keys(parsed.data) },
+  })
   revalidatePath('/dashboard/ayarlar')
   revalidatePath('/dashboard')
   return ok(undefined)

@@ -21,7 +21,7 @@ export async function createClientNotification(input: {
       type: input.type,
       title: input.title,
       message: input.message,
-      link: input.link ?? '/client/appointments',
+      link: input.link ?? '/client/bookings',
       metadata:
         input.metadata == null
           ? Prisma.JsonNull

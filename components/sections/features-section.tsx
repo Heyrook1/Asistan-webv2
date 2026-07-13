@@ -27,18 +27,18 @@ type FeatureItem = {
 }
 
 const CLINIC_ITEMS: ReadonlyArray<FeatureItem> = [
-  { icon: CalendarClock, title: 'Appointment management', detail: 'Unified scheduling with live booking updates from web and mobile channels.' },
+  { icon: CalendarClock, title: 'Appointment management', detail: 'Unified scheduling with booking updates from web and mobile channels.' },
   { icon: Database, title: 'Patient records', detail: 'Patient timelines, notes, and documentation in one secure workflow.' },
-  { icon: ChartNoAxesCombined, title: 'Analytics dashboard', detail: 'Track demand, no-show trends, and conversion from discovery to booking.' },
+  { icon: ChartNoAxesCombined, title: 'Ops analytics', detail: 'Track occupancy, cancellations, and basic revenue summaries for daily decisions.' },
   { icon: ShieldCheck, title: 'RLS security', detail: 'Multi-tenant data isolation and permission-aware access by role.' },
   { icon: UsersRound, title: 'Multi-staff support', detail: 'Coordinate doctors, assistants, and front desk from one operating view.' },
 ]
 
 const PATIENT_ITEMS: ReadonlyArray<FeatureItem> = [
   { icon: MapPinned, title: 'GPS clinic discovery', detail: 'Find nearby clinics quickly with location-aware listing and distance context.' },
-  { icon: Star, title: 'Reviews & ratings', detail: 'Read trusted patient experiences before choosing a clinic or doctor.' },
-  { icon: Compass, title: 'Instant booking', detail: 'Pick a service and available time slot with one-tap appointment creation.' },
-  { icon: Bell, title: 'Appointment reminders', detail: 'Get updates before visits and after care milestones without manual follow-up.' },
+  { icon: Star, title: 'Reviews & ratings', detail: 'Read reviews tied to completed appointments before choosing a clinic or doctor.' },
+  { icon: Compass, title: 'Booking requests', detail: 'Pick a service and available slot; confirmation follows clinic auto/manual settings.' },
+  { icon: Bell, title: 'Status updates', detail: 'Get in-app updates on confirmation, changes, and upcoming visits.' },
   { icon: History, title: 'History & repeat', detail: 'Review prior appointments and rebook preferred clinics in seconds.' },
 ]
 
@@ -49,18 +49,18 @@ const FEATURES_COPY = {
     clinicTab: 'Klinikler İçin (Web Panel)',
     patientTab: 'Hastalar İçin (Mobil Uygulama)',
     clinicItems: [
-      { icon: CalendarClock, title: 'Randevu Orkestrasyonu', detail: 'Web ve mobil kanallardan gelen rezervasyonları tek akışta yönetin.' },
-      { icon: Database, title: 'Hasta Sağlık Kayıtları', detail: 'Hasta geçmişini, tedavi notlarını ve belgeleri güvenli şekilde tek panelde tutun.' },
-      { icon: ChartNoAxesCombined, title: 'Derin Analiz Paneli', detail: 'Talep yoğunluğunu, no-show oranlarını ve randevu doluluk trendlerini izleyin.' },
-      { icon: ShieldCheck, title: 'RLS Veri Güvenliği', detail: 'Postgres RLS tabanlı gelişmiş veri izolasyonu ve rol bazlı erişim yetkileri.' },
+      { icon: CalendarClock, title: 'Randevu Yönetimi', detail: 'Web ve mobil kanallardan gelen rezervasyonları tek akışta yönetin.' },
+      { icon: Database, title: 'Hasta Kayıtları', detail: 'Hasta geçmişini, tedavi notlarını ve belgeleri güvenli şekilde tek panelde tutun.' },
+      { icon: ChartNoAxesCombined, title: 'Operasyon Analitiği', detail: 'Doluluk, iptal ve temel ciro özetlerini günlük kararlar için izleyin.' },
+      { icon: ShieldCheck, title: 'RLS Veri Güvenliği', detail: 'Postgres RLS tabanlı veri izolasyonu ve rol bazlı erişim yetkileri.' },
       { icon: UsersRound, title: 'Çoklu Personel Desteği', detail: 'Hekimleri, asistanları ve ön masayı tek ortak operasyon ekranında koordine edin.' },
     ],
     patientItems: [
-      { icon: MapPinned, title: 'GPS Tabanlı Klinik Keşfi', detail: 'Yakınınızdaki klinikleri konum, hekim ve mesafe bilgileriyle anında bulun.' },
-      { icon: Star, title: 'Güvenilir Yorum & Puanlar', detail: 'Randevu almadan önce gerçek hastaların tedavi deneyimlerini karşılaştırın.' },
-      { icon: Compass, title: 'Anlık Randevu Rezervasyonu', detail: 'İstediğiniz sağlık hizmetini ve uygun saati seçip tek dokunuşla randevu oluşturun.' },
-      { icon: Bell, title: 'Akıllı Randevu Bildirimleri', detail: 'Randevu öncesi hatırlatmalar ve kontrol hekim takipleri için otomatik uyarılar alın.' },
-      { icon: History, title: 'Randevu Geçmişi & Tekrarı', detail: 'Geçmiş tedavilerinizi görüntüleyin, beğendiğiniz klinikten saniyeler içinde tekrar randevu alın.' },
+      { icon: MapPinned, title: 'GPS Tabanlı Klinik Keşfi', detail: 'Yakınınızdaki klinikleri konum, hekim ve mesafe bilgileriyle bulun.' },
+      { icon: Star, title: 'Gerçek Yorumlar', detail: 'Tamamlanmış randevuya bağlı hasta yorumlarını randevu almadan önce okuyun.' },
+      { icon: Compass, title: 'Randevu Talebi', detail: 'Hizmet ve uygun saati seçin; klinik ayarına göre otomatik veya manuel onayla ilerleyin.' },
+      { icon: Bell, title: 'Durum Bildirimleri', detail: 'Onay, değişiklik ve yaklaşan randevular için panel / uygulama bildirimleri alın.' },
+      { icon: History, title: 'Randevu Geçmişi & Tekrarı', detail: 'Geçmiş randevularınızı görüntüleyin, tercih ettiğiniz klinikten tekrar talep oluşturun.' },
     ],
   },
   en: {

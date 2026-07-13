@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   FlatList,
   Pressable,
@@ -28,6 +29,14 @@ import { useAppTheme } from '@/lib/use-app-theme'
 import type { DiscoveryItem } from '@/lib/types'
 
 type SearchResponse = { items: DiscoveryItem[] }
+
+type MobileSearchPref = {
+  sort?: 'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'
+  availableToday?: boolean
+  viewMode?: 'list' | 'map'
+}
+
+const MOBILE_SEARCH_PREF_KEY = 'asistan.mobile-search.v1'
 
 function formatPrice(price: number | null) {
   if (price == null) return '-'
@@ -59,12 +68,50 @@ export default function ClientSearchScreen() {
   const [sort, setSort] = useState<'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'>('nearest')
   const [availableToday, setAvailableToday] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [prefsReady, setPrefsReady] = useState(false)
   const [items, setItems] = useState<DiscoveryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isBackendUnavailable = Boolean(error?.includes('Backend ulasilamaz durumda'))
   const attemptedAddresses = useMemo(() => parseAttemptedAddresses(error), [error])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const raw = await AsyncStorage.getItem(MOBILE_SEARCH_PREF_KEY)
+        if (raw && !cancelled) {
+          const saved = JSON.parse(raw) as MobileSearchPref
+          if (saved.sort) setSort(saved.sort)
+          if (typeof saved.availableToday === 'boolean') setAvailableToday(saved.availableToday)
+          if (saved.viewMode === 'list' || saved.viewMode === 'map') setViewMode(saved.viewMode)
+        }
+      } catch {
+        // ignore corrupt prefs
+      } finally {
+        if (!cancelled) setPrefsReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!prefsReady) return
+    if (persistTimer.current) clearTimeout(persistTimer.current)
+    persistTimer.current = setTimeout(() => {
+      void AsyncStorage.setItem(
+        MOBILE_SEARCH_PREF_KEY,
+        JSON.stringify({ sort, availableToday, viewMode } satisfies MobileSearchPref),
+      )
+    }, 200)
+    return () => {
+      if (persistTimer.current) clearTimeout(persistTimer.current)
+    }
+  }, [availableToday, prefsReady, sort, viewMode])
 
   const searchParams = useMemo(() => {
     const params = new URLSearchParams()
@@ -93,8 +140,9 @@ export default function ClientSearchScreen() {
   )
 
   useEffect(() => {
+    if (!prefsReady) return
     load()
-  }, [load])
+  }, [load, prefsReady])
 
   const now = useMemo(
     () =>
@@ -323,7 +371,7 @@ export default function ClientSearchScreen() {
       <View style={[styles.fabWrap, { bottom: 98 }]}>
         <FloatingActionButton
           icon="sparkles"
-          accessibilityLabel="AI asistani ac"
+          accessibilityLabel="Bildirimleri ac"
           onPress={() => router.push('/client/notifications')}
         />
       </View>

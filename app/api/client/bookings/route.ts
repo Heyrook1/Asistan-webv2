@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/ajanda')
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
   revalidatePath('/dashboard/bildirimler')

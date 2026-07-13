@@ -21,10 +21,11 @@ import { FadeLeft, FadeUp, MouseParallax, ScaleIn } from '@/components/marketing
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 export const metadata: Metadata = {
   title: 'Urun | Asistan ile Randevu ve Hasta Takibi',
-  description: 'Asistan ile takvim, hasta kayitlari, hatirlatmalar, ekip rolleri ve AI onerilerini tek panelden yonetin.',
+  description: 'Asistan ile takvim, hasta kayitlari, hatirlatmalar, ekip rolleri ve operasyon onerilerini tek panelden yonetin.',
 }
 
 const coreFeatures = [
@@ -54,8 +55,8 @@ const coreFeatures = [
   },
   {
     icon: Sparkles,
-    title: 'AI Onerileri',
-    description: 'Bos saat, bekleyen onay ve takip firsatlarini daha hizli gorun.',
+    title: 'Operasyon Onerileri',
+    description: 'Bos saat, bekleyen onay ve takip firsatlarini kural tabanli ozetlerle daha hizli gorun.',
     bullets: ['Bos saat onerisi', 'Bekleyen hasta takibi', 'Gunluk ozet'],
   },
   {
@@ -96,7 +97,7 @@ const personas = [
   { icon: Settings, title: 'Isletme sahibi', description: 'Gunluk operasyonu daha az daginiklikla kontrol eder.' },
 ]
 
-const upcomingFeatures = ['Online odeme altyapisi', 'Mobil uygulama', 'Ozel entegrasyonlar']
+const upcomingFeatures = ['Online odeme altyapisi', 'App Store / Google Play yayini', 'SMS saglayici kurulumu', 'Ozel entegrasyonlar']
 
 export default function ProductPage() {
   return (
@@ -113,18 +114,18 @@ export default function ProductPage() {
               Kliniginizin gunluk islerini tek panelden yonetin.
             </h1>
             <p className="mb-8 max-w-xl text-lg leading-8 text-slate-600">
-              Asistan; takvim, hasta kartlari, hatirlatmalar, ekip rolleri ve AI onerilerini sade bir is akisinda birlestirir.
+              Asistan; takvim, hasta kartlari, hatirlatmalar, ekip rolleri ve operasyon onerilerini sade bir is akisinda birlestirir.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/auth/sign-up">
+              <Link href={getClinicTrialPath('tr')}>
                 <Button size="lg" className="h-12 rounded-xl bg-brand-teal px-6 font-semibold text-white hover:bg-brand-teal-hover">
-                  Erken Erisime Katil
+                  {ENTRY_CTA.clinicTrial.tr}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/cozumler/health">
+              <Link href={DEMO_CONTACT_PATH}>
                 <Button size="lg" variant="outline" className="h-12 rounded-xl border-brand-teal/30 px-6 text-brand-teal hover:bg-brand-teal/5">
-                  Saglik Cozumunu Gor
+                  {ENTRY_CTA.demoRequest.tr}
                 </Button>
               </Link>
             </div>

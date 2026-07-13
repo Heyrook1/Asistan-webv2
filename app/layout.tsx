@@ -19,14 +19,14 @@ export const metadata: Metadata = {
     default: 'KKTC Randevu Sistemi | Asistan Health',
     template: '%s | Asistan',
   },
-  description: 'KKTC klinikleri için yapay zeka destekli randevu, hasta takibi ve ekip yönetimi platformu.',
+  description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi platformu.',
   keywords: [
     'KKTC randevu sistemi',
     'klinik yönetimi',
     'hasta takibi',
     'iş yönetimi',
     'Asistan Health',
-    'yapay zeka destekli randevu',
+    'klinik randevu paneli',
   ],
   alternates: {
     canonical: '/',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'KKTC Randevu Sistemi | Asistan Health',
-    description: 'KKTC klinikleri için yapay zeka destekli randevu ve iş yönetimi platformu.',
+    description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi platformu.',
     images: ['/images/asistan-full-logo.png'],
   },
   icons: {
@@ -90,9 +90,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <LanguageProvider>
-              <main id="main-content" className="min-h-screen">
+              <div className="min-h-screen">
                 {children}
-              </main>
+              </div>
               <FloatingCTA />
             </LanguageProvider>
           </QueryProvider>

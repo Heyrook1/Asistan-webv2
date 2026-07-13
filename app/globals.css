@@ -42,13 +42,13 @@
   --ease-apple: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Sidebar - Dark theme */
-  --sidebar: #07182D;
+  --sidebar: #011627;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #2563EB;
-  --sidebar-primary-foreground: #06142A;
-  --sidebar-accent: #0A1F3D;
+  --sidebar-primary-foreground: #011627;
+  --sidebar-accent: #0A2138;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #1A3050;
+  --sidebar-border: #1A334D;
   --sidebar-ring: #2563EB;
 
   /* Brand specific */
@@ -71,10 +71,10 @@
   --dashboard-bg: #F7FAFD;
   --dashboard-surface: #F7F9FB;
   --dashboard-hover: #F7F8FB;
-  --sidebar-card: #0B1F3A;
-  --sidebar-card-mid: #102A4D;
-  --sidebar-card-end: #0E2544;
-  --sidebar-card-border: #1B365E;
+  --sidebar-card: #0A2138;
+  --sidebar-card-mid: #0E2A45;
+  --sidebar-card-end: #0C2540;
+  --sidebar-card-border: #1A334D;
   --paper: #FFFFFF;
   --line: #6B7280;
 }
@@ -159,13 +159,13 @@
   --chart-3: #F8FAFC;
   --chart-4: #94A3B8;
   --chart-5: #0F172A;
-  --sidebar: #040D1A;
+  --sidebar: #011627;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #2DD4BF;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #0F172A;
+  --sidebar-accent: #0A2138;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #0F172A;
+  --sidebar-border: #1A334D;
   --sidebar-ring: #2DD4BF;
 }
 

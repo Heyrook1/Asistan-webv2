@@ -33,7 +33,7 @@ class SlotConflictError extends Error {
 
 async function nextPatientNumber(tx: Prisma.TransactionClient, businessId: string) {
   const rows = await tx.$queryRaw<Array<{ next_patient_number: string }>>`
-    select public.next_patient_number(${businessId}::uuid) as next_patient_number
+    select public.next_patient_number(${businessId}) as next_patient_number
   `
   const patientNumber = rows[0]?.next_patient_number
   if (!patientNumber) throw new Error('Hasta numarasi uretilemedi')
@@ -310,7 +310,7 @@ async function createClientBookingOnce(input: {
           type: notificationType,
           title: notificationTitle,
           message: `${input.payload.date} ${input.payload.startTime} randevunuz olusturuldu.`,
-          link: `/client/appointments`,
+          link: `/client/bookings?id=${appointment.id}`,
           metadata: {
             appointmentId: appointment.id,
             doctorId: input.payload.doctorId,

@@ -102,7 +102,7 @@ export function DashboardHeader({
             <DropdownMenuContent align="end" className="w-64 rounded-xl border-border/50 shadow-xl">
               <DropdownMenuLabel>Kısayol İşlemleri</DropdownMenuLabel>
               {canManageAppointments && (
-                <DropdownMenuItem onSelect={() => router.push('/dashboard/randevular?create=1')}>
+                <DropdownMenuItem onSelect={() => router.push('/dashboard/ajanda?mode=liste&create=1')}>
                   <CalendarPlus className="h-4 w-4 text-brand-teal" />
                   Yeni Randevu
                 </DropdownMenuItem>
@@ -120,9 +120,9 @@ export function DashboardHeader({
                 </DropdownMenuItem>
               )}
               {canManageAppointments && (
-                <DropdownMenuItem onSelect={() => router.push('/dashboard/takvim')}>
+                <DropdownMenuItem onSelect={() => router.push('/dashboard/ajanda?mode=takvim')}>
                   <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                  Takvime Git
+                  Ajandaya Git
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
@@ -166,7 +166,11 @@ export function DashboardHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-10 gap-2.5 rounded-xl pl-1.5 pr-2.5 hover:bg-dashboard-hover">
+            <Button
+              variant="ghost"
+              aria-label={`Hesap menüsü, ${session.fullName}`}
+              className="h-10 gap-2.5 rounded-xl pl-1.5 pr-2.5 hover:bg-dashboard-hover"
+            >
               <Avatar className="h-8 w-8">
                 <AvatarFallback
                   className="text-xs font-bold text-white"
@@ -189,23 +193,24 @@ export function DashboardHeader({
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/ayarlar" className="flex cursor-pointer items-center gap-2.5">
+              <Link href="/dashboard/ayarlar?tab=hesap" className="flex cursor-pointer items-center gap-2.5">
                 <User className="h-4 w-4 text-muted-foreground" />
                 Profilim
               </Link>
             </DropdownMenuItem>
+            {session.isOwner && (
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/ayarlar?tab=isletme" className="flex cursor-pointer items-center gap-2.5">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  İşletme Ayarları
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/ayarlar" className="flex cursor-pointer items-center gap-2.5">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                İşletme Ayarları
+              <Link href="/contact" className="flex cursor-pointer items-center gap-2.5">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                Destek
               </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => toast.info('Destek merkezi yakında bu alanda görünecek.')}
-              className="flex cursor-pointer items-center gap-2.5"
-            >
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              Destek
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

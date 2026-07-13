@@ -1,18 +1,31 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CalendarPlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createAppointment } from '@/lib/actions/appointments'
+import { AccessibleField } from '@/components/ui/accessible-field'
+import {
+  nextHalfHourTime,
+  readUiPreference,
+  todayIsoDate,
+  UI_PREF_KEYS,
+  writeUiPreference,
+  type AppointmentDefaultsPref,
+} from '@/lib/ui-preferences'
 
 export type AppointmentOption = { id: string; label: string }
+
+function pickValidId(id: string | undefined, options: AppointmentOption[]) {
+  if (!id) return ''
+  return options.some((option) => option.id === id) ? id : ''
+}
 
 export function AppointmentFormDrawer({
   open,
@@ -24,6 +37,7 @@ export function AppointmentFormDrawer({
   defaultPatientId,
   defaultDate,
   defaultStartTime,
+  defaultStaffId,
 }: {
   open: boolean
   onOpenChange: (next: boolean) => void
@@ -34,6 +48,7 @@ export function AppointmentFormDrawer({
   defaultPatientId?: string
   defaultDate?: string
   defaultStartTime?: string
+  defaultStaffId?: string
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -47,22 +62,38 @@ export function AppointmentFormDrawer({
     startTime: defaultStartTime ?? '',
     notes: '',
   })
+  const hydratedRef = useRef(false)
 
   useEffect(() => {
-    if (!open) return
-    setForm((current) => ({
-      ...current,
-      locationId:
-        current.locationId && locations.some((location) => location.id === current.locationId)
-          ? current.locationId
-          : locations.length === 1
-            ? locations[0].id
-            : '',
-      patientId: defaultPatientId ?? current.patientId,
-      date: defaultDate ?? current.date,
-      startTime: defaultStartTime ?? current.startTime,
-    }))
-  }, [open, defaultPatientId, defaultDate, defaultStartTime, locations])
+    if (!open) {
+      hydratedRef.current = false
+      return
+    }
+    if (hydratedRef.current) return
+    hydratedRef.current = true
+
+    const saved = readUiPreference<AppointmentDefaultsPref>(UI_PREF_KEYS.appointmentDefaults) ?? {}
+    const locationId =
+      pickValidId(saved.locationId, locations) ||
+      (locations.length === 1 ? locations[0].id : '')
+    const serviceId = pickValidId(saved.serviceId, services)
+    const staffId =
+      pickValidId(saved.staffId, staff) ||
+      pickValidId(defaultStaffId, staff)
+    const date = defaultDate || todayIsoDate()
+    const startTime = defaultStartTime || saved.startTime || nextHalfHourTime()
+
+    setForm({
+      locationId,
+      patientId: defaultPatientId ?? '',
+      serviceId,
+      staffId,
+      date,
+      startTime,
+      notes: '',
+    })
+    setErrors({})
+  }, [open, defaultPatientId, defaultDate, defaultStartTime, defaultStaffId, locations, services, staff])
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -111,18 +142,17 @@ export function AppointmentFormDrawer({
         return
       }
 
+      writeUiPreference<AppointmentDefaultsPref>(UI_PREF_KEYS.appointmentDefaults, {
+        locationId: form.locationId || undefined,
+        serviceId: form.serviceId || undefined,
+        staffId: form.staffId && form.staffId !== 'none' ? form.staffId : undefined,
+        startTime: form.startTime || undefined,
+      })
+
       toast.success('Randevu oluşturuldu')
       onOpenChange(false)
       setErrors({})
-      setForm({
-        locationId: locations.length === 1 ? locations[0].id : '',
-        patientId: '',
-        serviceId: '',
-        staffId: '',
-        date: '',
-        startTime: '',
-        notes: '',
-      })
+      hydratedRef.current = false
       router.refresh()
     })
   }
@@ -137,7 +167,7 @@ export function AppointmentFormDrawer({
         <form onSubmit={submit} className="flex h-full flex-col">
           <SheetHeader className="shrink-0 border-b bg-gradient-to-r from-brand-navy to-sidebar-card px-5 py-4 pt-safe text-white">
             <SheetTitle className="flex items-center gap-2 text-white">
-              <CalendarPlus className="h-5 w-5 text-brand-teal" />
+              <CalendarPlus className="h-5 w-5 text-brand-teal" aria-hidden="true" />
               Yeni Randevu
             </SheetTitle>
             <SheetDescription className="text-white/60">
@@ -147,27 +177,30 @@ export function AppointmentFormDrawer({
 
           <div className="flex-1 space-y-4 overflow-y-auto bg-dashboard-surface px-4 py-4 md:px-6 md:py-5">
             {noPatients && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" role="status">
                 Henüz hasta yok. Önce Hasta Ekle ile bir hasta oluşturmalısınız.
               </div>
             )}
             {noServices && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" role="status">
                 Henüz hizmet yok. Önce Hizmetler sayfasından bir hizmet ekleyin.
               </div>
             )}
             {locations.length === 0 && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800" role="status">
                 Henüz şube kaydı yok. Bu randevu ile varsayılan şube oluşturulacak.
               </div>
             )}
             {locations.length > 0 && (
-              <div>
-                <Label className="mb-1.5 block text-xs text-muted-foreground">
-                  Şube{multipleLocations ? ' *' : ''}
-                </Label>
+              <AccessibleField
+                label={multipleLocations ? 'Şube *' : 'Şube'}
+                error={errors.locationId}
+                required={multipleLocations}
+                labelClassName="mb-1.5 block text-xs text-muted-foreground"
+                errorClassName="text-xs text-destructive"
+              >
                 <Select value={form.locationId || undefined} onValueChange={(value) => update('locationId', value)}>
-                  <SelectTrigger aria-invalid={Boolean(errors.locationId)}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Şube seç" />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,14 +211,18 @@ export function AppointmentFormDrawer({
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.locationId && <p className="mt-1 text-xs text-destructive">{errors.locationId}</p>}
-              </div>
+              </AccessibleField>
             )}
 
-            <div>
-              <Label className="mb-1.5 block text-xs text-muted-foreground">Hasta *</Label>
+            <AccessibleField
+              label="Hasta *"
+              error={errors.patientId}
+              required
+              labelClassName="mb-1.5 block text-xs text-muted-foreground"
+              errorClassName="text-xs text-destructive"
+            >
               <Select value={form.patientId || undefined} onValueChange={(value) => update('patientId', value)}>
-                <SelectTrigger aria-invalid={Boolean(errors.patientId)}>
+                <SelectTrigger>
                   <SelectValue placeholder="Hasta seç" />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,13 +233,17 @@ export function AppointmentFormDrawer({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.patientId && <p className="mt-1 text-xs text-destructive">{errors.patientId}</p>}
-            </div>
+            </AccessibleField>
 
-            <div>
-              <Label className="mb-1.5 block text-xs text-muted-foreground">Hizmet *</Label>
+            <AccessibleField
+              label="Hizmet *"
+              error={errors.serviceId}
+              required
+              labelClassName="mb-1.5 block text-xs text-muted-foreground"
+              errorClassName="text-xs text-destructive"
+            >
               <Select value={form.serviceId || undefined} onValueChange={(value) => update('serviceId', value)}>
-                <SelectTrigger aria-invalid={Boolean(errors.serviceId)}>
+                <SelectTrigger>
                   <SelectValue placeholder="Hizmet seç" />
                 </SelectTrigger>
                 <SelectContent>
@@ -213,11 +254,9 @@ export function AppointmentFormDrawer({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.serviceId && <p className="mt-1 text-xs text-destructive">{errors.serviceId}</p>}
-            </div>
+            </AccessibleField>
 
-            <div>
-              <Label className="mb-1.5 block text-xs text-muted-foreground">Personel</Label>
+            <AccessibleField label="Personel" labelClassName="mb-1.5 block text-xs text-muted-foreground">
               <Select value={form.staffId || 'none'} onValueChange={(value) => update('staffId', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Personel (opsiyonel)" />
@@ -231,37 +270,42 @@ export function AppointmentFormDrawer({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </AccessibleField>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="mb-1.5 block text-xs text-muted-foreground">Tarih *</Label>
+              <AccessibleField
+                label="Tarih *"
+                error={errors.date}
+                required
+                labelClassName="mb-1.5 block text-xs text-muted-foreground"
+                errorClassName="text-xs text-destructive"
+              >
                 <Input
                   type="date"
                   value={form.date}
                   onChange={(event) => update('date', event.target.value)}
                   required
-                  aria-invalid={Boolean(errors.date)}
                 />
-                {errors.date && <p className="mt-1 text-xs text-destructive">{errors.date}</p>}
-              </div>
-              <div>
-                <Label className="mb-1.5 block text-xs text-muted-foreground">Saat *</Label>
+              </AccessibleField>
+              <AccessibleField
+                label="Saat *"
+                error={errors.startTime}
+                required
+                labelClassName="mb-1.5 block text-xs text-muted-foreground"
+                errorClassName="text-xs text-destructive"
+              >
                 <Input
                   type="time"
                   value={form.startTime}
                   onChange={(event) => update('startTime', event.target.value)}
                   required
-                  aria-invalid={Boolean(errors.startTime)}
                 />
-                {errors.startTime && <p className="mt-1 text-xs text-destructive">{errors.startTime}</p>}
-              </div>
+              </AccessibleField>
             </div>
 
-            <div>
-              <Label className="mb-1.5 block text-xs text-muted-foreground">Not</Label>
+            <AccessibleField label="Not" labelClassName="mb-1.5 block text-xs text-muted-foreground">
               <Textarea value={form.notes} onChange={(event) => update('notes', event.target.value)} rows={3} />
-            </div>
+            </AccessibleField>
           </div>
 
           <div className="shrink-0 border-t bg-white px-4 py-3 pb-safe md:px-6 md:py-4">
@@ -281,7 +325,7 @@ export function AppointmentFormDrawer({
                 disabled={pending || noPatients || noServices}
                 className="h-11 flex-[2] bg-brand-teal text-white hover:bg-brand-teal-hover md:flex-none"
               >
-                {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
                 {pending ? 'Kaydediliyor...' : 'Randevu Oluştur'}
               </Button>
             </div>

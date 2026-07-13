@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
+import { ENTRY_CTA, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
 import { Button } from '@/components/ui/button'
-import { appleEase } from '@/lib/animations'
+import { FocusTrapPanel } from '@/components/a11y/focus-trap-panel'
 import { cn } from '@/lib/utils'
 
 const HOME_NAV_COPY = {
@@ -21,12 +22,12 @@ const HOME_NAV_COPY = {
       { href: '#pricing', label: 'Fiyatlar' },
       { href: '#trust', label: 'Güven' },
     ],
-    joinPatient: 'Hasta Olarak Katıl',
-    startTrial: 'Ücretsiz Deneyin',
-    startTrialShort: 'Ücretsiz Deneyin',
+    joinPatient: ENTRY_CTA.patientBook.short.tr,
+    startTrial: ENTRY_CTA.clinicTrial.short.tr,
+    startTrialShort: ENTRY_CTA.clinicTrial.short.tr,
     openMenu: 'Gezinme menüsünü aç',
     closeMenu: 'Gezinme menüsünü kapat',
-    login: 'Giriş Yap',
+    login: ENTRY_CTA.clinicLogin.tr,
   },
   en: {
     links: [
@@ -36,12 +37,12 @@ const HOME_NAV_COPY = {
       { href: '#pricing', label: 'Pricing' },
       { href: '#trust', label: 'Trust' },
     ],
-    joinPatient: 'Join as Patient',
-    startTrial: 'Start Free Trial',
-    startTrialShort: 'Start Trial',
+    joinPatient: ENTRY_CTA.patientBook.short.en,
+    startTrial: ENTRY_CTA.clinicTrial.short.en,
+    startTrialShort: ENTRY_CTA.clinicTrial.short.en,
     openMenu: 'Open navigation menu',
     closeMenu: 'Close navigation menu',
-    login: 'Login',
+    login: ENTRY_CTA.clinicLogin.en,
   },
 } as const
 
@@ -51,30 +52,32 @@ const SITE_NAV_COPY = {
       { href: '/urun', label: 'Özellikler' },
       { href: '/cozumler', label: 'Çözümler' },
       { href: '/fiyatlandirma', label: 'Fiyatlandırma' },
+      { href: '/guven', label: 'Güven Merkezi' },
       { href: '/kaynaklar', label: 'Kaynaklar' },
       { href: '/contact', label: 'İletişim' },
     ],
-    joinPatient: 'Hasta Olarak Katıl',
-    startTrial: 'Ücretsiz Deneyin',
-    startTrialShort: 'Ücretsiz Deneyin',
+    joinPatient: ENTRY_CTA.patientBook.short.tr,
+    startTrial: ENTRY_CTA.clinicTrial.short.tr,
+    startTrialShort: ENTRY_CTA.clinicTrial.short.tr,
     openMenu: 'Gezinme menüsünü aç',
     closeMenu: 'Gezinme menüsünü kapat',
-    login: 'Giriş Yap',
+    login: ENTRY_CTA.clinicLogin.tr,
   },
   en: {
     links: [
       { href: '/urun', label: 'Features' },
       { href: '/cozumler', label: 'Solutions' },
       { href: '/fiyatlandirma', label: 'Pricing' },
+      { href: '/guven', label: 'Trust Center' },
       { href: '/kaynaklar', label: 'Resources' },
       { href: '/contact', label: 'Contact' },
     ],
-    joinPatient: 'Join as Patient',
-    startTrial: 'Start Free Trial',
-    startTrialShort: 'Start Trial',
+    joinPatient: ENTRY_CTA.patientBook.short.en,
+    startTrial: ENTRY_CTA.clinicTrial.short.en,
+    startTrialShort: ENTRY_CTA.clinicTrial.short.en,
     openMenu: 'Open navigation menu',
     closeMenu: 'Close navigation menu',
-    login: 'Login',
+    login: ENTRY_CTA.clinicLogin.en,
   },
 } as const
 
@@ -110,7 +113,7 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
           <AsistanLogo variant="dark" size="md" priority />
         </Link>
 
-        <nav className="hidden items-center gap-5 md:flex">
+        <nav className="hidden items-center gap-5 md:flex" aria-label="Ana menü">
           {copy.links.map((item) =>
             item.href.startsWith('#') ? (
               <a
@@ -137,6 +140,8 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
           <div className="inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold backdrop-blur-md">
             <button
               type="button"
+              aria-pressed={language === 'tr'}
+              aria-label="Türkçe dilini seç"
               className={cn(
                 'rounded-lg px-2.5 py-1 transition cursor-pointer',
                 language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
@@ -147,6 +152,8 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
             </button>
             <button
               type="button"
+              aria-pressed={language === 'en'}
+              aria-label="İngilizce dilini seç"
               className={cn(
                 'rounded-lg px-2.5 py-1 transition cursor-pointer',
                 language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
@@ -158,6 +165,13 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
           </div>
 
           {/* Auth Actions */}
+          <Button
+            asChild
+            variant="ghost"
+            className="h-10 rounded-xl px-3 text-sm font-semibold text-[#5D6068] hover:bg-black/5 hover:text-[#1D1D1F]"
+          >
+            <Link href={PATIENT_BOOK_PATH}>{copy.joinPatient}</Link>
+          </Button>
           <Button
             asChild
             variant="outline"
@@ -173,6 +187,7 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
         <button
           type="button"
           aria-label={open ? copy.closeMenu : copy.openMenu}
+          aria-expanded={open}
           className="tap-target inline-flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-white/75 md:hidden"
           onClick={() => setOpen((state) => !state)}
         >
@@ -182,16 +197,17 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.28, ease: appleEase }}
+          <FocusTrapPanel
+            role="dialog"
+            label="Mobil menü"
+            onEscape={() => setOpen(false)}
             className="mx-auto mt-2 w-[min(1200px,92vw)] rounded-2xl border border-black/8 bg-white/84 p-3 shadow-glass backdrop-blur-xl md:hidden"
           >
             <div className="mb-2 inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold">
               <button
                 type="button"
+                aria-pressed={language === 'tr'}
+                aria-label="Türkçe dilini seç"
                 className={cn(
                   'rounded-lg px-2.5 py-1 transition cursor-pointer',
                   language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
@@ -205,6 +221,8 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
               </button>
               <button
                 type="button"
+                aria-pressed={language === 'en'}
+                aria-label="İngilizce dilini seç"
                 className={cn(
                   'rounded-lg px-2.5 py-1 transition cursor-pointer',
                   language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
@@ -240,19 +258,28 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
                 ),
               )}
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-black/8 pt-3">
+            <div className="mt-3 grid grid-cols-1 gap-2 border-t border-black/8 pt-3">
               <Button
                 asChild
-                variant="outline"
-                className="h-10 rounded-xl border-black/10 bg-white text-sm font-semibold text-[#1D1D1F]"
+                variant="ghost"
+                className="h-10 rounded-xl text-sm font-semibold text-[#1D1D1F] hover:bg-black/5"
               >
-                <Link href={loginUrl} onClick={() => setOpen(false)}>{copy.login}</Link>
+                <Link href={PATIENT_BOOK_PATH} onClick={() => setOpen(false)}>{copy.joinPatient}</Link>
               </Button>
-              <Button asChild className="h-10 rounded-xl bg-[#0071E3] text-sm font-semibold text-white hover:bg-[#0063C8]">
-                <Link href={registerUrl} onClick={() => setOpen(false)}>{copy.startTrialShort}</Link>
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-10 rounded-xl border-black/10 bg-white text-sm font-semibold text-[#1D1D1F]"
+                >
+                  <Link href={loginUrl} onClick={() => setOpen(false)}>{copy.login}</Link>
+                </Button>
+                <Button asChild className="h-10 rounded-xl bg-[#0071E3] text-sm font-semibold text-white hover:bg-[#0063C8]">
+                  <Link href={registerUrl} onClick={() => setOpen(false)}>{copy.startTrialShort}</Link>
+                </Button>
+              </div>
             </div>
-          </motion.div>
+          </FocusTrapPanel>
         )}
       </AnimatePresence>
     </header>

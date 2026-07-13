@@ -38,50 +38,9 @@ async function loadClinics(searchParams: Record<string, string | string[] | unde
   try {
     const rows = await searchMarketplace({ filters, sort, clientLocation: null })
     return rows
-  } catch {
-    // Keep the UI usable even if the database isn't available in the current environment.
-    const mock: ClientDiscoveryItem[] = [
-      {
-        businessId: 'mock-1',
-        businessName: 'Asistan Medical Center',
-        businessSlug: 'asistan-medical-center',
-        businessAddress: 'Main Street 12',
-        businessCity: 'Nicosia',
-        businessLogoUrl: null,
-        businessDistanceKm: 1.4,
-        doctorId: 'mock-doc-1',
-        doctorName: 'Dr. Aylin Kaya',
-        specialty: 'Dermatology',
-        ratingAverage: 4.8,
-        reviewCount: 312,
-        serviceCount: 8,
-        nextAvailableAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        minPrice: 750,
-        maxPrice: 1800,
-        openNow: true,
-      },
-      {
-        businessId: 'mock-2',
-        businessName: 'BlueCare Clinic',
-        businessSlug: 'bluecare-clinic',
-        businessAddress: 'Ataturk Avenue 88',
-        businessCity: 'Famagusta',
-        businessLogoUrl: null,
-        businessDistanceKm: 4.9,
-        doctorId: 'mock-doc-2',
-        doctorName: 'Dr. Mert Demir',
-        specialty: 'Orthopedics',
-        ratingAverage: 4.6,
-        reviewCount: 124,
-        serviceCount: 6,
-        nextAvailableAt: new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString(),
-        minPrice: 900,
-        maxPrice: 2200,
-        openNow: false,
-      },
-    ]
-
-    return mock
+  } catch (error) {
+    console.error('[client/clinics] marketplace search failed:', error)
+    return []
   }
 }
 
@@ -107,11 +66,20 @@ export default async function ClientClinicsPage({
       <ClinicFilters />
 
       <StaggerList className="space-y-3 md:space-y-4">
-        {clinics.map((item) => (
-          <StaggerItem key={`${item.businessId}:${item.doctorId}`}>
-            <ClinicCard item={item} />
-          </StaggerItem>
-        ))}
+        {clinics.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
+            <p className="text-sm font-semibold text-foreground">No clinics match your search yet</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try adjusting filters or check back when more clinics are listed on the platform.
+            </p>
+          </div>
+        ) : (
+          clinics.map((item) => (
+            <StaggerItem key={`${item.businessId}:${item.doctorId}`}>
+              <ClinicCard item={item} />
+            </StaggerItem>
+          ))
+        )}
       </StaggerList>
     </main>
   )

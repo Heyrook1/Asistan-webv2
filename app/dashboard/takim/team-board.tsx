@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   KeyRound,
   Plus,
   RotateCcw,
@@ -223,6 +224,7 @@ export function TeamBoard({
   const [deactivateDialog, setDeactivateDialog] = useState<{ open: boolean; member?: Member }>({ open: false })
   const [drawerMember, setDrawerMember] = useState<Member | null>(null)
   const [drawerPermissions, setDrawerPermissions] = useState<Permission[]>([])
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [roleDrafts, setRoleDrafts] = useState<Record<RoleId, Permission[]>>(() => ({
     ISLETME_SAHIBI: ROLE_DEFAULT_PERMISSIONS.ISLETME_SAHIBI,
     DOKTOR: ROLE_DEFAULT_PERMISSIONS.DOKTOR,
@@ -367,12 +369,12 @@ export function TeamBoard({
       <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-teal/25 bg-brand-teal/10 px-3 py-1 text-xs font-semibold text-brand-teal">
-            <Shield className="h-3.5 w-3.5" />
-            Kurumsal erişim yönetimi
+            <Users className="h-3.5 w-3.5" />
+            Takım yönetimi
           </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-brand-ink lg:text-3xl">Yetki Kontrol Paneli</h1>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-brand-ink lg:text-3xl">Takım</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Takım üyelerinin erişimlerini, rollerini ve işlem yetkilerini tek ekrandan yönetin.
+            Üyeleri görüntüleyin, davet edin ve rollerini yönetin. Rol yetki matrisi Gelişmiş altında.
           </p>
         </div>
         <Button
@@ -380,7 +382,7 @@ export function TeamBoard({
           disabled={!canManage || reachedUserLimit}
           className="h-11 bg-brand-teal px-5 text-white shadow-lg shadow-teal-500/20 hover:bg-brand-teal-hover"
         >
-          <Plus className="mr-2 h-4 w-4" /> Kullanıcıyı davet et
+          <Plus className="mr-2 h-4 w-4" /> Üye davet et
         </Button>
       </section>
 
@@ -409,104 +411,16 @@ export function TeamBoard({
         </section>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={<Users />} label="Toplam Kullanıcı" value={members.length} detail={`${activeMembers} aktif kullanıcı`} />
-        <SummaryCard icon={<CheckCircle2 />} label="Aktif Kullanıcı" value={activeMembers} detail={`${members.length - activeMembers} erişimi durdurulmuş`} />
-        <SummaryCard icon={<UserCog />} label="Roller" value={5} detail={`${customMembers} özel yetki atanmış`} />
-        <SummaryCard icon={<ShieldAlert />} label="Kritik Yetkiler" value={criticalPermissionCount} detail="Hassas veri ve yönetim işlemleri" />
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-brand-ink">Rol Yönetimi</h2>
-            <p className="text-sm text-muted-foreground">Rollerin kapsamını, risk seviyesini ve kullanıcı dağılımını izleyin.</p>
-          </div>
-        </div>
-        <div className="grid gap-3 lg:grid-cols-5">
-          {roleCards.map((role) => {
-            const count = role.id === 'OZEL'
-              ? customMembers
-              : members.filter((member) => member.role === role.id).length
-            return (
-              <Card key={role.id} className="border-border/70 shadow-sm">
-                <CardContent className="flex h-full flex-col gap-4 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-teal/10 text-brand-teal">
-                      <Shield className="h-5 w-5" />
-                    </span>
-                    <Badge variant="outline" className="bg-white text-[10px]">{roleLevel(role.id)}</Badge>
-                  </div>
-                  <div className="min-h-[112px]">
-                    <h3 className="font-bold text-brand-ink">{role.name}</h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{role.description}</p>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between border-t pt-3">
-                    <div>
-                      <p className="text-lg font-bold text-brand-ink">{count}</p>
-                      <p className="text-[11px] text-muted-foreground">kullanıcı</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={role.id === 'OZEL'}
-                      onClick={() => document.getElementById('permission-matrix')?.scrollIntoView({ behavior: 'smooth' })}
-                    >
-                      Düzenle
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      </section>
-
-      <section id="permission-matrix" className="space-y-3">
-        <div>
-          <h2 className="text-lg font-bold text-brand-ink">Yetki Matrisi</h2>
-          <p className="text-sm text-muted-foreground">Rol bazlı erişim hiyerarşisini yönetin. İşletme sahibi yetkileri kilitlidir.</p>
-        </div>
-        <Card className="overflow-hidden border-border/70 shadow-sm">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] text-sm">
-                <thead className="bg-dashboard-surface text-left">
-                  <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <th className="w-[360px] px-4 py-3 font-semibold">Yetki</th>
-                    {MANAGED_ROLES.map((role) => (
-                      <th key={role} className="px-4 py-3 text-center font-semibold">{role === 'ISLETME_SAHIBI' ? 'İşletme Sahibi' : ROLE_LABELS[role]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {GROUPS.map((group) => (
-                    <PermissionMatrixGroup
-                      key={group}
-                      group={group}
-                      roleDrafts={roleDrafts}
-                      onToggle={toggleRolePermission}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex flex-wrap justify-end gap-2 border-t bg-white p-3">
-              {(['DOKTOR', 'SEKRETER', 'PERSONEL'] as MatrixRoleId[]).map((role) => (
-                <Button key={role} variant="outline" size="sm" disabled={pending} onClick={() => saveRole(role)}>
-                  {ROLE_LABELS[role]} rolünü kaydet
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <section className="grid gap-3 sm:grid-cols-2">
+        <SummaryCard icon={<Users />} label="Toplam Üye" value={members.length} detail={`${activeMembers} aktif`} />
+        <SummaryCard icon={<CheckCircle2 />} label="Aktif Üye" value={activeMembers} detail={`${members.length - activeMembers} erişimi durdurulmuş`} />
       </section>
 
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-brand-ink">Kullanıcı Erişim Tablosu</h2>
-            <p className="text-sm text-muted-foreground">Kullanıcı rollerini, erişim durumunu ve özel yetkileri yönetin.</p>
+            <h2 className="text-lg font-bold text-brand-ink">Üyeler</h2>
+            <p className="text-sm text-muted-foreground">Rol atayın, erişimi açıp kapatın veya üye bazlı yetki düzenleyin.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative">
@@ -514,7 +428,7 @@ export function TeamBoard({
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Kullanıcı ara..."
+                placeholder="Üye ara..."
                 className="h-10 w-full pl-9 sm:w-72"
               />
             </div>
@@ -622,7 +536,7 @@ export function TeamBoard({
                                 className="h-9 w-9"
                                 disabled={isSelf}
                                 onClick={() => setPasswordDialog({ open: true, member })}
-                                title="Şifre sıfırla"
+                                aria-label={`${member.fullName} için şifre sıfırla`}
                               >
                                 <KeyRound className="h-4 w-4" />
                               </Button>
@@ -632,7 +546,7 @@ export function TeamBoard({
                                 className={cn('h-9 w-9', member.isActive && 'text-rose-600')}
                                 disabled={isSelf}
                                 onClick={() => setDeactivateDialog({ open: true, member })}
-                                title={member.isActive ? 'Erişimi durdur' : 'Erişimi aç'}
+                                aria-label={member.isActive ? `${member.fullName} erişimini durdur` : `${member.fullName} erişimini aç`}
                               >
                                 {member.isActive ? <X className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                               </Button>
@@ -648,6 +562,123 @@ export function TeamBoard({
           </CardContent>
         </Card>
       </section>
+
+      {canManage && (
+        <section className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition-colors hover:bg-slate-50"
+            aria-expanded={showAdvanced}
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-brand-ink">
+                <SlidersHorizontal className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-brand-ink">Gelişmiş — rol yetkileri</p>
+                <p className="text-sm text-muted-foreground">
+                  Rol kartları ve yetki matrisi. Çoğu klinik için varsayılan roller yeterlidir.
+                </p>
+              </div>
+            </div>
+            <ChevronDown className={cn('h-5 w-5 shrink-0 text-muted-foreground transition-transform', showAdvanced && 'rotate-180')} />
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-6 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+              <section className="grid gap-3 sm:grid-cols-2">
+                <SummaryCard icon={<UserCog />} label="Roller" value={5} detail={`${customMembers} özel yetki atanmış`} />
+                <SummaryCard icon={<ShieldAlert />} label="Kritik Yetkiler" value={criticalPermissionCount} detail="Hassas veri ve yönetim işlemleri" />
+              </section>
+
+              <section className="space-y-3">
+                <div>
+                  <h2 className="text-lg font-bold text-brand-ink">Rol Yönetimi</h2>
+                  <p className="text-sm text-muted-foreground">Rollerin kapsamını, risk seviyesini ve kullanıcı dağılımını izleyin.</p>
+                </div>
+                <div className="grid gap-3 lg:grid-cols-5">
+                  {roleCards.map((role) => {
+                    const count = role.id === 'OZEL'
+                      ? customMembers
+                      : members.filter((member) => member.role === role.id).length
+                    return (
+                      <Card key={role.id} className="border-border/70 bg-white shadow-sm">
+                        <CardContent className="flex h-full flex-col gap-4 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-teal/10 text-brand-teal">
+                              <Shield className="h-5 w-5" />
+                            </span>
+                            <Badge variant="outline" className="bg-white text-[10px]">{roleLevel(role.id)}</Badge>
+                          </div>
+                          <div className="min-h-[112px]">
+                            <h3 className="font-bold text-brand-ink">{role.name}</h3>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{role.description}</p>
+                          </div>
+                          <div className="mt-auto flex items-center justify-between border-t pt-3">
+                            <div>
+                              <p className="text-lg font-bold text-brand-ink">{count}</p>
+                              <p className="text-[11px] text-muted-foreground">kullanıcı</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={role.id === 'OZEL'}
+                              onClick={() => document.getElementById('permission-matrix')?.scrollIntoView({ behavior: 'smooth' })}
+                            >
+                              Düzenle
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </section>
+
+              <section id="permission-matrix" className="space-y-3">
+                <div>
+                  <h2 className="text-lg font-bold text-brand-ink">Yetki Matrisi</h2>
+                  <p className="text-sm text-muted-foreground">Rol bazlı erişim hiyerarşisini yönetin. İşletme sahibi yetkileri kilitlidir.</p>
+                </div>
+                <Card className="overflow-hidden border-border/70 bg-white shadow-sm">
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[980px] text-sm">
+                        <thead className="bg-dashboard-surface text-left">
+                          <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            <th className="w-[360px] px-4 py-3 font-semibold">Yetki</th>
+                            {MANAGED_ROLES.map((role) => (
+                              <th key={role} className="px-4 py-3 text-center font-semibold">{role === 'ISLETME_SAHIBI' ? 'İşletme Sahibi' : ROLE_LABELS[role]}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {GROUPS.map((group) => (
+                            <PermissionMatrixGroup
+                              key={group}
+                              group={group}
+                              roleDrafts={roleDrafts}
+                              onToggle={toggleRolePermission}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2 border-t bg-white p-3">
+                      {(['DOKTOR', 'SEKRETER', 'PERSONEL'] as MatrixRoleId[]).map((role) => (
+                        <Button key={role} variant="outline" size="sm" disabled={pending} onClick={() => saveRole(role)}>
+                          {ROLE_LABELS[role]} rolünü kaydet
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            </div>
+          )}
+        </section>
+      )}
 
       <AddUserDialog
         open={addOpen}
@@ -810,7 +841,7 @@ function AddUserDialog({
     <Dialog open={open} onOpenChange={(value) => !value && close()}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Kullanıcıyı davet et</DialogTitle>
+          <DialogTitle>Üye davet et</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
           {limitReached && (

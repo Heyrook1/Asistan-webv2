@@ -8,9 +8,9 @@ import { AsistanLogo } from '@/components/asistan-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useLanguage } from '@/hooks/useLanguage'
-import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
+import { DEMO_CONTACT_PATH, ENTRY_CTA } from '@/lib/entry-routes'
 
-function buildFooterLinks(language: 'tr' | 'en') {
+function buildFooterLinks(_language: 'tr' | 'en') {
   return [
   {
     title: 'Urun',
@@ -34,6 +34,7 @@ function buildFooterLinks(language: 'tr' | 'en') {
     title: 'Sirket',
     links: [
       { label: 'Hakkimizda', href: '/hakkimizda' },
+      { label: 'Guven Merkezi', href: '/guven' },
       { label: 'Gizlilik Politikasi', href: '/privacy' },
       { label: 'Kullanim Kosullari', href: '/terms' },
       { label: 'Iletisim', href: '/contact' },
@@ -44,8 +45,8 @@ function buildFooterLinks(language: 'tr' | 'en') {
     links: [
       { label: 'SSS', href: '/fiyatlandirma#sss' },
       { label: 'Destek Merkezi', href: '/kaynaklar' },
-      { label: 'Canli Destek', href: getLoginPath(language) },
-      { label: 'Demo Talep Et', href: getRegisterPath(language) },
+      { label: 'İletişim', href: DEMO_CONTACT_PATH },
+      { label: ENTRY_CTA.demoRequest.tr, href: DEMO_CONTACT_PATH },
     ],
   },
 ]
@@ -74,7 +75,7 @@ export function Footer() {
                 <AsistanLogo variant="light" size="md" />
               </Link>
               <p className="mt-5 max-w-sm text-sm leading-7 text-white/65">
-                AI destekli klinik ve randevu yonetim platformu. Saglik ekiplerinin gunluk operasyonunu daha sakin hale getirir.
+                Klinik ve randevu yonetim platformu. Saglik ekiplerinin gunluk operasyonunu daha sakin hale getirir.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {trustBadges.map((item) => (
@@ -151,6 +152,9 @@ export function Footer() {
         <div className="marketing-container flex flex-col items-center justify-between gap-3 py-5 text-xs text-white/50 md:flex-row">
           <p>© 2026 Asistan. Tum haklari saklidir.</p>
           <div className="flex items-center gap-4">
+            <Link href="/guven" className="hover:text-white">
+              Guven Merkezi
+            </Link>
             <Link href="/privacy" className="hover:text-white">
               KVKK
             </Link>

@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ChevronLeft, Phone, Mail, MapPin, AlertTriangle, HeartPulse,
-  ShieldAlert, Sparkles, TrendingUp, Calendar as CalendarIcon, ShieldCheck,
-  FileText, ClipboardCheck, Eye, Download,
+  ShieldAlert, Calendar as CalendarIcon, ShieldCheck,
+  FileText, ClipboardCheck, StickyNote, Activity,
 } from 'lucide-react'
 import { requirePagePermission, can } from '@/lib/session'
 import { getPatientDetail } from '@/lib/queries'
@@ -12,25 +12,32 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
-  ageFromBirthDate, formatPhone, formatDate, formatTime, formatDateTime, formatShortDate,
-  APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS, TREATMENT_STATUS_LABELS, FILE_CATEGORY_LABELS, formatTimeAgo,
+  ageFromBirthDate, formatPhone, formatDate, formatTime, formatDateTime, formatTimeAgo,
+  APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS, TREATMENT_STATUS_LABELS, FILE_CATEGORY_LABELS,
 } from '@/lib/format'
 import { PatientActionButtons } from './action-buttons'
 import { PatientMetaEditor } from './meta-editor'
 import { TreatmentPlanBoard } from './treatment-plan'
+import { PatientSecondaryPanel } from './secondary-panel'
+import { listPatientPrescriptions } from '@/lib/actions/prescriptions'
+import { PatientPrescriptionsPanel } from '@/components/dashboard/patient-prescriptions-panel'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PatientDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ action?: string }>
 }) {
   const { id } = await params
+  const sp = await searchParams
   const session = await requirePagePermission('patient.view')
   const canEdit = can(session, 'patient.edit')
   const canViewMedicalNotes = can(session, 'medical_note.view')
   const canViewFiles = can(session, 'file.view')
+  const initialAction = sp.action === 'note' || sp.action === 'file' ? sp.action : undefined
   const patient = await getPatientDetail(session.businessId, id, {
     includeMedicalNotes: canViewMedicalNotes,
     includeFiles: canViewFiles,
@@ -39,7 +46,7 @@ export default async function PatientDetailPage({
 
   const age = ageFromBirthDate(patient.birthDate)
 
-  const [services, staff, locations] = await Promise.all([
+  const [services, staff, locations, prescriptions] = await Promise.all([
     prisma.service.findMany({
       where: { businessId: session.businessId, isActive: true },
       orderBy: { name: 'asc' },
@@ -55,7 +62,23 @@ export default async function PatientDetailPage({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
     }),
+    listPatientPrescriptions(id),
   ])
+
+  const doctors = await prisma.teamMember.findMany({
+    where: { businessId: session.businessId, isActive: true, role: 'DOKTOR' },
+    orderBy: { fullName: 'asc' },
+    select: {
+      id: true,
+      fullName: true,
+      specialty: true,
+      prescriptionTitle: true,
+      kktcIdentityNo: true,
+      medicalLicenseNo: true,
+      diplomaNo: true,
+      phone: true,
+    },
+  })
 
   const initials = patient.fullName
     .split(' ')
@@ -67,7 +90,6 @@ export default async function PatientDetailPage({
   const lastAppointment = patient.appointments.find((a) => a.status === 'COMPLETED') ?? patient.appointments[0]
   const allergyNames = patient.allergies.slice(0, 3).map((a) => a.name).join(', ')
   const activeMedications = patient.medications.filter((m) => m.active)
-  const pdfFiles = patient.files.filter((f) => !f.fileType.startsWith('image/'))
 
   return (
     <div className="space-y-3 lg:space-y-4">
@@ -77,93 +99,105 @@ export default async function PatientDetailPage({
 
       <div className="hidden lg:block">
         <h1 className="text-2xl font-bold text-brand-ink">Hasta Kartı</h1>
-        <p className="text-sm text-muted-foreground">Hastanın tüm klinik geçmişi, ilaçları, notları, dosyaları ve tedavi süreci tek ekranda.</p>
+        <p className="text-sm text-muted-foreground">Özet önce; detaylar sekmelerde.</p>
       </div>
 
-      {/* Header card */}
+      {/* Header card — primary identity + critical signals only */}
       <Card>
         <CardContent className="p-4 lg:p-5">
-          <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-teal to-brand-cyan text-white text-xl font-bold">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-teal to-brand-cyan text-lg font-bold text-white">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-bold text-brand-ink">{patient.fullName}</h2>
                   <Badge className={patient.isArchived ? 'bg-rose-100 text-rose-800 border-0' : 'bg-emerald-100 text-emerald-800 border-0'}>
-                    {patient.isArchived ? 'Arşivli' : 'Aktif Hasta'}
+                    {patient.isArchived ? 'Arşivli' : 'Aktif'}
                   </Badge>
-                </div>
-                <p className="text-[13px] text-brand-teal font-medium">#{patient.patientNumber}</p>
-
-                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                  <StatPill label="Yaş" value={age != null ? String(age) : '—'} />
-                  <StatPill label="Cinsiyet" value={patient.gender ?? '—'} />
-                  <StatPill label="Kan Grubu" value={patient.bloodType ?? '—'} highlight />
+                  <span className="text-[13px] font-medium text-brand-teal">#{patient.patientNumber}</span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span>{age != null ? `${age} yaş` : 'Yaş —'}</span>
+                  <span>{patient.gender ?? 'Cinsiyet —'}</span>
+                  <span className="font-medium text-brand-ink">Kan: {patient.bloodType ?? '—'}</span>
+                  <span className="inline-flex items-center gap-1">
                     <Phone className="h-3.5 w-3.5 text-brand-teal" /> {formatPhone(patient.phone)}
                   </span>
-                  {patient.email && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-brand-teal" /> {patient.email}
-                    </span>
-                  )}
-                  {patient.city && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-brand-teal" /> {patient.city}
-                    </span>
-                  )}
                 </div>
 
-                {(patient.emergencyContactName || patient.emergencyContactPhone) && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-dashboard-surface px-3 py-1.5 text-xs text-muted-foreground">
-                    <ShieldAlert className="h-3.5 w-3.5 text-rose-500" />
-                    <span><strong className="text-brand-ink">Acil İletişim:</strong> {patient.emergencyContactName ?? '—'}{patient.emergencyContactPhone ? ` — ${formatPhone(patient.emergencyContactPhone)}` : ''}</span>
-                  </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <SignalChip
+                    tone={allergyNames ? 'amber' : 'muted'}
+                    icon={<AlertTriangle className="h-3.5 w-3.5" />}
+                    label="Alerji"
+                    value={allergyNames || 'Yok'}
+                  />
+                  <SignalChip
+                    tone={patient.chronicDiseases ? 'sky' : 'muted'}
+                    icon={<HeartPulse className="h-3.5 w-3.5" />}
+                    label="Kronik"
+                    value={patient.chronicDiseases || 'Yok'}
+                  />
+                  <SignalChip
+                    tone={patient.riskNote ? 'rose' : 'muted'}
+                    icon={<ShieldAlert className="h-3.5 w-3.5" />}
+                    label="Risk"
+                    value={patient.riskNote || 'Yok'}
+                  />
+                </div>
+
+                {(patient.email || patient.city || patient.emergencyContactName || patient.emergencyContactPhone) && (
+                  <details className="mt-3 group">
+                    <summary className="cursor-pointer list-none text-xs font-semibold text-brand-teal hover:underline">
+                      İletişim ve acil bilgiler
+                    </summary>
+                    <div className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                      {patient.email ? (
+                        <p className="inline-flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-brand-teal" /> {patient.email}
+                        </p>
+                      ) : null}
+                      {patient.city ? (
+                        <p className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-brand-teal" /> {patient.city}
+                        </p>
+                      ) : null}
+                      {(patient.emergencyContactName || patient.emergencyContactPhone) && (
+                        <p className="inline-flex items-center gap-1.5 rounded-lg bg-dashboard-surface px-2.5 py-1.5 text-xs">
+                          <ShieldAlert className="h-3.5 w-3.5 text-rose-500" />
+                          <span>
+                            <strong className="text-brand-ink">Acil:</strong>{' '}
+                            {patient.emergencyContactName ?? '—'}
+                            {patient.emergencyContactPhone ? ` — ${formatPhone(patient.emergencyContactPhone)}` : ''}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </details>
                 )}
               </div>
             </div>
 
-            {/* Right side alert cards */}
-            <div className="grid gap-2 sm:grid-cols-3 lg:w-[560px]">
-              <AlertCard
-                icon={<AlertTriangle className="h-5 w-5" />}
-                tone="amber"
-                title="Alerjiler"
-                value={allergyNames || 'Kayıt yok'}
-              />
-              <AlertCard
-                icon={<HeartPulse className="h-5 w-5" />}
-                tone="sky"
-                title="Kronik Durum"
-                value={patient.chronicDiseases || 'Kayıt yok'}
-              />
-              <AlertCard
-                icon={<ShieldAlert className="h-5 w-5" />}
-                tone="indigo"
-                title="Risk Notu"
-                value={patient.riskNote || 'Risk notu yok'}
-              />
-            </div>
+            {canEdit && (
+              <div className="shrink-0">
+                <PatientActionButtons
+                  patientId={patient.id}
+                  businessId={session.businessId}
+                  isArchived={patient.isArchived}
+                  services={services}
+                  staff={staff}
+                  doctors={doctors}
+                  locations={locations}
+                  patientLabel={`${patient.fullName} (#${patient.patientNumber})`}
+                  defaultStaffId={session.staffMemberId ?? undefined}
+                  initialAction={initialAction}
+                />
+              </div>
+            )}
           </div>
-
-          {canEdit && (
-            <div className="mt-5 border-t pt-4">
-              <PatientActionButtons
-                patientId={patient.id}
-                businessId={session.businessId}
-                isArchived={patient.isArchived}
-                services={services}
-                staff={staff}
-                locations={locations}
-                patientLabel={`${patient.fullName} (#${patient.patientNumber})`}
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -173,7 +207,7 @@ export default async function PatientDetailPage({
             <CardContent className="p-1.5 md:p-2">
               <div className="overflow-x-auto no-scrollbar md:overflow-visible">
                 <TabsList className="inline-flex h-auto w-max items-stretch gap-1 bg-transparent p-0 md:flex md:w-auto md:flex-wrap md:gap-1 md:p-1">
-                  <TabsTrigger value="genel" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Genel Bilgi</TabsTrigger>
+                  <TabsTrigger value="genel" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Özet</TabsTrigger>
                   <TabsTrigger value="randevular" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Randevular ({patient.appointments.length})</TabsTrigger>
                   {canViewMedicalNotes && (
                     <TabsTrigger value="not" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Notlar ({patient.notes.length})</TabsTrigger>
@@ -185,8 +219,9 @@ export default async function PatientDetailPage({
                   {canViewFiles && (
                     <TabsTrigger value="dosya" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Dosyalar ({patient.files.length})</TabsTrigger>
                   )}
+                  <TabsTrigger value="recete" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Reçeteler ({prescriptions.length})</TabsTrigger>
                   {canViewMedicalNotes && (
-                    <TabsTrigger value="hikaye" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Hasta Hikayesi</TabsTrigger>
+                    <TabsTrigger value="hikaye" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Hikaye</TabsTrigger>
                   )}
                 </TabsList>
               </div>
@@ -194,11 +229,10 @@ export default async function PatientDetailPage({
           </Card>
         </div>
 
-        {/* GENEL BİLGİ */}
+        {/* ÖZET — primary only */}
         <TabsContent value="genel">
-          <div className="grid gap-4 lg:grid-cols-3">
-            {/* Sol kolon */}
-            <div className="space-y-4">
+          <div className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
               <SummaryCard
                 patientId={patient.id}
                 canEdit={canEdit}
@@ -216,8 +250,8 @@ export default async function PatientDetailPage({
 
               <Card>
                 <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-brand-ink flex items-center gap-2">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
                       <ClipboardCheck className="h-4 w-4 text-brand-teal" /> Tedavi Planı
                     </h3>
                   </div>
@@ -235,129 +269,25 @@ export default async function PatientDetailPage({
               </Card>
             </div>
 
-            {/* Orta kolon */}
-            <div className="space-y-4">
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-brand-ink">Kullandığı İlaçlar</h3>
-                    <span className="text-[11px] text-muted-foreground">{activeMedications.length} aktif</span>
-                  </div>
-                  {patient.medications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Kayıtlı ilaç yok.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {patient.medications.slice(0, 6).map((m) => (
-                        <li key={m.id} className="flex items-start gap-3 rounded-lg border bg-white p-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-teal/10 text-brand-teal text-[10px] font-bold">
-                            Rx
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-brand-ink truncate">{m.name}</p>
-                            <p className="text-[11px] text-muted-foreground truncate">
-                              {[m.dosage, m.frequency].filter(Boolean).join(' • ') || 'Detay yok'}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className={m.active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}
-                          >
-                            {m.active ? 'Aktif' : 'Pasif'}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Detay sekmeleri
+                </p>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <QuickJump label={`İlaçlar (${activeMedications.length} aktif)`} />
+                  <QuickJump label={`Tahliller (${patient.labResults.length})`} />
+                  <QuickJump label={`Dosyalar (${patient.files.length})`} />
+                  <QuickJump label={`Reçeteler (${prescriptions.length})`} />
+                  <QuickJump label={`Randevular (${patient.appointments.length})`} />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Tam listeler ilgili sekmede. Özet ekranı yalnızca kritik klinik özeti gösterir.
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-brand-ink">Tahliller ve Raporlar</h3>
-                  </div>
-                  {pdfFiles.length === 0 && patient.labResults.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Henüz tahlil/rapor yok.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {pdfFiles.slice(0, 4).map((f) => (
-                        <li key={f.id} className="flex items-center gap-3 rounded-lg border bg-white p-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-                            <FileText className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-brand-ink truncate">{f.fileName}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatShortDate(f.uploadedAt)}</p>
-                          </div>
-                          <a href={f.fileUrl} target="_blank" rel="noreferrer" className="rounded-md p-1.5 hover:bg-dashboard-surface" title="Görüntüle">
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          </a>
-                          <a href={f.fileUrl} download={f.fileName} className="rounded-md p-1.5 hover:bg-dashboard-surface" title="İndir">
-                            <Download className="h-4 w-4 text-muted-foreground" />
-                          </a>
-                        </li>
-                      ))}
-                      {patient.labResults.slice(0, 3).map((l) => (
-                        <li key={l.id} className="flex items-center gap-3 rounded-lg border bg-white p-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
-                            <ClipboardCheck className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-brand-ink truncate">{l.title}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatShortDate(l.resultDate)}</p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sağ kolon — Hasta Hikayesi + AI Önerileri */}
-            <div className="space-y-4">
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-brand-ink">Hasta Hikayesi</h3>
-                  </div>
-                  {patient.timeline.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
-                  ) : (
-                    <ul className="space-y-3 relative pl-1">
-                      <span className="absolute left-3 top-1 bottom-1 w-px bg-border" />
-                      {patient.timeline.slice(0, 8).map((ev, idx) => (
-                        <li key={ev.id} className="relative pl-7">
-                          <span
-                            className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-full text-white"
-                            style={{ background: timelineColor(idx) }}
-                          >
-                            {timelineIcon(ev.type)}
-                          </span>
-                          <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
-                          <p className="text-sm text-brand-ink">{ev.title}</p>
-                          {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-4 w-4 text-violet-600" />
-                    <h3 className="text-sm font-semibold text-brand-ink">AI Klinik Önerileri</h3>
-                  </div>
-                  {canViewMedicalNotes ? (
-                    <AISuggestionsList suggestions={(patient.aiSuggestions as Suggestion[] | null) ?? defaultSuggestions(patient)} />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Bu bolum tibbi not yetkisi gerektirir.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <PatientSecondaryPanel timeline={patient.timeline} />
           </div>
         </TabsContent>
 
@@ -501,43 +431,53 @@ export default async function PatientDetailPage({
 
         {/* GÖRÜNTÜLER */}
         {canViewMedicalNotes && (
-        <TabsContent value="hikaye">
-          <Card>
-            <CardContent className="p-5 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-              <div>
-                <h3 className="mb-2 text-sm font-semibold text-brand-ink">Anamnez ve Hasta Hikayesi</h3>
-                {patient.patientStory ? (
-                  <p className="whitespace-pre-line text-sm leading-6 text-brand-ink">{patient.patientStory}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Hasta hikayesi henüz girilmedi.</p>
-                )}
-              </div>
-              <div>
-                <h3 className="mb-3 text-sm font-semibold text-brand-ink">Zaman Çizelgesi</h3>
-                {patient.timeline.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
-                ) : (
-                  <ul className="space-y-3 relative pl-1">
-                    <span className="absolute left-3 top-1 bottom-1 w-px bg-border" />
-                    {patient.timeline.map((ev, idx) => (
-                      <li key={ev.id} className="relative pl-7">
-                        <span
-                          className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-full text-white"
-                          style={{ background: timelineColor(idx) }}
-                        >
-                          {timelineIcon(ev.type)}
-                        </span>
-                        <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
-                        <p className="text-sm text-brand-ink">{ev.title}</p>
-                        {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <>
+            <TabsContent value="recete">
+              <Card>
+                <CardContent className="p-5">
+                  <PatientPrescriptionsPanel patientId={patient.id} prescriptions={prescriptions} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="hikaye">
+              <Card>
+                <CardContent className="p-5 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-brand-ink">Anamnez ve Hasta Hikayesi</h3>
+                    {patient.patientStory ? (
+                      <p className="whitespace-pre-line text-sm leading-6 text-brand-ink">{patient.patientStory}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Hasta hikayesi henüz girilmedi.</p>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-sm font-semibold text-brand-ink">Zaman Çizelgesi</h3>
+                    {patient.timeline.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
+                    ) : (
+                      <ul className="space-y-3 relative pl-1">
+                        <span className="absolute left-3 top-1 bottom-1 w-px bg-border" />
+                        {patient.timeline.map((ev, idx) => (
+                          <li key={ev.id} className="relative pl-7">
+                            <span
+                              className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-full text-white"
+                              style={{ background: timelineColor(idx) }}
+                            >
+                              {timelineIcon(ev.type)}
+                            </span>
+                            <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
+                            <p className="text-sm text-brand-ink">{ev.title}</p>
+                            {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </>
         )}
 
         {/* DOSYALAR */}
@@ -593,88 +533,38 @@ export default async function PatientDetailPage({
   )
 }
 
-function StatPill({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className={`text-sm font-semibold ${highlight ? 'text-rose-600' : 'text-brand-ink'}`}>{value}</span>
-    </div>
-  )
-}
-
-function AlertCard({
-  icon, tone, title, value,
+function SignalChip({
+  tone,
+  icon,
+  label,
+  value,
 }: {
+  tone: 'amber' | 'sky' | 'rose' | 'muted'
   icon: React.ReactNode
-  tone: 'amber' | 'sky' | 'indigo'
-  title: string
+  label: string
   value: string
 }) {
   const toneClass = {
     amber: 'border-amber-200 bg-amber-50 text-amber-900',
     sky: 'border-sky-200 bg-sky-50 text-sky-900',
-    indigo: 'border-indigo-200 bg-indigo-50 text-indigo-900',
+    rose: 'border-rose-200 bg-rose-50 text-rose-900',
+    muted: 'border-border bg-dashboard-surface text-muted-foreground',
   }[tone]
-  const iconColor = { amber: 'text-amber-600', sky: 'text-sky-600', indigo: 'text-indigo-600' }[tone]
   return (
-    <div className={`rounded-xl border p-3 ${toneClass}`}>
-      <div className={`mb-1 ${iconColor}`}>{icon}</div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{title}</p>
-      <p className="text-sm font-medium leading-tight line-clamp-2">{value}</p>
-    </div>
+    <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${toneClass}`}>
+      {icon}
+      <span className="shrink-0 opacity-80">{label}:</span>
+      <span className="truncate font-semibold text-brand-ink">{value}</span>
+    </span>
   )
 }
 
-type Suggestion = { icon?: string; title: string; type?: string }
-
-function AISuggestionsList({ suggestions }: { suggestions: Suggestion[] }) {
-  if (suggestions.length === 0) {
-    return <p className="text-sm text-muted-foreground">Henüz öneri yok.</p>
-  }
+function QuickJump({ label }: { label: string }) {
   return (
-    <ul className="space-y-2">
-      {suggestions.map((s, i) => (
-        <li key={i} className="flex items-start gap-2.5 rounded-lg border bg-white p-2.5">
-          <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700">
-            {suggestionIcon(s.type ?? s.icon)}
-          </span>
-          <p className="text-sm text-brand-ink flex-1">{s.title}</p>
-        </li>
-      ))}
-    </ul>
+    <span className="inline-flex items-center rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-brand-ink">
+      {label}
+    </span>
   )
-}
-
-function suggestionIcon(key?: string) {
-  switch (key) {
-    case 'trend':
-      return <TrendingUp className="h-3.5 w-3.5" />
-    case 'calendar':
-      return <CalendarIcon className="h-3.5 w-3.5" />
-    case 'allergy':
-      return <ShieldCheck className="h-3.5 w-3.5" />
-    default:
-      return <Sparkles className="h-3.5 w-3.5" />
-  }
-}
-
-function defaultSuggestions(patient: {
-  allergies: { name: string }[]
-  chronicDiseases: string | null
-  appointments: { date: Date; status: string }[]
-}): Suggestion[] {
-  const items: Suggestion[] = []
-  if (patient.chronicDiseases) {
-    items.push({ type: 'trend', title: `Kronik durum izleniyor: ${patient.chronicDiseases}` })
-  }
-  const upcoming = patient.appointments.find((a) => a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
-  if (!upcoming) {
-    items.push({ type: 'calendar', title: 'Yakın randevu yok. 2 hafta içinde kontrol önerilir.' })
-  }
-  if (patient.allergies.length) {
-    items.push({ type: 'allergy', title: `${patient.allergies.map((a) => a.name).join(', ')} alerjisi nedeniyle reçete kontrolü yapın.` })
-  }
-  return items
 }
 
 function timelineColor(idx: number) {
@@ -687,7 +577,7 @@ function timelineIcon(type: string) {
   if (type.includes('MEDICATION')) return <span className="text-[9px] font-bold">Rx</span>
   if (type.includes('LAB')) return <ClipboardCheck className="h-3 w-3" />
   if (type.includes('FILE')) return <FileText className="h-3 w-3" />
-  return <Sparkles className="h-3 w-3" />
+  return <Activity className="h-3 w-3" />
 }
 
 function SummaryCard({
@@ -721,7 +611,7 @@ function SummaryCard({
           <SummaryRow icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Son Tanı" value={meta.lastDiagnosis ?? '—'} />
           <SummaryRow icon={<HeartPulse className="h-3.5 w-3.5" />} label="Devam Eden Tedavi" value={meta.currentTreatment ?? '—'} />
           <SummaryRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Doktor" value={meta.assignedDoctor ?? '—'} />
-          <SummaryRow icon={<Sparkles className="h-3.5 w-3.5" />} label="Not" value={meta.summary ?? '—'} multiline />
+          <SummaryRow icon={<StickyNote className="h-3.5 w-3.5" />} label="Not" value={meta.summary ?? '—'} multiline />
         </dl>
       </CardContent>
     </Card>

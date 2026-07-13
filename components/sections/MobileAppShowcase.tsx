@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   MapPin, 
@@ -140,6 +141,8 @@ export function MobileAppShowcase() {
   const [activeScreen, setActiveScreen] = useState<number>(0)
   const [email, setEmail] = useState<string>('')
   const [submitted, setSubmitted] = useState<boolean>(false)
+  const [submitting, setSubmitting] = useState<boolean>(false)
+  const [error, setError] = useState<string>('')
 
   // Auto-rotate phone mockup screen every 3 seconds
   useEffect(() => {
@@ -149,34 +152,67 @@ export function MobileAppShowcase() {
     return () => clearInterval(timer)
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
-    setSubmitted(true)
-    setEmail('')
+    if (!email || submitting) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: string
+        data?: { success?: boolean }
+      }
+      if (!res.ok || data.ok === false) {
+        setError(
+          data.error ??
+            t({
+              tr: 'Kayıt tamamlanamadı. Lütfen tekrar deneyin.',
+              en: 'Could not join the waitlist. Please try again.',
+            })
+        )
+        return
+      }
+      setSubmitted(true)
+      setEmail('')
+    } catch {
+      setError(
+        t({
+          tr: 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.',
+          en: 'Connection error. Please check your connection.',
+        })
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   // Bilingual dataset for inner phone mockup screens
   const phoneScreens = [
     {
       title: t({ tr: 'Yakındaki Klinikler', en: 'Nearby Clinics' }),
-      description: t({ tr: 'Diş Hekimi • 4.9 ★ • 300m', en: 'Dentist • 4.9 ★ • 300m' }),
+      description: t({ tr: 'Diş Hekimi • Lefkoşa • 300m', en: 'Dentist • Nicosia • 300m' }),
       icon: <MapPin className="h-7 w-7 text-white" />
     },
     {
       title: t({ tr: 'Hekim Müsaitliği', en: 'Doctor Availability' }),
-      description: t({ tr: 'Bugün 14:30 • Uygun ✅', en: 'Today 14:30 • Available ✅' }),
+      description: t({ tr: 'Bugün 14:30 • Uygun', en: 'Today 14:30 • Available' }),
       icon: <Clock className="h-7 w-7 text-white" />
     },
     {
-      title: t({ tr: 'Anında Rezervasyon', en: 'Instant Booking' }),
-      description: t({ tr: '1 saniyede onaylandı', en: 'Confirmed in 1 second' }),
+      title: t({ tr: 'Randevu Talebi', en: 'Booking Request' }),
+      description: t({ tr: 'Klinik onayına gönderildi', en: 'Sent for clinic confirmation' }),
       icon: <Calendar className="h-7 w-7 text-white" />
     }
   ]
 
   return (
-    <section className="relative px-4 py-20 sm:px-6 lg:py-28 bg-[#FFFFFF] overflow-hidden select-none">
+    <section id="waitlist" className="relative px-4 py-20 sm:px-6 lg:py-28 bg-[#FFFFFF] overflow-hidden select-none">
       
       {/* Background Soft Glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#0071E3]/5 blur-[120px] rounded-full pointer-events-none" />
@@ -191,8 +227,8 @@ export function MobileAppShowcase() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0071E3]"></span>
             </span>
             {t({
-              tr: 'ASİSTAN REZERVASYON • ÇOK YAKINDA',
-              en: 'ASISTAN RESERVATION • COMING SOON'
+              tr: 'ASİSTAN REZERVASYON • HASTA UYGULAMASI',
+              en: 'ASISTAN RESERVATION • PATIENT APP'
             })}
           </div>
           <h2 className="mx-auto max-w-3xl text-balance font-display text-[clamp(2rem,4.5vw,3.4rem)] font-bold tracking-[-0.04em] text-[#1D1D1F] leading-[1.08]">
@@ -259,37 +295,37 @@ export function MobileAppShowcase() {
                 tr: 'Yeşil, sarı ve kırmızı durum rozetleriyle anlık boşlukları inceleyin.',
                 en: 'Browse real-time slots colored with green, yellow, and red status tags.'
               })}
-              badgeText={t({ tr: '4.9/5 Puan', en: '4.9/5 Rating' })}
+              badgeText={t({ tr: 'Canlı slot', en: 'Live slots' })}
               badgeType="success"
             />
             <FeatureCard 
               icon={<Star className="h-6 w-6" />}
               title={t({ tr: 'Klinik & Doktor Profilleri', en: 'Clinic & Doctor Profiles' })}
               description={t({
-                tr: 'Randevu öncesinde hekim özgeçmişini, puanları ve doğrulanmış yorumları karşılaştırın.',
-                en: 'Compare physician curriculum vitae, user scores, and trusted patient reviews before booking.'
+                tr: 'Randevu öncesinde hekim bilgilerini ve tamamlanmış randevuya bağlı gerçek yorumları görün.',
+                en: 'See doctor profiles and real reviews tied to completed appointments before booking.'
               })}
-              badgeText={t({ tr: 'Doğrulanmış', en: 'Verified' })}
+              badgeText={t({ tr: 'Gerçek yorum', en: 'Real reviews' })}
               badgeType="primary"
             />
             <FeatureCard 
               icon={<CalendarCheck2 className="h-6 w-6" />}
-              title={t({ tr: 'Tek Dokunuşla Randevu', en: 'One-Tap Booking' })}
+              title={t({ tr: 'Randevu Talebi', en: 'Booking Request' })}
               description={t({
-                tr: 'Hizmetinizi seçin, istediğiniz saati işaretleyin ve takviminize otomatik ekleyin.',
-                en: 'Choose your desired service, pick an open hour, and sync automatically to your schedule.'
+                tr: 'Hizmet ve saati seçin; klinik ayarına göre otomatik veya manuel onayla ilerleyin.',
+                en: 'Pick a service and time; proceed with auto or manual confirmation based on clinic settings.'
               })}
-              badgeText={t({ tr: '1 Saniye', en: '1 Second' })}
+              badgeText={t({ tr: 'Web + mobil', en: 'Web + mobile' })}
               badgeType="warning"
             />
             <FeatureCard 
               icon={<BellRing className="h-6 w-6" />}
-              title={t({ tr: 'Akıllı Bildirim & Takip', en: 'Smart Notifications' })}
+              title={t({ tr: 'Bildirim & Hatırlatma', en: 'Alerts & Reminders' })}
               description={t({
-                tr: 'Randevu onayları, hatırlatmalar ve kontrol hekim takipleri için anlık bildirimler alın.',
-                en: 'Receive instant push updates for booking confirmations, reminders, and control appointments.'
+                tr: 'Randevu durumu ve panel bildirimleriyle takip edin. SMS için webhook kurulumu gerekir.',
+                en: 'Follow appointment status via in-app alerts. SMS requires webhook setup.'
               })}
-              badgeText={t({ tr: 'Takip', en: 'Follow-up' })}
+              badgeText={t({ tr: 'Panel', en: 'In-app' })}
               badgeType="neutral"
             />
           </div>
@@ -301,8 +337,14 @@ export function MobileAppShowcase() {
           <GlassCard className="p-8 sm:p-10 bg-white/40 border-white/60 shadow-xl rounded-3xl relative overflow-hidden">
             <div className="space-y-4">
               <h3 className="text-xl font-bold tracking-tight text-[#1D1D1F]">
-                {t({ tr: 'Erken erişim bekleme listesi', en: 'Early Access Waitlist' })}
+                {t({ tr: 'Mağaza yayını için bekleme listesi', en: 'Store release waitlist' })}
               </h3>
+              <p className="text-sm text-[#5D6068]">
+                {t({
+                  tr: 'Web randevusu bugün açık. App Store / Google Play duyurusu için e-posta bırakın.',
+                  en: 'Web booking is live today. Leave your email for App Store / Google Play updates.',
+                })}
+              </p>
               
               <AnimatePresence mode="wait">
                 {!submitted ? (
@@ -311,23 +353,33 @@ export function MobileAppShowcase() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onSubmit={handleSubmit} 
-                    className="flex flex-col sm:flex-row gap-2 mt-4"
+                    className="mt-4 space-y-2"
                   >
-                    <input 
-                      type="email"
-                      required
-                      placeholder={t({ tr: 'E-posta adresiniz', en: 'Your email address' })}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4.5 text-sm text-[#1D1D1F] outline-none shadow-sm focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/20 transition-all duration-300"
-                    />
-                    <button 
-                      type="submit"
-                      className="h-12 rounded-2xl bg-[#0071E3] px-6 text-sm font-semibold text-white hover:bg-[#0063C8] transition-all duration-300 shadow-md flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <span>{t({ tr: 'Bekleme Listesine Katıl', en: 'Join Waitlist' })}</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input 
+                        type="email"
+                        required
+                        placeholder={t({ tr: 'E-posta adresiniz', en: 'Your email address' })}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4.5 text-sm text-[#1D1D1F] outline-none shadow-sm focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/20 transition-all duration-300"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={submitting}
+                        className="h-12 rounded-2xl bg-[#0071E3] px-6 text-sm font-semibold text-white hover:bg-[#0063C8] transition-all duration-300 shadow-md flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+                      >
+                        <span>
+                          {submitting
+                            ? t({ tr: 'Kaydediliyor…', en: 'Saving…' })
+                            : t({ tr: 'Mağaza bekleme listesine katıl', en: 'Join store waitlist' })}
+                        </span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {error ? (
+                      <p className="text-left text-xs font-medium text-red-600">{error}</p>
+                    ) : null}
                   </motion.form>
                 ) : (
                   <motion.div 
@@ -347,16 +399,13 @@ export function MobileAppShowcase() {
               </AnimatePresence>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-between text-xs text-[#86868B] gap-2">
-                <span>{t({ tr: 'Spam yok. Sadece ürün lansman haberleri.', en: 'No spam. Launch announcements only.' })}</span>
-                <div className="flex items-center gap-1.5 font-mono text-[10px] bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="font-bold">
-                    {t({ 
-                      tr: 'Güvenli Onboarding Protokolü v1.0.0-beta', 
-                      en: 'Secure Onboarding Protocol v1.0.0-beta' 
-                    })}
-                  </span>
-                </div>
+                <span>{t({ tr: 'Spam yok. Sadece mağaza lansman haberleri.', en: 'No spam. Store launch updates only.' })}</span>
+                <Link
+                  href="/client"
+                  className="inline-flex items-center gap-1 font-semibold text-[#0071E3] hover:underline"
+                >
+                  {t({ tr: 'Webden hasta randevusu al →', en: 'Book as patient on web →' })}
+                </Link>
               </div>
             </div>
           </GlassCard>

@@ -22,7 +22,7 @@ export function MarketingPageShell({
       >
         <div className="noise-overlay pointer-events-none fixed inset-0 opacity-[0.18]" />
         <SiteHeader variant="site" />
-        <main className="marketing-page-enter">{children}</main>
+        <main id="main-content" tabIndex={-1} className="marketing-page-enter">{children}</main>
         <SiteFooter />
       </div>
     </SmoothScroll>

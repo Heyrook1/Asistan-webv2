@@ -16,8 +16,8 @@ const modules = [
   },
   {
     icon: BellRing,
-    title: 'Akilli Hatirlatmalar',
-    detail: 'SMS, e-posta ve bildirimlerle randevu kacirmayi azaltin.',
+    title: 'Hatirlatmalar',
+    detail: 'Panel ve e-posta hatirlatmalariyla randevu kacirmayi azaltin. SMS icin webhook kurulumu gerekir.',
   },
   {
     icon: ShieldCheck,

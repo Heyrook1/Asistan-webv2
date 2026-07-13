@@ -20,6 +20,7 @@ import { FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 type IndustryConfig = {
   icon: typeof HeartPulse
@@ -49,7 +50,7 @@ const industries: Record<string, IndustryConfig> = {
     features: [
       'Hasta kartlari ve gecmis kayitlar',
       'Online randevu ve takvim plani',
-      'SMS/e-posta hatirlatma akislarina hazir altyapi',
+      'SMS webhook entegrasyonuna hazir hatirlatma altyapisi',
       'Rol bazli ekip yonetimi',
       'KVKK odakli veri ayrimi',
       'Detayli klinik raporlari',
@@ -199,8 +200,8 @@ export default async function IndustryPage({ params }: { params: Promise<{ indus
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">{current.longDescription}</p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Button asChild className={`h-11 rounded-lg px-5 text-sm font-semibold text-white ${current.accent}`}>
-                  <Link href="/auth/sign-up">
-                    Ucretsiz Basla
+                  <Link href={getClinicTrialPath('tr')}>
+                    {ENTRY_CTA.clinicTrial.tr}
                     <ArrowRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
@@ -291,16 +292,16 @@ export default async function IndustryPage({ params }: { params: Promise<{ indus
           <ScaleIn>
             <Card className="rounded-2xl bg-brand-navy text-white">
               <CardContent className="p-7">
-                <h3 className="text-2xl font-black">Erken erisime katilin</h3>
+                <h3 className="text-2xl font-black">{ENTRY_CTA.clinicTrial.tr}</h3>
                 <p className="mt-3 text-sm leading-7 text-white/75">
-                  Kisa bir gorusmede ihtiyacinizi anlayip en dogru baslangici onerelim.
+                  Kayit olarak paneli deneyin veya demo icin iletisime gecin.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button asChild className="h-10 rounded-lg bg-white text-brand-navy hover:bg-white/90">
-                    <Link href="/auth/sign-up">Basvuru Yap</Link>
+                    <Link href={getClinicTrialPath('tr')}>{ENTRY_CTA.clinicTrial.tr}</Link>
                   </Button>
                   <Button asChild variant="outline" className="h-10 rounded-lg border-white/30 bg-transparent text-white hover:bg-white/10">
-                    <Link href="/cozumler">Diger Cozumler</Link>
+                    <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
                   </Button>
                 </div>
               </CardContent>

@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { AnimatedHero } from '@/components/ui/animated-hero'
 import { GlassCard } from '@/components/ui/glass-card'
 import { appleEase, orbFloatTransition, revealSoft } from '@/lib/animations'
+import { getClinicTrialPath, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
 
 type HeroStory = {
   title: string
@@ -41,105 +42,105 @@ const iconMap = {
 
 const HERO_COPY = {
   tr: {
-    badge: 'Yeni Nesil Sağlık Ekosistemi',
-    headline: 'Klinik operasyonlarında modern, güvenilir ve hızlı deneyim',
+    badge: 'Bağlı Sağlık Operasyonu',
+    headline: 'Klinik operasyonu ve hasta randevusu tek platformda',
     subheadline:
-      'Klinikler ve hastalar için eksiksiz ekosistem — web panel + mobil uygulama (yakında). Kliniğinizi profesyonelce yönetin, hastalar saniyeler içinde randevu oluştursun.',
-    startTrial: 'Ücretsiz Deneyin',
-    joinPatient: 'Hasta Olarak Katıl',
-    ribbon: 'Akıllı Klinik Çözümleri',
+      'Klinikler için web panel; hastalar için web ve mobil randevu. Randevu, hasta kartı, ekip rolleri ve temel analitik — abartısız, çalışan akışlar.',
+    startTrial: 'Klinik denemesini başlat',
+    joinPatient: 'Hasta randevusu al',
+    ribbon: 'Klinik Çözümleri',
     stories: [
       {
         title: 'Ön masada telefon trafiği',
         problem: 'Yoğun saatlerde gelen aramalar randevu akışını yavaşlatıyor.',
-        solution: 'Asistan Rezervasyon ile hastalar uygun saatleri doğrudan uygulamadan seçiyor.',
-        impact: 'Daha az çağrı, daha yüksek doluluk',
+        solution: 'Asistan ile hastalar uygun saatleri web veya mobilden talep ediyor.',
+        impact: 'Daha az çağrı, daha net talep kuyruğu',
         icon: 'clock',
       },
       {
         title: 'No-show ve geç kalmalar',
         problem: 'Hatırlatma eksikliği nedeniyle randevu kayıpları yaşanıyor.',
-        solution: 'Otomatik bildirim ve hatırlatma akışı ile hastalar zamanında bilgilendiriliyor.',
+        solution: 'Panel ve e-posta hatırlatmalarıyla hastalar zamanında bilgilendiriliyor.',
         impact: 'Daha düzenli ajanda',
         icon: 'bell',
       },
       {
         title: 'Doğru doktoru bulamayan hastalar',
-        problem: 'Hastalar hizmet, puan ve uzmanlık kıyaslamasında zorlanıyor.',
-        solution: 'Doktor/klinik profilleri, yorumlar ve filtrelerle doğru eşleşme hızlanıyor.',
+        problem: 'Hastalar hizmet ve uzmanlık kıyaslamasında zorlanıyor.',
+        solution: 'Klinik/doktor profilleri ve tamamlanmış randevuya bağlı yorumlarla eşleşme hızlanıyor.',
         impact: 'Daha iyi hasta deneyimi',
         icon: 'patient',
       },
       {
-        title: 'Büyüme fırsatlarının kaçırılması',
-        problem: 'Klinikler talep trendlerini net okuyamadığı için kapasiteyi verimli planlayamıyor.',
-        solution: 'Paneldeki analizler ve canlı randevu akışıyla kararlar veri odaklı alınıyor.',
-        impact: 'Öngörülebilir gelir artışı',
+        title: 'Operasyon görünürlüğünün eksikliği',
+        problem: 'Klinikler doluluk ve iptal trendlerini net okuyamadığı için kapasiteyi verimli planlayamıyor.',
+        solution: 'Paneldeki temel analitik ve rezervasyon akışıyla günlük kararlar netleşiyor.',
+        impact: 'Daha öngörülebilir operasyon',
         icon: 'growth',
       },
     ] as HeroStory[],
-    dashboard: 'Klinik Yönetim Paneli v2',
-    newBookings: '18 Yeni Randevu',
+    dashboard: 'Klinik Yönetim Paneli',
+    newBookings: 'Yeni randevu talepleri',
     appTitle: 'Asistan Rezervasyon',
     dermatology: 'Cildiye & Dermatoloji',
     live: 'Canlı Uygun',
     nearby: 'Lefkoşa · 1.2 km uzakta',
-    oneTap: 'Anında Randevu Al',
-    reminders: 'Akıllı Hatırlatıcılar',
+    oneTap: 'Randevu Talebi',
+    reminders: 'Hatırlatmalar',
     mockupDoctor: 'Dr. Selim Kaya',
     mockupDoctorTitle: 'Dermatoloji Uzmanı',
-    mockupRating: '4.9 (184 Değerlendirme)',
+    mockupRating: 'Gerçek hasta yorumları',
     mockupNextSlot: 'Bugün 14:30',
   },
   en: {
-    badge: 'Next-Gen Health Ecosystem',
-    headline: 'Healthcare operations, elevated by one connected platform',
+    badge: 'Connected Health Ops',
+    headline: 'Clinic operations and patient booking in one platform',
     subheadline:
-      'The complete ecosystem for clinics and patients — web dashboard + mobile app (coming soon). Run your clinic with confidence and let patients book care in seconds.',
-    startTrial: 'Start Free Trial',
-    joinPatient: 'Join as Patient',
-    ribbon: 'Smart Clinic Solutions',
+      'Web dashboard for clinics; web and mobile booking for patients. Appointments, records, team roles, and core analytics — honest, working flows.',
+    startTrial: 'Start clinic trial',
+    joinPatient: 'Book as patient',
+    ribbon: 'Clinic Solutions',
     stories: [
       {
         title: 'Front desk call overload',
         problem: 'High call volume slows down appointment flow during peak hours.',
-        solution: 'With Asistan Rezervasyon, patients pick available slots directly in the app.',
-        impact: 'Fewer calls, higher slot utilization',
+        solution: 'With Asistan, patients request available slots from web or mobile.',
+        impact: 'Fewer calls, clearer booking queue',
         icon: 'clock',
       },
       {
         title: 'No-shows and delays',
         problem: 'Missed reminders lead to avoidable appointment loss.',
-        solution: 'Automated reminders keep patients informed before each visit.',
+        solution: 'In-panel and email reminders keep patients informed before each visit.',
         impact: 'More predictable daily schedule',
         icon: 'bell',
       },
       {
         title: 'Patients can’t find the right doctor',
         problem: 'Comparing service quality and expertise is difficult.',
-        solution: 'Profiles, ratings, and filters speed up better clinic-doctor matching.',
+        solution: 'Profiles and reviews tied to completed appointments speed up matching.',
         impact: 'Higher patient confidence',
         icon: 'patient',
       },
       {
         title: 'Growth opportunities are missed',
         problem: 'Demand patterns are hard to read without consistent visibility.',
-        solution: 'Dashboard analytics and live booking flow support data-driven decisions.',
-        impact: 'More reliable revenue growth',
+        solution: 'Dashboard analytics and booking flow support day-to-day decisions.',
+        impact: 'Clearer operational visibility',
         icon: 'growth',
       },
     ] as HeroStory[],
-    dashboard: 'Clinic Management Dashboard v2',
-    newBookings: '18 New Bookings',
+    dashboard: 'Clinic Management Dashboard',
+    newBookings: 'Yeni randevu talepleri',
     appTitle: 'Asistan Rezervasyon',
     dermatology: 'Dermatology & Skin Care',
     live: 'Available Now',
     nearby: 'Nicosia · 1.2 km away',
-    oneTap: 'One-Tap Booking',
-    reminders: 'Smart Reminders',
+    oneTap: 'Request Booking',
+    reminders: 'Reminders',
     mockupDoctor: 'Dr. Selim Kaya',
     mockupDoctorTitle: 'Dermatology Specialist',
-    mockupRating: '4.9 (184 Reviews)',
+    mockupRating: 'Real patient reviews',
     mockupNextSlot: 'Today 14:30',
   },
 } as const
@@ -207,7 +208,7 @@ export function HeroSection() {
           className="mt-10 flex flex-wrap items-center justify-center gap-4"
         >
           <Button asChild className="h-13 rounded-2xl bg-[#0071E3] hover:bg-[#0063C8] px-7 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(0,113,227,0.4)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
-            <Link href="/auth/sign-up">
+            <Link href={getClinicTrialPath(locale)}>
               {copy.startTrial}
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
@@ -217,7 +218,7 @@ export function HeroSection() {
             variant="outline"
             className="h-13 rounded-2xl border-black/10 bg-white/60 hover:bg-white/95 px-7 text-sm font-semibold text-[#1D1D1F] backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <a href="#waitlist">{copy.joinPatient}</a>
+            <Link href={PATIENT_BOOK_PATH}>{copy.joinPatient}</Link>
           </Button>
         </motion.div>
 
@@ -385,9 +386,8 @@ export function HeroSection() {
                       </div>
 
                       <div className="mt-2 flex items-center gap-1 text-[9px] text-[#5F6370]">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        <span className="font-bold text-[#1D1D1F]">4.9</span>
-                        <span>{locale === 'tr' ? '(184 Yorum)' : '(184 Reviews)'}</span>
+                        <Star className="h-3 w-3 text-amber-400" />
+                        <span className="font-medium text-[#1D1D1F]">{copy.mockupRating}</span>
                       </div>
 
                       <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">

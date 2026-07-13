@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatsGridSkeleton } from '@/components/dashboard/admin-overview/stats-grid'
 import { MiniCalendarSkeleton } from '@/components/dashboard/admin-overview/mini-calendar'
-import { AiSuggestionsSkeleton } from '@/components/dashboard/admin-overview/ai-suggestions'
+import { PriorityCardsSkeleton } from '@/components/dashboard/admin-overview/priority-cards'
 import { UpcomingAppointmentsTableSkeleton } from '@/components/dashboard/admin-overview/upcoming-appointments-table'
 import { RemindersCardSkeleton } from '@/components/dashboard/reminders-card'
 
@@ -47,7 +47,7 @@ export default function DashboardLoading() {
           </CardContent>
         </Card>
         <MiniCalendarSkeleton />
-        <AiSuggestionsSkeleton />
+        <PriorityCardsSkeleton />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">

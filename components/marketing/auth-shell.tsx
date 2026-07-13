@@ -48,7 +48,7 @@ export function AuthShell({
         </div>
       </header>
 
-      <main className="marketing-container relative z-10 py-10">
+      <main id="main-content" tabIndex={-1} className="marketing-container relative z-10 py-10">
         <div className="grid items-start gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:pt-6">
           <section className="pt-2">
             <p className="marketing-chip border-0">{badge}</p>

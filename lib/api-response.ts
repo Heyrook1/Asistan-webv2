@@ -29,15 +29,16 @@ export function apiError(
     Sentry.captureMessage(`API Error: ${message}`, 'error')
   }
 
-  return NextResponse.json(
-    {
-      ok: false,
-      error: message,
-      ...(code && { code }),
-      ...(process.env.NODE_ENV === 'development' && details && { details }),
-    },
-    { status: statusCode }
-  )
+  const body: ApiErrorResponse = {
+    ok: false,
+    error: message,
+  }
+  if (code) body.code = code
+  if (process.env.NODE_ENV === 'development' && details != null) {
+    body.details = details
+  }
+
+  return NextResponse.json(body, { status: statusCode })
 }
 
 export class ApiErrorClass extends Error {

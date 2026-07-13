@@ -7,7 +7,10 @@
 -- the function explicitly so Prisma keeps its required patientNumber field.
 -- ============================================================================
 
-create or replace function public.next_patient_number(target_business_id uuid)
+-- Prisma db push stores businessId as text; drop legacy uuid overload if present.
+drop function if exists public.next_patient_number(uuid);
+
+create or replace function public.next_patient_number(target_business_id text)
 returns text
 language plpgsql
 security definer

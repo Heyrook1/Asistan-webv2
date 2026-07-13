@@ -19,6 +19,7 @@ export type GetAvailableSlotsInput = {
   date: string // yyyy-mm-dd
   businessId: string
   locationId?: string | null
+  excludeAppointmentId?: string
 }
 
 async function isDoctorAssignedToService(
@@ -122,6 +123,7 @@ async function getAvailableSlotsWithDb(
         staffId: input.doctorId,
         date: new Date(input.date),
         status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        ...(input.excludeAppointmentId ? { id: { not: input.excludeAppointmentId } } : {}),
       },
       select: { startTime: true, endTime: true },
     }),

@@ -131,7 +131,7 @@ export function NotificationBell({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label="Bildirimler"
+          aria-label={safeUnread > 0 ? `Bildirimler, ${safeUnread > 9 ? '9+' : safeUnread} okunmamis` : 'Bildirimler'}
           className={cn(
             'relative inline-flex items-center justify-center rounded-xl text-foreground/70 transition hover:bg-dashboard-hover',
             variant === 'desktop' ? 'h-10 w-10' : 'h-10 w-10'

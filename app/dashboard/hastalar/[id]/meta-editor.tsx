@@ -6,7 +6,7 @@ import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { AccessibleField } from '@/components/ui/accessible-field'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
@@ -64,7 +64,7 @@ export function PatientMetaEditor({
         size="icon"
         className="h-6 w-6 text-muted-foreground hover:text-brand-teal"
         onClick={() => setOpen(true)}
-        title="Hasta özetini düzenle"
+        aria-label="Hasta özetini düzenle"
       >
         <Pencil className="h-3.5 w-3.5" />
       </Button>
@@ -72,16 +72,13 @@ export function PatientMetaEditor({
         <DialogContent>
           <DialogHeader><DialogTitle>Hasta Özetini Düzenle</DialogTitle></DialogHeader>
           <form onSubmit={submit} className="grid gap-3">
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Son Tanı</Label>
+            <AccessibleField label="Son Tanı" labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Input value={form.lastDiagnosis} onChange={(e) => setForm({ ...form, lastDiagnosis: e.target.value })} placeholder="Kontrol Muayenesi" />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Devam Eden Tedavi</Label>
+            </AccessibleField>
+            <AccessibleField label="Devam Eden Tedavi" labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Input value={form.currentTreatment} onChange={(e) => setForm({ ...form, currentTreatment: e.target.value })} placeholder="Tansiyon takibi" />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Atanmış Doktor</Label>
+            </AccessibleField>
+            <AccessibleField label="Atanmış Doktor" labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Select
                 value={form.assignedDoctorId || '__none'}
                 onValueChange={(v) => setForm({ ...form, assignedDoctorId: v === '__none' ? '' : v })}
@@ -94,15 +91,13 @@ export function PatientMetaEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Genel Not</Label>
+            </AccessibleField>
+            <AccessibleField label="Genel Not" labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Textarea value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} rows={3} placeholder="Hasta son haftalarda baş ağrısı ve yorgunluk bildirdi." />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Risk Notu</Label>
+            </AccessibleField>
+            <AccessibleField label="Risk Notu" labelClassName="text-xs text-muted-foreground mb-1.5 block">
               <Textarea value={form.riskNote} onChange={(e) => setForm({ ...form, riskNote: e.target.value })} rows={2} placeholder="Düzenli tansiyon takibi önerilir" />
-            </div>
+            </AccessibleField>
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>İptal</Button>
               <Button type="submit" disabled={pending} className="bg-brand-teal hover:bg-brand-teal-hover text-white">

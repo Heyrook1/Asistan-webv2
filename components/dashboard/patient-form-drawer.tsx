@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { AccessibleField } from '@/components/ui/accessible-field'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChevronLeft, ChevronRight, Loader2, Plus, Trash2, UserPlus, CheckCircle2 } from 'lucide-react'
@@ -539,13 +539,26 @@ function Section({ title, required, children }: { title: string; required?: bool
   )
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  required,
+  children,
+}: {
+  label: string
+  error?: string
+  required?: boolean
+  children: React.ReactElement
+}) {
   return (
-    <div>
-      <Label className="text-xs font-semibold text-slate-500 mb-1.5 block">{label}</Label>
+    <AccessibleField
+      label={label}
+      error={error}
+      required={required ?? label.includes('*')}
+      labelClassName="text-xs font-semibold text-slate-500 mb-1.5 block"
+    >
       {children}
-      {error && <p className="mt-1 text-[11px] font-medium text-rose-500">{error}</p>}
-    </div>
+    </AccessibleField>
   )
 }
 

@@ -219,8 +219,11 @@ export function RegisterForm() {
             </div>
 
             {error && (
-              <div className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-700 rounded-2xl flex items-center gap-2.5 text-xs font-semibold">
-                <ShieldAlert className="h-4.5 w-4.5 text-red-600 shrink-0" />
+              <div
+                role="alert"
+                className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-700 rounded-2xl flex items-center gap-2.5 text-xs font-semibold"
+              >
+                <ShieldAlert className="h-4.5 w-4.5 text-red-600 shrink-0" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
@@ -232,7 +235,7 @@ export function RegisterForm() {
                   {t({ tr: 'Ad Soyad', en: 'Full Name' })}
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                  <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                   <Input
                     id="register-name"
                     type="text"
@@ -252,7 +255,7 @@ export function RegisterForm() {
                   {t({ tr: 'E-posta Adresi', en: 'Email Address' })}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                  <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                   <Input
                     id="register-email"
                     type="email"
@@ -261,10 +264,16 @@ export function RegisterForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
+                    aria-describedby={emailError ? 'register-email-error' : undefined}
+                    aria-invalid={emailError ? true : undefined}
                     className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
                   />
                 </div>
-                {emailError && <p className="text-xs text-red-500 font-medium px-0.5">{emailError}</p>}
+                {emailError && (
+                  <p id="register-email-error" role="alert" className="text-xs text-red-500 font-medium px-0.5">
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               {/* Passwords row */}
@@ -275,7 +284,7 @@ export function RegisterForm() {
                     {t({ tr: 'Şifre', en: 'Password' })}
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                    <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                     <Input
                       id="register-password"
                       type="password"
@@ -288,7 +297,7 @@ export function RegisterForm() {
                     />
                   </div>
                   {password && (
-                    <div className="mt-1 flex items-center gap-1.5 px-0.5">
+                    <div className="mt-1 flex items-center gap-1.5 px-0.5" aria-live="polite">
                       <div className="h-1 w-12 overflow-hidden rounded-full bg-black/10">
                         <div className={`h-full ${passwordStrength.color}`} style={{ width: `${(passwordStrength.score / 5) * 100}%` }} />
                       </div>
@@ -303,7 +312,7 @@ export function RegisterForm() {
                     {t({ tr: 'Şifre Tekrar', en: 'Confirm Password' })}
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                    <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                     <Input
                       id="register-confirm-password"
                       type="password"
@@ -312,10 +321,16 @@ export function RegisterForm() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
+                      aria-describedby={passwordMatchError ? 'register-password-match-error' : undefined}
+                      aria-invalid={passwordMatchError ? true : undefined}
                       className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
                     />
                   </div>
-                  {passwordMatchError && <p className="text-xs text-red-500 font-medium px-0.5">{passwordMatchError}</p>}
+                  {passwordMatchError && (
+                    <p id="register-password-match-error" role="alert" className="text-xs text-red-500 font-medium px-0.5">
+                      {passwordMatchError}
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -151,8 +151,11 @@ export function LoginForm() {
           </div>
 
           {error && (
-            <div className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-700 rounded-2xl flex items-center gap-2.5 text-xs font-semibold">
-              <ShieldAlert className="h-4.5 w-4.5 text-red-600 shrink-0" />
+            <div
+              role="alert"
+              className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-700 rounded-2xl flex items-center gap-2.5 text-xs font-semibold"
+            >
+              <ShieldAlert className="h-4.5 w-4.5 text-red-600 shrink-0" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
@@ -164,7 +167,7 @@ export function LoginForm() {
                 {t({ tr: 'E-posta Adresi', en: 'Email Address' })}
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                 <Input
                   id="login-email"
                   type="email"
@@ -173,10 +176,16 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
+                  aria-describedby={emailError ? 'login-email-error' : undefined}
+                  aria-invalid={emailError ? true : undefined}
                   className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
                 />
               </div>
-              {emailError && <p className="text-xs text-red-500 font-medium px-0.5">{emailError}</p>}
+              {emailError && (
+                <p id="login-email-error" role="alert" className="text-xs text-red-500 font-medium px-0.5">
+                  {emailError}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -190,7 +199,7 @@ export function LoginForm() {
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                 <Input
                   id="login-password"
                   type="password"

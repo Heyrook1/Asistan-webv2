@@ -6,12 +6,14 @@ import { GlobalCommandPalette } from '@/components/dashboard/global-command-pale
 import { requireSession, isSuperAdmin, isSystemAdmin } from '@/lib/session'
 import {
   getNotificationsList,
+  getPendingAppointmentCount,
   getUnreadMessageCount,
   getUnreadNotificationCount,
   serializeNotification,
 } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 import { getVendorPlanName } from '@/lib/vendor-membership'
+import { canViewAppointmentSchedule } from '@/lib/rbac'
 
 export default async function DashboardLayout({
   children,
@@ -22,7 +24,7 @@ export default async function DashboardLayout({
   const showPlatformAdmin = isSystemAdmin(session)
   const showSuperAdmin = isSuperAdmin(session)
 
-  const [unreadCount, unreadMessages, recentNotifications, vendorAccount] = await Promise.all([
+  const [unreadCount, unreadMessages, recentNotifications, vendorAccount, pendingAppointments] = await Promise.all([
     getUnreadNotificationCount(session.businessId, session.userId),
     getUnreadMessageCount(session.businessId, session.userId),
     getNotificationsList(session.businessId, session.userId, 10),
@@ -34,6 +36,9 @@ export default async function DashboardLayout({
         accessEndAt: true,
       },
     }),
+    canViewAppointmentSchedule(session)
+      ? getPendingAppointmentCount(session.businessId, session)
+      : Promise.resolve(0),
   ])
 
   const notificationPreview = recentNotifications.map(serializeNotification)
@@ -50,6 +55,8 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(0,113,227,0.08),transparent_38%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.08),transparent_35%),linear-gradient(180deg,#F7FAFD_0%,#F3F6FA_100%)]">
       <DashboardSidebar
         unreadNotifications={unreadCount}
+        unreadMessages={unreadMessages}
+        pendingAppointments={pendingAppointments}
         session={session}
         showPlatformAdmin={showPlatformAdmin}
         showSuperAdmin={showSuperAdmin}
@@ -74,11 +81,13 @@ export default async function DashboardLayout({
           showPlatformAdmin={showPlatformAdmin}
           showSuperAdmin={showSuperAdmin}
         />
-        <main className="mx-auto max-w-[1720px] px-4 pb-28 pt-3 lg:px-6 lg:pb-8 lg:pt-6">{children}</main>
+        <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1720px] px-4 pb-28 pt-3 lg:px-6 lg:pb-8 lg:pt-6">{children}</main>
       </div>
       <MobileShell
         session={session}
         unreadCount={unreadCount}
+        unreadMessages={unreadMessages}
+        pendingAppointments={pendingAppointments}
         showSuperAdmin={showSuperAdmin}
       />
     </div>

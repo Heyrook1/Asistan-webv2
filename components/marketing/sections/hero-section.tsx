@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react'
 import { FadeLeft, FadeUp, MouseParallax, ScaleIn } from '@/components/marketing/motion-wrappers'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
 
 const trustBadges = [
   { icon: ShieldCheck, text: 'Guvenli Randevu Yonetimi' },
@@ -39,23 +40,23 @@ export function HeroSection() {
             </FadeUp>
             <FadeUp delay={0.12}>
               <p className="mt-5 max-w-xl text-base leading-8 text-slate-600 md:text-lg">
-                Asistan, kliniginizin tum is akisini tek platformda toplar. Yapay zeka destekli
-                cizelgeyle daha verimli, daha sakin bir operasyon kurarsiniz.
+                Asistan, kliniginizin randevu, hasta ve ekip akisini tek panelde toplar.
+                Hastalar web uzerinden randevu talebi olusturabilir.
               </p>
             </FadeUp>
 
             <FadeUp delay={0.18} className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button asChild className="h-12 w-full rounded-xl bg-brand-blue px-5 text-sm font-semibold text-white hover:bg-brand-blue/90 sm:w-auto">
-                <Link href="/auth/sign-up">
-                  Randevu Al
+                <Link href={getClinicTrialPath('tr')}>
+                  {ENTRY_CTA.clinicTrial.short.tr}
                   <ArrowRight className="ml-1.5 size-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-12 w-full rounded-xl border-brand-blue/20 px-5 text-sm font-semibold text-brand-navy sm:w-auto">
-                <Link href="/auth/sign-up">Saglayici Olarak Katil</Link>
+                <Link href={PATIENT_BOOK_PATH}>{ENTRY_CTA.patientBook.short.tr}</Link>
               </Button>
               <Button asChild variant="ghost" className="h-12 w-full rounded-xl border border-brand-blue/15 bg-white/70 px-5 text-sm font-semibold text-brand-navy hover:bg-white sm:w-auto">
-                <Link href="/fiyatlandirma">Demo Gor</Link>
+                <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
               </Button>
             </FadeUp>
 
