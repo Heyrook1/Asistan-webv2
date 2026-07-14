@@ -16,7 +16,7 @@ const serviceSchema = z.object({
   durationMin: z.coerce.number().int().min(5, 'En az 5 dk').max(720),
   price: z.coerce.number().min(0).max(1_000_000),
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Geçersiz renk').default('#0B7F6F'),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Geçersiz renk').default('#0071E3'),
   isActive: z.boolean().optional().default(true),
 })
 

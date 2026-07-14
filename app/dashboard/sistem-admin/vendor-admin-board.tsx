@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Activity, AlertTriangle, Building2, CalendarCheck2, MessageSquareText, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateVendorMembership } from '@/lib/actions/system-admin'
@@ -305,15 +306,16 @@ export function VendorAdminBoard({ schemaReady, metrics, traffic, vendors }: Pro
                     />
                   </label>
 
-                  <div className="flex items-end lg:col-span-1">
+                  <div className="flex items-end gap-2 lg:col-span-1">
                     <button
                       type="button"
                       onClick={() => saveVendor(vendor.businessId)}
                       disabled={isPending || !schemaReady}
-                      className="h-10 w-full rounded-lg bg-brand-teal px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-10 flex-1 rounded-lg bg-brand-teal px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Kaydet
                     </button>
+                    <SupportClinicButton businessId={vendor.businessId} businessName={vendor.name} disabled={!schemaReady} />
                   </div>
                 </div>
 
@@ -334,6 +336,43 @@ export function VendorAdminBoard({ schemaReady, metrics, traffic, vendors }: Pro
         </div>
       </section>
     </div>
+  )
+}
+
+function SupportClinicButton({
+  businessId,
+  businessName,
+  disabled,
+}: {
+  businessId: string
+  businessName: string
+  disabled?: boolean
+}) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+
+  return (
+    <button
+      type="button"
+      disabled={disabled || pending}
+      title={`${businessName} paneline support mode ile gir`}
+      onClick={() => {
+        startTransition(async () => {
+          const { startSupportMode } = await import('@/lib/actions/support-mode')
+          const result = await startSupportMode(businessId)
+          if (!result.ok) {
+            toast.error(result.error)
+            return
+          }
+          toast.success(`Support mode: ${businessName}`)
+          router.push('/dashboard')
+          router.refresh()
+        })
+      }}
+      className="h-10 shrink-0 rounded-lg border border-violet-300 bg-violet-50 px-3 text-xs font-semibold text-violet-900 disabled:opacity-60"
+    >
+      Panel
+    </button>
   )
 }
 

@@ -173,8 +173,8 @@ export function AdminOverview({
     <div className="space-y-4 lg:space-y-5">
       <Card className="overflow-hidden border-border/60 shadow-sm">
         <CardContent className="relative p-4 lg:p-5">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/35 blur-3xl" />
-          <div className="pointer-events-none absolute -left-20 -bottom-20 h-48 w-48 rounded-full bg-blue-200/35 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute -left-20 -bottom-20 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
           <div className="relative flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-xl font-bold tracking-tight text-brand-ink lg:text-[26px]">Klinik Operasyon Özeti</h1>
@@ -184,7 +184,7 @@ export function AdminOverview({
             {mobilePrimary && (
               <div className="lg:hidden">
                 {mobilePrimary.kind === 'link' ? (
-                  <Button asChild className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover">
+                  <Button asChild className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-blue-600/20 hover:bg-brand-teal-hover">
                     <Link href={mobilePrimary.href}>
                       <mobilePrimary.icon className="h-4 w-4" />
                       {mobilePrimary.label}
@@ -193,7 +193,7 @@ export function AdminOverview({
                 ) : (
                   <Button
                     onClick={() => setModal('appointment')}
-                    className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover"
+                    className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-blue-600/20 hover:bg-brand-teal-hover"
                   >
                     <mobilePrimary.icon className="h-4 w-4" />
                     {mobilePrimary.label}
@@ -206,7 +206,7 @@ export function AdminOverview({
               {canCreateAppointment && (
                 <Button
                   onClick={() => setModal('appointment')}
-                  className="h-11 gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover"
+                  className="h-11 gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-blue-600/20 hover:bg-brand-teal-hover"
                 >
                   <CalendarPlus className="h-4 w-4" />
                   Randevu Oluştur
@@ -379,7 +379,7 @@ export function AdminOverview({
           {mobilePrimary.kind === 'link' ? (
             <Button
               asChild
-              className="h-12 w-full gap-2 rounded-2xl bg-brand-teal text-sm font-bold text-white shadow-xl shadow-teal-600/30 hover:bg-brand-teal-hover"
+              className="h-12 w-full gap-2 rounded-2xl bg-brand-teal text-sm font-bold text-white shadow-xl shadow-blue-600/30 hover:bg-brand-teal-hover"
             >
               <Link href={mobilePrimary.href}>
                 <mobilePrimary.icon className="h-4 w-4" />
@@ -389,7 +389,7 @@ export function AdminOverview({
           ) : (
             <Button
               onClick={() => setModal('appointment')}
-              className="h-12 w-full gap-2 rounded-2xl bg-brand-teal text-sm font-bold text-white shadow-xl shadow-teal-600/30 hover:bg-brand-teal-hover"
+              className="h-12 w-full gap-2 rounded-2xl bg-brand-teal text-sm font-bold text-white shadow-xl shadow-blue-600/30 hover:bg-brand-teal-hover"
             >
               <mobilePrimary.icon className="h-4 w-4" />
               {mobilePrimary.label}
@@ -413,8 +413,8 @@ function QuickAction({
   onClick?: () => void
 }) {
   const content = (
-    <span className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-center text-xs font-semibold text-brand-ink shadow-sm transition-colors hover:border-brand-teal/40 hover:bg-cyan-50/40">
-      <span className="text-brand-teal [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
+    <span className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-center text-xs font-semibold text-brand-ink shadow-sm transition-colors hover:border-brand-blue/40 hover:bg-blue-50/40">
+      <span className="text-brand-blue [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
       {label}
     </span>
   )

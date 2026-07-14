@@ -1,23 +1,42 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/hooks/useLanguage'
+import { getClinicTrialPath } from '@/lib/entry-routes'
 import { cn } from '@/lib/utils'
-
-const QUICK_CHIPS = [
-  { label: 'Available today', params: { availableToday: 'true' } },
-  { label: 'Rating 4.5+', params: { minRating: '4.5' } },
-  { label: 'Within 5 km', params: { maxDistanceKm: '5' } },
-] as const
 
 export function ClientSearchHero() {
   const router = useRouter()
+  const { t, language } = useLanguage()
   const [query, setQuery] = useState('')
 
   const canSubmit = useMemo(() => query.trim().length > 0, [query])
+
+  const quickChips = [
+    { label: t({ tr: 'Bugün müsait', en: 'Available today' }), params: { availableToday: 'true' } },
+    { label: t({ tr: 'Puan 4.5+', en: 'Rating 4.5+' }), params: { minRating: '4.5' } },
+    { label: t({ tr: '5 km içinde', en: 'Within 5 km' }), params: { maxDistanceKm: '5' } },
+  ] as const
+
+  const highlights = [
+    {
+      title: t({ tr: 'Doğrulanmış klinikler', en: 'Verified clinics' }),
+      desc: t({ tr: 'Şeffaf puanlar ve yorumlar.', en: 'Transparent ratings and reviews.' }),
+    },
+    {
+      title: t({ tr: 'Gerçek müsaitlik', en: 'Real availability' }),
+      desc: t({ tr: 'En erken açık saatleri görün.', en: 'See the earliest open slots.' }),
+    },
+    {
+      title: t({ tr: 'Fiyat aralığı', en: 'Price range' }),
+      desc: t({ tr: 'Randevu almadan önce karşılaştırın.', en: 'Compare before you book.' }),
+    },
+  ]
 
   function submit(extra?: Record<string, string>) {
     const params = new URLSearchParams()
@@ -33,13 +52,16 @@ export function ClientSearchHero() {
     <main className="space-y-5 md:space-y-8">
       <header className="space-y-3">
         <p className="inline-flex w-fit items-center rounded-full border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground">
-          Patient booking
+          {t({ tr: 'Hasta randevusu', en: 'Patient booking' })}
         </p>
         <h1 className="font-heading text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
-          Book the right clinic, fast.
+          {t({ tr: 'Doğru kliniği hızlı bulun.', en: 'Book the right clinic, fast.' })}
         </h1>
         <p className="max-w-2xl text-[13px] leading-relaxed text-muted-foreground md:text-base">
-          Compare ratings, prices, and the earliest available appointments in one place.
+          {t({
+            tr: 'Asistan ile klinik bul — puan, fiyat ve müsait randevuyu karşılaştırın. Klinik paneli ile aynı ekosistem.',
+            en: 'Find clinics with Asistan — compare ratings, prices, and open slots. Same ecosystem as the clinic panel.',
+          })}
         </p>
       </header>
 
@@ -58,8 +80,12 @@ export function ClientSearchHero() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="h-8 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                placeholder="Dermatology, dentist, MRI..."
+                placeholder={t({
+                  tr: 'Dermatoloji, diş, MR...',
+                  en: 'Dermatology, dentist, MRI...',
+                })}
                 inputMode="search"
+                aria-label={t({ tr: 'Klinik ara', en: 'Search clinics' })}
               />
             </div>
 
@@ -71,12 +97,12 @@ export function ClientSearchHero() {
               )}
               disabled={!canSubmit}
             >
-              Search clinics
+              {t({ tr: 'Klinik ara', en: 'Search clinics' })}
             </Button>
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 pr-1 no-scrollbar">
-            {QUICK_CHIPS.map((chip) => (
+            {quickChips.map((chip) => (
               <button
                 key={chip.label}
                 type="button"
@@ -95,18 +121,26 @@ export function ClientSearchHero() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        {[
-          { title: 'Verified clinics', desc: 'Transparent ratings and reviews.' },
-          { title: 'Real availability', desc: 'See the earliest open slots.' },
-          { title: 'Price range', desc: 'Compare before you book.' },
-        ].map((item) => (
-          <div key={item.title} className="rounded-2xl border border-border/60 bg-card p-4 shadow-[0_2px_12px_rgba(14,154,167,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(14,154,167,0.1)]">
+        {highlights.map((item) => (
+          <div
+            key={item.title}
+            className="rounded-2xl border border-border/60 bg-card p-4 shadow-[0_2px_12px_rgba(14,154,167,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(14,154,167,0.1)]"
+          >
             <p className="text-[15px] font-bold leading-snug text-foreground">{item.title}</p>
             <p className="mt-1 text-sm text-muted-foreground">{item.desc}</p>
           </div>
         ))}
       </section>
+
+      <p className="text-center text-sm text-muted-foreground">
+        {t({ tr: 'Klinik misiniz? ', en: 'Are you a clinic? ' })}
+        <Link
+          href={getClinicTrialPath(language)}
+          className="font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          {t({ tr: 'Panel denemesini başlatın', en: 'Start the clinic trial' })}
+        </Link>
+      </p>
     </main>
   )
 }
-

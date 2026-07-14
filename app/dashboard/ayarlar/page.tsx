@@ -3,12 +3,18 @@ import { requireSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { SettingsForm } from './settings-form'
 import { DoctorPrescriptionProfileCard } from '@/components/dashboard/doctor-prescription-profile-card'
+import {
+  getVendorPlanName,
+  getVendorPlanUserLimit,
+  normalizeVendorPlanCode,
+} from '@/lib/vendor-membership'
+import type { MembershipSnapshot } from '@/components/dashboard/membership-panel'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AyarlarPage() {
   const session = await requireSession()
-  const [business, doctorProfile] = await Promise.all([
+  const [business, doctorProfile, vendorAccount] = await Promise.all([
     prisma.business.findUnique({ where: { id: session.businessId } }),
     session.staffMemberId
       ? prisma.teamMember.findFirst({
@@ -23,14 +29,42 @@ export default async function AyarlarPage() {
           },
         })
       : Promise.resolve(null),
+    prisma.vendorAccount.findUnique({
+      where: { businessId: session.businessId },
+      select: {
+        plan: true,
+        status: true,
+        isDemo: true,
+        accessStartAt: true,
+        accessEndAt: true,
+      },
+    }),
   ])
   if (!business) return null
+
+  const membership: MembershipSnapshot | null = vendorAccount
+    ? {
+        businessId: session.businessId,
+        businessName: business.name,
+        planCode: normalizeVendorPlanCode(vendorAccount.plan),
+        planName: getVendorPlanName(vendorAccount.plan),
+        status: vendorAccount.status,
+        isDemo: vendorAccount.isDemo,
+        accessStartAt: vendorAccount.accessStartAt?.toISOString() ?? null,
+        accessEndAt: vendorAccount.accessEndAt?.toISOString() ?? null,
+        userLimit: getVendorPlanUserLimit({
+          plan: vendorAccount.plan,
+          isDemo: vendorAccount.isDemo,
+        }),
+      }
+    : null
 
   return (
     <div className="space-y-4">
       <Suspense fallback={<div className="rounded-2xl border bg-white p-6 text-sm text-muted-foreground">Ayarlar yükleniyor…</div>}>
         <SettingsForm
           session={session}
+          membership={membership}
           initial={{
             name: business.name,
             description: business.description ?? '',

@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BrandLogo } from '@/components/brand-logo'
+import { palette } from '@/lib/theme'
 
 function WebMobileFrame({ children }: { children: React.ReactNode }) {
   const { width: windowWidth } = useWindowDimensions()
@@ -56,7 +57,7 @@ function WebMobileFrame({ children }: { children: React.ReactNode }) {
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
             <View style={styles.featureIconBg}>
-              <Ionicons name="flash-sharp" size={18} color="#0FAE9F" />
+              <Ionicons name="flash-sharp" size={18} color={palette.primary} />
             </View>
             <View>
               <Text style={styles.featureTitle}>Kolay & Hızlı Randevu</Text>
@@ -66,7 +67,7 @@ function WebMobileFrame({ children }: { children: React.ReactNode }) {
 
           <View style={styles.featureItem}>
             <View style={styles.featureIconBg}>
-              <Ionicons name="notifications" size={18} color="#1E80FF" />
+              <Ionicons name="notifications" size={18} color={palette.secondary} />
             </View>
             <View>
               <Text style={styles.featureTitle}>Anlık Hatırlatıcılar</Text>
@@ -216,15 +217,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   badge: {
-    backgroundColor: 'rgba(15, 174, 159, 0.15)',
+    backgroundColor: 'rgba(0, 113, 227, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(15, 174, 159, 0.3)',
+    borderColor: 'rgba(0, 113, 227, 0.3)',
     borderRadius: 99,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
   badgeText: {
-    color: '#0FAE9F',
+    color: palette.primary,
     fontSize: 11,
     fontWeight: '700',
   },

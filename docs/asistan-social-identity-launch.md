@@ -1,8 +1,28 @@
 # Asistan Sosyal Kimlik ve Lansman Plani
 
+> Marka katmanları kilitli kaynak: [`docs/masterbrand.md`](./masterbrand.md) · `lib/brand/masterbrand.ts`
+
 ## 1. Marka Mimarisi
 
 ### Ana marka
+
+**Asistan** (şirket)
+
+### Klinik ürün (ticari yüz)
+
+**Asistan Health** — dashboard, abonelik, deneme/demo.
+
+### Hasta ürün (alt)
+
+**Asistan Rezervasyon** — `/client` + mobil; mağaza waitlist.
+
+---
+
+## (Arşiv) Önceki lansman notları
+
+Aşağıdaki bölümler tarihsel plan notudur; isim çatışmasında **masterbrand.md** geçerlidir.
+
+### Ana marka (eski metin)
 
 **Asistan**
 

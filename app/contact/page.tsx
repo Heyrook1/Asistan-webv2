@@ -236,7 +236,7 @@ export default function ContactPage() {
                               {t({ tr: 'Randevu ve hasta yönetimi', en: 'Appointment and patient management' })}
                             </SelectItem>
                             <SelectItem value="provider-onboarding">
-                              {t({ tr: 'Sağlayıcı onboarding', en: 'Provider onboarding' })}
+                              {t({ tr: 'Sağlayıcı kurulum süreci', en: 'Provider setup' })}
                             </SelectItem>
                             <SelectItem value="clinic-admin">
                               {t({ tr: 'Klinik yönetim paneli', en: 'Clinic administration dashboard' })}

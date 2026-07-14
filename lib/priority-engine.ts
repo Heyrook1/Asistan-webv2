@@ -18,8 +18,8 @@ export type PrioritySignals = {
 }
 
 /**
- * Rule-based clinic ops priorities. Only emits cards when a signal crosses a threshold.
- * No AI branding — counts and dates only.
+ * Rule-based clinic ops priorities (thresholds on counts/dates).
+ * Not machine learning — UI and plan copy must say "operasyon önerileri", never "AI".
  */
 export function buildPriorityItems(signals: PrioritySignals): PriorityItem[] {
   const items: PriorityItem[] = []

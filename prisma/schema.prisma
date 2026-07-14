@@ -385,7 +385,7 @@ model Patient {
   currentTreatment      String?
   riskNote              String?   @db.Text
   summary               String?   @db.Text
-  aiSuggestions         Json? // [{ icon, title, type }]
+  aiSuggestions         Json? // Legacy field name; structured ops hints only — not ML/AI output
   assignedDoctorId      String?
   tags                  String[]  @default([])
   isArchived            Boolean   @default(false)

@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   ChevronDown,
   Command,
+  CreditCard,
   HelpCircle,
   LogOut,
   MessageCircle,
@@ -34,6 +35,9 @@ import { GlobalCommandTrigger } from '@/components/dashboard/global-command-pale
 import { can, ROLE_LABELS, type SessionContext } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/client'
 import type { NotificationListItem } from '@/lib/notifications/types'
+import { getMembershipUrgency } from '@/lib/vendor-membership'
+import { cn } from '@/lib/utils'
+import type { DashboardMembership } from '@/components/dashboard/membership-expiry-banner'
 
 const DASHBOARD_COMMAND_OPEN_EVENT = 'dashboard:command-open'
 
@@ -48,11 +52,7 @@ export function DashboardHeader({
   unreadCount: number
   unreadMessages: number
   notifications: NotificationListItem[]
-  membership: {
-    planName: string
-    isDemo: boolean
-    accessEndAt: string | null
-  } | null
+  membership: DashboardMembership | null
 }) {
   const router = useRouter()
   const initials = session.fullName
@@ -65,6 +65,13 @@ export function DashboardHeader({
   const membershipEndText = membership?.accessEndAt
     ? new Date(membership.accessEndAt).toLocaleDateString('tr-TR')
     : 'Süresiz'
+
+  const membershipUrgency = membership
+    ? getMembershipUrgency({
+        accessEndAt: membership.accessEndAt,
+        status: membership.status,
+      })
+    : 'ok'
 
   const canManageAppointments = can(session, 'appointment.manage')
   const canCreatePatients = can(session, 'patient.edit')
@@ -83,6 +90,32 @@ export function DashboardHeader({
     window.dispatchEvent(new Event(DASHBOARD_COMMAND_OPEN_EVENT))
   }
 
+  const membershipChip = membership ? (
+    session.isOwner ? (
+      <Link
+        href="/dashboard/ayarlar?tab=abonelik"
+        className={cn(
+          'hidden items-center gap-2 rounded-xl border bg-white px-3 py-1.5 transition hover:border-brand-blue/40 xl:flex',
+          membershipUrgency === 'soon' && 'border-amber-200',
+          (membershipUrgency === 'critical' || membershipUrgency === 'expired') && 'border-rose-200',
+          membershipUrgency === 'ok' && 'border-slate-200',
+        )}
+      >
+        <span className="text-xs font-semibold text-brand-ink">
+          {membership.isDemo ? 'Demo' : membership.planName}
+        </span>
+        <span className="text-xs text-muted-foreground">Erişim: {membershipEndText}</span>
+      </Link>
+    ) : (
+      <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 xl:flex">
+        <span className="text-xs font-semibold text-brand-ink">
+          {membership.isDemo ? 'Demo' : membership.planName}
+        </span>
+        <span className="text-xs text-muted-foreground">Erişim: {membershipEndText}</span>
+      </div>
+    )
+  ) : null
+
   return (
     <header className="sticky top-0 z-30 hidden h-[72px] items-center gap-3 border-b border-border/60 bg-white/80 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70 lg:flex lg:px-6">
       <div className="flex max-w-xl flex-1">
@@ -94,7 +127,7 @@ export function DashboardHeader({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="h-10 gap-2 rounded-xl border-slate-200 bg-white shadow-sm">
-                <Zap className="h-4 w-4 text-brand-teal" />
+                <Zap className="h-4 w-4 text-brand-blue" />
                 Hızlı Aksiyon
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
@@ -103,19 +136,19 @@ export function DashboardHeader({
               <DropdownMenuLabel>Kısayol İşlemleri</DropdownMenuLabel>
               {canManageAppointments && (
                 <DropdownMenuItem onSelect={() => router.push('/dashboard/ajanda?mode=liste&create=1')}>
-                  <CalendarPlus className="h-4 w-4 text-brand-teal" />
+                  <CalendarPlus className="h-4 w-4 text-brand-blue" />
                   Yeni Randevu
                 </DropdownMenuItem>
               )}
               {canCreatePatients && (
                 <DropdownMenuItem onSelect={() => router.push('/dashboard/hastalar?create=1')}>
-                  <UserPlus className="h-4 w-4 text-brand-teal" />
+                  <UserPlus className="h-4 w-4 text-brand-blue" />
                   Yeni Hasta
                 </DropdownMenuItem>
               )}
               {canManageServices && (
                 <DropdownMenuItem onSelect={() => router.push('/dashboard/hizmetler?create=1')}>
-                  <Scissors className="h-4 w-4 text-brand-teal" />
+                  <Scissors className="h-4 w-4 text-brand-blue" />
                   Yeni Hizmet
                 </DropdownMenuItem>
               )}
@@ -135,14 +168,7 @@ export function DashboardHeader({
           </DropdownMenu>
         )}
 
-        {membership && (
-          <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 xl:flex">
-            <span className="text-xs font-semibold text-brand-ink">
-              {membership.isDemo ? 'Demo' : membership.planName}
-            </span>
-            <span className="text-xs text-muted-foreground">Erişim: {membershipEndText}</span>
-          </div>
-        )}
+        {membershipChip}
 
         <Link
           href="/dashboard/mesajlar"
@@ -174,7 +200,7 @@ export function DashboardHeader({
               <Avatar className="h-8 w-8">
                 <AvatarFallback
                   className="text-xs font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg, var(--brand-teal), var(--brand-cyan))' }}
+                  style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-cyan))' }}
                 >
                   {initials || 'AS'}
                 </AvatarFallback>
@@ -206,10 +232,18 @@ export function DashboardHeader({
                 </Link>
               </DropdownMenuItem>
             )}
+            {session.isOwner && (
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/ayarlar?tab=abonelik" className="flex cursor-pointer items-center gap-2.5">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  Abonelik
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
-              <Link href="/contact" className="flex cursor-pointer items-center gap-2.5">
+              <Link href="/dashboard/yardim" className="flex cursor-pointer items-center gap-2.5">
                 <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                Destek
+                Yardım Merkezi
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

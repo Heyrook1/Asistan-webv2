@@ -28,22 +28,22 @@ export type VendorPlanDefinition = {
 const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
   DEMO_14_DAYS: {
     code: 'DEMO_14_DAYS',
-    name: 'Demo 14 Gun',
+    name: 'Demo 14 Gün',
     monthlyPriceEur: 0,
     yearlyPriceEur: 0,
     userLimit: 1,
-    description: 'Kayit ol ile acilan deneme hesabi',
-    features: ['1 kullanici', 'Temel randevu', 'Hasta karti', 'Hatirlatma akisi'],
+    description: 'Kayıt ol ile açılan deneme hesabı',
+    features: ['1 kullanıcı', 'Temel randevu', 'Hasta kartı', 'Hatırlatma akışı'],
     demoOnly: true,
   },
   STARTER: {
     code: 'STARTER',
-    name: 'Baslangic',
+    name: 'Başlangıç',
     monthlyPriceEur: 149,
     yearlyPriceEur: 119,
     userLimit: 1,
-    description: 'Tek hekimli ekipler ve kucuk klinikler icin.',
-    features: ['1 kullanici', 'Temel randevu', 'Hasta karti', 'Hatirlatma akisi'],
+    description: 'Tek hekimli ekipler ve küçük klinikler için.',
+    features: ['1 kullanıcı', 'Temel randevu', 'Hasta kartı', 'Hatırlatma akışı'],
   },
   PROFESSIONAL: {
     code: 'PROFESSIONAL',
@@ -51,8 +51,8 @@ const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
     monthlyPriceEur: 249,
     yearlyPriceEur: 199,
     userLimit: 5,
-    description: 'Buyuyen klinikler icin en dengeli paket.',
-    features: ['5 kullanici', 'AI onerileri', 'Ekip rolleri', 'Oncelikli destek', 'Analitik gorunum'],
+    description: 'Büyüyen klinikler için en dengeli paket.',
+    features: ['5 kullanıcı', 'Operasyon önerileri', 'Ekip rolleri', 'Öncelikli destek', 'Analitik görünüm'],
   },
   ENTERPRISE: {
     code: 'ENTERPRISE',
@@ -60,8 +60,8 @@ const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
     monthlyPriceEur: 499,
     yearlyPriceEur: 399,
     userLimit: null,
-    description: 'Coklu ekip ve ozel surecler icin.',
-    features: ['Sinirsiz kullanici', 'Ozel entegrasyonlar', 'Kurulum danismanligi', 'Gelismis yetkiler'],
+    description: 'Çoklu ekip ve özel süreçler için.',
+    features: ['Sınırsız kullanıcı', 'Özel entegrasyonlar', 'Kurulum danışmanlığı', 'Gelişmiş yetkiler'],
   },
 }
 
@@ -78,10 +78,64 @@ const PLAN_ALIAS_MAP: Record<string, VendorPlanCode> = {
 }
 
 export const VENDOR_MEMBERSHIP_LABELS: Record<VendorMembershipStatusValue, string> = {
-  TRIAL: 'Trial',
-  ACTIVE: 'Active',
-  SUSPENDED: 'Suspended',
-  CANCELLED: 'Cancelled',
+  TRIAL: 'Deneme',
+  ACTIVE: 'Aktif',
+  SUSPENDED: 'Askıda',
+  CANCELLED: 'İptal',
+}
+
+export type MembershipUrgency = 'ok' | 'soon' | 'critical' | 'expired'
+
+/** Whole calendar days until accessEndAt. Negative means already past. Null if no end date. */
+export function daysUntilAccessEnd(accessEndAt: Date | string | null | undefined, now = new Date()): number | null {
+  if (!accessEndAt) return null
+  const end = typeof accessEndAt === 'string' ? new Date(accessEndAt) : accessEndAt
+  if (Number.isNaN(end.getTime())) return null
+  const ms = end.getTime() - now.getTime()
+  return Math.ceil(ms / (24 * 60 * 60 * 1000))
+}
+
+export function getMembershipUrgency(input: {
+  accessEndAt?: Date | string | null
+  status?: string | null
+  now?: Date
+}): MembershipUrgency {
+  const status = (input.status ?? '').toUpperCase()
+  if (status === 'SUSPENDED' || status === 'CANCELLED') return 'expired'
+
+  const days = daysUntilAccessEnd(input.accessEndAt, input.now)
+  if (days === null) return 'ok'
+  if (days <= 0) return 'expired'
+  if (days <= 3) return 'critical'
+  if (days <= 14) return 'soon'
+  return 'ok'
+}
+
+export function buildMembershipRenewMailto(input: {
+  businessName: string
+  businessId: string
+  planName: string
+  accessEndAt?: string | null
+}) {
+  const subject = encodeURIComponent(`Paket yenileme talebi — ${input.businessName}`)
+  const endLine = input.accessEndAt
+    ? `Erişim bitiş: ${new Date(input.accessEndAt).toLocaleDateString('tr-TR')}`
+    : 'Erişim bitiş: belirtilmemiş'
+  const body = encodeURIComponent(
+    [
+      'Merhaba Asistan ekibi,',
+      '',
+      'Klinik paketimizi yenilemek / yükseltmek istiyoruz.',
+      '',
+      `İşletme: ${input.businessName}`,
+      `İşletme ID: ${input.businessId}`,
+      `Mevcut plan: ${input.planName}`,
+      endLine,
+      '',
+      'İletişim bilgisini bu e-postadan kullanabilirsiniz.',
+    ].join('\n')
+  )
+  return `mailto:merhaba@asistan.online?subject=${subject}&body=${body}`
 }
 
 export function getVendorPlanDefinition(plan: string | null | undefined): VendorPlanDefinition {

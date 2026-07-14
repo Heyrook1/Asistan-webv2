@@ -44,16 +44,18 @@ const BASE_PLANS = [
 
 const PRICING_COPY = {
   tr: {
-    badge: 'Klinik Yatırım Planları',
-    title: 'Klinikler için öngörülebilir fiyatlar, hastalar için ücretsiz mobil uygulama',
-    description: 'Asistan Rezervasyon mobil uygulaması hastalar için tamamen ücretsizdir. Klinikler ise ekip büyüklüklerine göre plan seçebilir.',
-    freeAlert: 'Asistan Rezervasyon hastalar için ücretsizdir. Hasta uygulaması web ve mobilde kullanılabilir; mağaza yayını için bekleme listesine katılabilirsiniz.',
+    badge: 'Asistan Health — klinik planları',
+    title: 'Klinikler için Asistan Health; hastalar için ücretsiz Asistan Rezervasyon',
+    description:
+      'Klinik aboneliği Asistan Health’tir. Hastalar Asistan Rezervasyon ile keşif ve randevu talebini ücretsiz kullanır; klinik ekip büyüklüğüne göre plan seçer.',
+    freeAlert:
+      'Asistan Rezervasyon hastalar için ücretsizdir (web + mobil). Mağaza yayını için bekleme listesine katılabilirsiniz. Klinik paneli ve fiyatlandırma Asistan Health kapsamındadır.',
     monthly: 'Aylık Fatura',
     annual: 'Yıllık Fatura (Tasarruflu)',
     annualLabel: 'aylık, yıllık faturalandırılır',
     monthlyLabel: 'aylık',
     customLabel: 'Satış ekibiyle görüşün',
-    popular: 'En Çok Tercih Edilen',
+    popular: 'Popüler plan',
     plans: [
       {
         note: '14 Günlük deneme süreci',
@@ -62,31 +64,31 @@ const PRICING_COPY = {
       },
       {
         note: 'Tek muayenehane veya hekim için',
-        features: ['1 Klinik Lokasyonu', 'Temel Randevu Orkestrasyonu', 'Hasta Sağlık Kayıtları', 'Temel Raporlama'],
+        features: ['1 Klinik lokasyonu', 'Temel randevu düzeni', 'Hasta kayıtları', 'Temel raporlama'],
         cta: 'Klinik denemesini başlat',
       },
       {
         note: 'Büyüyen poliklinikler & merkezler',
-        features: ['5 Hekim / Personele Kadar', 'Mobil Uygulamada Listelenme', 'Panel & e-posta hatırlatmaları', 'Postgres RLS Veri Güvenliği'],
+        features: ['5 hekim / personele kadar', 'Mobil uygulamada listelenme', 'Panel & e-posta hatırlatmaları', 'İşletme bazlı veri ayrımı'],
         cta: 'Klinik denemesini başlat',
       },
       {
         note: 'Çoklu lokasyon & hastane grupları',
-        features: ['Sınırsız Lokasyon & Personel', 'Özel Onboarding & Kurulum', 'Denetim günlüğü + KVKK iş akışları', 'Güven Merkezi & kurumsal uyumluluk'],
+        features: ['Sınırsız lokasyon & personel', 'Özel kurulum desteği', 'Denetim günlüğü + KVKK iş akışları', 'Güven Merkezi & kurumsal kontroller'],
         cta: 'Demo talep et',
       },
     ],
-    tableHeader: 'Özellik Karşılaştırma Matrisi',
+    tableHeader: 'Özellik karşılaştırma matrisi',
     tablePlans: ['Başlangıç', 'Standart', 'Kurumsal'],
     rows: [
       { label: 'Web operasyon paneli', starter: true, standard: true, enterprise: true },
       { label: 'Hasta mobil uygulamasında listelenme', starter: false, standard: true, enterprise: true },
-      { label: 'Panel / e-posta hatırlatma (+ SMS webhook kurulumu)', starter: false, standard: true, enterprise: true },
-      { label: 'Postgres RLS & Gelişmiş veri izolasyonu', starter: false, standard: true, enterprise: true },
+      { label: 'Panel / e-posta hatırlatma (+ SMS kurulum desteği)', starter: false, standard: true, enterprise: true },
+      { label: 'İşletme bazlı veri ayrımı', starter: false, standard: true, enterprise: true },
       { label: 'Denetim günlüğü & KVKK silme iş akışı', starter: false, standard: false, enterprise: true },
       { label: 'Çoklu şube & lokasyon desteği', starter: false, standard: false, enterprise: true },
       { label: 'Özel API entegrasyonu', starter: false, standard: false, enterprise: true },
-      { label: 'Özel onboarding / Personel eğitimleri', starter: false, standard: false, enterprise: true },
+      { label: 'Özel kurulum / personel eğitimleri', starter: false, standard: false, enterprise: true },
     ],
     demoText: 'Kliniğinizin kurulum süreçlerini detaylıca görüşmek ister misiniz?',
     demoCta: 'Demo talep et',
@@ -104,10 +106,12 @@ const PRICING_COPY = {
     submitBooking: 'Demo talebini gönder',
   },
   en: {
-    badge: 'Pricing & Investment Plans',
-    title: 'Predictable pricing for clinics, 100% free app for patients',
-    description: 'The Asistan Rezervasyon customer app is entirely free for patients. Clinics choose a plan based on doctor count and operational scale.',
-    freeAlert: 'The Asistan Rezervasyon patient app is free. It is available on web and mobile today; join the store waitlist for App Store and Google Play release updates.',
+    badge: 'Asistan Health — clinic plans',
+    title: 'Asistan Health for clinics; free Asistan Booking for patients',
+    description:
+      'Clinic subscription is Asistan Health. Patients use Asistan Booking for discovery and requests at no cost; clinics pick a plan by team size.',
+    freeAlert:
+      'Asistan Booking is free for patients (web + mobile). Join the store waitlist for App Store / Play release. Clinic panel and pricing are Asistan Health.',
     monthly: 'Billed Monthly',
     annual: 'Billed Annually (Save)',
     annualLabel: 'per month, billed annually',
@@ -127,12 +131,12 @@ const PRICING_COPY = {
       },
       {
         note: 'Best for growing multi-staff clinics',
-        features: ['Up to 5 Doctors / Staff', 'App Listing & Discovery', 'In-panel & email reminders', 'RLS Data Separation'],
+        features: ['Up to 5 Doctors / Staff', 'App Listing & Discovery', 'In-panel & email reminders', 'Business data isolation'],
         cta: 'Start clinic trial',
       },
       {
         note: 'Hospitals & multi-branch groups',
-        features: ['Unlimited Staff & Locations', 'Custom Onboarding Setup', 'Audit log + KVKK workflows', 'Trust Center & enterprise compliance'],
+        features: ['Unlimited Staff & Locations', 'Custom setup support', 'Audit log + KVKK workflows', 'Trust Center & enterprise controls'],
         cta: 'Request a demo',
       },
     ],
@@ -141,12 +145,12 @@ const PRICING_COPY = {
     rows: [
       { label: 'Web administration panel', starter: true, standard: true, enterprise: true },
       { label: 'Listing in patient booking app', starter: false, standard: true, enterprise: true },
-      { label: 'In-panel / email reminders (+ SMS webhook setup)', starter: false, standard: true, enterprise: true },
-      { label: 'Granular RLS & isolation rules', starter: false, standard: true, enterprise: true },
+      { label: 'In-panel / email reminders (+ SMS setup support)', starter: false, standard: true, enterprise: true },
+      { label: 'Business data isolation', starter: false, standard: true, enterprise: true },
       { label: 'Audit log & KVKK deletion workflow', starter: false, standard: false, enterprise: true },
       { label: 'Multi-branch & chain support', starter: false, standard: false, enterprise: true },
       { label: 'Custom API endpoints', starter: false, standard: false, enterprise: true },
-      { label: 'Custom onboarding & staff training', starter: false, standard: false, enterprise: true },
+      { label: 'Custom setup & staff training', starter: false, standard: false, enterprise: true },
     ],
     demoText: 'Would you like a customized walkthrough of the platform?',
     demoCta: 'Request a demo',

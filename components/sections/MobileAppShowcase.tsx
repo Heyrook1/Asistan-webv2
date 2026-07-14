@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage, Language } from '@/contexts/LanguageContext'
+import { productName } from '@/lib/brand/masterbrand'
 
 interface FeatureCardProps {
   icon: React.ReactNode
@@ -94,7 +95,10 @@ const PhoneScreen = ({ title, description, icon, screenIndex }: PhoneScreenProps
       {/* App Nav Bar Mockup */}
       <div className="mt-2 flex items-center justify-between border-b border-white/10 pb-3">
         <span className="text-[11px] font-extrabold tracking-tight text-white/90">
-          {t({ tr: 'Asistan Rezervasyon', en: 'Asistan Booking' })}
+          {t({
+            tr: productName('booking', 'tr'),
+            en: productName('booking', 'en'),
+          })}
         </span>
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
       </div>
@@ -228,19 +232,19 @@ export function MobileAppShowcase() {
             </span>
             {t({
               tr: 'ASİSTAN REZERVASYON • HASTA UYGULAMASI',
-              en: 'ASISTAN RESERVATION • PATIENT APP'
+              en: 'ASISTAN BOOKING · PATIENT APP'
             })}
           </div>
           <h2 className="mx-auto max-w-3xl text-balance font-display text-[clamp(2rem,4.5vw,3.4rem)] font-bold tracking-[-0.04em] text-[#1D1D1F] leading-[1.08]">
             {t({
               tr: 'Mobilde sağlık randevusunu yeniden tasarladık',
-              en: 'Redesigned healthcare appointments on mobile'
+              en: 'Healthcare booking redesigned for mobile'
             })}
           </h2>
           <p className="mx-auto max-w-3xl text-[1.1rem] leading-relaxed text-[#5D6068] font-medium">
             {t({
-              tr: 'Yemek siparişi verir gibi, ama doktorlar ve klinikler için. Yakındaki klinikleri keşfedin, gerçek yorumları okuyun ve saniyeler içinde randevu oluşturun.',
-              en: 'Like ordering food, but for doctors and clinics. Discover nearby clinics, read real reviews, and make appointments in seconds.'
+              tr: 'Yakındaki klinikleri keşfedin, gerçek yorumları okuyun ve saniyeler içinde randevu talebi oluşturun.',
+              en: 'Discover nearby clinics, read real reviews, and request appointments in seconds.'
             })}
           </p>
         </div>
@@ -293,9 +297,9 @@ export function MobileAppShowcase() {
               title={t({ tr: 'Canlı Uygunluk', en: 'Live Availability' })}
               description={t({
                 tr: 'Yeşil, sarı ve kırmızı durum rozetleriyle anlık boşlukları inceleyin.',
-                en: 'Browse real-time slots colored with green, yellow, and red status tags.'
+                en: 'Browse real-time availability colored with green, yellow, and red status tags.'
               })}
-              badgeText={t({ tr: 'Canlı slot', en: 'Live slots' })}
+              badgeText={t({ tr: 'Canlı müsaitlik', en: 'Live availability' })}
               badgeType="success"
             />
             <FeatureCard 

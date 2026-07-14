@@ -20,7 +20,7 @@ export function StatsGrid({
       title: 'Bugünkü Randevular',
       value: stats.todayAppointments,
       icon: Calendar,
-      tone: 'teal' as const,
+      tone: 'blue' as const,
       hint: 'Onaylı ajanda',
     },
     {
@@ -63,7 +63,7 @@ export function StatsGrid({
             <div
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-12 md:w-12',
-                card.tone === 'teal' && 'bg-cyan-50 text-cyan-600',
+                card.tone === 'blue' && 'bg-blue-50 text-brand-blue',
                 card.tone === 'orange' && 'bg-orange-50 text-orange-600',
                 card.tone === 'violet' && 'bg-violet-50 text-violet-600',
                 card.tone === 'amber' && 'bg-amber-50 text-amber-600',

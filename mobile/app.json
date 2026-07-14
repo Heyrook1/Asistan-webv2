@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Asistan Mobile",
-    "slug": "asistan-mobile",
+    "name": "Asistan Rezervasyon",
+    "slug": "asistan-rezervasyon",
     "scheme": "asistanmobile",
     "version": "1.0.0",
     "orientation": "portrait",

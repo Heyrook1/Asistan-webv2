@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogIn, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,44 +11,60 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath } from '@/lib/auth-routes'
 import { ENTRY_CTA } from '@/lib/entry-routes'
 
+/** Defense in depth if mounted outside marketing shells. */
+function isAppShellPath(pathname: string | null) {
+  if (!pathname) return true
+  if (
+    pathname.startsWith('/client') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/api')
+  ) {
+    return true
+  }
+  return /^\/(tr|en)\/(giris|kayit|login|register|auth)(\/|$)/.test(pathname)
+}
+
 export function FloatingCTA() {
+  const pathname = usePathname()
   const { t, language } = useLanguage()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const supabase = createClient()
 
+  const blocked = isAppShellPath(pathname)
+
   useEffect(() => {
-    // Check initial auth state
+    if (blocked) return
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session)
     })
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session)
     })
 
-    // Show/hide on scroll
     const handleScroll = () => {
-      if (window.scrollY > 200) {
-        setIsVisible(true)
-      } else {
-        setIsVisible(false)
-      }
+      setIsVisible(window.scrollY > 200)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // initial check
+    handleScroll()
 
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('scroll', handleScroll)
     }
-  }, [supabase.auth])
+  }, [blocked, supabase.auth])
+
+  if (blocked) return null
 
   const text = t({
     tr: isLoggedIn ? 'Klinik paneli' : ENTRY_CTA.clinicLogin.tr,
-    en: isLoggedIn ? 'Dashboard' : ENTRY_CTA.clinicLogin.en,
+    en: isLoggedIn ? 'Clinic dashboard' : ENTRY_CTA.clinicLogin.en,
   })
 
   const href = isLoggedIn ? '/dashboard' : getLoginPath(language)

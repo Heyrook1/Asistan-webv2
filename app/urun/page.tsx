@@ -22,48 +22,51 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
+import { withCanonical } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Urun | Asistan ile Randevu ve Hasta Takibi',
-  description: 'Asistan ile takvim, hasta kayitlari, hatirlatmalar, ekip rolleri ve operasyon onerilerini tek panelden yonetin.',
-}
+export const metadata: Metadata = withCanonical('/urun', {
+  title: 'Ürün | Asistan ile Randevu ve Hasta Takibi',
+  description:
+    'Asistan ile takvim, hasta kayıtları, hatırlatmalar, ekip rolleri ve operasyon önerilerini tek panelden yönetin.',
+})
 
 const coreFeatures = [
   {
     icon: Calendar,
-    title: 'Akilli Takvim',
-    description: 'Doktor, sekreter ve yonetici ayni randevu duzenini gorur.',
-    bullets: ['Bekleyen onaylar', 'Musait saat takibi', 'Gunluk randevu listesi'],
+    title: 'Akıllı Takvim',
+    description: 'Doktor, sekreter ve yönetici aynı randevu düzenini görür.',
+    bullets: ['Bekleyen onaylar', 'Müsait saat takibi', 'Günlük randevu listesi'],
   },
   {
     icon: Bell,
-    title: 'Hatirlatmalar',
-    description: 'Randevu unutmalarini azaltmak icin takip mesajlarini planlayin.',
-    bullets: ['Randevu oncesi bildirim', 'Takip hatirlatmasi', 'Geciken isler'],
+    title: 'Hatırlatmalar',
+    description: 'Randevu unutmalarını azaltmak için takip mesajlarını planlayın.',
+    bullets: ['Randevu öncesi bildirim', 'Takip hatırlatması', 'Geciken işler'],
   },
   {
     icon: FileText,
-    title: 'Hasta Kartlari',
-    description: 'Hasta bilgisi, randevu gecmisi ve notlar ayni yerde kalsin.',
-    bullets: ['Hasta ozeti', 'Klinik notlar', 'Dosya ve tahlil takibi'],
+    title: 'Hasta Kartları',
+    description: 'Hasta bilgisi, randevu geçmişi ve notlar aynı yerde kalsın.',
+    bullets: ['Hasta özeti', 'Klinik notlar', 'Dosya ve tahlil takibi'],
   },
   {
     icon: UserCog,
-    title: 'Sekreter Hesabi',
-    description: 'Ekip uyelerine gorevlerine gore erisim verin.',
-    bullets: ['Rol bazli yetki', 'Ekip gorunumu', 'Isletme kontrolu'],
+    title: 'Sekreter Hesabı',
+    description: 'Ekip üyelerine görevlerine göre erişim verin.',
+    bullets: ['Rol bazlı yetki', 'Ekip görünümü', 'İşletme kontrolü'],
   },
   {
     icon: Sparkles,
-    title: 'Operasyon Onerileri',
-    description: 'Bos saat, bekleyen onay ve takip firsatlarini kural tabanli ozetlerle daha hizli gorun.',
-    bullets: ['Bos saat onerisi', 'Bekleyen hasta takibi', 'Gunluk ozet'],
+    title: 'Operasyon Önerileri',
+    description:
+      'Boş saat, bekleyen onay ve takip fırsatlarını kural tabanlı özetlerle daha hızlı görün.',
+    bullets: ['Boş saat önerisi', 'Bekleyen hasta takibi', 'Günlük özet'],
   },
   {
     icon: Lock,
-    title: 'Gizlilik Odagi',
-    description: 'Hasta ve isletme verisini gizlilik prensipleriyle yonetin.',
-    bullets: ['Erisim kontrolu', 'Kayit duzeni', 'Guvenli oturum'],
+    title: 'Gizlilik Odağı',
+    description: 'Hasta ve işletme verisini gizlilik prensipleriyle yönetin.',
+    bullets: ['Erişim kontrolü', 'Kayıt düzeni', 'Güvenli oturum'],
   },
 ]
 
@@ -71,33 +74,67 @@ const dailyFlow = [
   {
     time: 'Sabah',
     title: 'Takvimi kontrol edin',
-    description: 'Bugunku randevulari, bekleyen onaylari ve bos saatleri gorun.',
+    description: 'Bugünkü randevuları, bekleyen onayları ve boş saatleri görün.',
   },
   {
-    time: 'Gun icinde',
-    title: 'Sekreter akis yonetsin',
-    description: 'Hasta ekleme, randevu planlama ve not alma ayni panelden ilerlesin.',
+    time: 'Gün içinde',
+    title: 'Sekreter akışı yönetsin',
+    description: 'Hasta ekleme, randevu planlama ve not alma aynı panelden ilerlesin.',
   },
   {
-    time: 'Randevu oncesi',
-    title: 'Hatirlatmalari takip edin',
-    description: 'Unutulan randevu riskini azaltmak icin bildirimleri duzenleyin.',
+    time: 'Randevu öncesi',
+    title: 'Hatırlatmaları takip edin',
+    description: 'Unutulan randevu riskini azaltmak için bildirimleri düzenleyin.',
   },
   {
-    time: 'Gun sonunda',
-    title: 'Ozeti gorun',
-    description: 'Tamamlanan randevulari, takip gerektiren hastalari ve ekip islerini kontrol edin.',
+    time: 'Gün sonunda',
+    title: 'Özeti görün',
+    description:
+      'Tamamlanan randevuları, takip gerektiren hastaları ve ekip işlerini kontrol edin.',
   },
 ]
 
 const personas = [
-  { icon: ClipboardList, title: 'Doktor', description: 'Hasta gecmisini ve takip notlarini hizli gorur.' },
-  { icon: Users, title: 'Klinik yoneticisi', description: 'Randevu yogunlugunu ve ekip duzenini takip eder.' },
-  { icon: MessageSquare, title: 'Sekreter', description: 'Telefon, mesaj ve takvim akisini ayni yerden yonetir.' },
-  { icon: Settings, title: 'Isletme sahibi', description: 'Gunluk operasyonu daha az daginiklikla kontrol eder.' },
+  {
+    icon: ClipboardList,
+    title: 'Doktor',
+    description: 'Hasta geçmişini ve takip notlarını hızlı görür.',
+  },
+  {
+    icon: Users,
+    title: 'Klinik yöneticisi',
+    description: 'Randevu yoğunluğunu ve ekip düzenini takip eder.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Sekreter',
+    description: 'Telefon, mesaj ve takvim akışını aynı yerden yönetir.',
+  },
+  {
+    icon: Settings,
+    title: 'İşletme sahibi',
+    description: 'Günlük operasyonu daha az dağınıklıkla kontrol eder.',
+  },
 ]
 
-const upcomingFeatures = ['Online odeme altyapisi', 'App Store / Google Play yayini', 'SMS saglayici kurulumu', 'Ozel entegrasyonlar']
+const roadmapItems = [
+  {
+    title: 'Online ödeme altyapısı',
+    note: 'Aktif değil — satış paketinde yok; talep ile yol haritası',
+  },
+  {
+    title: 'App Store / Google Play yayını',
+    note: 'Bekleme listesi — mağaza yayını tamamlanmış sayılmaz',
+  },
+  {
+    title: 'SMS sağlayıcı kurulumu',
+    note: 'Aktif değil — hatırlatmalar e-posta / panel odaklı',
+  },
+  {
+    title: 'Özel entegrasyonlar',
+    note: 'Kuruma özel kapsam — demo görüşmesinde netleştirilir',
+  },
+] as const
 
 export default function ProductPage() {
   return (
@@ -109,22 +146,30 @@ export default function ProductPage() {
 
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.95fr_1fr] lg:px-8">
           <FadeUp>
-            <Badge className="mb-5 border-0 bg-white text-brand-teal">Urun</Badge>
+            <Badge className="mb-5 border-0 bg-white text-brand-teal">Ürün</Badge>
             <h1 className="mb-6 font-heading text-4xl font-black leading-[1.08] tracking-tight text-brand-navy md:text-5xl lg:text-6xl">
-              Kliniginizin gunluk islerini tek panelden yonetin.
+              Kliniğinizin günlük işlerini tek panelden yönetin.
             </h1>
             <p className="mb-8 max-w-xl text-lg leading-8 text-slate-600">
-              Asistan; takvim, hasta kartlari, hatirlatmalar, ekip rolleri ve operasyon onerilerini sade bir is akisinda birlestirir.
+              Asistan; takvim, hasta kartları, hatırlatmalar, ekip rolleri ve operasyon
+              önerilerini sade bir iş akışında birleştirir.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href={getClinicTrialPath('tr')}>
-                <Button size="lg" className="h-12 rounded-xl bg-brand-teal px-6 font-semibold text-white hover:bg-brand-teal-hover">
+                <Button
+                  size="lg"
+                  className="h-12 rounded-xl bg-brand-teal px-6 font-semibold text-white hover:bg-brand-teal-hover"
+                >
                   {ENTRY_CTA.clinicTrial.tr}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href={DEMO_CONTACT_PATH}>
-                <Button size="lg" variant="outline" className="h-12 rounded-xl border-brand-teal/30 px-6 text-brand-teal hover:bg-brand-teal/5">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-xl border-brand-teal/30 px-6 text-brand-teal hover:bg-brand-teal/5"
+                >
                   {ENTRY_CTA.demoRequest.tr}
                 </Button>
               </Link>
@@ -136,8 +181,8 @@ export default function ProductPage() {
               <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-2xl backdrop-blur">
                 <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
                   <div>
-                    <p className="text-sm font-bold text-brand-navy">Gunluk akis</p>
-                    <p className="text-xs text-slate-500">Ornek klinik gorunumu</p>
+                    <p className="text-sm font-bold text-brand-navy">Günlük akış</p>
+                    <p className="text-xs text-slate-500">Örnek klinik görünümü</p>
                   </div>
                   <Clock className="h-5 w-5 text-brand-teal" />
                 </div>
@@ -145,7 +190,9 @@ export default function ProductPage() {
                   {dailyFlow.map((item, index) => (
                     <ScaleIn key={item.title} delay={0.04 * index}>
                       <div className="rounded-2xl bg-dashboard-surface p-4">
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-teal">{item.time}</p>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-teal">
+                          {item.time}
+                        </p>
                         <h3 className="font-bold text-brand-navy">{item.title}</h3>
                         <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                       </div>
@@ -161,8 +208,12 @@ export default function ProductPage() {
       <section id="moduller" className="bg-white py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <FadeUp className="mx-auto mb-12 max-w-3xl text-center">
-            <h2 className="font-heading text-3xl font-black text-brand-navy md:text-4xl">Asistan ile neleri yonetebilirsiniz?</h2>
-            <p className="mt-4 text-lg leading-8 text-slate-600">Her ozellik tek bir amaca hizmet eder: gunluk takip yukunu azaltmak.</p>
+            <h2 className="font-heading text-3xl font-black text-brand-navy md:text-4xl">
+              Asistan ile neleri yönetebilirsiniz?
+            </h2>
+            <p className="mt-4 text-lg leading-8 text-slate-600">
+              Her özellik tek bir amaca hizmet eder: günlük takip yükünü azaltmak.
+            </p>
           </FadeUp>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {coreFeatures.map((feature, index) => (
@@ -192,9 +243,12 @@ export default function ProductPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
             <FadeUp>
-              <h2 className="font-heading text-3xl font-black text-brand-navy md:text-4xl">Kimler kullanir?</h2>
+              <h2 className="font-heading text-3xl font-black text-brand-navy md:text-4xl">
+                Kimler kullanır?
+              </h2>
               <p className="mt-4 text-lg leading-8 text-slate-600">
-                Asistan, sadece yoneticinin degil, randevu akisina dokunan herkesin isini sadelestirir.
+                Asistan, yalnızca yöneticinin değil, randevu akışına dokunan herkesin işini
+                sadeleştirir.
               </p>
             </FadeUp>
             <div className="grid gap-5 sm:grid-cols-2">
@@ -219,18 +273,28 @@ export default function ProductPage() {
           <FadeUp className="rounded-3xl bg-brand-navy p-8 text-white md:p-10">
             <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr] lg:items-center">
               <div>
-                <Badge className="mb-4 border-0 bg-white/10 text-white">Daha sonra gelecekler</Badge>
-                <h2 className="font-heading text-3xl font-black md:text-4xl">Vaatleri sirayla yayina aliyoruz.</h2>
+                <Badge className="mb-4 border-0 bg-white/10 text-white">Yol haritası</Badge>
+                <h2 className="font-heading text-3xl font-black md:text-4xl">
+                  Henüz yayında olmayanlar satış vaadi değildir.
+                </h2>
                 <p className="mt-4 text-white/70">
-                  Henuz aktif olmayan ozellikleri gercek fiyat veya kesin tarih vermeden yol haritasinda tutuyoruz.
+                  Aşağıdakiler ürün yol haritasındadır; fiyatlandırmaya dahil edilmiş veya
+                  teslim edilmiş özellik sayılmaz. Öncelik ve zamanlama klinik taleplerine göre
+                  değişir.
                 </p>
+                <Link
+                  href={DEMO_CONTACT_PATH}
+                  className="mt-5 inline-flex text-sm font-semibold text-brand-cyan underline-offset-2 hover:underline"
+                >
+                  Yol haritası / öncelik için yazın
+                </Link>
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {upcomingFeatures.map((feature, index) => (
-                  <ScaleIn key={feature} delay={0.06 * index}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {roadmapItems.map((feature, index) => (
+                  <ScaleIn key={feature.title} delay={0.06 * index}>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="font-semibold">{feature}</p>
-                      <p className="mt-1 text-xs text-white/55">Yakinda</p>
+                      <p className="font-semibold">{feature.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/55">{feature.note}</p>
                     </div>
                   </ScaleIn>
                 ))}

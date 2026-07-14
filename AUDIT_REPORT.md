@@ -167,7 +167,7 @@ export const ERROR_MESSAGES = {
 **Findings:**
 - **Component library:** shadcn/ui (Radix + Tailwind) provides consistent primitives
 - **Design tokens:** Tailwind config well-structured with custom colors and shadows
-- **Typography:** Font stack properly defined (SF Pro → Manrope → system)
+- **Typography:** Manrope shipped stack (`docs/typography.md`); SF Pro no longer leads CSS
 - **Spacing:** Consistent use of Tailwind scale
 
 **Specific Strengths:**

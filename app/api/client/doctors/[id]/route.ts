@@ -138,10 +138,10 @@ export async function GET(
   const ratingDistribution = buildRatingDistribution(ratingRows)
   const workingDayCount = new Set(doctor.availabilityRules.map((rule) => rule.weekday)).size
   const experienceSinceYear = doctor.createdAt.getFullYear()
-  const expertiseLabel = doctor.specialty ?? 'Genel saglik'
+  const expertiseLabel = doctor.specialty ?? 'Genel sağlık'
   const story = doctor.bio
     ? doctor.bio
-    : `${doctor.fullName}, ${doctor.business.name} bunyesinde ${expertiseLabel.toLowerCase()} odakli muayene ve takip hizmeti sunuyor.`
+    : `${doctor.fullName}, ${doctor.business.name} bünyesinde ${expertiseLabel.toLowerCase()} odaklı muayene ve takip hizmeti sunuyor.`
 
   const verification = getDoctorVerification({
     specialty: doctor.specialty,

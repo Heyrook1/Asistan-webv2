@@ -166,8 +166,8 @@ export function RoleOpsHome({
     <div className="space-y-4 lg:space-y-5">
       <Card className="overflow-hidden border-border/60 shadow-sm">
         <CardContent className="relative p-4 lg:p-5">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/35 blur-3xl" />
-          <div className="pointer-events-none absolute -left-20 -bottom-20 h-48 w-48 rounded-full bg-blue-200/35 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute -left-20 -bottom-20 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
           <div className="relative flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-xl font-bold tracking-tight text-brand-ink lg:text-[26px]">{copy.title}</h1>
@@ -178,7 +178,7 @@ export function RoleOpsHome({
 
             <div className="lg:hidden">
               {mobilePrimary.kind === 'link' ? (
-                <Button asChild className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover">
+                <Button asChild className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-blue-600/20 hover:bg-brand-teal-hover">
                   <Link href={mobilePrimary.href}>
                     <mobilePrimary.icon className="h-4 w-4" />
                     {mobilePrimary.label}
@@ -187,7 +187,7 @@ export function RoleOpsHome({
               ) : (
                 <Button
                   onClick={() => setModal('appointment')}
-                  className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover"
+                  className="h-11 w-full gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-blue-600/20 hover:bg-brand-teal-hover"
                 >
                   <mobilePrimary.icon className="h-4 w-4" />
                   {mobilePrimary.label}
@@ -199,7 +199,7 @@ export function RoleOpsHome({
               {canCreateAppointment && (
                 <Button
                   onClick={() => setModal('appointment')}
-                  className="h-11 gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-cyan-600/20 hover:bg-brand-teal-hover"
+                  className="h-11 gap-2 rounded-xl bg-brand-teal text-white shadow-lg shadow-blue-600/20 hover:bg-brand-teal-hover"
                 >
                   <CalendarPlus className="h-4 w-4" />
                   Randevu Oluştur

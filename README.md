@@ -1,6 +1,6 @@
 # Asistan Health
 
-AI destekli klinik, randevu, hasta, ekip, tedavi, dosya ve iş akışı yönetim
+KKTC klinikleri için randevu, hasta, ekip, tedavi, dosya ve iş akışı yönetim
 platformu. Next.js 16 + TypeScript + Prisma + PostgreSQL (Supabase) +
 Tailwind v4 + shadcn (new-york) üzerine kuruludur.
 

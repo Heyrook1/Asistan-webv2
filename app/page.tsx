@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic'
+import type { Metadata } from 'next'
 
 import { HeroCoverFlow } from '@/components/sections/HeroCoverFlow'
 import { LandingLocaleProvider } from '@/components/sections/landing-locale'
@@ -6,6 +7,15 @@ import { PageTransition } from '@/components/sections/page-transition'
 import { SectionSkeleton } from '@/components/sections/section-skeleton'
 import { SiteFooter } from '@/components/sections/site-footer'
 import { SiteHeader } from '@/components/sections/site-header'
+import { FloatingCTA } from '@/components/ui/FloatingCTA'
+import { withCanonical } from '@/lib/seo'
+
+export const metadata: Metadata = withCanonical('/', {
+  title: {
+    absolute: 'KKTC Randevu Sistemi | Asistan Health',
+  },
+  description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi platformu.',
+})
 
 const MobileAppShowcaseSection = dynamic(
   () =>
@@ -84,6 +94,7 @@ export default function HomePage() {
             <TrustSection />
           </main>
           <SiteFooter />
+          <FloatingCTA />
         </div>
       </LandingLocaleProvider>
     </PageTransition>

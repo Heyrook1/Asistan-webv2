@@ -36,6 +36,7 @@ export function AsistanLogo({
 }: AsistanLogoProps) {
   const height = HEIGHTS[size]
   const width = Math.round(height * LOGO_ASPECT[variant])
+  const hasExplicitHeightClass = /\bh-\S+/.test(className)
 
   return (
     <Image
@@ -46,8 +47,11 @@ export function AsistanLogo({
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block max-w-full select-none ${className}`}
-      style={{ width: 'auto' }}
+      className={`block max-w-full select-none object-contain object-left ${className}`}
+      style={{
+        width: 'auto',
+        ...(hasExplicitHeightClass ? {} : { height }),
+      }}
     />
   )
 }

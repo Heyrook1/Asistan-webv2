@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
+import { productName } from '@/lib/brand/masterbrand'
 import { cn } from '@/lib/utils'
 
 type AuthShellProps = {
@@ -16,12 +17,12 @@ type AuthShellProps = {
 
 const defaultHighlights = [
   'Tek panelde randevu ve hasta takibi',
-  'Rol bazli erisim ve ekip duzeni',
-  'KVKK odakli veri guvenligi',
+  'Rol bazlı erişim ve ekip düzeni',
+  'KVKK odaklı veri güvenliği',
 ]
 
 export function AuthShell({
-  badge = 'Asistan Account',
+  badge = productName('health', 'tr'),
   title,
   description,
   highlights = defaultHighlights,
@@ -29,14 +30,17 @@ export function AuthShell({
   cardClassName,
 }: AuthShellProps) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#F7F7F5]">
       <div className="marketing-hero-bg absolute inset-0" />
       <div className="soft-grid absolute inset-0 opacity-55" />
 
       <header className="relative z-20 border-b border-brand-blue/10 bg-white/85 backdrop-blur-md">
         <div className="marketing-container flex h-[72px] items-center justify-between">
-          <Link href="/" className="inline-flex items-center" aria-label="Asistan ana sayfa">
+          <Link href="/" className="inline-flex flex-col items-start" aria-label="Asistan ana sayfa">
             <AsistanLogo variant="dark" size="md" priority />
+            <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-blue/70">
+              {productName('health', 'tr')}
+            </span>
           </Link>
           <Link
             href="/"
@@ -61,16 +65,20 @@ export function AuthShell({
             <div className="mt-7 space-y-3">
               {highlights.map((item) => (
                 <p key={item} className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <CheckCircle2 className="size-4 text-brand-teal" aria-hidden="true" />
+                  <CheckCircle2 className="size-4 text-brand-blue" aria-hidden="true" />
                   {item}
                 </p>
               ))}
             </div>
+            <p className="mt-8 max-w-md text-xs leading-5 text-slate-500">
+              Deneme hesabı sonrası açılan panel, bu sayfadaki Asistan Health markası ile aynı renk
+              ve logo dilini kullanır.
+            </p>
           </section>
 
           <section
             className={cn(
-              'marketing-surface rounded-2xl border-brand-blue/10 bg-white/95 p-5 shadow-[0_20px_50px_rgba(12,29,54,0.12)] md:p-7',
+              'marketing-surface rounded-2xl border-brand-blue/10 bg-white/95 p-5 shadow-[0_20px_50px_rgba(0,113,227,0.10)] md:p-7',
               cardClassName
             )}
           >

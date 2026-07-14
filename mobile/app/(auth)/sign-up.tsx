@@ -61,7 +61,7 @@ export default function SignUpScreen() {
 
           <View style={styles.panel}>
             <Text style={styles.title}>Yeni Hesap</Text>
-            <Text style={styles.subtitle}>Asistan Client ile kaydini tamamla</Text>
+            <Text style={styles.subtitle}>Asistan Rezervasyon ile kaydını tamamla</Text>
 
             <TextInput
               style={styles.input}

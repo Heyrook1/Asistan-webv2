@@ -29,7 +29,7 @@ const empty: ServiceDraft = {
   durationMin: 30,
   price: 0,
   currency: 'TRY',
-  color: '#0B7F6F',
+  color: '#0071E3',
   isActive: true,
 }
 

@@ -51,19 +51,23 @@
   --sidebar-border: #1A334D;
   --sidebar-ring: #2563EB;
 
-  /* Brand specific */
+  /* Brand specific
+   * Canonical accent = Apple blue (#0071E3) via --primary / --brand-blue.
+   * --brand-teal* is a legacy alias (name kept for existing classNames); never a separate teal hue.
+   */
   --deep-navy: #1D1D1F;
   --teal: #2DD4BF;
-  --light-blue: #0071E3;
+  --light-blue: var(--primary);
   --brand-ink: #1D1D1F;
   --brand-navy: #1D1D1F;
   --brand-dark: #1D1D1F;
-  --brand-blue: #0071E3;
-  --brand-teal: #0071E3;
-  --brand-teal-hover: #0063C8;
+  --brand-blue: var(--primary);
+  --brand-blue-hover: var(--primary-hover);
+  --brand-teal: var(--brand-blue);
+  --brand-teal-hover: var(--brand-blue-hover);
   --brand-teal-bright: #60A5FA;
-  --brand-teal-accessible: #0071E3;
-  --brand-teal-dark: #0063C8;
+  --brand-teal-accessible: var(--brand-blue);
+  --brand-teal-dark: var(--brand-blue-hover);
   --brand-cyan: #60A5FA;
   --brand-danger: #FF4D4F;
   --brand-danger-strong: #C22326;
@@ -138,40 +142,42 @@
   --card-foreground: #F8FAFC;
   --popover: #0F1B2F;
   --popover-foreground: #F8FAFC;
-  --primary: #2DD4BF;
+  /* Same hue family as light marketing chrome (#0071E3), not legacy teal */
+  --primary: #5BA3F5;
   --primary-foreground: #0B1220;
-  --primary-hover: #26BBA9;
-  --primary-soft: #0B2A2A;
+  --primary-hover: #0071E3;
+  --primary-soft: rgba(0, 113, 227, 0.18);
   --accent-pop: #60A5FA;
   --secondary: #0F172A;
   --secondary-foreground: #F8FAFC;
   --muted: #0F172A;
   --muted-foreground: #94A3B8;
-  --accent: #0B2A2A;
-  --accent-foreground: #E8F8F7;
+  --accent: #0B1F3A;
+  --accent-foreground: #EEF6FF;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
   --border: #1E293B;
   --input: #1E293B;
-  --ring: #2DD4BF;
-  --chart-1: #06B6D4;
-  --chart-2: #2563EB;
+  --ring: #5BA3F5;
+  --chart-1: #0071E3;
+  --chart-2: #5BA3F5;
   --chart-3: #F8FAFC;
   --chart-4: #94A3B8;
   --chart-5: #0F172A;
   --sidebar: #011627;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #2DD4BF;
+  --sidebar-primary: #5BA3F5;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #0A2138;
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #1A334D;
-  --sidebar-ring: #2DD4BF;
+  --sidebar-ring: #5BA3F5;
 }
 
 @theme inline {
-  --font-sans: 'SF Pro Text', 'SF Pro Display', 'Inter', 'Manrope', system-ui, sans-serif;
-  --font-heading: 'SF Pro Display', 'SF Pro Text', 'Inter', 'Manrope', system-ui, sans-serif;
+  /* Doctrine: shipped stack only — see docs/typography.md · lib/brand/typography.ts */
+  --font-sans: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -227,6 +233,7 @@
   --color-brand-teal-dark: var(--brand-teal-dark);
   --color-brand-cyan: var(--brand-cyan);
   --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-hover: var(--brand-blue-hover);
   --color-brand-navy: var(--brand-navy);
   --color-brand-dark: var(--brand-dark);
   --color-brand-danger: var(--brand-danger);

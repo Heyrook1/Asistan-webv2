@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   AlertTriangle,
@@ -405,7 +406,23 @@ export function TeamBoard({
           {reachedUserLimit && (
             <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>Bu pakette aktif kullanici limiti doldu. Yeni ekip uyesi eklemek icin paket yukseltin.</p>
+              <p>
+                Bu pakette aktif kullanıcı limiti doldu. Yeni ekip üyesi eklemek için{' '}
+                <Link href="/dashboard/ayarlar?tab=abonelik" className="font-semibold underline underline-offset-2">
+                  paketi yükseltin
+                </Link>
+                .
+              </p>
+            </div>
+          )}
+          {!reachedUserLimit && (
+            <div className="mt-3">
+              <Link
+                href="/dashboard/ayarlar?tab=abonelik"
+                className="text-sm font-semibold text-brand-blue underline-offset-2 hover:underline"
+              >
+                Abonelik ve paket detayları
+              </Link>
             </div>
           )}
         </section>
@@ -815,7 +832,7 @@ function AddUserDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (limitReached) {
-      toast.error('Paket kullanici limiti doldu. Yeni kullanici icin paket yukseltin.')
+      toast.error('Paket kullanıcı limiti doldu. Yeni kullanıcı için Ayarlar → Abonelik’ten yükseltme talep edin.')
       return
     }
     startTransition(async () => {
@@ -848,7 +865,7 @@ function AddUserDialog({
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               {membership?.isDemo
                 ? 'Demo hesap en fazla 1 aktif kullaniciya izin verir.'
-                : 'Bu paketin aktif kullanici limiti doldu. Lutfen paket yukseltin.'}
+                : 'Bu paketin aktif kullanıcı limiti doldu. Ayarlar → Abonelik’ten yükseltme talep edin.'}
             </div>
           )}
           <div className="grid gap-3 sm:grid-cols-2">

@@ -171,7 +171,7 @@ export async function GET(
 
   const story = business.description
     ? business.description
-    : `${business.name}, ${business.city ?? 'bolgesinde'} hasta odakli muayene, takip ve randevu sureci yurutmektedir.`
+    : `${business.name}, ${business.city ?? 'bölgesinde'} hasta odaklı muayene, takip ve randevu süreci yürütmektedir.`
 
   const verifiedDoctorCount = business.members.filter(
     (member) => Boolean(member.medicalLicenseNo || member.diplomaNo || member.kktcIdentityNo)
@@ -180,21 +180,21 @@ export async function GET(
   const credentials = [
     {
       id: 'operations',
-      title: 'Randevu ve operasyon sureci',
+      title: 'Randevu ve operasyon süreci',
       issuer: 'Asistan Platform',
-      status: business.autoConfirmClientAppointments ? 'Otomasyon aktif' : 'Manuel onay sureci',
+      status: business.autoConfirmClientAppointments ? 'Otomasyon aktif' : 'Manuel onay süreci',
     },
     {
       id: 'coverage',
       title: `${business.services.length} aktif hizmet kalemi`,
       issuer: business.name,
-      status: business.services.length > 0 ? 'Yayinda' : 'Guncelleniyor',
+      status: business.services.length > 0 ? 'Yayında' : 'Güncelleniyor',
     },
     {
       id: 'team',
-      title: `${business.members.length} aktif hekim · ${verifiedDoctorCount} kimlik kayitli`,
-      issuer: 'Asistan dogrulama',
-      status: verifiedDoctorCount > 0 ? 'Kismi/Dogrulanmis' : 'Beklemede',
+      title: `${business.members.length} aktif hekim · ${verifiedDoctorCount} kimlik kayıtlı`,
+      issuer: 'Asistan doğrulama',
+      status: verifiedDoctorCount > 0 ? 'Kısmi/Doğrulanmış' : 'Beklemede',
     },
   ]
 
@@ -225,9 +225,9 @@ export async function GET(
         activeSinceYear: business.createdAt.getFullYear(),
       },
       qualityHighlights: [
-        'Randevu planlama ve takipte sureklilik',
+        'Randevu planlama ve takipte süreklilik',
         'Klinik genelinde hizmet standardizasyonu',
-        'Hasta memnuniyeti odakli geri bildirim dongusu',
+        'Hasta memnuniyeti odaklı geri bildirim döngüsü',
       ],
       patientVoice: recentReviews.map((review) => ({
         id: review.id,

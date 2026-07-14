@@ -12,6 +12,28 @@ import {
 import type { NotificationListItem } from '@/lib/notifications/types'
 import { deriveStatus } from '@/lib/notifications/types'
 import { can, type SessionContext } from '@/lib/rbac'
+import {
+  parseAnalyticsMonthRange,
+  type AnalyticsMonthRange,
+} from '@/lib/analytics-range'
+
+export type { AnalyticsMonthRange }
+export { parseAnalyticsMonthRange }
+
+export type AnalyticsMonthPoint = {
+  month: string
+  revenue: number
+  total: number
+  completed: number
+  cancelled: number
+}
+
+export type AnalyticsBreakdownRow = {
+  id: string
+  name: string
+  count: number
+  revenue: number
+}
 
 function applyAppointmentViewScope(where: Prisma.AppointmentWhereInput, viewer: SessionContext) {
   if (can(viewer, 'appointment.view') || can(viewer, 'appointment.manage')) return
@@ -361,17 +383,24 @@ export async function getUnreadNotificationCount(businessId: string, userId: str
   })
 }
 
-export async function getAnalyticsSnapshot(businessId: string) {
+export async function getAnalyticsSnapshot(
+  businessId: string,
+  months: AnalyticsMonthRange = 6
+): Promise<AnalyticsMonthPoint[]> {
   const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
   const grouped = await prisma.appointment.groupBy({
     by: ['date', 'status'],
-    where: { businessId, date: { gte: start } },
+    where: {
+      businessId,
+      deletedAt: null,
+      date: { gte: start },
+    },
     _count: { _all: true },
     _sum: { price: true },
   })
   const buckets = new Map<string, { revenue: number; total: number; completed: number; cancelled: number }>()
-  for (let i = 5; i >= 0; i--) {
+  for (let i = months - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     buckets.set(key, { revenue: 0, total: 0, completed: 0, cancelled: 0 })
@@ -391,6 +420,237 @@ export async function getAnalyticsSnapshot(businessId: string) {
     }
   }
   return Array.from(buckets.entries()).map(([month, stats]) => ({ month, ...stats }))
+}
+
+export async function getAnalyticsBreakdowns(
+  businessId: string,
+  months: AnalyticsMonthRange = 6
+): Promise<{ byStaff: AnalyticsBreakdownRow[]; byService: AnalyticsBreakdownRow[] }> {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
+  const where = {
+    businessId,
+    deletedAt: null,
+    date: { gte: start },
+    status: 'COMPLETED' as const,
+  }
+
+  const [byStaffRaw, byServiceRaw] = await Promise.all([
+    prisma.appointment.groupBy({
+      by: ['staffId'],
+      where,
+      _count: { _all: true },
+      _sum: { price: true },
+    }),
+    prisma.appointment.groupBy({
+      by: ['serviceId'],
+      where,
+      _count: { _all: true },
+      _sum: { price: true },
+    }),
+  ])
+
+  const staffSorted = [...byStaffRaw].sort((a, b) => b._count._all - a._count._all).slice(0, 8)
+  const serviceSorted = [...byServiceRaw].sort((a, b) => b._count._all - a._count._all).slice(0, 8)
+
+  const staffIds = staffSorted.map((r) => r.staffId).filter((id): id is string => Boolean(id))
+  const serviceIds = serviceSorted.map((r) => r.serviceId)
+
+  const [staffRows, serviceRows] = await Promise.all([
+    staffIds.length
+      ? prisma.teamMember.findMany({
+          where: { businessId, id: { in: staffIds } },
+          select: { id: true, fullName: true },
+        })
+      : Promise.resolve([]),
+    serviceIds.length
+      ? prisma.service.findMany({
+          where: { businessId, id: { in: serviceIds } },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
+  ])
+
+  const staffName = new Map(staffRows.map((s) => [s.id, s.fullName]))
+  const serviceName = new Map(serviceRows.map((s) => [s.id, s.name]))
+
+  const byStaff: AnalyticsBreakdownRow[] = staffSorted.map((r) => ({
+    id: r.staffId ?? 'unassigned',
+    name: r.staffId ? staffName.get(r.staffId) ?? 'Bilinmeyen personel' : 'Atanmamış',
+    count: r._count._all,
+    revenue: r._sum.price ? Number(r._sum.price) : 0,
+  }))
+
+  const byService: AnalyticsBreakdownRow[] = serviceSorted.map((r) => ({
+    id: r.serviceId,
+    name: serviceName.get(r.serviceId) ?? 'Bilinmeyen hizmet',
+    count: r._count._all,
+    revenue: r._sum.price ? Number(r._sum.price) : 0,
+  }))
+
+  return { byStaff, byService }
+}
+
+export type AppointmentFunnel = {
+  scheduled: number
+  confirmed: number
+  completed: number
+  cancelled: number
+  noShow: number
+  /** completed / (completed + cancelled + noShow) when denominator > 0 */
+  completionRate: number
+  noShowRate: number
+}
+
+export type StaffUtilizationRow = {
+  id: string
+  name: string
+  completed: number
+  noShow: number
+  cancelled: number
+  totalBooked: number
+  /** completed / totalBooked */
+  utilization: number
+}
+
+export async function getAppointmentFunnel(
+  businessId: string,
+  months: AnalyticsMonthRange = 6,
+): Promise<AppointmentFunnel> {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
+  const grouped = await prisma.appointment.groupBy({
+    by: ['status'],
+    where: { businessId, deletedAt: null, date: { gte: start } },
+    _count: { _all: true },
+  })
+  const counts = {
+    scheduled: 0,
+    confirmed: 0,
+    completed: 0,
+    cancelled: 0,
+    noShow: 0,
+  }
+  for (const row of grouped) {
+    const n = row._count._all
+    if (row.status === 'SCHEDULED') counts.scheduled = n
+    else if (row.status === 'CONFIRMED') counts.confirmed = n
+    else if (row.status === 'COMPLETED') counts.completed = n
+    else if (row.status === 'CANCELLED') counts.cancelled = n
+    else if (row.status === 'NO_SHOW') counts.noShow = n
+  }
+  const settled = counts.completed + counts.cancelled + counts.noShow
+  return {
+    ...counts,
+    completionRate: settled > 0 ? counts.completed / settled : 0,
+    noShowRate: settled > 0 ? counts.noShow / settled : 0,
+  }
+}
+
+export async function getStaffUtilization(
+  businessId: string,
+  months: AnalyticsMonthRange = 6,
+): Promise<StaffUtilizationRow[]> {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
+  const grouped = await prisma.appointment.groupBy({
+    by: ['staffId', 'status'],
+    where: {
+      businessId,
+      deletedAt: null,
+      date: { gte: start },
+      staffId: { not: null },
+      status: { in: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'CONFIRMED', 'SCHEDULED'] },
+    },
+    _count: { _all: true },
+  })
+
+  const byStaff = new Map<
+    string,
+    { completed: number; noShow: number; cancelled: number; totalBooked: number }
+  >()
+  for (const row of grouped) {
+    if (!row.staffId) continue
+    const bucket = byStaff.get(row.staffId) ?? {
+      completed: 0,
+      noShow: 0,
+      cancelled: 0,
+      totalBooked: 0,
+    }
+    const n = row._count._all
+    bucket.totalBooked += n
+    if (row.status === 'COMPLETED') bucket.completed += n
+    if (row.status === 'NO_SHOW') bucket.noShow += n
+    if (row.status === 'CANCELLED') bucket.cancelled += n
+    byStaff.set(row.staffId, bucket)
+  }
+
+  const ids = [...byStaff.keys()]
+  const staffRows = ids.length
+    ? await prisma.teamMember.findMany({
+        where: { businessId, id: { in: ids } },
+        select: { id: true, fullName: true },
+      })
+    : []
+  const names = new Map(staffRows.map((s) => [s.id, s.fullName]))
+
+  return [...byStaff.entries()]
+    .map(([id, stats]) => ({
+      id,
+      name: names.get(id) ?? 'Personel',
+      ...stats,
+      utilization: stats.totalBooked > 0 ? stats.completed / stats.totalBooked : 0,
+    }))
+    .sort((a, b) => b.totalBooked - a.totalBooked)
+    .slice(0, 10)
+}
+
+export type FinanceLedgerRow = {
+  date: string
+  startTime: string
+  patientName: string
+  serviceName: string
+  staffName: string | null
+  status: string
+  price: number
+}
+
+/** Completed appointments for finance CSV/PDF export. */
+export async function getFinanceLedgerForExport(
+  businessId: string,
+  months: AnalyticsMonthRange = 6,
+): Promise<FinanceLedgerRow[]> {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
+  const rows = await prisma.appointment.findMany({
+    where: {
+      businessId,
+      deletedAt: null,
+      date: { gte: start },
+      status: 'COMPLETED',
+    },
+    orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+    take: 2000,
+    select: {
+      date: true,
+      startTime: true,
+      price: true,
+      status: true,
+      patient: { select: { fullName: true } },
+      service: { select: { name: true } },
+      staff: { select: { fullName: true } },
+    },
+  })
+
+  return rows.map((r) => ({
+    date: r.date.toISOString().slice(0, 10),
+    startTime: r.startTime,
+    patientName: r.patient.fullName,
+    serviceName: r.service.name,
+    staffName: r.staff?.fullName ?? null,
+    status: r.status,
+    price: r.price ? Number(r.price) : 0,
+  }))
 }
 
 // ── Messaging ──────────────────────────────────────────────────────────────

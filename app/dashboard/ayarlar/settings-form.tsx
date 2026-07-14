@@ -16,6 +16,7 @@ import type { SessionContext } from '@/lib/rbac'
 import { ROLE_LABELS } from '@/lib/rbac'
 import { updateBusinessSettings } from '@/lib/actions/business'
 import { readUiPreference, UI_PREF_KEYS, writeUiPreference } from '@/lib/ui-preferences'
+import { MembershipPanel, type MembershipSnapshot } from '@/components/dashboard/membership-panel'
 
 type BusinessForm = {
   name: string
@@ -31,9 +32,9 @@ type BusinessForm = {
   autoConfirmClientAppointments: boolean
 }
 
-const SETTINGS_TABS = ['hesap', 'isletme', 'randevu', 'marka'] as const
+const SETTINGS_TABS = ['hesap', 'isletme', 'randevu', 'marka', 'abonelik'] as const
 type SettingsTab = (typeof SETTINGS_TABS)[number]
-const OWNER_SETTINGS_TABS: SettingsTab[] = ['isletme', 'randevu', 'marka']
+const OWNER_SETTINGS_TABS: SettingsTab[] = ['isletme', 'randevu', 'marka', 'abonelik']
 
 function isSettingsTab(value: string | null | undefined): value is SettingsTab {
   return Boolean(value && SETTINGS_TABS.includes(value as SettingsTab))
@@ -48,9 +49,11 @@ function resolveSettingsTab(value: string | null | undefined, isOwner: boolean):
 export function SettingsForm({
   session,
   initial,
+  membership,
 }: {
   session: SessionContext
   initial: BusinessForm
+  membership: MembershipSnapshot | null
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -130,6 +133,9 @@ export function SettingsForm({
               </TabsTrigger>
               <TabsTrigger value="marka" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
                 Marka & dil
+              </TabsTrigger>
+              <TabsTrigger value="abonelik" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
+                Abonelik
               </TabsTrigger>
             </>
           )}
@@ -286,6 +292,10 @@ export function SettingsForm({
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="abonelik">
+          <MembershipPanel membership={membership} />
         </TabsContent>
       </Tabs>
     </div>

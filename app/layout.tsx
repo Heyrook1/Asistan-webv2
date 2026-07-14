@@ -4,7 +4,9 @@ import { Toaster } from '@/components/ui/sonner'
 
 import './globals.css'
 
-// Self-hosted fonts (bundled via npm) to avoid build-time network fetches.
+import { SITE_URL } from '@/lib/seo'
+
+// Brand typography = Manrope (docs/typography.md). Self-hosted to avoid build-time network fetches.
 import '@fontsource/manrope/400.css'
 import '@fontsource/manrope/500.css'
 import '@fontsource/manrope/600.css'
@@ -14,7 +16,8 @@ import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://kktc.asistan.online'),
+  metadataBase: new URL(SITE_URL),
+  applicationName: 'Asistan',
   title: {
     default: 'KKTC Randevu Sistemi | Asistan Health',
     template: '%s | Asistan',
@@ -28,22 +31,26 @@ export const metadata: Metadata = {
     'Asistan Health',
     'klinik randevu paneli',
   ],
-  alternates: {
-    canonical: '/',
+  appleWebApp: {
+    capable: true,
+    title: 'Asistan',
+    statusBarStyle: 'default',
+  },
+  formatDetection: {
+    telephone: false,
   },
   openGraph: {
     type: 'website',
     locale: 'tr_CY',
-    url: '/',
     siteName: 'Asistan',
     title: 'KKTC Randevu Sistemi | Asistan Health',
     description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi tek panelde.',
     images: [
       {
-        url: '/images/asistan-full-logo.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Asistan Platform',
+        alt: 'Asistan Health — KKTC klinik randevu ve operasyon paneli',
       },
     ],
   },
@@ -51,11 +58,15 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'KKTC Randevu Sistemi | Asistan Health',
     description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi platformu.',
-    images: ['/images/asistan-full-logo.png'],
+    images: ['/opengraph-image'],
   },
   icons: {
-    icon: [{ url: '/images/asistan-icon.png', type: 'image/png' }],
-    apple: '/images/asistan-icon.png',
+    icon: [
+      { url: '/images/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/images/asistan-icon.png', type: 'image/png' },
+    ],
+    apple: [{ url: '/images/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   other: {
     google: 'notranslate',
@@ -64,8 +75,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F7FAFC' },
-    { media: '(prefers-color-scheme: dark)', color: '#0B1220' },
+    { media: '(prefers-color-scheme: light)', color: '#0071E3' },
+    { media: '(prefers-color-scheme: dark)', color: '#0071E3' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -73,18 +84,23 @@ export const viewport: Viewport = {
 }
 
 import { LanguageProvider } from '@/contexts/LanguageContext'
-import { FloatingCTA } from '@/components/ui/FloatingCTA'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { QueryProvider } from '@/lib/query-provider'
 import { SkipToContent } from '@/components/skip-to-content'
+import { RegisterServiceWorker } from '@/components/pwa/register-sw'
+import { cookies } from 'next/headers'
+import { normalizeAuthLanguage } from '@/lib/auth-routes'
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const cookieStore = await cookies()
+  const lang = normalizeAuthLanguage(cookieStore.get('asistan-lang')?.value)
+
   return (
-    <html lang="tr" translate="no" data-scroll-behavior="smooth" className="bg-background text-foreground">
+    <html lang={lang} translate="no" data-scroll-behavior="smooth" className="bg-background text-foreground">
       <body className="font-sans antialiased">
         <SkipToContent />
         <ErrorBoundary>
@@ -93,10 +109,10 @@ export default function RootLayout({
               <div className="min-h-screen">
                 {children}
               </div>
-              <FloatingCTA />
             </LanguageProvider>
           </QueryProvider>
           <Toaster position="top-right" richColors duration={4000} />
+          <RegisterServiceWorker />
           {/* Vercel Web Analytics: Vercel Dashboard > Analytics > Enable to re-activate */}
         </ErrorBoundary>
       </body>

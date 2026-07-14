@@ -1,5 +1,10 @@
 import { Platform, type ColorSchemeName, type TextStyle, type ViewStyle } from 'react-native'
 
+/**
+ * Canonical Asistan brand palette — aligned with web (`app/globals.css`):
+ * Brand Blue #0071E3 / hover #0063C8 / ink #1D1D1F.
+ * Do not reintroduce teal (#0FAE9F) as primary.
+ */
 export type ThemeColors = {
   bg: string
   primary: string
@@ -28,38 +33,38 @@ export type ThemeColors = {
 }
 
 const lightColors: ThemeColors = {
-  bg: '#F3F7FC',
-  primary: '#0FAE9F',
-  primaryDark: '#0A8C80',
-  secondary: '#1E80FF',
-  accent: '#1E80FF',
+  bg: '#F7F7F5',
+  primary: '#0071E3',
+  primaryDark: '#0063C8',
+  secondary: '#0071E3',
+  accent: '#0071E3',
   success: '#0EA472',
   warning: '#D88A1D',
   danger: '#D62839',
-  info: '#1E80FF',
-  background: '#F3F7FC',
-  backgroundElevated: '#EAF1FB',
+  info: '#0071E3',
+  background: '#F7F7F5',
+  backgroundElevated: '#EEF2F6',
   surface: '#FFFFFF',
   surfaceSoft: '#F8FBFF',
-  text: '#0B1A33',
-  textMuted: '#5A6A85',
+  text: '#1D1D1F',
+  textMuted: '#5D6068',
   textInverse: '#F8FBFF',
   border: '#DCE5F2',
   borderStrong: '#C4D3EA',
-  overlay: 'rgba(8, 17, 36, 0.4)',
+  overlay: 'rgba(29, 29, 31, 0.4)',
   skeleton: '#E2EAF6',
-  heroDark: '#061B3A',
-  heroMid: '#0A2D5F',
-  primarySoft: '#E9F6FF',
-  successSoft: '#E8FCF8',
+  heroDark: '#0B1220',
+  heroMid: '#14355A',
+  primarySoft: '#EEF6FF',
+  successSoft: '#E8F8F1',
 }
 
 const darkColors: ThemeColors = {
   bg: '#06101F',
-  primary: '#22C8B8',
-  primaryDark: '#1BAA9D',
-  secondary: '#5DA8FF',
-  accent: '#5DA8FF',
+  primary: '#5BA3F5',
+  primaryDark: '#0071E3',
+  secondary: '#5BA3F5',
+  accent: '#5BA3F5',
   success: '#4ED9A8',
   warning: '#F4B95A',
   danger: '#FF6E7A',
@@ -77,7 +82,7 @@ const darkColors: ThemeColors = {
   skeleton: '#1D314D',
   heroDark: '#031125',
   heroMid: '#13335F',
-  primarySoft: 'rgba(34, 200, 184, 0.14)',
+  primarySoft: 'rgba(0, 113, 227, 0.18)',
   successSoft: 'rgba(78, 217, 168, 0.14)',
 }
 

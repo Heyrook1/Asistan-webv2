@@ -209,13 +209,13 @@ export function MobileShell({
                 href={item.href}
                 className={cn(
                   'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-                  active ? 'text-brand-teal' : 'text-muted-foreground',
+                  active ? 'text-brand-blue' : 'text-muted-foreground',
                 )}
                 aria-current={active ? 'page' : undefined}
               >
                 <span className="relative">
                   <item.icon className="h-[22px] w-[22px]" />
-                  {active && <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-brand-teal" />}
+                  {active && <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-brand-blue" />}
                   {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
                     <span className="absolute -right-2.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold leading-none text-amber-950 ring-2 ring-white">
                       {pendingAppointments > 9 ? '9+' : pendingAppointments}
@@ -231,7 +231,7 @@ export function MobileShell({
             onClick={() => setMenuOpen(true)}
             className={cn(
               'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
-              menuOpen || isSecondaryActive ? 'text-brand-teal' : 'text-muted-foreground',
+              menuOpen || isSecondaryActive ? 'text-brand-blue' : 'text-muted-foreground',
             )}
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
@@ -239,7 +239,7 @@ export function MobileShell({
             <span className="relative">
               <Menu className="h-[22px] w-[22px]" />
               {menuBadgeCount > 0 && !isSecondaryActive && (
-                <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-teal px-1 text-[9px] font-bold leading-none text-brand-navy ring-2 ring-white">
+                <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-blue px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
                   {menuBadgeCount > 9 ? '9+' : menuBadgeCount}
                 </span>
               )}
@@ -253,7 +253,7 @@ export function MobileShell({
         type="button"
         onClick={() => setFabOpen(true)}
         aria-label="Hızlı işlemler"
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-teal text-white shadow-xl shadow-teal-500/40 transition-transform active:scale-95 lg:hidden"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-blue text-white shadow-xl shadow-blue-500/40 transition-transform active:scale-95 lg:hidden"
         style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
       >
         <Plus className="h-7 w-7" />
@@ -352,7 +352,7 @@ export function MobileShell({
                         onClick={() => selectPatientForAction(patient.id)}
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-slate-50 active:bg-slate-100"
                       >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-teal/10 text-xs font-bold text-brand-teal">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-blue/10 text-xs font-bold text-brand-blue">
                           {patient.fullName
                             .split(' ')
                             .filter(Boolean)
@@ -409,18 +409,18 @@ export function MobileShell({
                         onClick={() => setMenuOpen(false)}
                         className={cn(
                           'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
-                          active ? 'bg-brand-teal/15 text-white' : 'text-white/70 hover:bg-white/5',
+                          active ? 'bg-brand-blue/15 text-white' : 'text-white/70 hover:bg-white/5',
                         )}
                       >
-                        <item.icon className={cn('h-5 w-5 shrink-0', active ? 'text-brand-teal' : 'text-white/55')} />
+                        <item.icon className={cn('h-5 w-5 shrink-0', active ? 'text-brand-blue' : 'text-white/55')} />
                         <span className="flex-1">{item.name}</span>
                         {item.badge === 'notifications' && unreadCount > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
                         {item.badge === 'messages' && unreadMessages > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
                             {unreadMessages > 9 ? '9+' : unreadMessages}
                           </span>
                         )}
@@ -440,7 +440,7 @@ export function MobileShell({
               <ul className="space-y-1">
                 <li>
                   <Link
-                    href="/contact"
+                    href="/dashboard/yardim"
                     onClick={() => setMenuOpen(false)}
                     className="tap-target flex w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-white/70 hover:bg-white/5"
                   >

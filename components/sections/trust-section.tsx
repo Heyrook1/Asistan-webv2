@@ -36,7 +36,7 @@ const COPY = {
     controls: [
       {
         icon: ShieldCheck,
-        title: 'KVKK + tenant ayrımı',
+        title: 'KVKK + işletme ayrımı',
         detail: 'Klinik verisi işletme bazında izole edilir; rol bazlı izinler erişimi sınırlar.',
       },
       {
@@ -76,7 +76,7 @@ const COPY = {
     controls: [
       {
         icon: ShieldCheck,
-        title: 'KVKK + tenant isolation',
+        title: 'KVKK + business isolation',
         detail: 'Clinic data is isolated per business with role-based access limits.',
       },
       {

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { SiteFooter } from '@/components/sections/site-footer'
 import { SiteHeader } from '@/components/sections/site-header'
 import { SmoothScroll } from '@/components/marketing/motion-wrappers'
+import { FloatingCTA } from '@/components/ui/FloatingCTA'
 import { cn } from '@/lib/utils'
 
 export function MarketingPageShell({
@@ -24,6 +25,7 @@ export function MarketingPageShell({
         <SiteHeader variant="site" />
         <main id="main-content" tabIndex={-1} className="marketing-page-enter">{children}</main>
         <SiteFooter />
+        <FloatingCTA />
       </div>
     </SmoothScroll>
   )

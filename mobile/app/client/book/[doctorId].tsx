@@ -13,6 +13,7 @@ import {
 import { AppButton, AppCard, AppInput, AppText, Badge, Chip, EmptyState, SectionHeader, Skeleton } from '@/components/ui'
 import { apiGet, apiPost } from '@/lib/api'
 import { useAppTheme } from '@/lib/use-app-theme'
+import { palette } from '@/lib/theme'
 import type { AvailabilitySlot } from '@/lib/types'
 
 type DoctorDetailResponse = {
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
   progressValue: {
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#22C8B8',
+    backgroundColor: palette.primary,
   },
   progressMeta: {
     marginTop: 4,

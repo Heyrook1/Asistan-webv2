@@ -1,15 +1,88 @@
-// Asistan Health web push service worker.
+// Asistan Health service worker — push notifications + light offline shell.
 //
-// Delivery is handled by the server-side notification pipeline when VAPID
-// environment variables are configured. This worker renders incoming payloads
-// and deep-links users back into the dashboard.
+// Push delivery is handled server-side when VAPID keys are configured.
+// Offline: precache shell assets only. No aggressive caching of /api or
+// /dashboard HTML (auth safety).
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
+const CACHE_VERSION = 'asistan-shell-v1'
+const PRECACHE = ['/offline.html', '/images/icon-192.png', '/images/icon-512.png']
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_VERSION)
+      .then((cache) => cache.addAll(PRECACHE))
+      .then(() => self.skipWaiting()),
+  )
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))),
+      )
+      .then(() => self.clients.claim()),
+  )
+})
+
+function isExcludedPath(pathname) {
+  return (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/tr/') ||
+    pathname.startsWith('/en/') ||
+    pathname.startsWith('/auth')
+  )
+}
+
+function isStaticAsset(pathname) {
+  return (
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/_next/static/') ||
+    pathname === '/offline.html' ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.webp') ||
+    pathname.endsWith('.woff2')
+  )
+}
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request
+  if (request.method !== 'GET') return
+
+  const url = new URL(request.url)
+  if (url.origin !== self.location.origin) return
+  if (isExcludedPath(url.pathname)) return
+
+  // Navigations: network-first, offline fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cached = await caches.match('/offline.html')
+        return cached || Response.error()
+      }),
+    )
+    return
+  }
+
+  // Same-origin static assets: cache-first
+  if (isStaticAsset(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached
+        return fetch(request).then((response) => {
+          if (!response || response.status !== 200 || response.type !== 'basic') return response
+          const clone = response.clone()
+          caches.open(CACHE_VERSION).then((cache) => cache.put(request, clone))
+          return response
+        })
+      }),
+    )
+  }
 })
 
 self.addEventListener('push', (event) => {
@@ -23,8 +96,8 @@ self.addEventListener('push', (event) => {
   }
   const options = {
     body: data.body,
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/images/icon-192.png',
+    badge: '/images/icon-192.png',
     tag: data.tag || 'asistan-notification',
     data: { url: data.url },
   }
@@ -35,13 +108,11 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = (event.notification.data && event.notification.data.url) || '/dashboard/bildirimler'
   event.waitUntil(
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clients) => {
-        for (const client of clients) {
-          if ('focus' in client && client.url.includes(url)) return client.focus()
-        }
-        if (self.clients.openWindow) return self.clients.openWindow(url)
-      })
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client && client.url.includes(url)) return client.focus()
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url)
+    }),
   )
 })

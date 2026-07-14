@@ -1,4 +1,5 @@
-// contexts/LanguageContext.tsx
+// Client-side locale (TR-first). No route-based next-intl by design:
+// marketing/auth/client use LanguageProvider; clinic dashboard stays TR-only.
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
@@ -42,14 +43,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // 1. Check Cookie first
+    // Explicit preference only — KKTC product is TR-first; do not flip UI to EN from browser locale.
     const cookieLang = getCookie(COOKIE_NAME)
     if (cookieLang === 'tr' || cookieLang === 'en') {
       setLanguageState(cookieLang)
       return
     }
 
-    // 2. Check localStorage
     const localLang = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (localLang === 'tr' || localLang === 'en') {
       setLanguageState(localLang)
@@ -57,15 +57,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // 3. Check browser language
-    if (typeof window !== 'undefined') {
-      const browserLang = window.navigator.language.split('-')[0]
-      const defaultLang: Language = browserLang === 'tr' ? 'tr' : 'en'
-      setLanguageState(defaultLang)
-      localStorage.setItem(LOCAL_STORAGE_KEY, defaultLang)
-      setCookie(COOKIE_NAME, defaultLang)
-    }
+    setLanguageState('tr')
+    localStorage.setItem(LOCAL_STORAGE_KEY, 'tr')
+    setCookie(COOKIE_NAME, 'tr')
   }, [])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.documentElement.lang = language
+  }, [language])
 
   const setLanguage = (newLang: Language) => {
     setLanguageState(newLang)

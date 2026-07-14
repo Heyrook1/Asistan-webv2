@@ -246,7 +246,7 @@ export function CalendarBoard({
             <AjandaModeSwitch mode="takvim" />
           </div>
         </div>
-        <div className="hidden flex-wrap items-center gap-2 md:flex">
+        <div className="hidden flex-wrap items-center gap-2 lg:flex">
           <div className="flex rounded-xl border bg-white p-1">
             {(['day', 'week', 'month'] as View[]).map((v) => (
               <button
@@ -281,17 +281,19 @@ export function CalendarBoard({
         </div>
       </div>
 
-      {/* Mobile-only agenda view */}
+      {/* Phone + tablet: day agenda (avoids cramped 7×160px week grid) */}
       <MobileAgenda
         cursor={cursor}
         setCursor={setCursor}
+        weekDays={view === 'week' ? days : undefined}
+        eventsByDate={eventsByDate}
         events={eventsByDate.get(toISODate(cursor)) ?? []}
         canCreate={canCreate}
         onCreate={(date, startTime) => setCreate({ open: true, date, startTime })}
       />
 
-      {/* Tablet+/desktop view */}
-      <Card className="hidden md:block">
+      {/* Desktop calendar grid */}
+      <Card className="hidden lg:block">
         <CardContent className="p-3 grid gap-2 md:grid-cols-3">
           <div>
             <label htmlFor="calendar-staff-filter" className="sr-only">Personel filtrele</label>
@@ -331,7 +333,7 @@ export function CalendarBoard({
         </CardContent>
       </Card>
 
-      <Card className="hidden md:block">
+      <Card className="hidden lg:block">
         <CardContent className="p-0">
           {view === 'month' ? (
             <MonthGrid
@@ -395,12 +397,16 @@ export function CalendarBoard({
 function MobileAgenda({
   cursor,
   setCursor,
+  weekDays,
+  eventsByDate,
   events,
   canCreate,
   onCreate,
 }: {
   cursor: Date
   setCursor: (date: Date) => void
+  weekDays?: Date[]
+  eventsByDate?: Map<string, Event[]>
   events: Event[]
   canCreate: boolean
   onCreate: (date: string, startTime?: string) => void
@@ -411,6 +417,7 @@ function MobileAgenda({
   const cursorIso = toISODate(cursor)
   const isToday = cursorIso === todayIso
   const weekdayIndex = (cursor.getDay() + 6) % 7
+  const stripDays = weekDays ?? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))
 
   function handleTouchStart(e: React.TouchEvent) {
     const t = e.touches[0]
@@ -454,7 +461,7 @@ function MobileAgenda({
   const hourSlots = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
 
   return (
-    <div className="md:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className="lg:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="sticky top-14 z-20 -mx-4 flex items-center justify-between gap-2 border-b border-border/40 bg-dashboard-bg/95 px-4 py-2 backdrop-blur">
         <button
           type="button"
@@ -506,6 +513,56 @@ function MobileAgenda({
             aria-hidden="true"
           />
         </div>
+      </div>
+
+      {/* Compact week strip — replaces cramped 7-column grid on small screens */}
+      <div
+        className="mt-3 grid grid-cols-7 gap-1 rounded-2xl border bg-white p-1.5"
+        role="tablist"
+        aria-label="Haftanın günleri"
+      >
+        {stripDays.map((day) => {
+          const iso = toISODate(day)
+          const selected = iso === cursorIso
+          const count = eventsByDate?.get(iso)?.length ?? 0
+          return (
+            <button
+              key={iso}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setCursor(day)}
+              className={cn(
+                'flex min-h-14 flex-col items-center justify-center rounded-xl px-0.5 py-1.5 text-center transition-colors',
+                selected
+                  ? 'bg-brand-teal text-white shadow-sm'
+                  : 'text-brand-ink hover:bg-slate-50 active:bg-slate-100',
+                iso === todayIso && !selected && 'ring-1 ring-brand-teal/40',
+              )}
+            >
+              <span
+                className={cn(
+                  'text-[10px] font-semibold uppercase',
+                  selected ? 'text-white/85' : 'text-muted-foreground',
+                )}
+              >
+                {WEEK_DAY_LABELS[(day.getDay() + 6) % 7]}
+              </span>
+              <span className="text-sm font-bold leading-none">{day.getDate()}</span>
+              {count > 0 ? (
+                <span
+                  className={cn(
+                    'mt-1 h-1 w-1 rounded-full',
+                    selected ? 'bg-white' : 'bg-brand-teal',
+                  )}
+                  aria-hidden
+                />
+              ) : (
+                <span className="mt-1 h-1 w-1" aria-hidden />
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {!isToday && (
@@ -677,10 +734,16 @@ function DayWeekGrid({
   onSlotClick: (date: string, time: string) => void
 }) {
   const today = toISODate(new Date())
+  const isSingleDay = days.length === 1
+  // Day view fills width; week keeps readable columns with horizontal scroll instead of squeezing.
+  const gridTemplateColumns = isSingleDay
+    ? '56px minmax(0, 1fr)'
+    : `56px repeat(${days.length}, minmax(148px, 1fr))`
+
   return (
-    <div className="overflow-x-auto">
-      <div className="grid" style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(160px, 1fr))` }}>
-        <div className="bg-dashboard-surface border-b border-r" />
+    <div className="overflow-x-auto overscroll-x-contain">
+      <div className="grid min-w-0" style={{ gridTemplateColumns }}>
+        <div className="sticky left-0 z-10 bg-dashboard-surface border-b border-r" />
         {days.map((d) => {
           const iso = toISODate(d)
           return (
@@ -698,7 +761,10 @@ function DayWeekGrid({
 
         {Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i).map((hour) => (
           <Fragment key={hour}>
-            <div key={`h${hour}`} className="text-[10px] text-muted-foreground border-b border-r px-2 py-3 text-right">
+            <div
+              key={`h${hour}`}
+              className="sticky left-0 z-10 bg-white text-[10px] text-muted-foreground border-b border-r px-2 py-3 text-right"
+            >
               {String(hour).padStart(2, '0')}:00
             </div>
             {days.map((d) => {

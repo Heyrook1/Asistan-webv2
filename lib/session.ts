@@ -1,11 +1,15 @@
 import 'server-only'
 
 import { cache } from 'react'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Prisma, TeamRole } from '@prisma/client'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { addDays, DEMO_PLAN_CODE, DEMO_TRIAL_DAYS } from '@/lib/vendor-membership'
+import { isFeatureEnabled } from '@/lib/feature-flags'
+import { SUPPORT_BUSINESS_COOKIE, isSupportModeCookie } from '@/lib/support-mode'
+import { parseSystemAdminEmails } from '@/lib/system-admin-emails'
 import {
   PERMISSIONS,
   ROLE_DEFAULT_PERMISSIONS,
@@ -15,7 +19,7 @@ import {
   can,
 } from '@/lib/rbac'
 
-export { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS, can }
+export { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS, can, parseSystemAdminEmails }
 export type { Permission, SessionContext }
 
 type SessionBlockReason = 'package_expired' | null
@@ -298,18 +302,40 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
     })
   }
 
-  const role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
+  let role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
+  let resolvedBusiness = business
+  let resolvedIsOwner = isOwner
+  let supportMode: SessionContext['supportMode'] = null
 
-  const blockedReason = await ensureVendorAccessState({
-    businessId: business.id,
-    businessIsActive: business.isActive,
-    role,
-  })
+  if (role === TeamRole.SUPER_ADMIN && isFeatureEnabled('supportMode')) {
+    try {
+      const jar = await cookies()
+      const supportId = jar.get(SUPPORT_BUSINESS_COOKIE)?.value
+      if (isSupportModeCookie(supportId)) {
+        const target = await prisma.business.findUnique({ where: { id: supportId! } })
+        if (target) {
+          resolvedBusiness = target
+          resolvedIsOwner = false
+          supportMode = { businessId: target.id, businessName: target.name }
+        }
+      }
+    } catch {
+      // cookies() unavailable in some contexts — ignore support override
+    }
+  }
+
+  const blockedReason = supportMode
+    ? null
+    : await ensureVendorAccessState({
+        businessId: resolvedBusiness.id,
+        businessIsActive: resolvedBusiness.isActive,
+        role,
+      })
   if (blockedReason) return { session: null, blockedReason }
 
   const explicit = (currentMembership?.permissions ?? []) as Permission[]
   const permissions =
-    isOwner || role === TeamRole.SUPER_ADMIN
+    resolvedIsOwner || role === TeamRole.SUPER_ADMIN
       ? [...PERMISSIONS]
       : explicit.length > 0
         ? explicit
@@ -321,12 +347,13 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
       userId: user.id,
       email: user.email,
       fullName: user.fullName,
-      businessId: business.id,
-      businessName: business.name,
+      businessId: resolvedBusiness.id,
+      businessName: resolvedBusiness.name,
       role,
       permissions,
-      isOwner,
+      isOwner: resolvedIsOwner,
       staffMemberId: currentMembership?.id ?? null,
+      supportMode,
     },
   }
 })
@@ -382,13 +409,7 @@ export async function requirePageAnyPermission(
 }
 
 function getSystemAdminEmails() {
-  const raw = process.env.SYSTEM_ADMIN_EMAILS ?? ''
-  return new Set(
-    raw
-      .split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean)
-  )
+  return parseSystemAdminEmails(process.env.SYSTEM_ADMIN_EMAILS)
 }
 
 export function isSystemAdmin(session: SessionContext | null) {

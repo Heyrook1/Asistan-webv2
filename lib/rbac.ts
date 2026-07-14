@@ -88,6 +88,8 @@ export type SessionContext = {
   permissions: Permission[]
   isOwner: boolean
   staffMemberId: string | null
+  /** Super-admin viewing another clinic's dashboard. */
+  supportMode?: { businessId: string; businessName: string } | null
 }
 
 export function can(session: SessionContext | null, permission: Permission) {

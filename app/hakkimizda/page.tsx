@@ -1,221 +1,330 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Building2, HeartHandshake, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import {
+  ArrowRight,
+  CalendarDays,
+  Compass,
+  MapPin,
+  ShieldCheck,
+  Target,
+} from 'lucide-react'
 
 import { MarketingPageShell } from '@/components/marketing/page-shell'
 import { FadeLeft, FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
+import { withCanonical } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Hakkimizda',
-  description: "Asistan, KKTC'deki klinikler ve hizmet isletmeleri icin gelistirilen randevu ve is yonetim platformudur.",
-}
+export const metadata: Metadata = withCanonical('/hakkimizda', {
+  title: 'Hakkımızda | Asistan Health',
+  description:
+    'Asistan Health: KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi. Neden var olduğumuzu, misyonumuzu ve vizyonumuzu okuyun.',
+})
 
-const principles = [
+const storyChapters = [
   {
-    icon: MapPin,
-    title: 'Yerel ihtiyac',
-    description: "Urun kararlarini KKTC'deki isletmelerin gercek operasyon sorunlarina gore sekillendiriyoruz.",
+    step: '01',
+    title: 'Dağınık bilgi, gizli maliyet',
+    body: 'Birçok klinikte randevu hâlâ Excel, defter ve WhatsApp arasında geziyor. Hasta aradığında ekip farklı cevaplar veriyor; iptal unutuluyor, no-show istatistiği tutulmuyor. Sorun “yazılım yokluğu” değil; bilginin tek sahibi olmaması.',
   },
   {
-    icon: HeartHandshake,
-    title: 'Sade kullanim',
-    description: 'Teknik bilgi gerektirmeyen, sekreter ve yonetici ekiplerinin hizli kavrayacagi akislar tasarliyoruz.',
+    step: '02',
+    title: 'Küçük kliniklere büyük SaaS dayatması',
+    body: 'Küresel klinik yazılımları özellik listesiyle gelir; KKTC ölçeğinde kurulum, dil, fiyat ve destek gerçekçi olmayabilir. Biz tersini tercih ettik: önce günlük operasyon (ajanda, hasta kartı, yetki), sonra genişleme.',
+  },
+  {
+    step: '03',
+    title: 'Şimdi ne yapıyoruz?',
+    body: 'Asistan erken erişimde. Sağlık dikeyinde randevu, hasta kaydı, ekip rolleri, hatırlatma ve abonelik görünürlüğünü sağlam tutuyoruz. “Her şey hazır” demiyoruz; hazır olanı güvenilir şekilde teslim ediyoruz.',
+  },
+]
+
+const commitments = [
+  {
+    icon: MapPin,
+    title: 'KKTC önce',
+    body: 'Ürün kararlarını yerel klinik akışına göre veririz. Genel “dünya pazarı” vaadi yerine burada işe yarayan paneli önceleriz.',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Operasyon netliği',
+    body: 'Sekreter ve hekim aynı ajandayı görsün; durumlar (onaylı, iptal, gelinmedi) kayıt altında kalsın. Gösterişli ama kullanılmayan ekran üretmeyiz.',
   },
   {
     icon: ShieldCheck,
-    title: 'Guvenli ve uyumlu',
-    description: 'Hasta ve musteri bilgisinin hassasiyetini urun deneyiminin merkezinde tutuyoruz.',
+    title: 'Güven ve dürüstlük',
+    body: 'Hasta verisi hassastır. Rol bazlı erişim, denetim izi ve açık gizlilik metni zorunluluktur. Kanıtı olmayan AI veya sertifika iddiası kullanmayız.',
   },
-  {
-    icon: Building2,
-    title: 'Sektorel odak',
-    description: 'Once saglik, ardindan guzellik, hukuk ve emlak gibi dikeylerde net cozumler gelistiriyoruz.',
-  },
-]
-
-const missionVision = [
-  {
-    title: 'Misyon',
-    description:
-      'Randevu yonetimini daha kolay, daha guvenli ve daha duzenli hale getirerek saglik ekiplerinin idari yukunu azaltmak.',
-  },
-  {
-    title: 'Vizyon',
-    description:
-      "KKTC odakli randevu ve hizmet altyapisini sagliktan baslayip diger profesyonel dikeylere genisleten guvenilir bir SaaS standardi olmak.",
-  },
-]
-
-const team = [
-  { name: 'Dr. Can Aygen', role: 'Kurucu & CEO' },
-  { name: 'Selin Karagolu', role: 'Urun Direktoru' },
-  { name: 'Mehmet Dervis', role: 'CTO' },
-  { name: 'Ece Yilmaz', role: 'Musteri Basarisi' },
-]
-
-const contactItems = [
-  { label: 'Adres', value: 'Lefkosa, KKTC' },
-  { label: 'Telefon', value: '+90 392 000 00 00' },
-  { label: 'E-posta', value: 'merhaba@asistan.online' },
-  { label: 'Calisma', value: 'Pzt-Cum 09:00 - 18:00' },
 ]
 
 export default function AboutPage() {
   return (
     <MarketingPageShell>
-      <section className="relative overflow-hidden bg-brand-light pb-20 pt-28">
-        <div className="absolute inset-0 z-0 mesh-hero soft-grid opacity-70" />
-        <div className="pointer-events-none absolute -left-20 top-20 h-64 w-64 rounded-full bg-brand-cyan/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-12 top-24 h-64 w-64 rounded-full bg-brand-blue/20 blur-3xl" />
+      {/* Hero — brand + story promise */}
+      <section className="relative overflow-hidden pb-16 pt-28 md:pb-24 md:pt-32">
+        <div className="marketing-hero-bg absolute inset-0" />
+        <div className="soft-grid absolute inset-0 opacity-50" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[48%] lg:block">
+          <Image
+            src="/images/medical-team.jpg"
+            alt=""
+            fill
+            priority
+            className="object-cover opacity-35"
+            sizes="48vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F6F7F9] via-[#F6F7F9]/75 to-transparent" />
+        </div>
 
-        <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:px-8">
+        <div className="marketing-container relative z-10 max-w-3xl">
           <FadeUp>
-            <Badge className="mb-6 bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/10">Hakkimizda</Badge>
-            <h1 className="font-heading text-4xl font-black leading-tight text-brand-navy sm:text-5xl lg:text-6xl">
-              Daha iyi bir saglik deneyimi icin buradayiz.
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Asistan, kliniklerin tum is akislarini tek platformda toplayan randevu ve is yonetim platformudur.
+            <p className="text-sm font-semibold tracking-[0.14em] text-brand-blue uppercase">
+              Asistan
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">
-                <Link href={getClinicTrialPath('tr')} aria-label={ENTRY_CTA.clinicTrial.tr}>
+            <h1 className="mt-5 font-heading text-4xl font-black leading-[1.1] text-brand-navy sm:text-5xl md:text-[3.25rem]">
+              Klinik gününü sakinleştirmek için kurulduk.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
+              Asistan Health, KKTC’deki sağlık işletmelerinin randevu, hasta ve ekip
+              işlerini tek panelde toplamasına yardım eden erken erişim bir
+              operasyon ürünüdür. Hasta yüzeyi Asistan Rezervasyon’dur. Büyük vaat
+              değil; net iş.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                className="min-h-11 rounded-xl bg-brand-blue px-6 text-white hover:bg-brand-blue/90"
+              >
+                <Link href={getClinicTrialPath('tr')}>
                   {ENTRY_CTA.clinicTrial.tr}
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="min-h-11 rounded-xl border-slate-300 text-brand-navy hover:bg-white">
+              <Button
+                asChild
+                variant="outline"
+                className="min-h-11 rounded-xl border-slate-300 bg-white/80 text-brand-navy hover:bg-white"
+              >
                 <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
               </Button>
             </div>
           </FadeUp>
-
-          <FadeLeft>
-            <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-3 shadow-2xl backdrop-blur">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
-                <Image src="/images/medical-team.jpg" alt="Asistan Health ekip calismasi" fill className="object-cover" priority />
-              </div>
-            </div>
-          </FadeLeft>
         </div>
       </section>
 
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <FadeUp className="mx-auto mb-12 max-w-3xl text-center">
-            <h2 className="font-heading text-3xl font-black text-brand-navy md:text-4xl">Misyonumuz</h2>
-            <p className="mt-4 leading-relaxed text-slate-600">
-              Saglik profesyonellerinin is yukunu azaltan, insan odakli ve olceklenebilir bir deneyim sunmak.
+      {/* Story */}
+      <section className="border-t border-slate-200/80 bg-white py-20 md:py-24">
+        <div className="marketing-container">
+          <FadeUp className="max-w-2xl">
+            <p className="text-xs font-semibold tracking-[0.16em] text-brand-blue uppercase">
+              Hikâyemiz
+            </p>
+            <h2 className="mt-3 font-heading text-3xl font-black text-brand-navy md:text-4xl">
+              Neden bir randevu paneli daha?
+            </h2>
+            <p className="mt-4 text-base leading-8 text-slate-600">
+              Çünkü piyasadaki çoğu araç ya çok ağır ya da yerel ihtiyaca uzak.
+              Biz, Lefkoşa’dan başlayarak “bugün klinik nasıl çalışıyor?”
+              sorusundan hareket ettik.
             </p>
           </FadeUp>
-          <div className="mb-10 grid gap-4 md:grid-cols-2">
-            {missionVision.map((item, index) => (
-              <ScaleIn key={item.title} delay={0.05 * index}>
-                <div className="rounded-2xl border border-brand-blue/15 bg-dashboard-surface p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">{item.title}</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-700">{item.description}</p>
-                </div>
-              </ScaleIn>
-            ))}
-          </div>
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {team.map((member, index) => (
-              <ScaleIn key={member.name} delay={0.06 * index}>
-                <Card className="rounded-2xl border-slate-100 shadow-sm">
-                  <CardContent className="p-5">
-                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-blue/10 text-lg font-bold text-brand-blue">
-                      {member.name
-                        .split(' ')
-                        .slice(0, 2)
-                        .map((part) => part[0])
-                        .join('')}
-                    </div>
-                    <p className="font-semibold text-brand-navy">{member.name}</p>
-                    <p className="mt-1 text-sm text-slate-500">{member.role}</p>
-                  </CardContent>
-                </Card>
-              </ScaleIn>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section className="bg-dashboard-surface py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <FadeUp className="mx-auto mb-12 max-w-3xl text-center">
-            <h2 className="font-heading text-3xl font-black text-brand-navy md:text-4xl">Neden Asistan?</h2>
-          </FadeUp>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {principles.map((principle, index) => (
-              <ScaleIn key={principle.title} delay={0.06 * index}>
-                <Card className="h-full rounded-2xl border-slate-100 bg-white">
-                  <CardContent className="p-6">
-                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cyan/10">
-                      <principle.icon className="h-6 w-6 text-brand-blue" aria-hidden="true" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-brand-navy">{principle.title}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-600">{principle.description}</p>
-                  </CardContent>
-                </Card>
-              </ScaleIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white py-20">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-          <FadeUp>
-            <h2 className="font-heading text-3xl font-black text-brand-navy">Iletisim Bilgilerimiz</h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {contactItems.map((item, index) => (
-                <ScaleIn key={item.label} delay={0.05 * index}>
-                  <div className="rounded-xl border border-slate-200 bg-dashboard-surface p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">{item.label}</p>
-                    <p className="mt-2 text-sm font-medium text-brand-navy">{item.value}</p>
+          <div className="mt-14 space-y-0 border-t border-slate-200">
+            {storyChapters.map((chapter, index) => (
+              <FadeUp key={chapter.step} delay={0.05 * index}>
+                <article className="grid gap-4 border-b border-slate-200 py-10 md:grid-cols-[7rem_1fr] md:gap-10">
+                  <p className="font-heading text-3xl font-black tabular-nums text-brand-blue/35">
+                    {chapter.step}
+                  </p>
+                  <div>
+                    <h3 className="text-xl font-bold text-brand-navy">{chapter.title}</h3>
+                    <p className="mt-3 max-w-2xl text-[15px] leading-8 text-slate-600">
+                      {chapter.body}
+                    </p>
                   </div>
-                </ScaleIn>
+                </article>
+              </FadeUp>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Mission / Vision */}
+      <section className="bg-[#EEF2F6] py-20 md:py-24">
+        <div className="marketing-container">
+          <FadeUp className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-semibold tracking-[0.16em] text-brand-blue uppercase">
+              Yönümüz
+            </p>
+            <h2 className="mt-3 font-heading text-3xl font-black text-brand-navy md:text-4xl">
+              Misyon ve vizyon
+            </h2>
+            <p className="mt-4 text-base leading-8 text-slate-600">
+              Startup dilinde abartı kolaydır. Bizim metnimiz, şu an yaptığımız
+              işle yarın verdiğimiz sözün arasını açık tutmak için yazıldı.
+            </p>
+          </FadeUp>
+
+          <div className="mt-14 grid gap-8 lg:grid-cols-2 lg:gap-12">
+            <ScaleIn>
+              <div className="h-full border-l-2 border-brand-blue pl-6 md:pl-8">
+                <div className="mb-4 flex items-center gap-2 text-brand-blue">
+                  <Target className="h-5 w-5" aria-hidden="true" />
+                  <p className="text-xs font-semibold tracking-[0.14em] uppercase">
+                    Misyon
+                  </p>
+                </div>
+                <h3 className="font-heading text-2xl font-black leading-snug text-brand-navy">
+                  Klinik ekiplerinin idari yükünü azaltmak; randevu ve hasta
+                  bilgisini tek, güvenilir kaynaktan yönetilebilir kılmak.
+                </h3>
+                <p className="mt-5 text-[15px] leading-8 text-slate-600">
+                  Bu; sekreterin çifte giriş yapmaması, hekimin kendi takvimini
+                  görmesi, gelmeyen randevunun kayıt altına alınması demektir.
+                  Tıbbi teşhis veya tedavi kararı sunmayız — o klinik ve hekimin
+                  işidir. Biz operasyonu düzenleriz.
+                </p>
+              </div>
+            </ScaleIn>
+
+            <ScaleIn delay={0.08}>
+              <div className="h-full border-l-2 border-brand-navy/25 pl-6 md:pl-8">
+                <div className="mb-4 flex items-center gap-2 text-brand-navy">
+                  <Compass className="h-5 w-5" aria-hidden="true" />
+                  <p className="text-xs font-semibold tracking-[0.14em] uppercase">
+                    Vizyon
+                  </p>
+                </div>
+                <h3 className="font-heading text-2xl font-black leading-snug text-brand-navy">
+                  Hedefimiz: KKTC kliniklerinin kanıtladıkça tercih ettiği operasyon
+                  altyapısı olmak.
+                </h3>
+                <p className="mt-5 text-[15px] leading-8 text-slate-600">
+                  Bu, bugünkü pazar sıralaması iddiası değildir. Asistan Health erken
+                  erişimde; tercihi sloganla değil tek ajanda, net yetkiler ve ölçülebilir
+                  operasyon sonucuyla kazanmak istiyoruz. Sonra — ve yalnızca sağlıkta
+                  kanıtladıktan sonra — güzellik, hukuk gibi randevu yoğun dikeylere
+                  kontrollü genişlemek. Bölgenin “her sektöre her şey” platformu olmak değil;
+                  önce bir dikeyde güvenilir standart olmak.
+                </p>
+              </div>
+            </ScaleIn>
+          </div>
+        </div>
+      </section>
+
+      {/* How we decide */}
+      <section className="bg-white py-20 md:py-24">
+        <div className="marketing-container">
+          <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <FadeUp>
+              <p className="text-xs font-semibold tracking-[0.16em] text-brand-blue uppercase">
+                Çalışma ilkeleri
+              </p>
+              <h2 className="mt-3 font-heading text-3xl font-black text-brand-navy md:text-4xl">
+                Nasıl karar veriyoruz?
+              </h2>
+              <p className="mt-4 text-base leading-8 text-slate-600">
+                Özellik eklemeden önce soruyoruz: Bu, klinikte her gün kullanılan
+                bir akışı mı güçlendiriyor? Değilse bekler.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-xl border-slate-300 text-brand-navy"
+                >
+                  <Link href="/guven">Güven Merkezi</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-xl border-slate-300 text-brand-navy"
+                >
+                  <Link href="/kaynaklar">Kaynaklar</Link>
+                </Button>
+              </div>
+            </FadeUp>
+
+            <div className="space-y-8">
+              {commitments.map((item, index) => (
+                <FadeLeft key={item.title} delay={0.06 * index}>
+                  <div className="flex gap-4 border-b border-slate-200 pb-8 last:border-0 last:pb-0">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-blue/10 text-brand-blue">
+                      <item.icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-brand-navy">{item.title}</h3>
+                      <p className="mt-2 text-[15px] leading-7 text-slate-600">{item.body}</p>
+                    </div>
+                  </div>
+                </FadeLeft>
               ))}
             </div>
-          </FadeUp>
-
-          <ScaleIn>
-            <Card className="rounded-2xl border-slate-200">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-brand-navy">Bize ulasin / {ENTRY_CTA.demoRequest.tr}</h3>
-                <p className="mt-2 text-sm text-slate-500">Ekibimiz size en kisa surede donus yapacaktir.</p>
-                <form className="mt-6 space-y-3">
-                  <Input id="contact-name" name="name" placeholder="Ad Soyad" autoComplete="name" />
-                  <Input id="contact-email" name="email" type="email" placeholder="E-posta" autoComplete="email" />
-                  <Input id="contact-company" name="company" placeholder="Klinik / Kurum Adi" autoComplete="organization" />
-                  <Textarea id="contact-message" name="message" placeholder="Mesajiniz" rows={4} />
-                  <Button className="w-full rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover">Gonder</Button>
-                </form>
-              </CardContent>
-            </Card>
-          </ScaleIn>
+          </div>
         </div>
       </section>
 
-      <section className="px-4 pb-20 sm:px-6 lg:px-8">
-        <FadeUp className="mx-auto max-w-7xl rounded-3xl bg-brand-navy p-8 text-white md:p-12">
+      {/* Stage honesty */}
+      <section className="border-y border-slate-200 bg-[#F6F7F9] py-16 md:py-20">
+        <div className="marketing-container max-w-3xl">
+          <FadeUp>
+            <p className="text-xs font-semibold tracking-[0.16em] text-brand-blue uppercase">
+              Bugün neredeyiz?
+            </p>
+            <h2 className="mt-3 font-heading text-2xl font-black text-brand-navy md:text-3xl">
+              Erken erişim. Abartısız yol haritası.
+            </h2>
+            <p className="mt-5 text-[15px] leading-8 text-slate-600">
+              Ajanda, hasta kartı, ekip yetkileri, hatırlatmalar ve temel analitik
+              aktif odaktır. Online ödeme, mağaza yayınları ve bazı bildirim
+              kanalları yol haritasında — satış sayfalarında “yakında” geçenler
+              tamamlanmış sayılmaz. Kurulum ve fiyat için doğrudan konuşuruz;
+              sahte metrik veya uydurma ekip öyküsü yayınlamayız.
+            </p>
+            <p className="mt-4 text-[15px] leading-8 text-slate-600">
+              İletişim:{' '}
+              <a
+                href="mailto:merhaba@asistan.online"
+                className="font-semibold text-brand-blue underline-offset-2 hover:underline"
+              >
+                merhaba@asistan.online
+              </a>
+              {' · '}
+              <Link
+                href={DEMO_CONTACT_PATH}
+                className="font-semibold text-brand-blue underline-offset-2 hover:underline"
+              >
+                Demo / satış formu
+              </Link>
+            </p>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* Closing CTA */}
+      <section className="px-4 py-16 sm:px-6 lg:px-8">
+        <FadeUp className="marketing-container rounded-3xl bg-brand-navy px-8 py-10 text-white md:px-12 md:py-14">
           <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <h2 className="font-heading text-3xl font-black">Asistan ile kliniginizi gelecege tasiyin.</h2>
-              <p className="mt-4 max-w-2xl text-white/75">Daha az idari is, daha fazla hasta odagi.</p>
+              <h2 className="font-heading text-2xl font-black md:text-3xl">
+                Kliniğinizin gününü birlikte sakinleştirelim.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-white/75">
+                Deneme hesabı açın veya ekiple 20 dakikalık bir kurulum görüşmesi
+                planlayın. Satış vaadi değil; mevcut paneli birlikte gezeriz.
+              </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild className="min-h-11 rounded-xl bg-white text-brand-navy hover:bg-white/90">
                 <Link href={getClinicTrialPath('tr')}>{ENTRY_CTA.clinicTrial.short.tr}</Link>
               </Button>
-              <Button asChild variant="outline" className="min-h-11 rounded-xl border-white/30 bg-transparent text-white hover:bg-white/10">
+              <Button
+                asChild
+                variant="outline"
+                className="min-h-11 rounded-xl border-white/30 bg-transparent text-white hover:bg-white/10"
+              >
                 <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
               </Button>
             </div>

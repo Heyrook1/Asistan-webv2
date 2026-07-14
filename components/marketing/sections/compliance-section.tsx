@@ -5,23 +5,23 @@ import { FadeUp } from '@/components/marketing/motion-wrappers'
 const complianceItems = [
   {
     icon: ShieldCheck,
-    title: 'KVKK Uyumlu Cekirdek',
-    detail: 'Veri erisimi is rolune gore sinirlandirilir; sadece gerekli kayitlar goruntulenir.',
+    title: 'KVKK odaklı kontroller',
+    detail: 'Veri erişimi iş rolüne göre sınırlandırılır; sadece gerekli kayıtlar görüntülenir.',
   },
   {
     icon: LockKeyhole,
-    title: 'RLS ve Rol Bazli Yetki',
-    detail: 'Multi-tenant veri ayrimi ve rol tabanli izin katmani ile guvenli is akislari saglanir.',
+    title: 'Rol bazlı yetki',
+    detail: 'İşletme (tenant) bazlı veri ayrımı ve rol tabanlı izin katmanı ile güvenli iş akışları sağlanır.',
   },
   {
     icon: MapPin,
-    title: 'KKTC Odakli Operasyon',
-    detail: 'Bolgesel ihtiyaclara gore kliniyin operasyon diline uygun kurulum adimlari uygulanir.',
+    title: 'KKTC odaklı operasyon',
+    detail: 'Bölgesel ihtiyaçlara göre kliniğin operasyon diline uygun kurulum adımları uygulanır.',
   },
   {
     icon: Database,
-    title: 'Denetlenebilir Veri Katmani',
-    detail: 'Kayit degisiklikleri izlenebilir bir veri modelinde tutulur; surecler audit gereksinimlerine hazirdir.',
+    title: 'Denetlenebilir veri katmanı',
+    detail: 'Kayıt değişiklikleri izlenebilir bir modelde tutulur; süreçler denetim ihtiyacına hazırdır.',
   },
 ]
 
@@ -31,15 +31,19 @@ export function ComplianceSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <FadeUp className="mx-auto mb-10 max-w-3xl text-center">
           <p className="mb-4 inline-block rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold text-brand-cyan">
-            Compliance & Security
+            Güvenlik & gizlilik
           </p>
-          <h2 className="font-heading text-3xl font-black md:text-5xl">Guvenlik ve mevzuat uyumu temel tasarim ilkesidir.</h2>
+          <h2 className="font-heading text-3xl font-black md:text-5xl">
+            Güvenlik ve veri koruma temel tasarım ilkesidir.
+          </h2>
           <p className="mt-5 text-base leading-7 text-white/75">
-            KVKK, isletme bazli veri ayrimi ve rol guvenligi; platformun islevinden bagimsiz bir temel katman olarak ele alinmistir.{' '}
+            KVKK odaklı kontroller, işletme bazlı veri ayrımı ve rol güvenliği; platformun
+            işlevinden bağımsız bir temel katman olarak ele alınmıştır.{' '}
             <a href="/guven" className="font-semibold text-brand-cyan underline-offset-2 hover:underline">
-              Guven Merkezi
+              Güven Merkezi
             </a>
-            &apos;nde dogrulanabilir kontrolleri inceleyin.
+            &apos;nde doğrulanabilir kontrolleri inceleyin. Kanıtı olmayan sertifika iddiası
+            kullanmayız.
           </p>
         </FadeUp>
 

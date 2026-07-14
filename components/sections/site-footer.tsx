@@ -10,6 +10,7 @@ import { useLandingLocale } from '@/components/sections/landing-locale'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
+import { copyrightLine, productName, socialLinks, MASTERBRAND } from '@/lib/brand/masterbrand'
 
 const FOOTER_COPY = {
   tr: {
@@ -17,20 +18,20 @@ const FOOTER_COPY = {
       {
         title: 'Ürün & Çözümler',
         links: [
-          { href: '#ecosystem', label: 'Platform Ekosistemi' },
-          { href: '#features', label: 'Tüm Özellikler' },
-          { href: '#pricing', label: 'Klinik Fiyatlandırma' },
-          { href: '/urun', label: 'Web Panel Detayları' },
+          { href: '/cozumler', label: 'Çözümler' },
+          { href: '/urun', label: 'Özellikler' },
+          { href: '/fiyatlandirma', label: 'Klinik Fiyatlandırma' },
+          { href: '/guven', label: 'Güven Merkezi' },
         ],
       },
       {
         title: 'Kaynaklar',
         links: [
           { href: '/kaynaklar', label: 'Eğitim & Kılavuzlar' },
+          { href: '/client', label: 'Hasta randevusu' },
           { href: '/contact', label: 'Demo talep et' },
           { href: '/fiyatlandirma#sss', label: 'Sıkça Sorulan Sorular' },
-          { href: '/privacy', label: 'Gizlilik ve Veri Güvenliği' },
-          { href: '/guven', label: 'Güven Merkezi' },
+          { href: '/privacy', label: 'Gizlilik Politikası' },
         ],
       },
       {
@@ -39,12 +40,12 @@ const FOOTER_COPY = {
           { href: '/hakkimizda', label: 'Hakkımızda' },
           { href: '/terms', label: 'Kullanım Koşulları' },
           { href: '/contact', label: 'İletişim' },
-          { href: '/cozumler', label: 'İş Ortaklıkları' },
+          { href: '/guven', label: 'Güven Merkezi' },
         ],
       },
     ],
     summary:
-      'Klinik yönetimi için bulut tabanlı modern panel ve hastalar için GPS destekli anlık rezervasyon mobil uygulaması.',
+      `${productName('company', 'tr')}; klinik paneli ${productName('health', 'tr')} ve hasta randevusu ${productName('booking', 'tr')} aynı ekosistemde — web panel, keşif ve rezervasyon.`,
     appStore: 'Mağaza bekleme listesi',
     playStore: 'Mağaza bekleme listesi',
     queue: 'Mağaza yayını için bekleme listesi açık',
@@ -54,7 +55,7 @@ const FOOTER_COPY = {
     subscribe: 'Abone Ol',
     saved: 'Teşekkürler! Bültene başarıyla eklendiniz.',
     notSaved: 'Sadece önemli ürün gelişmelerini paylaşırız.',
-    copyright: '© 2026 Asistan Health. Tüm hakları saklıdır.',
+    copyright: copyrightLine(2026, 'tr'),
     language: 'Türkçe / English',
   },
   en: {
@@ -62,20 +63,20 @@ const FOOTER_COPY = {
       {
         title: 'Product & Solutions',
         links: [
-          { href: '#ecosystem', label: 'Platform Ecosystem' },
-          { href: '#features', label: 'Platform Features' },
-          { href: '#pricing', label: 'Clinic Pricing' },
-          { href: '/urun', label: 'Web Dashboard Specs' },
+          { href: '/cozumler', label: 'Solutions' },
+          { href: '/urun', label: 'Features' },
+          { href: '/fiyatlandirma', label: 'Clinic Pricing' },
+          { href: '/guven', label: 'Trust Center' },
         ],
       },
       {
         title: 'Resources',
         links: [
           { href: '/kaynaklar', label: 'Guides & Academy' },
+          { href: '/client', label: 'Patient booking' },
           { href: '/contact', label: 'Request a demo' },
-          { href: '/fiyatlandirma#sss', label: 'FAQ & Help Center' },
-          { href: '/privacy', label: 'Privacy & Data Compliance' },
-          { href: '/guven', label: 'Trust Center' },
+          { href: '/fiyatlandirma#sss', label: 'FAQ' },
+          { href: '/privacy', label: 'Privacy Policy' },
         ],
       },
       {
@@ -84,12 +85,12 @@ const FOOTER_COPY = {
           { href: '/hakkimizda', label: 'About Us' },
           { href: '/terms', label: 'Terms of Use' },
           { href: '/contact', label: 'Contact' },
-          { href: '/cozumler', label: 'Partnership Program' },
+          { href: '/guven', label: 'Trust Center' },
         ],
       },
     ],
     summary:
-      'A premium cloud-native operations stack for clinics, plus a patient mobile app that turns local search into booked appointments.',
+      `${productName('company', 'en')}; clinic panel ${productName('health', 'en')} and patient booking ${productName('booking', 'en')} in one ecosystem — web panel, discovery, and reservations.`,
     appStore: 'Join store waitlist',
     playStore: 'Join store waitlist',
     queue: 'Join the waitlist for store release updates',
@@ -97,9 +98,9 @@ const FOOTER_COPY = {
     newsletterDesc: 'Product milestones, operational guides, and growth tactics.',
     placeholder: 'you@clinic.com',
     subscribe: 'Subscribe',
-    saved: 'Thanks! You have been successfully added to our loop.',
+    saved: 'Thanks! You’re subscribed to our newsletter.',
     notSaved: 'We only send useful updates.',
-    copyright: '© 2026 Asistan Health. All rights reserved.',
+    copyright: copyrightLine(2026, 'en'),
     language: 'English / Turkish',
   },
 } as const
@@ -221,7 +222,6 @@ export function SiteFooter() {
                     ))}
                   </ul>
                 </div>
-                <div className="mt-6 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Verified Links</div>
               </GlassCard>
             ))}
           </div>
@@ -270,13 +270,26 @@ export function SiteFooter() {
                 </Button>
               </form>
 
-              <div className="flex items-center gap-2 lg:justify-end">
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="tap-target rounded-xl border border-black/5 bg-white/80 hover:bg-slate-100 p-2.5 text-[#1D1D1F] transition duration-300 hover:scale-[1.05] shadow-sm" aria-label="Instagram">
-                  <Instagram className="h-4.5 w-4.5" />
-                </a>
-                <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="tap-target rounded-xl border border-black/5 bg-white/80 hover:bg-slate-100 p-2.5 text-[#1D1D1F] transition duration-300 hover:scale-[1.05] shadow-sm" aria-label="LinkedIn">
-                  <Linkedin className="h-4.5 w-4.5" />
-                </a>
+              <div className="flex flex-col items-stretch gap-2 lg:items-end">
+                <p className="text-xs font-semibold text-[#5D6068]">{MASTERBRAND.socialHandle}</p>
+                <div className="flex items-center gap-2 lg:justify-end">
+                  {socialLinks().map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="tap-target rounded-xl border border-black/5 bg-white/80 p-2.5 text-[#1D1D1F] shadow-sm transition duration-300 hover:scale-[1.05] hover:bg-slate-100"
+                      aria-label={link.label}
+                    >
+                      {link.label === 'LinkedIn' ? (
+                        <Linkedin className="h-4.5 w-4.5" />
+                      ) : (
+                        <Instagram className="h-4.5 w-4.5" />
+                      )}
+                    </a>
+                  ))}
+                </div>
               </div>
             </div>
             

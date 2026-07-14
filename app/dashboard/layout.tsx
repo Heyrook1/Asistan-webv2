@@ -12,8 +12,23 @@ import {
   serializeNotification,
 } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
-import { getVendorPlanName } from '@/lib/vendor-membership'
+import {
+  getMembershipUrgency,
+  getVendorPlanName,
+  normalizeVendorPlanCode,
+} from '@/lib/vendor-membership'
 import { canViewAppointmentSchedule } from '@/lib/rbac'
+import { MembershipExpiryBanner } from '@/components/dashboard/membership-expiry-banner'
+import { AnnouncementBanner } from '@/components/dashboard/announcement-banner'
+import { SupportModeBanner } from '@/components/dashboard/support-mode-banner'
+import { getActiveAnnouncements } from '@/lib/announcements'
+import { isFeatureEnabled } from '@/lib/feature-flags'
+import type { Metadata } from 'next'
+
+/** Klinik paneli bilinçli olarak Türkçe-only (KKTC operasyon dili). */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function DashboardLayout({
   children,
@@ -32,6 +47,7 @@ export default async function DashboardLayout({
       where: { businessId: session.businessId },
       select: {
         plan: true,
+        status: true,
         isDemo: true,
         accessEndAt: true,
       },
@@ -46,13 +62,23 @@ export default async function DashboardLayout({
   const membership = vendorAccount
     ? {
         planName: getVendorPlanName(vendorAccount.plan),
+        planCode: normalizeVendorPlanCode(vendorAccount.plan),
+        status: vendorAccount.status,
         isDemo: vendorAccount.isDemo,
         accessEndAt: vendorAccount.accessEndAt ? vendorAccount.accessEndAt.toISOString() : null,
       }
     : null
 
+  const showExpiryBanner =
+    session.isOwner &&
+    membership &&
+    getMembershipUrgency({
+      accessEndAt: membership.accessEndAt,
+      status: membership.status,
+    }) !== 'ok'
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(0,113,227,0.08),transparent_38%),radial-gradient(circle_at_100%_0%,rgba(45,212,191,0.08),transparent_35%),linear-gradient(180deg,#F7FAFD_0%,#F3F6FA_100%)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,rgba(0,113,227,0.10),transparent_40%),radial-gradient(circle_at_100%_0%,rgba(0,113,227,0.05),transparent_36%),linear-gradient(180deg,#F7F7F5_0%,#F3F6FA_100%)]">
       <DashboardSidebar
         unreadNotifications={unreadCount}
         unreadMessages={unreadMessages}
@@ -81,7 +107,20 @@ export default async function DashboardLayout({
           showPlatformAdmin={showPlatformAdmin}
           showSuperAdmin={showSuperAdmin}
         />
-        <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1720px] px-4 pb-28 pt-3 lg:px-6 lg:pb-8 lg:pt-6">{children}</main>
+        <main id="main-content" tabIndex={-1} lang="tr" className="mx-auto max-w-[1720px] px-4 pb-28 pt-3 lg:px-6 lg:pb-8 lg:pt-6">
+          {session.supportMode ? (
+            <SupportModeBanner businessName={session.supportMode.businessName} />
+          ) : null}
+          {isFeatureEnabled('announcements') ? (
+            <div className="mb-3">
+              <AnnouncementBanner items={getActiveAnnouncements()} />
+            </div>
+          ) : null}
+          {showExpiryBanner ? (
+            <MembershipExpiryBanner membership={membership} isOwner={session.isOwner} />
+          ) : null}
+          {children}
+        </main>
       </div>
       <MobileShell
         session={session}

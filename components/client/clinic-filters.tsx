@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useLanguage } from '@/hooks/useLanguage'
 import {
   readUiPreference,
   UI_PREF_KEYS,
@@ -22,16 +23,16 @@ import { cn } from '@/lib/utils'
 
 type Chip = {
   key: string
-  label: string
+  labelKey: 'today' | 'rating' | 'near' | 'budget'
   param: string
   value: string
 }
 
 const CHIPS: Chip[] = [
-  { key: 'today', label: 'Available today', param: 'availableToday', value: 'true' },
-  { key: 'rating', label: 'Rating 4.5+', param: 'minRating', value: '4.5' },
-  { key: 'near', label: 'Within 5 km', param: 'maxDistanceKm', value: '5' },
-  { key: 'budget', label: 'Under ₺1500', param: 'maxPrice', value: '1500' },
+  { key: 'today', labelKey: 'today', param: 'availableToday', value: 'true' },
+  { key: 'rating', labelKey: 'rating', param: 'minRating', value: '4.5' },
+  { key: 'near', labelKey: 'near', param: 'maxDistanceKm', value: '5' },
+  { key: 'budget', labelKey: 'budget', param: 'maxPrice', value: '1500' },
 ]
 
 const FILTER_PARAMS = new Set([
@@ -61,7 +62,15 @@ export function ClinicFilters() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
   const restored = useRef(false)
+
+  const chipLabels = {
+    today: t({ tr: 'Bugün müsait', en: 'Available today' }),
+    rating: t({ tr: 'Puan 4.5+', en: 'Rating 4.5+' }),
+    near: t({ tr: '5 km içinde', en: 'Within 5 km' }),
+    budget: t({ tr: '₺1500 altı', en: 'Under ₺1500' }),
+  }
 
   useEffect(() => {
     if (restored.current) return
@@ -167,22 +176,25 @@ export function ClinicFilters() {
                     : 'bg-white text-foreground ring-1 ring-border hover:ring-primary/30 hover:bg-primary-soft',
                 )}
               >
-                {chip.label}
+                {chipLabels[chip.labelKey]}
               </button>
             )
           })}
         </div>
 
         <Select value={currentSort} onValueChange={(v) => updateParams({ sort: v })}>
-          <SelectTrigger className="h-10 w-[150px] shrink-0 rounded-xl bg-card text-sm shadow-sm">
+          <SelectTrigger
+            className="h-10 w-[150px] shrink-0 rounded-xl bg-card text-sm shadow-sm"
+            aria-label={t({ tr: 'Sıralama', en: 'Sort' })}
+          >
             <SlidersHorizontal className="mr-2 h-4 w-4 text-muted-foreground" />
-            <SelectValue placeholder="Sort" />
+            <SelectValue placeholder={t({ tr: 'Sırala', en: 'Sort' })} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="nearest">Nearest</SelectItem>
-            <SelectItem value="highest-rated">Highest rated</SelectItem>
-            <SelectItem value="earliest-available">Earliest available</SelectItem>
-            <SelectItem value="most-reviewed">Most reviewed</SelectItem>
+            <SelectItem value="nearest">{t({ tr: 'En yakın', en: 'Nearest' })}</SelectItem>
+            <SelectItem value="highest-rated">{t({ tr: 'En yüksek puan', en: 'Highest rated' })}</SelectItem>
+            <SelectItem value="earliest-available">{t({ tr: 'En erken müsait', en: 'Earliest available' })}</SelectItem>
+            <SelectItem value="most-reviewed">{t({ tr: 'En çok yorum', en: 'Most reviewed' })}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -193,7 +205,7 @@ export function ClinicFilters() {
             size="icon"
             onClick={clearFilters}
             className="h-10 w-10 shrink-0 rounded-xl bg-card shadow-sm"
-            aria-label="Clear filters"
+            aria-label={t({ tr: 'Filtreleri temizle', en: 'Clear filters' })}
           >
             <X className="h-4 w-4" />
           </Button>

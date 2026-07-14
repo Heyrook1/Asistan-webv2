@@ -7,6 +7,7 @@ import { getPatientsList } from '@/lib/queries'
 import { ageFromBirthDate, formatPhone, formatRelativeDate } from '@/lib/format'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { PatientsToolbar } from './patients-toolbar'
+import { PatientsExportMenu, type PatientExportRow } from './patients-export-menu'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,16 +30,28 @@ export default async function HastalarPage({
   const session = await requirePagePermission('patient.view')
   const archived = sp.archived === '1'
   const patients = await getPatientsList(session.businessId, { query: sp.q, archived })
+  const exportRows: PatientExportRow[] = patients.map((p) => ({
+    patientNumber: p.patientNumber,
+    fullName: p.fullName,
+    phone: p.phone,
+    email: p.email,
+    gender: p.gender,
+    birthDate: p.birthDate ? p.birthDate.toISOString() : null,
+    tags: p.tags,
+    riskNote: p.riskNote,
+    appointmentCount: p._count.appointments,
+    createdAt: p.createdAt.toISOString(),
+  }))
+  const listLabel = `${patients.length} hasta${sp.q ? ` • "${sp.q}"` : ''}${archived ? ' • arşiv' : ''}`
 
   return (
     <div className="space-y-3 lg:space-y-4">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-brand-ink lg:text-2xl">Hastalar</h1>
-          <p className="text-[12px] text-muted-foreground lg:text-sm">
-            {patients.length} hasta{sp.q ? ` • "${sp.q}"` : ''}{archived ? ' • arşiv' : ''}
-          </p>
+          <p className="text-[12px] text-muted-foreground lg:text-sm">{listLabel}</p>
         </div>
+        <PatientsExportMenu patients={exportRows} label={listLabel} />
       </div>
 
       <PatientsToolbar

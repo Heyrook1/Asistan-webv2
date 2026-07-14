@@ -4,8 +4,9 @@ const config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['SF Pro Text', 'SF Pro Display', 'Inter', 'Manrope', 'system-ui', 'sans-serif'],
-        display: ['SF Pro Display', 'SF Pro Text', 'Inter', 'Manrope', 'system-ui', 'sans-serif'],
+        // Locked to shipped Manrope — docs/typography.md
+        sans: ['Manrope', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        display: ['Manrope', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
         glass: '0 20px 50px -28px rgba(29, 29, 31, 0.32)',

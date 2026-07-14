@@ -1,126 +1,59 @@
-import { Card, CardContent } from '@/components/ui/card'
+import { Suspense } from 'react'
 import { requirePagePermission, can } from '@/lib/session'
-import { getAnalyticsSnapshot, getDashboardStats } from '@/lib/queries'
-import { trMoney } from '@/lib/format'
-import { TrendingUp, Wallet, Users, Calendar } from 'lucide-react'
+import {
+  getAnalyticsBreakdowns,
+  getAnalyticsSnapshot,
+  getAppointmentFunnel,
+  getDashboardStats,
+  getFinanceLedgerForExport,
+  getStaffUtilization,
+  parseAnalyticsMonthRange,
+} from '@/lib/queries'
+import { AnalyticsBoard } from '@/components/dashboard/analytics-board'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 export const dynamic = 'force-dynamic'
 
-const MONTH_NAMES = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
-
-export default async function AnalitikPage() {
+export default async function AnalitikPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ months?: string }>
+}) {
   const session = await requirePagePermission('analytics.view')
-  const [stats, snapshot] = await Promise.all([
+  const params = await searchParams
+  const months = parseAnalyticsMonthRange(params.months)
+  const canViewRevenue = can(session, 'analytics.revenue.view')
+  const advanced = isFeatureEnabled('advancedAnalytics')
+
+  const [stats, snapshot, breakdowns, financeLedger, funnel, utilization] = await Promise.all([
     getDashboardStats(session.businessId),
-    getAnalyticsSnapshot(session.businessId),
+    getAnalyticsSnapshot(session.businessId, months),
+    getAnalyticsBreakdowns(session.businessId, months),
+    canViewRevenue && isFeatureEnabled('financeExport')
+      ? getFinanceLedgerForExport(session.businessId, months)
+      : Promise.resolve([]),
+    advanced ? getAppointmentFunnel(session.businessId, months) : Promise.resolve(null),
+    advanced ? getStaffUtilization(session.businessId, months) : Promise.resolve([]),
   ])
 
-  const maxRevenue = Math.max(...snapshot.map((s) => s.revenue), 1)
-  const totalRevenue = snapshot.reduce((acc, s) => acc + s.revenue, 0)
-  const totalCompleted = snapshot.reduce((acc, s) => acc + s.completed, 0)
-  const canViewRevenue = can(session, 'analytics.revenue.view')
-
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-ink">Analitik</h1>
-        <p className="text-sm text-muted-foreground">Son 6 ay performans özeti</p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Calendar} label="Bugünkü Randevu" value={stats.todayAppointments.toString()} />
-        <StatCard icon={Users} label="Aktif Hasta" value={stats.activePatients.toString()} />
-        <StatCard icon={Wallet} label="Aylık Ciro" value={canViewRevenue ? trMoney.format(stats.monthlyRevenue) : 'Yetkisiz'} />
-        <StatCard icon={TrendingUp} label="6 Aylık Ciro" value={canViewRevenue ? trMoney.format(totalRevenue) : 'Yetkisiz'} />
-      </div>
-
-      <Card>
-        <CardContent className="p-5">
-          <p className="text-sm font-semibold text-brand-ink mb-4">Aylık Ciro</p>
-          {!canViewRevenue ? (
-            <p className="text-sm text-muted-foreground">Ciro verilerini goruntuleme yetkiniz yok.</p>
-          ) : totalRevenue === 0 ? (
-            <p className="text-sm text-muted-foreground">Henüz ciro verisi yok. Tamamlanan randevular oluştuktan sonra burada görünür.</p>
-          ) : (
-            <div className="flex items-end gap-3 h-48">
-              {snapshot.map((s) => {
-                const [, month] = s.month.split('-')
-                const height = (s.revenue / maxRevenue) * 100
-                return (
-                  <div key={s.month} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full flex-1 flex items-end">
-                      <div
-                        className="w-full rounded-t-md bg-gradient-to-t from-brand-teal to-brand-cyan"
-                        style={{ height: `${Math.max(4, height)}%` }}
-                        title={trMoney.format(s.revenue)}
-                      />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">{MONTH_NAMES[Number(month) - 1]}</p>
-                    <p className="text-[10px] font-medium text-brand-ink">{trMoney.format(s.revenue)}</p>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-sm font-semibold text-brand-ink mb-4">Aylık Randevu Adetleri</p>
-            <div className="space-y-3">
-              {snapshot.map((s) => {
-                const [, month] = s.month.split('-')
-                return (
-                  <div key={s.month} className="flex items-center gap-3">
-                    <span className="w-10 text-xs text-muted-foreground">{MONTH_NAMES[Number(month) - 1]}</span>
-                    <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-brand-teal"
-                        style={{ width: `${s.total === 0 ? 0 : Math.min(100, (s.total / Math.max(...snapshot.map((x) => x.total), 1)) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="w-10 text-right text-xs font-medium">{s.total}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-sm font-semibold text-brand-ink mb-4">İptal vs Tamamlama</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-xl border bg-dashboard-surface p-4">
-                <p className="text-2xl font-bold text-emerald-600">{totalCompleted}</p>
-                <p className="text-[11px] text-muted-foreground">Tamamlanan</p>
-              </div>
-              <div className="rounded-xl border bg-dashboard-surface p-4">
-                <p className="text-2xl font-bold text-rose-600">{snapshot.reduce((acc, s) => acc + s.cancelled, 0)}</p>
-                <p className="text-[11px] text-muted-foreground">İptal/No-Show</p>
-              </div>
-              <div className="rounded-xl border bg-dashboard-surface p-4">
-                <p className="text-2xl font-bold text-brand-ink">{(stats.cancellationRate * 100).toFixed(1)}%</p>
-                <p className="text-[11px] text-muted-foreground">İptal Oranı</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-function StatCard({ icon: Icon, label, value }: { icon: typeof TrendingUp; label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <Icon className="mb-2 h-5 w-5 text-brand-teal" />
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold text-brand-ink">{value}</p>
-      </CardContent>
-    </Card>
+    <Suspense fallback={<div className="rounded-2xl border bg-white p-6 text-sm text-muted-foreground">Analitik yükleniyor…</div>}>
+      <AnalyticsBoard
+        months={months}
+        stats={{
+          todayAppointments: stats.todayAppointments,
+          activePatients: stats.activePatients,
+          monthlyRevenue: stats.monthlyRevenue,
+        }}
+        snapshot={snapshot}
+        byStaff={breakdowns.byStaff}
+        byService={breakdowns.byService}
+        financeLedger={financeLedger}
+        funnel={funnel}
+        utilization={utilization}
+        canViewRevenue={canViewRevenue}
+        cancellationRate={stats.cancellationRate}
+      />
+    </Suspense>
   )
 }

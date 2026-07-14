@@ -4,24 +4,25 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CalendarDays, Home, Search, User } from 'lucide-react'
 
+import { useLanguage } from '@/hooks/useLanguage'
 import { cn } from '@/lib/utils'
-
-const NAV_ITEMS = [
-  { href: '/client', label: 'Home', icon: Home },
-  { href: '/client/clinics', label: 'Clinics', icon: Search },
-  { href: '/client/bookings', label: 'Bookings', icon: CalendarDays },
-  { href: '/client/profile', label: 'Profile', icon: User },
-] as const
 
 export function ClientBottomNav() {
   const pathname = usePathname()
+  const { t } = useLanguage()
+
+  const navItems = [
+    { href: '/client', label: t({ tr: 'Ana sayfa', en: 'Home' }), icon: Home },
+    { href: '/client/clinics', label: t({ tr: 'Klinikler', en: 'Clinics' }), icon: Search },
+    { href: '/client/bookings', label: t({ tr: 'Randevular', en: 'Bookings' }), icon: CalendarDays },
+    { href: '/client/profile', label: t({ tr: 'Profil', en: 'Profile' }), icon: User },
+  ] as const
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
-      {/* Frosted glass background with top shadow */}
+    <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden" aria-label={t({ tr: 'Hasta menüsü', en: 'Patient menu' })}>
       <div className="border-t border-border/40 bg-white/80 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] backdrop-blur-2xl">
         <div className="mx-auto flex max-w-md items-center justify-around gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active =
               item.href === '/client'
                 ? pathname === '/client'
@@ -50,7 +51,6 @@ export function ClientBottomNav() {
                 <span className={cn('transition-colors', active && 'font-bold')}>
                   {item.label}
                 </span>
-                {/* Active indicator gradient bar */}
                 {active && (
                   <span className="absolute -bottom-0.5 h-1 w-6 rounded-full bg-gradient-to-r from-primary to-accent-pop" />
                 )}

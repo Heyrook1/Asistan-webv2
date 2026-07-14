@@ -7,32 +7,20 @@ function authLanguageFromRequest(request: NextRequest) {
   return normalizeAuthLanguage(request.cookies.get('asistan-lang')?.value)
 }
 
+/** Redirect while keeping ?query (e.g. reason=package-expired). */
+function redirectWithSearch(request: NextRequest, pathname: string) {
+  const url = request.nextUrl.clone()
+  url.pathname = pathname
+  return NextResponse.redirect(url)
+}
+
+import { buildAllowedOrigins, isAllowedOrigin as originIsAllowed } from '@/lib/cors'
+
 const CLIENT_API_PREFIX = '/api/client'
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081']
-
-function parseOriginList(value: string | undefined) {
-  if (!value) return []
-  return value
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0)
-}
-
-const ALLOWED_ORIGINS = new Set([
-  ...DEFAULT_ALLOWED_ORIGINS,
-  ...parseOriginList(process.env.CLIENT_API_ALLOWED_ORIGINS),
-  ...parseOriginList(process.env.CORS_ALLOWED_ORIGINS),
-])
-
-function isDevNetworkOrigin(origin: string) {
-  if (process.env.NODE_ENV === 'production') return false
-  return /^https?:\/\/(?:localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(?::\d{1,5})?$/.test(
-    origin
-  )
-}
+const ALLOWED_ORIGINS = buildAllowedOrigins()
 
 function isAllowedOrigin(origin: string) {
-  return ALLOWED_ORIGINS.has(origin) || isDevNetworkOrigin(origin)
+  return originIsAllowed(origin, ALLOWED_ORIGINS)
 }
 
 function isClientApiPath(pathname: string) {
@@ -128,48 +116,48 @@ export async function proxy(request: NextRequest) {
 
   // Localized auth route redirects and rewrites
   if (pathname === '/auth/login') {
-    return NextResponse.redirect(new URL(getLoginPath(authLanguageFromRequest(request)), request.url))
+    return redirectWithSearch(request, getLoginPath(authLanguageFromRequest(request)))
   }
   if (pathname === '/auth/sign-up') {
-    return NextResponse.redirect(new URL(getRegisterPath(authLanguageFromRequest(request)), request.url))
+    return redirectWithSearch(request, getRegisterPath(authLanguageFromRequest(request)))
   }
   if (pathname === '/giris') {
-    return NextResponse.redirect(new URL('/tr/giris', request.url))
+    return redirectWithSearch(request, '/tr/giris')
   }
   if (pathname === '/login') {
-    return NextResponse.redirect(new URL(getLoginPath(authLanguageFromRequest(request)), request.url))
+    return redirectWithSearch(request, getLoginPath(authLanguageFromRequest(request)))
   }
   if (pathname === '/kayit') {
-    return NextResponse.redirect(new URL('/tr/kayit', request.url))
+    return redirectWithSearch(request, '/tr/kayit')
   }
   if (pathname === '/register') {
-    return NextResponse.redirect(new URL(getRegisterPath(authLanguageFromRequest(request)), request.url))
+    return redirectWithSearch(request, getRegisterPath(authLanguageFromRequest(request)))
   }
 
   if (pathname === '/tr/login') {
-    return NextResponse.redirect(new URL('/tr/giris', request.url))
+    return redirectWithSearch(request, '/tr/giris')
   }
   if (pathname === '/en/giris') {
-    return NextResponse.redirect(new URL('/en/login', request.url))
+    return redirectWithSearch(request, '/en/login')
   }
   if (pathname === '/tr/register') {
-    return NextResponse.redirect(new URL('/tr/kayit', request.url))
+    return redirectWithSearch(request, '/tr/kayit')
   }
   if (pathname === '/en/kayit') {
-    return NextResponse.redirect(new URL('/en/register', request.url))
+    return redirectWithSearch(request, '/en/register')
   }
 
   if (pathname === '/tr/giris') {
-    return NextResponse.rewrite(new URL('/tr/auth/login', request.url))
+    return NextResponse.rewrite(new URL('/tr/auth/login' + request.nextUrl.search, request.url))
   }
   if (pathname === '/en/login') {
-    return NextResponse.rewrite(new URL('/en/auth/login', request.url))
+    return NextResponse.rewrite(new URL('/en/auth/login' + request.nextUrl.search, request.url))
   }
   if (pathname === '/tr/kayit') {
-    return NextResponse.rewrite(new URL('/tr/auth/register', request.url))
+    return NextResponse.rewrite(new URL('/tr/auth/register' + request.nextUrl.search, request.url))
   }
   if (pathname === '/en/register') {
-    return NextResponse.rewrite(new URL('/en/auth/register', request.url))
+    return NextResponse.rewrite(new URL('/en/auth/register' + request.nextUrl.search, request.url))
   }
 
   if (!isClientApiPath(pathname)) {

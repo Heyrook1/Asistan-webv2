@@ -3,18 +3,19 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage } from '@/hooks/useLanguage'
-import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
+import { getRegisterPath } from '@/lib/auth-routes'
 import { CheckCircle2, Mail, Lock, ShieldAlert, Loader2, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t, language } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,6 +23,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
 
+  const packageExpired = searchParams.get('reason') === 'package-expired'
   const supabase = createClient()
 
   // Real-time email validation
@@ -38,14 +40,24 @@ export function LoginForm() {
     }
   }, [email, t])
 
-  // Redirect if already logged in with verified session
+  // Break dashboard↔login loop when package is expired; otherwise redirect if already logged in
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email_confirmed_at) {
-        router.push('/dashboard')
+    let cancelled = false
+    ;(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.email_confirmed_at || cancelled) return
+
+      if (packageExpired) {
+        await supabase.auth.signOut()
+        return
       }
-    })
-  }, [router, supabase.auth])
+
+      router.push('/dashboard')
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [packageExpired, router, supabase.auth])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,7 +117,7 @@ export function LoginForm() {
         <h1 className="text-3xl font-extrabold tracking-tight text-[#1D1D1F] leading-tight">
           {t({
             tr: 'Hesabınıza güvenli giriş yapın',
-            en: 'Secure login to your account'
+            en: 'Sign in securely to your clinic account'
           })}
         </h1>
         <p className="text-sm font-semibold leading-relaxed text-[#5D6068]">
@@ -149,6 +161,37 @@ export function LoginForm() {
               {t({ tr: 'Devam etmek için bilgilerinizi girin', en: 'Enter your credentials to continue' })}
             </p>
           </div>
+
+          {packageExpired && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-left text-xs font-semibold leading-relaxed text-amber-950"
+            >
+              <p className="font-bold">
+                {t({
+                  tr: 'Paket süreniz doldu',
+                  en: 'Your package has expired',
+                })}
+              </p>
+              <p className="mt-1.5 font-medium text-amber-900/90">
+                {t({
+                  tr: 'Klinik paneline erişim askıya alındı. Yenileme için elden / faturalı süreçte ekibimizle iletişime geçin.',
+                  en: 'Dashboard access is suspended. Contact us for a manual / invoiced renewal.',
+                })}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <a
+                  href="mailto:merhaba@asistan.online?subject=Paket%20yenileme%20talebi"
+                  className="font-bold text-[#0071E3] underline-offset-2 hover:underline"
+                >
+                  merhaba@asistan.online
+                </a>
+                <Link href="/contact" className="font-bold text-[#0071E3] underline-offset-2 hover:underline">
+                  {t({ tr: 'İletişim formu', en: 'Contact form' })}
+                </Link>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div

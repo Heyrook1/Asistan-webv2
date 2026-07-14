@@ -116,7 +116,7 @@ Colors:
 
 Typography:
 
-- Font: Manrope via `next/font/google`
+- Font: Manrope via `@fontsource/manrope` (see `docs/typography.md`)
 - H1: `text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight`
 - H2: `text-3xl md:text-4xl font-bold tracking-tight`
 - H3: `text-lg md:text-xl font-bold`

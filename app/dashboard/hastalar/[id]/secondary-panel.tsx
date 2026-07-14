@@ -23,7 +23,7 @@ type TimelineItem = {
 }
 
 function timelineColor(idx: number) {
-  const palette = ['#0B7F6F', '#16A9E8', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4']
+  const palette = ['#0071E3', '#16A9E8', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4']
   return palette[idx % palette.length]
 }
 

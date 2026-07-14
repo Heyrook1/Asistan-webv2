@@ -15,6 +15,7 @@ import {
   Settings,
   Shield,
   Sparkles,
+  ScrollText,
   UserCog,
   Users,
 } from 'lucide-react'
@@ -54,6 +55,7 @@ const navItems: NavItem[] = [
   { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
   { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
   { name: 'Analitik', href: '/dashboard/analitik', icon: BarChart3, permission: 'analytics.view' },
+  { name: 'Denetim', href: '/dashboard/denetim', icon: ScrollText, permission: 'audit.view' },
   { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Scale, superAdminOnly: true },
   { name: 'Super Admin', href: '/dashboard/super-admin', icon: Shield, superAdminOnly: true },
   { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
@@ -128,12 +130,15 @@ export function DashboardSidebar({
   function SidebarContent() {
     return (
       <div className="relative flex h-full flex-col overflow-hidden bg-sidebar">
-        <div className="pointer-events-none absolute -left-20 -top-32 h-64 w-64 rounded-full bg-brand-teal/7 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-brand-cyan/7 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 -top-32 h-64 w-64 rounded-full bg-brand-blue/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-brand-blue/5 blur-3xl" />
 
-        <div className="relative flex h-[72px] shrink-0 items-center border-b border-sidebar-border px-5">
-          <Link href="/dashboard" aria-label="Asistan paneli">
+        <div className="relative flex h-[72px] shrink-0 flex-col justify-center border-b border-sidebar-border px-5">
+          <Link href="/dashboard" aria-label="Asistan Health paneli" className="inline-flex flex-col items-start gap-0.5">
             <AsistanLogo variant="light" size="lg" priority />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              Asistan Health
+            </span>
           </Link>
         </div>
 
@@ -148,20 +153,20 @@ export function DashboardSidebar({
                   className={cn(
                     'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     active
-                      ? 'bg-gradient-to-r from-brand-teal/15 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(11,127,111,0.24)]'
+                      ? 'bg-gradient-to-r from-brand-blue/20 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(0,113,227,0.35)]'
                       : 'text-white/60 hover:bg-white/[0.05] hover:text-white/95',
                   )}
                 >
-                  {active && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand-teal" />}
-                  <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-teal' : 'group-hover:text-white/90')} />
+                  {active && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand-blue" />}
+                  <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-blue' : 'group-hover:text-white/90')} />
                   <span className="flex-1 truncate">{navLabel(item)}</span>
                   {item.badge === 'notifications' && unreadNotifications > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
                     </span>
                   )}
                   {item.badge === 'messages' && unreadMessages > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-teal px-1.5 text-[11px] font-bold leading-none text-brand-navy">
+                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
                       {unreadMessages > 9 ? '9+' : unreadMessages}
                     </span>
                   )}
@@ -188,7 +193,7 @@ export function DashboardSidebar({
             }}
           >
             <div className="absolute -right-4 -top-4 opacity-90">
-              <Sparkles className="h-12 w-12 text-brand-teal/30" />
+              <Sparkles className="h-12 w-12 text-brand-blue/30" />
             </div>
             <p className="relative mb-1 truncate text-sm font-bold text-white">{session.businessName}</p>
             <p className="relative mb-3 text-[11px] text-white/55">
@@ -196,14 +201,14 @@ export function DashboardSidebar({
             </p>
             <Link
               href={session.isOwner ? '/dashboard/ayarlar?tab=isletme' : '/dashboard/ayarlar?tab=hesap'}
-              className="relative inline-block rounded-lg bg-brand-teal px-4 py-1.5 text-xs font-bold text-brand-navy transition-colors hover:bg-brand-teal-hover"
+              className="relative inline-block rounded-lg bg-brand-blue px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-brand-blue/90"
             >
               {session.isOwner ? 'İşletme Ayarları' : 'Profilim'}
             </Link>
           </div>
 
           <Link
-            href="/contact"
+            href="/dashboard/yardim"
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition-all duration-200 hover:bg-white/[0.05] hover:text-white/90"
           >
             <HelpCircle className="h-[18px] w-[18px] shrink-0" />

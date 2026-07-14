@@ -13,49 +13,18 @@ import { Button } from '@/components/ui/button'
 import { FocusTrapPanel } from '@/components/a11y/focus-trap-panel'
 import { cn } from '@/lib/utils'
 
-const HOME_NAV_COPY = {
-  tr: {
-    links: [
-      { href: '#ecosystem', label: 'Ekosistem' },
-      { href: '#for-whom', label: 'Kimler İçin' },
-      { href: '#features', label: 'Özellikler' },
-      { href: '#pricing', label: 'Fiyatlar' },
-      { href: '#trust', label: 'Güven' },
-    ],
-    joinPatient: ENTRY_CTA.patientBook.short.tr,
-    startTrial: ENTRY_CTA.clinicTrial.short.tr,
-    startTrialShort: ENTRY_CTA.clinicTrial.short.tr,
-    openMenu: 'Gezinme menüsünü aç',
-    closeMenu: 'Gezinme menüsünü kapat',
-    login: ENTRY_CTA.clinicLogin.tr,
-  },
-  en: {
-    links: [
-      { href: '#ecosystem', label: 'Ecosystem' },
-      { href: '#for-whom', label: 'For Whom' },
-      { href: '#features', label: 'Features' },
-      { href: '#pricing', label: 'Pricing' },
-      { href: '#trust', label: 'Trust' },
-    ],
-    joinPatient: ENTRY_CTA.patientBook.short.en,
-    startTrial: ENTRY_CTA.clinicTrial.short.en,
-    startTrialShort: ENTRY_CTA.clinicTrial.short.en,
-    openMenu: 'Open navigation menu',
-    closeMenu: 'Close navigation menu',
-    login: ENTRY_CTA.clinicLogin.en,
-  },
-} as const
+/** Canonical primary IA — same on home and inner marketing pages (no #anchor-only nav). */
+const PRIMARY_NAV = [
+  { href: '/urun', label: { tr: 'Özellikler', en: 'Features' } },
+  { href: '/cozumler', label: { tr: 'Çözümler', en: 'Solutions' } },
+  { href: '/fiyatlandirma', label: { tr: 'Fiyatlandırma', en: 'Pricing' } },
+  { href: '/guven', label: { tr: 'Güven', en: 'Trust' } },
+  { href: '/kaynaklar', label: { tr: 'Kaynaklar', en: 'Resources' } },
+  { href: '/hakkimizda', label: { tr: 'Hakkımızda', en: 'About' } },
+] as const
 
-const SITE_NAV_COPY = {
+const HEADER_COPY = {
   tr: {
-    links: [
-      { href: '/urun', label: 'Özellikler' },
-      { href: '/cozumler', label: 'Çözümler' },
-      { href: '/fiyatlandirma', label: 'Fiyatlandırma' },
-      { href: '/guven', label: 'Güven Merkezi' },
-      { href: '/kaynaklar', label: 'Kaynaklar' },
-      { href: '/contact', label: 'İletişim' },
-    ],
     joinPatient: ENTRY_CTA.patientBook.short.tr,
     startTrial: ENTRY_CTA.clinicTrial.short.tr,
     startTrialShort: ENTRY_CTA.clinicTrial.short.tr,
@@ -64,14 +33,6 @@ const SITE_NAV_COPY = {
     login: ENTRY_CTA.clinicLogin.tr,
   },
   en: {
-    links: [
-      { href: '/urun', label: 'Features' },
-      { href: '/cozumler', label: 'Solutions' },
-      { href: '/fiyatlandirma', label: 'Pricing' },
-      { href: '/guven', label: 'Trust Center' },
-      { href: '/kaynaklar', label: 'Resources' },
-      { href: '/contact', label: 'Contact' },
-    ],
     joinPatient: ENTRY_CTA.patientBook.short.en,
     startTrial: ENTRY_CTA.clinicTrial.short.en,
     startTrialShort: ENTRY_CTA.clinicTrial.short.en,
@@ -82,14 +43,19 @@ const SITE_NAV_COPY = {
 } as const
 
 type SiteHeaderProps = {
+  /** Kept for callers; primary nav is identical on home and site. */
   variant?: 'home' | 'site'
 }
 
-export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
+export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { language, setLanguage } = useLanguage()
-  const copy = (variant === 'site' ? SITE_NAV_COPY : HOME_NAV_COPY)[language]
+  const copy = HEADER_COPY[language]
+  const navLinks = PRIMARY_NAV.map((item) => ({
+    href: item.href,
+    label: item.label[language],
+  }))
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -108,42 +74,38 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
         scrolled ? 'pt-3' : 'pt-4',
       )}
     >
-      <div className="mx-auto flex w-[min(1200px,92vw)] items-center justify-between rounded-2xl border border-black/8 bg-white/76 px-4 py-2.5 shadow-glass-soft backdrop-blur-xl md:px-6">
-        <Link href="/" aria-label="Asistan home" className="inline-flex items-center">
-          <AsistanLogo variant="dark" size="md" priority />
+      <div className="mx-auto flex h-14 w-[min(1200px,92vw)] items-center gap-3 rounded-2xl border border-black/8 bg-white/76 px-4 shadow-glass-soft backdrop-blur-xl md:gap-4 md:px-6">
+        <Link
+          href="/"
+          aria-label="Asistan home"
+          className="inline-flex h-10 shrink-0 items-center -translate-y-0.5"
+        >
+          <AsistanLogo variant="dark" size="md" priority className="h-8 w-auto" />
         </Link>
 
-        <nav className="hidden items-center gap-5 md:flex" aria-label="Ana menü">
-          {copy.links.map((item) =>
-            item.href.startsWith('#') ? (
-              <a
-                key={item.href}
-                href={item.href}
-                className="tap-target inline-flex items-center text-sm font-medium tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="tap-target inline-flex items-center text-sm font-medium tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+        <nav
+          className="hidden h-10 flex-1 items-center justify-center gap-3 lg:gap-4 xl:gap-5 md:flex"
+          aria-label="Ana menü"
+        >
+          {navLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex h-10 items-center text-sm font-medium leading-none tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
-          {/* Language Switcher */}
+        <div className="ml-auto hidden h-10 items-center gap-2 md:flex">
           <div className="inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold backdrop-blur-md">
             <button
               type="button"
               aria-pressed={language === 'tr'}
               aria-label="Türkçe dilini seç"
               className={cn(
-                'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                'inline-flex h-8 items-center rounded-lg px-2.5 leading-none transition cursor-pointer',
                 language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
               )}
               onClick={() => setLanguage('tr')}
@@ -155,7 +117,7 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
               aria-pressed={language === 'en'}
               aria-label="İngilizce dilini seç"
               className={cn(
-                'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                'inline-flex h-8 items-center rounded-lg px-2.5 leading-none transition cursor-pointer',
                 language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
               )}
               onClick={() => setLanguage('en')}
@@ -164,22 +126,24 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
             </button>
           </div>
 
-          {/* Auth Actions */}
           <Button
             asChild
             variant="ghost"
-            className="h-10 rounded-xl px-3 text-sm font-semibold text-[#5D6068] hover:bg-black/5 hover:text-[#1D1D1F]"
+            className="h-10 rounded-xl px-3 text-sm font-semibold leading-none text-[#5D6068] hover:bg-black/5 hover:text-[#1D1D1F]"
           >
             <Link href={PATIENT_BOOK_PATH}>{copy.joinPatient}</Link>
           </Button>
           <Button
             asChild
             variant="outline"
-            className="h-10 rounded-xl border-black/10 bg-white/75 px-4 text-sm font-semibold text-[#1D1D1F] backdrop-blur-md hover:bg-slate-50"
+            className="h-10 rounded-xl border-black/10 bg-white/75 px-4 text-sm font-semibold leading-none text-[#1D1D1F] backdrop-blur-md hover:bg-slate-50"
           >
             <Link href={loginUrl}>{copy.login}</Link>
           </Button>
-          <Button asChild className="h-10 rounded-xl bg-[#0071E3] px-4 text-sm font-semibold text-white hover:bg-[#0063C8]">
+          <Button
+            asChild
+            className="h-10 rounded-xl bg-[#0071E3] px-4 text-sm font-semibold leading-none text-white hover:bg-[#0063C8]"
+          >
             <Link href={registerUrl}>{copy.startTrial}</Link>
           </Button>
         </div>
@@ -188,7 +152,7 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
           type="button"
           aria-label={open ? copy.closeMenu : copy.openMenu}
           aria-expanded={open}
-          className="tap-target inline-flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-white/75 md:hidden"
+          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/75 md:hidden"
           onClick={() => setOpen((state) => !state)}
         >
           {open ? <X className="h-5 w-5 text-[#1D1D1F]" /> : <Menu className="h-5 w-5 text-[#1D1D1F]" />}
@@ -236,27 +200,16 @@ export function SiteHeader({ variant = 'home' }: SiteHeaderProps) {
               </button>
             </div>
             <div className="grid gap-1">
-              {copy.links.map((item) =>
-                item.href.startsWith('#') ? (
-                  <a
-                    key={`mobile-${item.href}`}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
-                  >
-                    {item.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={`mobile-${item.href}`}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
-                  >
-                    {item.label}
-                  </Link>
-                ),
-              )}
+              {navLinks.map((item) => (
+                <Link
+                  key={`mobile-${item.href}`}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 border-t border-black/8 pt-3">
               <Button

@@ -17,6 +17,7 @@ import {
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage, Language } from '@/contexts/LanguageContext'
 import { HomeCTA } from '@/components/sections/HomeCTA'
+import { getClaim } from '@/lib/brand/claim-bank'
 
 interface CarouselItem {
   id: number
@@ -39,8 +40,8 @@ export function HeroCoverFlow() {
         en: 'Appointment Management'
       },
       badgeText: {
-        tr: 'Akıllı Takvim',
-        en: 'Smart Calendar'
+        tr: 'Klinik Takvim',
+        en: 'Clinic Calendar'
       },
       bullets: {
         tr: [
@@ -65,23 +66,23 @@ export function HeroCoverFlow() {
         en: 'Patient Records'
       },
       badgeText: {
-        tr: 'KVKK Uyumlu',
-        en: 'Secure Data'
+        tr: getClaim('kvkk-controls', 'tr'),
+        en: getClaim('kvkk-controls', 'en'),
       },
       bullets: {
         tr: [
-          'Tüm hasta geçmişi ve tıbbi notlar tek ve güvenli yerde',
-          'Kişisel sağlık verileri, kronik hastalık ve alerji uyarıları',
-          'Tedavi süreçlerine dair hızlı dosya, reçete ve döküman yükleme',
-          'Güvenli ve şifreli veri tabanı altyapısıyla veri arşivleme'
+          'Tüm hasta geçmişi ve klinik notlar tek yerde',
+          'Rol bazlı erişimle hassas alan kontrolü',
+          'Tedavi süreçlerine dair dosya, reçete ve döküman yükleme',
+          'İşletme bazlı veri ayrımı',
         ],
         en: [
-          'All patient history and medical notes in one secure hub',
-          'Personal health metrics, chronic illness, and allergy alerts',
-          'Quickly upload medical files, prescriptions, and history',
-          'Secure and encrypted database archiving protocol'
-        ]
-      }
+          'Patient history and clinical notes in one place',
+          'Sensitive fields guarded by role-based access',
+          'Upload files, prescriptions, and documents',
+          'Business-level data isolation',
+        ],
+      },
     },
     {
       id: 3,
@@ -92,7 +93,7 @@ export function HeroCoverFlow() {
       },
       badgeText: {
         tr: 'Operasyon Özeti',
-        en: 'Ops Summary'
+        en: 'Operations summary'
       },
       bullets: {
         tr: [
@@ -201,13 +202,13 @@ export function HeroCoverFlow() {
           <h1 className="mx-auto max-w-4xl text-balance font-display text-[clamp(2.1rem,5vw,3.8rem)] font-extrabold tracking-[-0.04em] text-[#1D1D1F] leading-[1.08]">
             {t({
               tr: 'Klinik operasyonlarında modern, güvenilir ve hızlı deneyim',
-              en: 'Modern, Reliable & Fast Clinic Operations'
+              en: 'Modern, reliable clinic operations — practical workflows, not fluff'
             })}
           </h1>
           <p className="mx-auto max-w-3xl text-[1.1rem] leading-relaxed text-[#5D6068] font-medium">
             {t({
               tr: 'Klinikler için web panel; hastalar için web ve mobil randevu. Randevu, hasta kartı, ekip rolleri ve temel analitik — abartısız, çalışan akışlar.',
-              en: 'Web dashboard for clinics; web and mobile booking for patients. Appointments, patient records, team roles, and core analytics — honest, working flows.',
+              en: 'A web dashboard for clinics; web and mobile booking for patients. Appointments, patient records, team roles, and core analytics — working flows without the marketing noise.',
             })}
           </p>
           <HomeCTA />

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Building2, LogOut, MessageCircle, User } from 'lucide-react'
+import { Building2, CreditCard, LogOut, MessageCircle, User } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsistanLogo } from '@/components/asistan-logo'
@@ -19,6 +19,7 @@ import { NotificationBell } from '@/components/dashboard/notification-bell'
 import { createClient } from '@/lib/supabase/client'
 import type { SessionContext } from '@/lib/rbac'
 import type { NotificationListItem } from '@/lib/notifications/types'
+import type { DashboardMembership } from '@/components/dashboard/membership-expiry-banner'
 
 export function MobileTopbar({
   session,
@@ -31,11 +32,7 @@ export function MobileTopbar({
   unreadCount: number
   unreadMessages: number
   notifications: NotificationListItem[]
-  membership: {
-    planName: string
-    isDemo: boolean
-    accessEndAt: string | null
-  } | null
+  membership: DashboardMembership | null
 }) {
   const router = useRouter()
   const initials = session.fullName
@@ -59,8 +56,11 @@ export function MobileTopbar({
 
   return (
     <header className="sticky top-0 z-30 flex h-15 items-center gap-2 border-b border-border/60 bg-white/85 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 lg:hidden">
-      <Link href="/dashboard" className="flex min-w-0 items-center" aria-label="Asistan paneline git">
+      <Link href="/dashboard" className="inline-flex min-w-0 flex-col items-start" aria-label="Asistan Health paneli">
         <AsistanLogo variant="dark" size="sm" priority />
+        <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-brand-blue/65">
+          Asistan Health
+        </span>
       </Link>
 
       <div className="ml-auto flex items-center gap-1">
@@ -92,7 +92,7 @@ export function MobileTopbar({
             <Avatar className="h-9 w-9">
               <AvatarFallback
                 className="text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, var(--brand-teal), var(--brand-cyan))' }}
+                style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-cyan))' }}
               >
                 {initials || 'AS'}
               </AvatarFallback>
@@ -120,6 +120,14 @@ export function MobileTopbar({
                 <Link href="/dashboard/ayarlar?tab=isletme" className="flex items-center gap-2.5">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   İşletme Ayarları
+                </Link>
+              </DropdownMenuItem>
+            )}
+            {session.isOwner && (
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/ayarlar?tab=abonelik" className="flex items-center gap-2.5">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  Abonelik
                 </Link>
               </DropdownMenuItem>
             )}

@@ -26,6 +26,7 @@ import {
 } from '@/components/ui'
 import { apiGet } from '@/lib/api'
 import { useAppTheme } from '@/lib/use-app-theme'
+import { palette } from '@/lib/theme'
 import type { DiscoveryItem } from '@/lib/types'
 
 type SearchResponse = { items: DiscoveryItem[] }
@@ -177,7 +178,7 @@ export default function ClientSearchScreen() {
               <BrandLogo variant="light" height={28} />
               <Badge label={now} tone="info" />
               <AppText variant="hero" color={theme.colors.textInverse}>
-                Merhaba, saglik asistani hazir.
+                Merhaba, sağlık asistanı hazır.
               </AppText>
               <AppText variant="body" color="#BCD1EF">
                 Hizli arama, guvenilir uzmanlar ve bugun icin uygun saatler tek ekranda.
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 12,
     height: 34,
-    backgroundColor: '#0FAE9F',
+    backgroundColor: palette.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

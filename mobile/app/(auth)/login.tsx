@@ -132,7 +132,7 @@ export default function LoginScreen() {
                 <Ionicons
                   name={rememberMe ? "checkbox" : "square-outline"}
                   size={20}
-                  color={rememberMe ? "#0FAE9F" : "#94a3b8"}
+                  color={rememberMe ? palette.primary : "#94a3b8"}
                 />
                 <Text style={styles.rememberText}>Beni hatırla</Text>
               </Pressable>
@@ -165,7 +165,7 @@ export default function LoginScreen() {
 
             {/* Biometrics Login Button */}
             <Pressable style={styles.biometricBtn}>
-              <Ionicons name="finger-print" size={22} color="#0FAE9F" />
+              <Ionicons name="finger-print" size={22} color={palette.primary} />
               <Text style={styles.biometricText}>Biyometrik ile giriş yap</Text>
             </Pressable>
 
@@ -327,20 +327,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   forgotText: {
-    color: '#1E80FF',
+    color: palette.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   button: {
     marginTop: 6,
-    backgroundColor: '#0FAE9F',
+    backgroundColor: palette.primary,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     height: 52,
     flexDirection: 'row',
     position: 'relative',
-    shadowColor: '#0FAE9F',
+    shadowColor: palette.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   linkHighlight: {
-    color: '#1E80FF',
+    color: palette.primary,
     fontWeight: '700',
   },
   secureBadge: {
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   secureTeal: {
-    color: '#0FAE9F',
+    color: palette.primary,
     fontWeight: '600',
   },
   error: {

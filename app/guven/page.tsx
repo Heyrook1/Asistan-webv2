@@ -17,19 +17,20 @@ import { FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getPublicTrustStats } from '@/lib/trust/public'
+import { withCanonical } from '@/lib/seo'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withCanonical('/guven', {
   title: 'Güven Merkezi',
   description:
     'Asistan Health güven mimarisi: KVKK, rol bazlı erişim, denetim izi, veri silme hakkı ve doğrulanabilir operasyon kontrolleri.',
-}
+})
 
 const pillars = [
   {
     icon: ShieldCheck,
     title: 'KVKK odaklı tasarım',
     detail:
-      'Hasta ve klinik verisi işletme (tenant) bazında ayrılır. Rol bazlı izinler yalnızca gerekli kayıtlara erişim verir.',
+      'Hasta ve klinik verisi işletme bazında ayrılır. Rol bazlı izinler yalnızca gerekli kayıtlara erişim verir.',
   },
   {
     icon: LockKeyhole,

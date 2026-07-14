@@ -1,6 +1,7 @@
 'use client'
 
 import type { ComponentType } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   Bell,
@@ -13,12 +14,15 @@ import {
   Star,
   UsersRound,
   History,
+  ArrowRight,
 } from 'lucide-react'
 
 import { useLandingLocale } from '@/components/sections/landing-locale'
 import { GlassCard } from '@/components/ui/glass-card'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { revealSoft, staggerContainer, baseSpring } from '@/lib/animations'
+import { getClinicTrialPath, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
+import { revealSoft, staggerContainer } from '@/lib/animations'
 
 type FeatureItem = {
   icon: ComponentType<{ className?: string }>
@@ -30,7 +34,7 @@ const CLINIC_ITEMS: ReadonlyArray<FeatureItem> = [
   { icon: CalendarClock, title: 'Appointment management', detail: 'Unified scheduling with booking updates from web and mobile channels.' },
   { icon: Database, title: 'Patient records', detail: 'Patient timelines, notes, and documentation in one secure workflow.' },
   { icon: ChartNoAxesCombined, title: 'Ops analytics', detail: 'Track occupancy, cancellations, and basic revenue summaries for daily decisions.' },
-  { icon: ShieldCheck, title: 'RLS security', detail: 'Multi-tenant data isolation and permission-aware access by role.' },
+  { icon: ShieldCheck, title: 'Role-based security', detail: 'Clinic-level data isolation and permission-aware access by role.' },
   { icon: UsersRound, title: 'Multi-staff support', detail: 'Coordinate doctors, assistants, and front desk from one operating view.' },
 ]
 
@@ -44,30 +48,38 @@ const PATIENT_ITEMS: ReadonlyArray<FeatureItem> = [
 
 const FEATURES_COPY = {
   tr: {
-    badge: 'Kapsamlı Özellikler',
-    title: 'İki farklı platform, tek bağlı sağlık pazarı',
-    clinicTab: 'Klinikler İçin (Web Panel)',
-    patientTab: 'Hastalar İçin (Mobil Uygulama)',
+    badge: 'Kapsamlı özellikler',
+    title: 'Klinik paneli ve hasta randevusu aynı Asistan ekosisteminde',
+    clinicTab: 'Klinik paneli',
+    patientTab: 'Hasta randevusu',
+    clinicCta: 'Klinik denemesini başlat',
+    patientCta: 'Hasta olarak randevu ara',
+    clinicFoot: 'Web panel',
+    patientFoot: 'Web + mobil',
     clinicItems: [
-      { icon: CalendarClock, title: 'Randevu Yönetimi', detail: 'Web ve mobil kanallardan gelen rezervasyonları tek akışta yönetin.' },
-      { icon: Database, title: 'Hasta Kayıtları', detail: 'Hasta geçmişini, tedavi notlarını ve belgeleri güvenli şekilde tek panelde tutun.' },
-      { icon: ChartNoAxesCombined, title: 'Operasyon Analitiği', detail: 'Doluluk, iptal ve temel ciro özetlerini günlük kararlar için izleyin.' },
-      { icon: ShieldCheck, title: 'RLS Veri Güvenliği', detail: 'Postgres RLS tabanlı veri izolasyonu ve rol bazlı erişim yetkileri.' },
-      { icon: UsersRound, title: 'Çoklu Personel Desteği', detail: 'Hekimleri, asistanları ve ön masayı tek ortak operasyon ekranında koordine edin.' },
+      { icon: CalendarClock, title: 'Randevu yönetimi', detail: 'Web ve mobil kanallardan gelen rezervasyonları tek akışta yönetin.' },
+      { icon: Database, title: 'Hasta kayıtları', detail: 'Hasta geçmişini, tedavi notlarını ve belgeleri güvenli şekilde tek panelde tutun.' },
+      { icon: ChartNoAxesCombined, title: 'Operasyon analitiği', detail: 'Doluluk, iptal ve temel ciro özetlerini günlük kararlar için izleyin.' },
+      { icon: ShieldCheck, title: 'Rol bazlı güvenlik', detail: 'İşletme bazlı veri ayrımı ve role göre erişim yetkileri.' },
+      { icon: UsersRound, title: 'Çoklu personel', detail: 'Hekim, asistan ve ön masayı tek ortak operasyon ekranında koordine edin.' },
     ],
     patientItems: [
-      { icon: MapPinned, title: 'GPS Tabanlı Klinik Keşfi', detail: 'Yakınınızdaki klinikleri konum, hekim ve mesafe bilgileriyle bulun.' },
-      { icon: Star, title: 'Gerçek Yorumlar', detail: 'Tamamlanmış randevuya bağlı hasta yorumlarını randevu almadan önce okuyun.' },
-      { icon: Compass, title: 'Randevu Talebi', detail: 'Hizmet ve uygun saati seçin; klinik ayarına göre otomatik veya manuel onayla ilerleyin.' },
-      { icon: Bell, title: 'Durum Bildirimleri', detail: 'Onay, değişiklik ve yaklaşan randevular için panel / uygulama bildirimleri alın.' },
-      { icon: History, title: 'Randevu Geçmişi & Tekrarı', detail: 'Geçmiş randevularınızı görüntüleyin, tercih ettiğiniz klinikten tekrar talep oluşturun.' },
+      { icon: MapPinned, title: 'Klinik keşfi', detail: 'Yakınınızdaki klinikleri konum, puan ve mesafe bilgileriyle bulun.' },
+      { icon: Star, title: 'Gerçek yorumlar', detail: 'Tamamlanmış randevuya bağlı yorumları randevu almadan önce okuyun.' },
+      { icon: Compass, title: 'Randevu talebi', detail: 'Hizmet ve uygun saati seçin; klinik ayarına göre otomatik veya manuel onayla ilerleyin.' },
+      { icon: Bell, title: 'Durum bildirimleri', detail: 'Onay, değişiklik ve yaklaşan randevular için bildirim alın.' },
+      { icon: History, title: 'Geçmiş ve tekrar', detail: 'Geçmiş randevularınızı görün, tercih ettiğiniz klinikten tekrar talep oluşturun.' },
     ],
   },
   en: {
-    badge: 'Features Spec Sheet',
-    title: 'Two products, one connected healthcare ecosystem',
-    clinicTab: 'For Clinics (Web)',
-    patientTab: 'For Patients (Mobile App)',
+    badge: 'Product features',
+    title: 'Clinic panel and patient booking in one Asistan ecosystem',
+    clinicTab: 'Clinic panel',
+    patientTab: 'Patient booking',
+    clinicCta: 'Start clinic trial',
+    patientCta: 'Find a clinic as patient',
+    clinicFoot: 'Web dashboard',
+    patientFoot: 'Web + mobile',
     clinicItems: CLINIC_ITEMS,
     patientItems: PATIENT_ITEMS,
   },
@@ -117,11 +129,27 @@ export function FeaturesSection() {
           </div>
 
           <TabsContent value="clinic" className="mt-0 outline-none">
-            <FeatureGrid items={copy.clinicItems} />
+            <FeatureGrid items={copy.clinicItems} foot={copy.clinicFoot} />
+            <div className="mt-8 flex justify-center">
+              <Button asChild className="h-11 rounded-xl bg-[#0071E3] px-5 font-semibold text-white hover:bg-[#0063C8]">
+                <Link href={getClinicTrialPath(locale)}>
+                  {copy.clinicCta}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </TabsContent>
-          
+
           <TabsContent value="patient" className="mt-0 outline-none">
-            <FeatureGrid items={copy.patientItems} />
+            <FeatureGrid items={copy.patientItems} foot={copy.patientFoot} />
+            <div className="mt-8 flex justify-center">
+              <Button asChild variant="outline" className="h-11 rounded-xl border-[#0071E3]/30 px-5 font-semibold text-[#0071E3]">
+                <Link href={PATIENT_BOOK_PATH}>
+                  {copy.patientCta}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -130,7 +158,13 @@ export function FeaturesSection() {
   )
 }
 
-function FeatureGrid({ items }: { items: ReadonlyArray<FeatureItem> }) {
+function FeatureGrid({
+  items,
+  foot,
+}: {
+  items: ReadonlyArray<FeatureItem>
+  foot: string
+}) {
   return (
     <motion.div
       variants={staggerContainer(0.06, 0.02)}
@@ -139,33 +173,25 @@ function FeatureGrid({ items }: { items: ReadonlyArray<FeatureItem> }) {
       viewport={{ once: true, margin: '-8% 0px' }}
       className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
     >
-      {items.map((item, index) => {
+      {items.map((item) => {
         const Icon = item.icon
-        // Bento grid column spans
-        const isBentoWide = index === 3 || index === 4
-        const colSpan = isBentoWide ? 'lg:col-span-1' : 'lg:col-span-1'
 
         return (
-          <motion.div
-            key={item.title}
-            variants={revealSoft}
-            className={colSpan}
-          >
+          <motion.div key={item.title} variants={revealSoft}>
             <GlassCard
               interactive
-              className="p-6 bg-white/40 border-white/50 shadow-md h-full flex flex-col justify-between transition-all duration-300 hover:scale-[1.025]"
+              className="flex h-full flex-col justify-between border-white/50 bg-white/40 p-6 shadow-md transition-all duration-300 hover:scale-[1.025]"
             >
               <div>
-                <div className="w-10 h-10 rounded-xl bg-[#EEF6FF] border border-blue-100 flex items-center justify-center text-[#0071E3] shadow-inner mb-4">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-[#EEF6FF] text-[#0071E3] shadow-inner">
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-bold tracking-tight text-[#1D1D1F]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#5D6068] font-medium">{item.detail}</p>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-[#5D6068]">{item.detail}</p>
               </div>
-              
-              <div className="mt-6 pt-3 border-t border-black/5 flex items-center justify-between text-xs text-slate-400 font-medium">
-                <span>Enterprise ready</span>
-                <span>✨</span>
+
+              <div className="mt-6 flex items-center justify-between border-t border-black/5 pt-3 text-xs font-medium text-slate-400">
+                <span>{foot}</span>
               </div>
             </GlassCard>
           </motion.div>

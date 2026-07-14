@@ -152,7 +152,7 @@ export function RegisterForm() {
       }
 
       setSignUpSuccess(true)
-      toast.success(t({ tr: 'Kayıt İşlemi Başlatıldı', en: 'Registration Initiated' }))
+      toast.success(t({ tr: 'Kayıt işlemi başlatıldı', en: 'Account created — check your email' }))
     } catch {
       setError(t({
         tr: 'Bir hata oluştu. Lütfen tekrar deneyin.',
@@ -193,8 +193,8 @@ export function RegisterForm() {
               en: 'Clinic-specific permission model'
             },
             {
-              tr: 'Demo sürecinde birebir onboarding',
-              en: 'One-on-one onboarding during demo'
+              tr: 'Demo sürecinde birebir kurulum desteği',
+              en: 'One-on-one setup support during demo'
             }
           ].map((item, idx) => (
             <li key={idx} className="flex items-center gap-2.5 text-sm font-semibold text-slate-700">
@@ -345,10 +345,54 @@ export function RegisterForm() {
                   className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0071E3] focus:ring-0 cursor-pointer"
                 />
                 <label htmlFor="register-terms" className="text-xs leading-normal font-semibold text-[#5D6068] cursor-pointer selection:bg-transparent">
-                  {t({
-                    tr: 'Kullanım şartlarını ve gizlilik politikasını kabul ediyorum.',
-                    en: 'I agree to terms of use and privacy policy.',
-                  })}
+                  {language === 'tr' ? (
+                    <>
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:text-[#0071E3]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Kullanım şartlarını
+                      </Link>
+                      {' '}ve{' '}
+                      <Link
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:text-[#0071E3]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        gizlilik politikasını
+                      </Link>
+                      {' '}kabul ediyorum.
+                    </>
+                  ) : (
+                    <>
+                      I agree to the{' '}
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:text-[#0071E3]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        terms of use
+                      </Link>
+                      {' '}and{' '}
+                      <Link
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 hover:text-[#0071E3]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        privacy policy
+                      </Link>
+                      .
+                    </>
+                  )}
                 </label>
               </div>
 
