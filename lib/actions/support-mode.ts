@@ -10,7 +10,9 @@ import { SUPPORT_BUSINESS_COOKIE } from '@/lib/support-mode'
 import { writeAuditLog } from '@/lib/audit'
 import { err, ok, type ActionResult } from '@/lib/actions/result'
 
-export async function startSupportMode(businessId: string): Promise<ActionResult> {
+export async function startSupportMode(
+  businessId: string,
+): Promise<ActionResult<{ businessId: string; businessName: string }>> {
   if (!isFeatureEnabled('supportMode')) return err('Support mode kapalı')
   const session = await requireSuperAdminSession()
   if (!/^[0-9a-f-]{36}$/i.test(businessId)) {
