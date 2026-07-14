@@ -147,6 +147,7 @@ export function GlobalCommandPalette({
       visible: showSuperAdmin,
     },
     {
+      title: 'Denetim',
       href: '/dashboard/denetim',
       icon: ScrollText,
       keywords: 'denetim audit log guvenlik',
