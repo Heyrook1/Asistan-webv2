@@ -173,3 +173,28 @@ export function addDays(date: Date, days: number) {
   next.setDate(next.getDate() + days)
   return next
 }
+
+export const MEMBERSHIP_BILLING_PERIODS = ['MONTHLY', 'YEARLY'] as const
+export type MembershipBillingPeriodValue = (typeof MEMBERSHIP_BILLING_PERIODS)[number]
+
+export const PAID_VENDOR_PLAN_CODES = ['STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const
+export type PaidVendorPlanCode = (typeof PAID_VENDOR_PLAN_CODES)[number]
+
+export function isPaidVendorPlanCode(code: string): code is PaidVendorPlanCode {
+  return (PAID_VENDOR_PLAN_CODES as readonly string[]).includes(code)
+}
+
+/** Monthly catalog amount; yearly = discounted monthly rate × 12. */
+export function getVendorPlanPrice(
+  plan: string | null | undefined,
+  period: MembershipBillingPeriodValue
+): { amount: number; currency: 'EUR'; durationDays: number } | null {
+  const def = getVendorPlanDefinition(plan)
+  if (def.demoOnly) return null
+  if (period === 'MONTHLY') {
+    if (def.monthlyPriceEur == null || def.monthlyPriceEur <= 0) return null
+    return { amount: def.monthlyPriceEur, currency: 'EUR', durationDays: 30 }
+  }
+  if (def.yearlyPriceEur == null || def.yearlyPriceEur <= 0) return null
+  return { amount: def.yearlyPriceEur * 12, currency: 'EUR', durationDays: 365 }
+}
