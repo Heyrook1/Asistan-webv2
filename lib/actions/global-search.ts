@@ -2,6 +2,9 @@
 
 import { prisma } from '@/lib/prisma'
 import { can, requireSession } from '@/lib/session'
+import { paletteSearchQuerySchema } from '@/lib/actions/validation'
+import { logPhiAccess } from '@/lib/observability/phi-access'
+import { withPerfSpan } from '@/lib/observability/logger'
 
 export type GlobalPatientSearchHit = {
   id: string
@@ -32,8 +35,9 @@ function toIsoDate(date: Date) {
 }
 
 export async function searchGlobalPalette(rawQuery: string): Promise<GlobalSearchPayload> {
+  const parsed = paletteSearchQuerySchema.safeParse(rawQuery)
+  const query = parsed.success ? parsed.data.trim() : ''
   const session = await requireSession()
-  const query = rawQuery.trim()
 
   if (query.length < 2) {
     return { patients: [], appointments: [] }
@@ -52,62 +56,78 @@ export async function searchGlobalPalette(rawQuery: string): Promise<GlobalSearc
     !can(session, 'appointment.view') &&
     !can(session, 'appointment.manage')
 
-  const [patients, appointments] = await Promise.all([
-    canSearchPatients
-      ? prisma.patient.findMany({
-          where: {
-            businessId: session.businessId,
-            isArchived: false,
-            OR: [
-              { fullName: { contains: query, mode: 'insensitive' } },
-              { phone: { contains: query, mode: 'insensitive' } },
-              { email: { contains: query, mode: 'insensitive' } },
-              { patientNumber: { contains: query, mode: 'insensitive' } },
-              { identityNumber: { contains: query, mode: 'insensitive' } },
-              { tags: { has: query } },
-            ],
-          },
-          orderBy: { updatedAt: 'desc' },
-          take: 8,
-          select: {
-            id: true,
-            fullName: true,
-            patientNumber: true,
-            phone: true,
-            email: true,
-          },
-        })
-      : Promise.resolve([]),
-    canSearchAppointments
-      ? prisma.appointment.findMany({
-          where: {
-            businessId: session.businessId,
-            ...(appointmentsOwnOnly
-              ? { staffId: session.staffMemberId ?? '__no_staff_scope__' }
-              : {}),
-            OR: [
-              { patient: { is: { fullName: { contains: query, mode: 'insensitive' } } } },
-              { service: { is: { name: { contains: query, mode: 'insensitive' } } } },
-              { staff: { is: { fullName: { contains: query, mode: 'insensitive' } } } },
-              { notes: { contains: query, mode: 'insensitive' } },
-              { startTime: { contains: query } },
-            ],
-          },
-          orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
-          take: 8,
-          select: {
-            id: true,
-            patientId: true,
-            date: true,
-            startTime: true,
-            status: true,
-            patient: { select: { fullName: true } },
-            service: { select: { name: true } },
-            staff: { select: { fullName: true } },
-          },
-        })
-      : Promise.resolve([]),
-  ])
+  const [patients, appointments] = await withPerfSpan('search.global_palette', 'db.query', () =>
+    Promise.all([
+      canSearchPatients
+        ? prisma.patient.findMany({
+            where: {
+              businessId: session.businessId,
+              isArchived: false,
+              OR: [
+                { fullName: { contains: query, mode: 'insensitive' } },
+                { phone: { contains: query, mode: 'insensitive' } },
+                { email: { contains: query, mode: 'insensitive' } },
+                { patientNumber: { contains: query, mode: 'insensitive' } },
+                { identityNumber: { contains: query, mode: 'insensitive' } },
+                { tags: { has: query } },
+              ],
+            },
+            orderBy: { updatedAt: 'desc' },
+            take: 8,
+            select: {
+              id: true,
+              fullName: true,
+              patientNumber: true,
+              phone: true,
+              email: true,
+            },
+          })
+        : Promise.resolve([]),
+      canSearchAppointments
+        ? prisma.appointment.findMany({
+            where: {
+              businessId: session.businessId,
+              ...(appointmentsOwnOnly
+                ? { staffId: session.staffMemberId ?? '__no_staff_scope__' }
+                : {}),
+              OR: [
+                { patient: { is: { fullName: { contains: query, mode: 'insensitive' } } } },
+                { service: { is: { name: { contains: query, mode: 'insensitive' } } } },
+                { staff: { is: { fullName: { contains: query, mode: 'insensitive' } } } },
+                { notes: { contains: query, mode: 'insensitive' } },
+                { startTime: { contains: query } },
+              ],
+            },
+            orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+            take: 8,
+            select: {
+              id: true,
+              patientId: true,
+              date: true,
+              startTime: true,
+              status: true,
+              patient: { select: { fullName: true } },
+              service: { select: { name: true } },
+              staff: { select: { fullName: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ])
+  )
+
+  if (canSearchPatients) {
+    logPhiAccess({
+      businessId: session.businessId,
+      actorUserId: session.userId,
+      action: 'patient.search',
+      summary: 'Global palette hasta araması',
+      metadata: {
+        hitCount: patients.length,
+        queryLen: query.length,
+        source: 'search.global_palette',
+      },
+    })
+  }
 
   return {
     patients,

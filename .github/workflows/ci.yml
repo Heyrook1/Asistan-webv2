@@ -2,109 +2,211 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main, master, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # prisma generate (postinstall) only needs a syntactically valid URL, not a live DB.
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+  DIRECT_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
 
 jobs:
+  # 1) pnpm install → ESLint
   lint:
+    name: Lint (ESLint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v2
         with:
-          version: 9
-
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm lint
-        name: Run ESLint
+      - run: pnpm check:action-validation
+      - run: pnpm check:public-env
 
+  # 2) Vitest — gates merges on unit test failure
   test:
+    name: Unit tests (Vitest)
     runs-on: ubuntu-latest
+    needs: lint
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v2
         with:
-          version: 9
-
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm test
-        name: Run unit tests
 
+  # 3) Build (Next.js) — produces the artifact reused by e2e + staging deploy
   build:
+    name: Build (Next.js)
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v2
         with:
-          version: 9
-
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm db:generate
         name: Generate Prisma client
-
       - run: pnpm build
         name: Build Next.js app
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Upload build artifacts
+          DATABASE_URL: ${{ secrets.DATABASE_URL || env.DATABASE_URL }}
+      - name: Bundle budget (I4)
+        run: pnpm check:bundle-budget
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-build
-          path: .next
-          retention-days: 1
+          path: |
+            .next
+            !.next/cache
+          retention-days: 3
 
-  e2e:
+  # S2 tenant isolation — PR + push; soft-skip when DB role secrets absent.
+  # Required for ci-gate when secrets are configured (fails hard on IDOR/RLS regression).
+  tenant-isolation:
+    name: Tenant isolation (cross-tenant)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    needs: test
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v2
         with:
-          version: 9
-
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
       - run: pnpm install --frozen-lockfile
+      - name: Check secrets
+        id: guard
+        run: |
+          if [ -n "${{ secrets.DATABASE_URL_MIGRATE }}" ] && [ -n "${{ secrets.ASISTAN_APP_DATABASE_URL }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::DATABASE_URL_MIGRATE / ASISTAN_APP_DATABASE_URL secrets missing — cross-tenant smoke skipped (configure for full I4 gate)."
+          fi
+      - name: RLS role smoke
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm smoke:asistan-app-rls
+        env:
+          DATABASE_URL_MIGRATE: ${{ secrets.DATABASE_URL_MIGRATE }}
+          ASISTAN_APP_DATABASE_URL: ${{ secrets.ASISTAN_APP_DATABASE_URL }}
+      - name: Cross-tenant IDOR smoke
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm smoke:cross-tenant
+        env:
+          DATABASE_URL_MIGRATE: ${{ secrets.DATABASE_URL_MIGRATE }}
+          ASISTAN_APP_DATABASE_URL: ${{ secrets.ASISTAN_APP_DATABASE_URL }}
 
+  # I4 — Lighthouse floors on public pages (needs production build artifact).
+  lighthouse:
+    name: Lighthouse (public budgets)
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium --with-deps
+      - name: Start production server
+        run: |
+          pnpm start &
+          echo $! > /tmp/asistan-next.pid
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/ | grep -Eq '200|301|302|307|308'; then
+              echo "server up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "server failed to start"
+          exit 1
+        env:
+          PORT: 3000
+          HOSTNAME: 127.0.0.1
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || env.DATABASE_URL }}
+      - name: Lighthouse budgets
+        run: |
+          export LH_CHROME_PATH="$(node -e "const {chromium}=require('playwright'); console.log(chromium.executablePath())")"
+          echo "Using Chrome: $LH_CHROME_PATH"
+          pnpm check:lighthouse
+        env:
+          LH_BASE_URL: http://127.0.0.1:3000
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 14
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/asistan-next.pid ]; then kill "$(cat /tmp/asistan-next.pid)" || true; fi
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps
         name: Install Playwright browsers
-
       - run: pnpm e2e
         name: Run E2E tests
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
+          DATABASE_URL: ${{ secrets.DATABASE_URL || env.DATABASE_URL }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -112,25 +214,130 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-  production-readiness:
+  # Single required status check for branch protection on `main`.
+  # Add "CI passed" to Settings → Branches → Require status checks.
+  ci-gate:
+    name: CI passed
     runs-on: ubuntu-latest
+    needs: [lint, test, build, e2e, tenant-isolation, lighthouse]
+    if: always()
+    steps:
+      - name: Fail if any required job failed
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.e2e.result }}" != "success" ] || \
+             [ "${{ needs.tenant-isolation.result }}" != "success" ] || \
+             [ "${{ needs.lighthouse.result }}" != "success" ]; then
+            echo "Required job failed — blocking merge."
+            echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} build=${{ needs.build.result }} e2e=${{ needs.e2e.result }} tenant=${{ needs.tenant-isolation.result }} lh=${{ needs.lighthouse.result }}"
+            exit 1
+          fi
+          echo "All required checks passed."
+
+  # 4) Staging deploy — only on push to develop, after the gate.
+  # Host-agnostic (no Vercel): rsync the build over SSH + restart the service.
+  # Skips cleanly when staging secrets are absent.
+  staging-deploy:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    needs: [ci-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 9
+      - name: Check staging secrets
+        id: guard
+        run: |
+          if [ -n "${{ secrets.STAGING_SSH_HOST }}" ] && \
+             [ -n "${{ secrets.STAGING_SSH_USER }}" ] && \
+             [ -n "${{ secrets.STAGING_SSH_KEY }}" ] && \
+             [ -n "${{ secrets.STAGING_PATH }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Staging SSH secrets missing — skipping deploy."
+          fi
 
+      - uses: pnpm/action-setup@v2
+        if: steps.guard.outputs.ready == 'true'
+        with:
+          version: 11
       - uses: actions/setup-node@v4
+        if: steps.guard.outputs.ready == 'true'
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Download build artifact
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next
 
+      - name: Install production deps
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL || env.DATABASE_URL }}
+
+      - name: Add SSH key
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.STAGING_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync build + runtime files
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_deploy" \
+            .next package.json pnpm-lock.yaml next.config.mjs public prisma scripts supabase \
+            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}:${{ secrets.STAGING_PATH }}/"
+
+      - name: Remote install, DB rollout, restart
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          ssh -i ~/.ssh/id_deploy \
+            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}" \
+            "cd ${{ secrets.STAGING_PATH }} && \
+             pnpm install --frozen-lockfile --prod && \
+             pnpm db:ready && \
+             (sudo systemctl restart ${{ secrets.STAGING_SERVICE_NAME || 'asistan-staging' }} || pnpm start &)"
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+
+  production-readiness:
+    name: Production readiness (live DB)
+    runs-on: ubuntu-latest
+    needs: [ci-gate]
+    if: >
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
         name: Generate Prisma client
-
+      - run: pnpm db:ready
+        name: Apply Supabase RLS stack
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
       - run: pnpm check:production
         name: Check production readiness
         env:
@@ -139,3 +346,5 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}

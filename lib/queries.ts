@@ -16,6 +16,8 @@ import {
   parseAnalyticsMonthRange,
   type AnalyticsMonthRange,
 } from '@/lib/analytics-range'
+import { logPhiAccess } from '@/lib/observability/phi-access'
+import { withPerfSpan } from '@/lib/observability/logger'
 
 export type { AnalyticsMonthRange }
 export { parseAnalyticsMonthRange }
@@ -117,7 +119,13 @@ export async function getPendingAppointmentCount(businessId: string, viewer: Ses
 
 export async function getPatientsList(
   businessId: string,
-  options: { query?: string; tag?: string; archived?: boolean; take?: number } = {}
+  options: {
+    query?: string
+    tag?: string
+    archived?: boolean
+    take?: number
+    actorUserId?: string
+  } = {}
 ) {
   const where: Prisma.PatientWhereInput = {
     businessId,
@@ -134,76 +142,141 @@ export async function getPatientsList(
   }
   if (options.tag) where.tags = { has: options.tag }
 
-  return prisma.patient.findMany({
-    where,
-    take: options.take ?? 100,
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      patientNumber: true,
-      fullName: true,
-      phone: true,
-      email: true,
-      gender: true,
-      birthDate: true,
-      tags: true,
-      riskNote: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: { select: { appointments: true, files: true, notes: true, allergies: true } },
-    },
-  })
+  const rows = await withPerfSpan(
+    'patients.list',
+    'db.query',
+    () =>
+      prisma.patient.findMany({
+        where,
+        take: options.take ?? 100,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          patientNumber: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          gender: true,
+          birthDate: true,
+          tags: true,
+          riskNote: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { appointments: true, files: true, notes: true, allergies: true } },
+        },
+      }),
+    { hasQuery: Boolean(options.query) }
+  )
+
+  if (options.query && options.actorUserId) {
+    logPhiAccess({
+      businessId,
+      actorUserId: options.actorUserId,
+      action: 'patient.search',
+      summary: 'Hasta listesi araması',
+      metadata: {
+        hitCount: rows.length,
+        queryLen: options.query.trim().length,
+        source: 'patients.list',
+      },
+    })
+  }
+
+  return rows
 }
 
 export async function getPatientDetail(
   businessId: string,
   patientId: string,
-  options: { includeMedicalNotes?: boolean; includeFiles?: boolean } = {}
+  options: {
+    includeMedicalNotes?: boolean
+    includeFiles?: boolean
+    actorUserId?: string
+  } = {}
 ) {
-  const patient = await prisma.patient.findFirst({
-    where: { id: patientId, businessId },
-    include: {
-      assignedDoctor: { select: { id: true, fullName: true, color: true } },
-      notes: {
-        orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
-        include: { creator: { select: { fullName: true, email: true } } },
-      },
-      medications: { orderBy: { createdAt: 'desc' } },
-      allergies: { orderBy: { createdAt: 'desc' } },
-      treatments: { orderBy: { createdAt: 'desc' } },
-      treatmentPlan: { orderBy: { order: 'asc' } },
-      labResults: { orderBy: { resultDate: 'desc' } },
-      files: { orderBy: { uploadedAt: 'desc' } },
-      appointments: {
-        orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+  return withPerfSpan(
+    'patients.detail',
+    'db.query',
+    async () => {
+      const patient = await prisma.patient.findFirst({
+        where: { id: patientId, businessId },
         include: {
-          service: { select: { name: true, color: true } },
-          staff: { select: { fullName: true } },
-          location: { select: { name: true } },
+          assignedDoctor: { select: { id: true, fullName: true, color: true } },
+          notes: {
+            orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+            include: { creator: { select: { fullName: true, email: true } } },
+          },
+          medications: { orderBy: { createdAt: 'desc' } },
+          allergies: { orderBy: { createdAt: 'desc' } },
+          treatments: { orderBy: { createdAt: 'desc' } },
+          treatmentPlan: { orderBy: { order: 'asc' } },
+          labResults: { orderBy: { resultDate: 'desc' } },
+          files: { orderBy: { uploadedAt: 'desc' } },
+          appointments: {
+            orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+            include: {
+              service: { select: { name: true, color: true } },
+              staff: { select: { fullName: true } },
+              location: { select: { name: true } },
+            },
+          },
+          timeline: { orderBy: { createdAt: 'desc' }, take: 50 },
         },
-      },
-      timeline: { orderBy: { createdAt: 'desc' }, take: 50 },
+      })
+
+      if (!patient) return null
+
+      const includeMedicalNotes = options.includeMedicalNotes ?? true
+      const includeFiles = options.includeFiles ?? true
+      const files = includeFiles ? await signPatientFiles(patient.files) : []
+
+      if (options.actorUserId) {
+        logPhiAccess({
+          businessId,
+          actorUserId: options.actorUserId,
+          action: 'patient.view',
+          entityId: patientId,
+          summary: 'Hasta kartı görüntülendi',
+          metadata: {
+            includeNotes: includeMedicalNotes,
+            includeFiles,
+            fileCount: files.length,
+            source: 'patients.detail',
+          },
+        })
+        if (includeFiles && files.length > 0) {
+          logPhiAccess({
+            businessId,
+            actorUserId: options.actorUserId,
+            action: 'patient.file.view',
+            entityId: patientId,
+            summary: 'Hasta dosyaları için imzalı URL üretildi',
+            metadata: {
+              fileCount: files.length,
+              source: 'patients.detail.sign',
+            },
+          })
+        }
+      }
+
+      return {
+        ...patient,
+        riskNote: includeMedicalNotes ? patient.riskNote : null,
+        summary: includeMedicalNotes ? patient.summary : null,
+        patientStory: includeMedicalNotes ? patient.patientStory : null,
+        familyHistory: includeMedicalNotes ? patient.familyHistory : null,
+        notes: includeMedicalNotes ? patient.notes : [],
+        aiSuggestions: includeMedicalNotes ? patient.aiSuggestions : null,
+        timeline: includeMedicalNotes
+          ? patient.timeline
+          : patient.timeline
+              .filter((event) => event.type !== 'NOTE_ADDED')
+              .map((event) => ({ ...event, description: null })),
+        files,
+      }
     },
-  })
-
-  if (!patient) return null
-
-  const includeMedicalNotes = options.includeMedicalNotes ?? true
-  const includeFiles = options.includeFiles ?? true
-
-  return {
-    ...patient,
-    riskNote: includeMedicalNotes ? patient.riskNote : null,
-    summary: includeMedicalNotes ? patient.summary : null,
-    patientStory: includeMedicalNotes ? patient.patientStory : null,
-    familyHistory: includeMedicalNotes ? patient.familyHistory : null,
-    notes: includeMedicalNotes ? patient.notes : [],
-    aiSuggestions: includeMedicalNotes ? patient.aiSuggestions : null,
-    timeline: includeMedicalNotes
-      ? patient.timeline
-      : patient.timeline.filter((event) => event.type !== 'NOTE_ADDED').map((event) => ({ ...event, description: null })),
-    files: includeFiles ? await signPatientFiles(patient.files) : [],
-  }
+    { includeFiles: options.includeFiles !== false }
+  )
 }
 
 async function batchSignStorageKeys(
@@ -279,6 +352,13 @@ export async function getAppointmentsRange(
   })
 }
 
+const appointmentBoardInclude = {
+  patient: { select: { id: true, fullName: true, phone: true } },
+  service: { select: { id: true, name: true, color: true, durationMin: true } },
+  staff: { select: { id: true, fullName: true, color: true } },
+  location: { select: { id: true, name: true } },
+} as const
+
 export async function getAppointmentsList(
   businessId: string,
   options: { status?: string; from?: Date; to?: Date; locationId?: string } = {},
@@ -297,12 +377,21 @@ export async function getAppointmentsList(
     where,
     orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
     take: 200,
-    include: {
-      patient: { select: { id: true, fullName: true, phone: true } },
-      service: { select: { id: true, name: true, color: true, durationMin: true } },
-      staff: { select: { id: true, fullName: true, color: true } },
-      location: { select: { id: true, name: true } },
-    },
+    include: appointmentBoardInclude,
+  })
+}
+
+/** Deep-link rescue when the row is outside the list `take: 200` window. */
+export async function getAppointmentForBoard(
+  businessId: string,
+  appointmentId: string,
+  viewer: SessionContext,
+) {
+  const where: Prisma.AppointmentWhereInput = { id: appointmentId, businessId }
+  applyAppointmentViewScope(where, viewer)
+  return prisma.appointment.findFirst({
+    where,
+    include: appointmentBoardInclude,
   })
 }
 

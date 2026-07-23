@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertCircle, Apple, ArrowRight, Globe, Instagram, Linkedin, Loader2, Play, Smartphone } from 'lucide-react'
+import { AlertCircle, ArrowRight, Globe, Instagram, Linkedin, Loader2, Play, Smartphone } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLandingLocale } from '@/components/sections/landing-locale'
@@ -21,6 +21,7 @@ const FOOTER_COPY = {
           { href: '/cozumler', label: 'Çözümler' },
           { href: '/urun', label: 'Özellikler' },
           { href: '/fiyatlandirma', label: 'Klinik Fiyatlandırma' },
+          { href: '/sonuclar', label: 'Operasyon sonuçları' },
           { href: '/guven', label: 'Güven Merkezi' },
         ],
       },
@@ -46,9 +47,9 @@ const FOOTER_COPY = {
     ],
     summary:
       `${productName('company', 'tr')}; klinik paneli ${productName('health', 'tr')} ve hasta randevusu ${productName('booking', 'tr')} aynı ekosistemde — web panel, keşif ve rezervasyon.`,
-    appStore: 'Mağaza bekleme listesi',
-    playStore: 'Mağaza bekleme listesi',
-    queue: 'Mağaza yayını için bekleme listesi açık',
+    appStore: 'Ana ekrana ekle',
+    playStore: 'Hasta uygulamasını aç',
+    queue: 'PWA canlı · mağaza isteğe bağlı',
     newsletter: 'Bültene Abone Olun',
     newsletterDesc: 'Ürün güncellemeleri, operasyonel rehberler ve hekim büyüme taktikleri.',
     placeholder: 'E-posta adresiniz...',
@@ -66,6 +67,7 @@ const FOOTER_COPY = {
           { href: '/cozumler', label: 'Solutions' },
           { href: '/urun', label: 'Features' },
           { href: '/fiyatlandirma', label: 'Clinic Pricing' },
+          { href: '/sonuclar', label: 'Outcomes' },
           { href: '/guven', label: 'Trust Center' },
         ],
       },
@@ -91,9 +93,9 @@ const FOOTER_COPY = {
     ],
     summary:
       `${productName('company', 'en')}; clinic panel ${productName('health', 'en')} and patient booking ${productName('booking', 'en')} in one ecosystem — web panel, discovery, and reservations.`,
-    appStore: 'Join store waitlist',
-    playStore: 'Join store waitlist',
-    queue: 'Join the waitlist for store release updates',
+    appStore: 'Add to home screen',
+    playStore: 'Open patient app',
+    queue: 'PWA live · stores optional',
     newsletter: 'Subscribe to Newsletter',
     newsletterDesc: 'Product milestones, operational guides, and growth tactics.',
     placeholder: 'you@clinic.com',
@@ -167,16 +169,16 @@ export function SiteFooter() {
               {copy.summary}
             </p>
 
-            {/* App download block */}
+            {/* Patient PWA install — native stores optional */}
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Link
-                href="/#waitlist"
+                href="/#uygulama"
                 className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm transition-colors hover:border-[#0071E3]/30 hover:bg-white"
               >
                 <div className="flex items-center gap-3">
-                  <Apple className="h-5 w-5 text-[#1D1D1F]" />
+                  <Smartphone className="h-5 w-5 text-[#0071E3]" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">App Store</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PWA</p>
                     <p className="text-xs font-bold text-[#1D1D1F]">{copy.appStore}</p>
                   </div>
                 </div>
@@ -184,13 +186,13 @@ export function SiteFooter() {
               </Link>
 
               <Link
-                href="/#waitlist"
+                href="/client"
                 className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm transition-colors hover:border-[#0071E3]/30 hover:bg-white"
               >
                 <div className="flex items-center gap-3">
                   <Play className="h-5 w-5 text-[#1D1D1F]" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Google Play</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Web app</p>
                     <p className="text-xs font-bold text-[#1D1D1F]">{copy.playStore}</p>
                   </div>
                 </div>

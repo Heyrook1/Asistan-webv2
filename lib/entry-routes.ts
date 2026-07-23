@@ -11,8 +11,10 @@ import {
  *
  * 1. Clinic trial/register → getClinicTrialPath
  * 2. Clinic login → getClinicLoginPath
- * 3. Patient booking (live web) → PATIENT_BOOK_PATH
- * 4. Store early-access waitlist → STORE_WAITLIST_PATH
+ * 3. Patient booking (live web marketplace / PWA) → PATIENT_BOOK_PATH
+ * 3b. Clinic public book link → getPublicBookPath(slug)
+ * 4. Patient PWA install surface → PATIENT_PWA_PATH (/#uygulama)
+ * 4b. Optional native-store update list → STORE_WAITLIST_PATH (/#waitlist)
  * 5. Clinic demo / sales → DEMO_CONTACT_PATH
  *
  * Labels: use ENTRY_CTA_* only. Avoid bare “Başla/Start”, “Erişim/Access”,
@@ -21,31 +23,52 @@ import {
 export type EntryLanguage = AuthLanguage
 
 export const PATIENT_BOOK_PATH = '/client'
-/** Home-page waitlist section; works from any route via absolute hash. */
+/** Short share alias → /client */
+export const PATIENT_BOOK_SHORT_PATH = '/r'
+/** Home showcase — PWA-first patient install narrative. */
+export const PATIENT_PWA_PATH = '/#uygulama'
+/** Optional email list for future App Store / Play updates (secondary). */
 export const STORE_WAITLIST_PATH = '/#waitlist'
 export const DEMO_CONTACT_PATH = '/contact'
+/** KKTC medical-tourism inbound (TR/EN/RU) — not travel agency */
+export const VISIT_CYPRUS_PATH = '/visit-cyprus'
 
 export { getLoginPath as getClinicLoginPath, getRegisterPath as getClinicTrialPath, normalizeAuthLanguage }
+export {
+  getPublicBookPath,
+  getPublicBookEmbedPath,
+  buildPublicBookEmbedSnippet,
+} from '@/lib/public-booking/paths'
 
 /** Canonical bilingual CTA labels — keep marketing copy in sync with these. */
 export const ENTRY_CTA = {
+  /** Primary conversion — verb + outcome + free trial (5.2 → 3/3 with risk reducer line). */
   clinicTrial: {
-    tr: 'Klinik denemesini başlat',
-    en: 'Start clinic trial',
-    short: { tr: 'Klinik denemesi', en: 'Clinic trial' },
+    tr: '14 gün ücretsiz klinik dene',
+    en: 'Try clinic free for 14 days',
+    short: { tr: '14 gün ücretsiz', en: '14-day free trial' },
+  },
+  /** Hero / register risk reducer under the primary CTA. */
+  clinicTrialRiskReducer: {
+    tr: 'Kredi kartı gerekmez — paneli hemen açın',
+    en: 'No credit card — open the panel now',
   },
   clinicLogin: {
-    tr: 'Klinik girişi',
-    en: 'Clinic login',
+    tr: 'Klinik paneline gir',
+    en: 'Open clinic panel',
   },
   patientBook: {
-    tr: 'Hasta randevusu al',
-    en: 'Book as patient',
-    short: { tr: 'Hasta randevusu', en: 'Patient booking' },
+    tr: '3 adımda randevu talep et',
+    en: 'Request a booking in 3 steps',
+    short: { tr: 'Randevu talep et', en: 'Request booking' },
+  },
+  patientPwaInstall: {
+    tr: 'Uygulamayı yükle (PWA)',
+    en: 'Install the app (PWA)',
   },
   storeWaitlist: {
-    tr: 'Mağaza bekleme listesi',
-    en: 'Join store waitlist',
+    tr: 'Mağaza haberleri (isteğe bağlı)',
+    en: 'Store updates (optional)',
   },
   demoRequest: {
     tr: 'Demo talep et',
@@ -55,6 +78,10 @@ export const ENTRY_CTA = {
 
 export function getPatientBookPath(): string {
   return PATIENT_BOOK_PATH
+}
+
+export function getPatientPwaPath(): string {
+  return PATIENT_PWA_PATH
 }
 
 export function getStoreWaitlistPath(): string {

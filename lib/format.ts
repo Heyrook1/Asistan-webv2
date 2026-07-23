@@ -129,11 +129,11 @@ export function ageFromBirthDate(date: Date | string | null | undefined) {
 }
 
 export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: 'Planlandı',
+  SCHEDULED: 'Onay bekliyor',
   CONFIRMED: 'Onaylandı',
   COMPLETED: 'Tamamlandı',
   CANCELLED: 'İptal',
-  NO_SHOW: 'Gelmedi',
+  NO_SHOW: 'Gelinmedi',
 }
 
 export const APPOINTMENT_STATUS_COLORS: Record<string, string> = {

@@ -1,6 +1,14 @@
+/**
+ * Live demo clinic + client fixtures (Auth Admin + Prisma).
+ *
+ *   node scripts/setup-live-test-scenario.mjs --i-know-this-bypasses-rls
+ *
+ * Uses SUPABASE_SERVICE_ROLE_KEY. Remote/production requires confirmation.
+ */
 import { readFileSync } from 'node:fs'
 import { Prisma, PrismaClient, TeamRole } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { requireElevatedOps } from './lib/privilege-guard.mjs'
 
 function parseEnvFile(path) {
   try {
@@ -24,6 +32,13 @@ const env = {
   ...parseEnvFile('.env.local'),
   ...process.env,
 }
+
+requireElevatedOps({
+  script: 'setup-live-test-scenario',
+  purpose: 'Seed live demo clinic/client via service_role Auth Admin',
+  surfaces: ['supabase-service-role', 'postgres-owner'],
+  env,
+})
 
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL ?? env.SUPABASE_URL
 const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_SECRET_KEY

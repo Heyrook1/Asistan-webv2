@@ -98,7 +98,7 @@ export const BRAND_PRODUCTS: Record<BrandProductId, BrandProduct> = {
       tr: 'Hastalar / randevu arayan kullanıcılar',
       en: 'Patients and appointment seekers',
     },
-    surfaces: ['/client', 'mobile', 'store-waitlist'],
+    surfaces: ['/client', '/r', 'web-mobile', 'mobile', 'pwa-install', 'store-updates-optional'],
   },
 }
 

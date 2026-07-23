@@ -27,12 +27,14 @@ export function MobileTopbar({
   unreadMessages,
   notifications,
   membership,
+  teamMessagingEnabled = false,
 }: {
   session: SessionContext
   unreadCount: number
   unreadMessages: number
   notifications: NotificationListItem[]
   membership: DashboardMembership | null
+  teamMessagingEnabled?: boolean
 }) {
   const router = useRouter()
   const initials = session.fullName
@@ -66,18 +68,20 @@ export function MobileTopbar({
       <div className="ml-auto flex items-center gap-1">
         <GlobalCommandTrigger variant="icon" />
 
-        <Link
-          href="/dashboard/mesajlar"
-          aria-label="Mesajlar"
-          className="tap-target relative flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 hover:bg-dashboard-hover"
-        >
-          <MessageCircle className="h-5 w-5" />
-          {unreadMessages > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-danger px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
-              {unreadMessages > 9 ? '9+' : unreadMessages}
-            </span>
-          )}
-        </Link>
+        {teamMessagingEnabled ? (
+          <Link
+            href="/dashboard/mesajlar"
+            aria-label="Mesajlar"
+            className="tap-target relative flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 hover:bg-dashboard-hover"
+          >
+            <MessageCircle className="h-5 w-5" />
+            {unreadMessages > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-danger px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
+                {unreadMessages > 9 ? '9+' : unreadMessages}
+              </span>
+            )}
+          </Link>
+        ) : null}
 
         <NotificationBell
           businessId={session.businessId}
@@ -92,7 +96,7 @@ export function MobileTopbar({
             <Avatar className="h-9 w-9">
               <AvatarFallback
                 className="text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-cyan))' }}
+                style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-hover))' }}
               >
                 {initials || 'AS'}
               </AvatarFallback>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/ui/button'
 
 export default function AppError({
@@ -11,6 +12,10 @@ export default function AppError({
   reset: () => void
 }) {
   useEffect(() => {
+    Sentry.captureException(error, {
+      tags: { boundary: 'app-error' },
+      extra: error.digest ? { digest: error.digest } : undefined,
+    })
     if (process.env.NODE_ENV !== 'production') {
       console.error(error)
     }

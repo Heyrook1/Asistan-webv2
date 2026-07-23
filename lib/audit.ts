@@ -2,12 +2,18 @@ import { headers } from 'next/headers'
 import type { AuditSeverity, Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
+import { log } from '@/lib/observability/logger'
 
 export type AuditAction =
   | 'patient.create'
+  | 'patient.import'
   | 'patient.update'
   | 'patient.archive'
   | 'patient.delete'
+  | 'patient.view'
+  | 'patient.search'
+  | 'patient.file.view'
+  | 'patient.file.upload'
   | 'appointment.create'
   | 'appointment.update'
   | 'appointment.cancel'
@@ -69,7 +75,11 @@ export async function writeAuditLog(input: WriteAuditInput) {
     })
   } catch (error) {
     // Never block the primary business action if audit write fails.
-    console.error('[audit] failed to write audit log', error)
+    log.error('audit.write_failed', {
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId ?? undefined,
+    })
     return null
   }
 }

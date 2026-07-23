@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireSuperAdminSession } from '@/lib/session'
 import { err, ok, type ActionResult } from '@/lib/actions/result'
+import { activateMembershipFromPayment } from '@/lib/payments/activate-membership'
+import { entityIdSchema } from '@/lib/actions/validation'
 import {
   DEMO_PLAN_CODE,
   DEMO_TRIAL_DAYS,
@@ -106,4 +108,35 @@ export async function updateVendorMembership(input: z.infer<typeof updateVendorS
   revalidatePath('/dashboard/sistem-admin')
   revalidatePath('/dashboard/super-admin')
   return ok({ businessId: parsed.data.businessId })
+}
+
+export async function confirmMembershipPayment(
+  paymentId: string
+): Promise<ActionResult<{ businessId: string }>> {
+  const parsed = entityIdSchema.safeParse(paymentId)
+  if (!parsed.success) return err('Geçersiz ödeme kimliği', parsed.error.issues)
+  await requireSuperAdminSession()
+  const result = await activateMembershipFromPayment(parsed.data)
+  if (!result.ok) return err(result.error)
+
+  revalidatePath('/dashboard/sistem-admin')
+  revalidatePath('/dashboard/super-admin')
+  revalidatePath('/dashboard/ayarlar')
+  return ok({ businessId: result.businessId ?? '' })
+}
+
+export async function rejectMembershipPayment(
+  paymentId: string
+): Promise<ActionResult> {
+  const parsed = entityIdSchema.safeParse(paymentId)
+  if (!parsed.success) return err('Geçersiz ödeme kimliği', parsed.error.issues)
+  await requireSuperAdminSession()
+  const updated = await prisma.membershipPayment.updateMany({
+    where: { id: parsed.data, status: 'PENDING' },
+    data: { status: 'CANCELLED' },
+  })
+  if (updated.count === 0) return err('Bekleyen ödeme bulunamadı')
+  revalidatePath('/dashboard/super-admin')
+  revalidatePath('/dashboard/sistem-admin')
+  return ok(undefined)
 }

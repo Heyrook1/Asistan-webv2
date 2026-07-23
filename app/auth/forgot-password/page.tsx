@@ -9,7 +9,10 @@ import { AuthShell } from '@/components/marketing/auth-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { passwordFlowCopy } from '@/lib/auth/password-flow-copy'
 import { createClient } from '@/lib/supabase/client'
+
+const copy = passwordFlowCopy.forgot
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -28,14 +31,14 @@ export default function ForgotPasswordPage() {
         redirectTo: redirectUrl.toString(),
       })
       if (error) {
-        toast.error('Baglanti gonderilemedi', { description: error.message })
+        toast.error('Bağlantı gönderilemedi', { description: error.message })
         return
       }
 
       setSent(true)
-      toast.success('Sifirlama baglantisi gonderildi.')
+      toast.success('Sıfırlama bağlantısı gönderildi.')
     } catch {
-      toast.error('Beklenmeyen bir hata olustu.')
+      toast.error('Beklenmeyen bir hata oluştu.')
     } finally {
       setLoading(false)
     }
@@ -44,25 +47,19 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthShell
-        badge="Sifre Sifirlama"
-        title="E-posta baglantisi gonderildi."
-        description={`${email} adresine sifre yenileme baglantisi gonderdik.`}
-        highlights={[
-          'Gelen kutusu ve spam klasorunu kontrol edin',
-          'Baglanti acildiginda yeni sifrenizi belirleyin',
-          'Ardindan panelinize tekrar giris yapin',
-        ]}
+        badge={copy.sentBadge}
+        title={copy.sentTitle}
+        description={`${email} adresine şifre yenileme bağlantısı gönderdik.`}
+        highlights={[...copy.sentHighlights]}
       >
         <div className="text-center">
           <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-brand-cyan/10 text-brand-blue">
             <MailCheck className="size-7" />
           </div>
-          <h2 className="text-2xl font-black text-brand-navy">E-postanizi kontrol edin</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            Baglantiya tikladiktan sonra yeni sifrenizi belirleyebilirsiniz.
-          </p>
+          <h2 className="text-2xl font-black text-brand-navy">{copy.sentHeading}</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-500">{copy.sentBody}</p>
           <Button asChild className="mt-6 h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
-            <Link href="/auth/login">Giris Sayfasina Don</Link>
+            <Link href="/auth/login">{copy.backToLogin}</Link>
           </Button>
         </div>
       </AuthShell>
@@ -70,14 +67,10 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthShell
-      badge="Sifre Sifirlama"
-      title="Sifrenizi yenilemek icin e-postanizi girin."
-      description="Sisteme kayitli adresinize sifre degistirme baglantisi gonderelim."
-    >
+    <AuthShell badge={copy.badge} title={copy.title} description={copy.description}>
       <div className="mb-6">
-        <h2 className="text-2xl font-black text-brand-navy">Sifremi Unuttum</h2>
-        <p className="mt-2 text-sm text-slate-500">Baglanti ile yeni sifre olusturabilirsiniz.</p>
+        <h2 className="text-2xl font-black text-brand-navy">{copy.heading}</h2>
+        <p className="mt-2 text-sm text-slate-500">{copy.hint}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,24 +86,24 @@ export default function ForgotPasswordPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
             disabled={loading}
-            className="h-11 rounded-lg"
+            className="h-11 rounded-lg text-base md:text-sm"
           />
         </div>
         <Button type="submit" disabled={loading} className="h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
           {loading ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
-              Gonderiliyor...
+              Gönderiliyor...
             </>
           ) : (
-            'Baglanti Gonder'
+            copy.submit
           )}
         </Button>
       </form>
 
       <Link href="/auth/login" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-blue hover:text-brand-teal">
         <ArrowLeft className="size-4" />
-        Giris sayfasina don
+        {copy.backToLogin}
       </Link>
     </AuthShell>
   )

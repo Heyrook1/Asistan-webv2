@@ -17,8 +17,15 @@ const LanguageContext = createContext<LanguageContextProps | undefined>(undefine
 const COOKIE_NAME = 'asistan-lang'
 const LOCAL_STORAGE_KEY = 'asistan-lang'
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('tr')
+export function LanguageProvider({
+  children,
+  initialLanguage = 'tr',
+}: {
+  children: React.ReactNode
+  /** From server cookie so SSR matches first client paint. */
+  initialLanguage?: Language
+}) {
+  const [language, setLanguageState] = useState<Language>(initialLanguage)
 
   // Get cookie helper
   const getCookie = (name: string): string | null => {
@@ -43,7 +50,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Explicit preference only — KKTC product is TR-first; do not flip UI to EN from browser locale.
+    // Prefer cookie (already used for SSR). Only fall back to localStorage if cookie missing.
     const cookieLang = getCookie(COOKIE_NAME)
     if (cookieLang === 'tr' || cookieLang === 'en') {
       setLanguageState(cookieLang)
@@ -87,7 +94,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext)
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider')
+    // Turbopack HMR can duplicate this module so Provider ≠ consumer context.
+    // Prefer TR fallback over crashing the patient shell.
+    return {
+      language: 'tr' as Language,
+      setLanguage: (_lang: Language) => undefined,
+      t: <T,>(translations: { tr: T; en: T }): T => translations.tr,
+    }
   }
   return context
 }

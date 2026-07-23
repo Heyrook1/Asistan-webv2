@@ -18,6 +18,7 @@ import {
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage, Language } from '@/contexts/LanguageContext'
 import { productName } from '@/lib/brand/masterbrand'
+import { InstallPrompt } from '@/components/pwa/install-prompt'
 
 interface FeatureCardProps {
   icon: React.ReactNode
@@ -216,7 +217,7 @@ export function MobileAppShowcase() {
   ]
 
   return (
-    <section id="waitlist" className="relative px-4 py-20 sm:px-6 lg:py-28 bg-[#FFFFFF] overflow-hidden select-none">
+    <section id="uygulama" className="relative overflow-hidden bg-[#FFFFFF] px-4 py-20 select-none sm:px-6 lg:py-28">
       
       {/* Background Soft Glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#0071E3]/5 blur-[120px] rounded-full pointer-events-none" />
@@ -319,8 +320,8 @@ export function MobileAppShowcase() {
                 tr: 'Hizmet ve saati seçin; klinik ayarına göre otomatik veya manuel onayla ilerleyin.',
                 en: 'Pick a service and time; proceed with auto or manual confirmation based on clinic settings.'
               })}
-              badgeText={t({ tr: 'Web + mobil', en: 'Web + mobile' })}
-              badgeType="warning"
+                  badgeText={t({ tr: 'PWA · mağaza opsiyonel', en: 'PWA · stores optional' })}
+                  badgeType="warning"
             />
             <FeatureCard 
               icon={<BellRing className="h-6 w-6" />}
@@ -336,80 +337,128 @@ export function MobileAppShowcase() {
 
         </div>
 
-        {/* Waitlist signup form */}
-        <div className="mx-auto max-w-xl text-center">
-          <GlassCard className="p-8 sm:p-10 bg-white/40 border-white/60 shadow-xl rounded-3xl relative overflow-hidden">
-            <div className="space-y-4">
+        {/* PWA-first install + optional store updates */}
+        <div className="mx-auto max-w-2xl scroll-mt-24 text-center">
+          <GlassCard className="relative overflow-hidden rounded-3xl border-white/60 bg-white/40 p-8 shadow-xl sm:p-10">
+            <div className="space-y-5">
               <h3 className="text-xl font-bold tracking-tight text-[#1D1D1F]">
-                {t({ tr: 'Mağaza yayını için bekleme listesi', en: 'Store release waitlist' })}
-              </h3>
-              <p className="text-sm text-[#5D6068]">
                 {t({
-                  tr: 'Web randevusu bugün açık. App Store / Google Play duyurusu için e-posta bırakın.',
-                  en: 'Web booking is live today. Leave your email for App Store / Google Play updates.',
+                  tr: 'Bugün yükleyin — mağaza şart değil',
+                  en: 'Install today — no store required',
+                })}
+              </h3>
+              <p className="text-sm leading-6 text-[#5D6068]">
+                {t({
+                  tr: 'Asistan Rezervasyon bir PWA: tarayıcıdan ana ekrana ekleyin. Klinik paneliyle aynı ekosistemde randevu alın. App Store / Play isteğe bağlı sonraki adım.',
+                  en: 'Asistan Booking is a PWA: add it to your home screen from the browser. Book in the same ecosystem as clinic panels. App Store / Play is optional later.',
                 })}
               </p>
-              
-              <AnimatePresence mode="wait">
-                {!submitted ? (
-                  <motion.form 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onSubmit={handleSubmit} 
-                    className="mt-4 space-y-2"
-                  >
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <input 
-                        type="email"
-                        required
-                        placeholder={t({ tr: 'E-posta adresiniz', en: 'Your email address' })}
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4.5 text-sm text-[#1D1D1F] outline-none shadow-sm focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/20 transition-all duration-300"
-                      />
-                      <button 
-                        type="submit"
-                        disabled={submitting}
-                        className="h-12 rounded-2xl bg-[#0071E3] px-6 text-sm font-semibold text-white hover:bg-[#0063C8] transition-all duration-300 shadow-md flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
-                      >
-                        <span>
-                          {submitting
-                            ? t({ tr: 'Kaydediliyor…', en: 'Saving…' })
-                            : t({ tr: 'Mağaza bekleme listesine katıl', en: 'Join store waitlist' })}
-                        </span>
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                    {error ? (
-                      <p className="text-left text-xs font-medium text-red-600">{error}</p>
-                    ) : null}
-                  </motion.form>
-                ) : (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-2xl flex items-center justify-center gap-3 font-semibold text-sm mt-4"
-                  >
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    <span>
-                      {t({ 
-                        tr: 'Tebrikler! Bekleme listesine kaydınız başarıyla tamamlandı.', 
-                        en: 'Congratulations! You have successfully joined the early access waitlist.' 
-                      })}
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between text-xs text-[#86868B] gap-2">
-                <span>{t({ tr: 'Spam yok. Sadece mağaza lansman haberleri.', en: 'No spam. Store launch updates only.' })}</span>
+              <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
                 <Link
                   href="/client"
-                  className="inline-flex items-center gap-1 font-semibold text-[#0071E3] hover:underline"
+                  className="inline-flex h-12 min-h-11 items-center justify-center gap-2 rounded-2xl bg-[#0071E3] px-6 text-sm font-semibold text-white shadow-md transition hover:bg-[#0063C8]"
                 >
-                  {t({ tr: 'Webden hasta randevusu al →', en: 'Book as patient on web →' })}
+                  {t({ tr: 'Hasta uygulamasını aç', en: 'Open patient app' })}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
+                <a
+                  href="#waitlist"
+                  className="inline-flex h-12 min-h-11 items-center justify-center rounded-2xl border border-black/10 bg-white px-6 text-sm font-semibold text-[#5D6068] transition hover:border-[#0071E3]/30 hover:text-[#1D1D1F]"
+                >
+                  {t({ tr: 'Mağaza haberleri (isteğe bağlı)', en: 'Store updates (optional)' })}
+                </a>
+              </div>
+
+              <InstallPrompt
+                className="mb-0 text-left"
+                delayMs={400}
+                dismissKey="asistan-pwa-install-dismissed-uygulama-v1"
+                title={{
+                  tr: 'Tarayıcıdan şimdi yükleyin (PWA)',
+                  en: 'Install from the browser now (PWA)',
+                }}
+              />
+
+              <ul className="mx-auto max-w-md space-y-2 text-left text-xs leading-5 text-[#5D6068]">
+                <li>
+                  <span className="font-semibold text-[#1D1D1F]">Android / Chrome:</span>{' '}
+                  {t({
+                    tr: 'Menü → “Uygulamayı yükle” veya “Ana ekrana ekle”.',
+                    en: 'Menu → “Install app” or “Add to Home Screen”.',
+                  })}
+                </li>
+                <li>
+                  <span className="font-semibold text-[#1D1D1F]">iPhone / Safari:</span>{' '}
+                  {t({
+                    tr: 'Paylaş → “Ana Ekrana Ekle”.',
+                    en: 'Share → “Add to Home Screen”.',
+                  })}
+                </li>
+              </ul>
+
+              <div id="waitlist" className="scroll-mt-28 border-t border-black/5 pt-5">
+                <p className="text-sm font-bold text-[#1D1D1F]">
+                  {t({
+                    tr: 'Native mağaza çıkınca haber verilsin mi?',
+                    en: 'Want a ping when native stores ship?',
+                  })}
+                </p>
+                <p className="mt-1 text-xs text-[#5D6068]">
+                  {t({
+                    tr: 'PWA bugün canlı. E-posta yalnızca App Store / Google Play duyurusu içindir.',
+                    en: 'The PWA is live today. Email is only for App Store / Google Play announcements.',
+                  })}
+                </p>
+
+                <AnimatePresence mode="wait">
+                  {!submitted ? (
+                    <motion.form
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onSubmit={handleSubmit}
+                      className="mt-4 space-y-2"
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="email"
+                          required
+                          placeholder={t({ tr: 'E-posta adresiniz', en: 'Your email address' })}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4.5 text-sm text-[#1D1D1F] shadow-sm outline-none transition-all duration-300 focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/20"
+                        />
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#0071E3]/25 bg-[#0071E3]/8 px-6 text-sm font-semibold text-[#0071E3] transition hover:bg-[#0071E3]/12 disabled:opacity-60"
+                        >
+                          <span>
+                            {submitting
+                              ? t({ tr: 'Kaydediliyor…', en: 'Saving…' })
+                              : t({ tr: 'Haberdar et', en: 'Notify me' })}
+                          </span>
+                        </button>
+                      </div>
+                      {error ? <p className="text-left text-xs font-medium text-red-600">{error}</p> : null}
+                    </motion.form>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="mt-4 flex items-center justify-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-700"
+                    >
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <span>
+                        {t({
+                          tr: 'Kaydedildi. Mağaza duyurusunda yazacağız — PWA’yı şimdi yükleyebilirsiniz.',
+                          en: 'Saved. We’ll email for store news — you can install the PWA now.',
+                        })}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </GlassCard>

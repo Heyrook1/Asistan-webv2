@@ -6,8 +6,8 @@ export default function ClientBookingsPage() {
     <Suspense
       fallback={
         <main className="space-y-2">
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Randevularım</h1>
-          <p className="text-sm text-muted-foreground">Randevular yükleniyor…</p>
+          <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight">Randevularım</h1>
+          <p className="text-[13px] text-muted-foreground">Randevular yükleniyor…</p>
         </main>
       }
     >

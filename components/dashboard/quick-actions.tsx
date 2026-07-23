@@ -38,8 +38,8 @@ export function QuickActions({
   const [open, setOpen] = useState<Modal>(null)
 
   const bookingLink = useMemo(() => {
-    if (typeof window === 'undefined') return `/randevu/${lookups.bookingSlug}`
-    return `${window.location.origin}/randevu/${lookups.bookingSlug}`
+    if (typeof window === 'undefined') return `/book/${lookups.bookingSlug}`
+    return `${window.location.origin}/book/${lookups.bookingSlug}`
   }, [lookups.bookingSlug])
 
   return (
@@ -65,7 +65,7 @@ export function QuickActions({
         )}
         <Button variant="outline" onClick={() => setOpen('share')}>
           <Share2 className="mr-2 h-4 w-4" />
-          Takvimi Paylaş
+          Randevu linkini paylaş
         </Button>
       </div>
 
@@ -90,7 +90,7 @@ export function QuickActions({
 
       <Dialog open={open === 'share'} onOpenChange={(v) => !v && setOpen(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Takvimi Paylaş</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Randevu linkini paylaş</DialogTitle></DialogHeader>
           <div className="grid gap-3">
             <Input readOnly value={bookingLink} />
             <Button

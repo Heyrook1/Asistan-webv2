@@ -3,7 +3,7 @@ import Link from 'next/link'
 import {
   ChevronLeft, Phone, Mail, MapPin, AlertTriangle, HeartPulse,
   ShieldAlert, Calendar as CalendarIcon, ShieldCheck,
-  FileText, ClipboardCheck, StickyNote, Activity,
+  ClipboardCheck, StickyNote,
 } from 'lucide-react'
 import { requirePagePermission, can } from '@/lib/session'
 import { getPatientDetail } from '@/lib/queries'
@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
-  ageFromBirthDate, formatPhone, formatDate, formatTime, formatDateTime, formatTimeAgo,
+  ageFromBirthDate, formatPhone, formatDate, formatTime, formatDateTime,
   APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS, TREATMENT_STATUS_LABELS, FILE_CATEGORY_LABELS,
 } from '@/lib/format'
 import { PatientActionButtons } from './action-buttons'
@@ -21,6 +21,11 @@ import { TreatmentPlanBoard } from './treatment-plan'
 import { PatientSecondaryPanel } from './secondary-panel'
 import { listPatientPrescriptions } from '@/lib/actions/prescriptions'
 import { PatientPrescriptionsPanel } from '@/components/dashboard/patient-prescriptions-panel'
+import { IntakeResponsePanel } from '@/components/intake/intake-response-panel'
+import { parseIntakeFields } from '@/lib/intake/schema'
+import { HealthTimeline } from '@/components/health-timeline/health-timeline'
+import { PatientNoteBody, SoapNoteBadge } from '@/components/dashboard/patient-note-body'
+import { buildClinicHealthTimeline } from '@/lib/health-timeline'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,16 +42,18 @@ export default async function PatientDetailPage({
   const canEdit = can(session, 'patient.edit')
   const canViewMedicalNotes = can(session, 'medical_note.view')
   const canViewFiles = can(session, 'file.view')
+  const canManageAppointments = can(session, 'appointment.manage')
   const initialAction = sp.action === 'note' || sp.action === 'file' ? sp.action : undefined
   const patient = await getPatientDetail(session.businessId, id, {
     includeMedicalNotes: canViewMedicalNotes,
     includeFiles: canViewFiles,
+    actorUserId: session.userId,
   })
   if (!patient) notFound()
 
   const age = ageFromBirthDate(patient.birthDate)
 
-  const [services, staff, locations, prescriptions] = await Promise.all([
+  const [services, staff, locations, prescriptions, intakeResponses, intakeInvites] = await Promise.all([
     prisma.service.findMany({
       where: { businessId: session.businessId, isActive: true },
       orderBy: { name: 'asc' },
@@ -63,6 +70,45 @@ export default async function PatientDetailPage({
       select: { id: true, name: true },
     }),
     listPatientPrescriptions(id),
+    canViewMedicalNotes
+      ? prisma.intakeResponse.findMany({
+          where: { businessId: session.businessId, patientId: id },
+          orderBy: { submittedAt: 'desc' },
+          include: {
+            form: { select: { name: true } },
+            appointment: {
+              select: {
+                id: true,
+                date: true,
+                startTime: true,
+                service: { select: { name: true } },
+              },
+            },
+          },
+          take: 50,
+        })
+      : Promise.resolve([]),
+    canViewMedicalNotes || canManageAppointments
+      ? prisma.intakeInvite.findMany({
+          where: {
+            businessId: session.businessId,
+            patientId: id,
+            status: 'PENDING',
+          },
+          orderBy: { expiresAt: 'asc' },
+          include: {
+            form: { select: { name: true } },
+            appointment: {
+              select: {
+                date: true,
+                startTime: true,
+                service: { select: { name: true } },
+              },
+            },
+          },
+          take: 20,
+        })
+      : Promise.resolve([]),
   ])
 
   const doctors = await prisma.teamMember.findMany({
@@ -91,6 +137,42 @@ export default async function PatientDetailPage({
   const allergyNames = patient.allergies.slice(0, 3).map((a) => a.name).join(', ')
   const activeMedications = patient.medications.filter((m) => m.active)
 
+  const healthTimelineItems = buildClinicHealthTimeline({
+    appointments: patient.appointments,
+    labResults: patient.labResults,
+    medications: patient.medications,
+    allergies: patient.allergies,
+    treatments: patient.treatments,
+    notes: patient.notes,
+    files: patient.files,
+    timeline: patient.timeline,
+    prescriptions: canViewMedicalNotes
+      ? prescriptions.map((rx) => ({
+          id: rx.id,
+          protocolNo: rx.protocolNo,
+          diagnosis: rx.diagnosis,
+          issuedAt: rx.issuedAt,
+        }))
+      : [],
+    intakeResponses: canViewMedicalNotes
+      ? intakeResponses.map((row) => ({
+          id: row.id,
+          submittedAt: row.submittedAt,
+          form: row.form,
+          appointment: row.appointment,
+        }))
+      : [],
+    includeNotes: canViewMedicalNotes,
+    includeFiles: canViewFiles,
+  }).map((item) =>
+    item.id.startsWith('prescription:') && item.sourceEntityId
+      ? {
+          ...item,
+          href: `/dashboard/hastalar/${patient.id}/receteler/${item.sourceEntityId}`,
+        }
+      : item
+  )
+
   return (
     <div className="space-y-3 lg:space-y-4">
       <Link href="/dashboard/hastalar" className="tap-target inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand-teal">
@@ -107,7 +189,7 @@ export default async function PatientDetailPage({
         <CardContent className="p-4 lg:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-teal to-brand-cyan text-lg font-bold text-white">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-blue to-brand-blue-hover text-lg font-bold text-white">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
@@ -208,9 +290,17 @@ export default async function PatientDetailPage({
               <div className="overflow-x-auto no-scrollbar md:overflow-visible">
                 <TabsList className="inline-flex h-auto w-max items-stretch gap-1 bg-transparent p-0 md:flex md:w-auto md:flex-wrap md:gap-1 md:p-1">
                   <TabsTrigger value="genel" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Özet</TabsTrigger>
+                  <TabsTrigger value="zaman" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">
+                    Sağlık Zaman Çizelgesi ({healthTimelineItems.length})
+                  </TabsTrigger>
                   <TabsTrigger value="randevular" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Randevular ({patient.appointments.length})</TabsTrigger>
                   {canViewMedicalNotes && (
                     <TabsTrigger value="not" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Notlar ({patient.notes.length})</TabsTrigger>
+                  )}
+                  {(canViewMedicalNotes || canManageAppointments) && (
+                    <TabsTrigger value="anket" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">
+                      Anketler ({intakeResponses.length + intakeInvites.length})
+                    </TabsTrigger>
                   )}
                   <TabsTrigger value="ilac" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">İlaçlar ({patient.medications.length})</TabsTrigger>
                   <TabsTrigger value="alerji" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Alerjiler ({patient.allergies.length})</TabsTrigger>
@@ -275,6 +365,7 @@ export default async function PatientDetailPage({
                   Detay sekmeleri
                 </p>
                 <div className="flex flex-wrap gap-2 text-sm">
+                  <QuickJump label={`Zaman çizelgesi (${healthTimelineItems.length})`} />
                   <QuickJump label={`İlaçlar (${activeMedications.length} aktif)`} />
                   <QuickJump label={`Tahliller (${patient.labResults.length})`} />
                   <QuickJump label={`Dosyalar (${patient.files.length})`} />
@@ -282,13 +373,28 @@ export default async function PatientDetailPage({
                   <QuickJump label={`Randevular (${patient.appointments.length})`} />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Tam listeler ilgili sekmede. Özet ekranı yalnızca kritik klinik özeti gösterir.
+                  Boylamsal kayıt için Sağlık Zaman Çizelgesi sekmesine geçin. Özet yalnızca kritik klinik özeti gösterir.
                 </p>
               </CardContent>
             </Card>
 
             <PatientSecondaryPanel timeline={patient.timeline} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="zaman">
+          <Card>
+            <CardContent className="p-5">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-brand-ink">Sağlık Zaman Çizelgesi</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Randevu, tahlil, ilaç, alerji, tedavi, not ve dosyalar gün bazında birleşir. Düzenleme için ilgili
+                  sekmeleri kullanın.
+                </p>
+              </div>
+              <HealthTimeline items={healthTimelineItems} variant="clinic" locale="tr" />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* KLINIK GEÇMIŞI */}
@@ -442,7 +548,7 @@ export default async function PatientDetailPage({
 
             <TabsContent value="hikaye">
               <Card>
-                <CardContent className="p-5 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
+                <CardContent className="p-5 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                   <div>
                     <h3 className="mb-2 text-sm font-semibold text-brand-ink">Anamnez ve Hasta Hikayesi</h3>
                     {patient.patientStory ? (
@@ -451,28 +557,13 @@ export default async function PatientDetailPage({
                       <p className="text-sm text-muted-foreground">Hasta hikayesi henüz girilmedi.</p>
                     )}
                   </div>
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold text-brand-ink">Zaman Çizelgesi</h3>
-                    {patient.timeline.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Aktivite kaydı yok.</p>
-                    ) : (
-                      <ul className="space-y-3 relative pl-1">
-                        <span className="absolute left-3 top-1 bottom-1 w-px bg-border" />
-                        {patient.timeline.map((ev, idx) => (
-                          <li key={ev.id} className="relative pl-7">
-                            <span
-                              className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-full text-white"
-                              style={{ background: timelineColor(idx) }}
-                            >
-                              {timelineIcon(ev.type)}
-                            </span>
-                            <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
-                            <p className="text-sm text-brand-ink">{ev.title}</p>
-                            {ev.description && <p className="text-[11px] text-muted-foreground">{ev.description}</p>}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                  <div className="rounded-2xl border border-dashed border-border bg-dashboard-surface p-4">
+                    <h3 className="text-sm font-semibold text-brand-ink">Boylamsal kayıt</h3>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      Randevu, tahlil, ilaç ve diğer klinik olaylar artık{' '}
+                      <span className="font-semibold text-brand-ink">Sağlık Zaman Çizelgesi</span> sekmesinde gün
+                      bazında birleşiyor ({healthTimelineItems.length} kayıt).
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -515,10 +606,13 @@ export default async function PatientDetailPage({
                   {patient.notes.map((n) => (
                     <li key={n.id} className="rounded-xl border bg-white p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
+                          <SoapNoteBadge note={n.note} />
+                        </div>
                         {n.isPinned && <Badge className="bg-amber-100 text-amber-800 border-0">Sabit</Badge>}
                       </div>
-                      <p className="mt-1 text-sm whitespace-pre-line text-brand-ink">{n.note}</p>
+                      <PatientNoteBody note={n.note} />
                       <p className="mt-2 text-[10px] text-muted-foreground">{formatDateTime(n.createdAt)} • {n.creator?.fullName ?? n.createdBy}</p>
                     </li>
                   ))}
@@ -527,6 +621,47 @@ export default async function PatientDetailPage({
             </CardContent>
           </Card>
         </TabsContent>
+        )}
+
+        {(canViewMedicalNotes || canManageAppointments) && (
+          <TabsContent value="anket">
+            <IntakeResponsePanel
+              canManageAppointments={canManageAppointments}
+              responses={
+                canViewMedicalNotes
+                  ? intakeResponses.map((row) => ({
+                      id: row.id,
+                      submittedAt: row.submittedAt.toISOString(),
+                      formName: row.form.name,
+                      answers: (row.answers && typeof row.answers === 'object'
+                        ? row.answers
+                        : {}) as Record<string, string | boolean | null>,
+                      fields: parseIntakeFields(row.formSnapshot),
+                      appointment: row.appointment
+                        ? {
+                            id: row.appointment.id,
+                            date: row.appointment.date.toISOString().slice(0, 10),
+                            startTime: row.appointment.startTime,
+                            serviceName: row.appointment.service.name,
+                          }
+                        : null,
+                    }))
+                  : []
+              }
+              pendingInvites={intakeInvites.map((invite) => ({
+                id: invite.id,
+                appointmentId: invite.appointmentId,
+                status: invite.status,
+                formName: invite.form.name,
+                expiresAt: invite.expiresAt.toISOString(),
+                appointment: {
+                  date: invite.appointment.date.toISOString().slice(0, 10),
+                  startTime: invite.appointment.startTime,
+                  serviceName: invite.appointment.service.name,
+                },
+              }))}
+            />
+          </TabsContent>
         )}
       </Tabs>
     </div>
@@ -565,19 +700,6 @@ function QuickJump({ label }: { label: string }) {
       {label}
     </span>
   )
-}
-
-function timelineColor(idx: number) {
-  const palette = ['#0071E3', '#16A9E8', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4']
-  return palette[idx % palette.length]
-}
-
-function timelineIcon(type: string) {
-  if (type.includes('APPOINTMENT')) return <CalendarIcon className="h-3 w-3" />
-  if (type.includes('MEDICATION')) return <span className="text-[9px] font-bold">Rx</span>
-  if (type.includes('LAB')) return <ClipboardCheck className="h-3 w-3" />
-  if (type.includes('FILE')) return <FileText className="h-3 w-3" />
-  return <Activity className="h-3 w-3" />
 }
 
 function SummaryCard({

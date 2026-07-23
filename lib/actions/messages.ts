@@ -4,9 +4,11 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
 import { requireSession } from '@/lib/session'
 import { checkRateLimit } from '@/lib/security/rate-limit'
 import { MESSAGE_MEDIA_BUCKET } from '@/lib/storage-constants'
+import { isTeamMessagingEnabled, teamMessagingDisabledResult } from '@/lib/messaging/policy'
 import { ok, err, type ActionResult } from './result'
 
 const DIRECT_CONVERSATION_RATE_LIMIT = { action: 'messages:get-or-create-direct', limit: 12, windowMs: 60_000 }
@@ -15,6 +17,11 @@ const SEND_MESSAGE_RATE_LIMIT = { action: 'messages:send', limit: 45, windowMs: 
 function rateLimitedResult(retryAfterMs: number): ActionResult<never> {
   const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000))
   return err(`Cok fazla istek gonderdiniz. Lutfen ${retryAfterSeconds} saniye sonra tekrar deneyin.`)
+}
+
+function assertMessagingEnabled(): ActionResult<never> | null {
+  if (!isTeamMessagingEnabled()) return teamMessagingDisabledResult()
+  return null
 }
 
 async function assertParticipant(conversationId: string, userId: string) {
@@ -46,6 +53,8 @@ function directConversationKey(userIdA: string, userIdB: string) {
 export async function getOrCreateDirectConversation(
   input: unknown
 ): Promise<ActionResult<{ conversationId: string }>> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = directSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requireSession()
@@ -163,6 +172,8 @@ const groupSchema = z.object({
 export async function createGroupConversation(
   input: unknown
 ): Promise<ActionResult<{ conversationId: string }>> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = groupSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requireSession()
@@ -193,6 +204,8 @@ const groupMembersSchema = z.object({
 })
 
 export async function addGroupParticipants(input: unknown): Promise<ActionResult> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = groupMembersSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requireSession()
@@ -236,6 +249,8 @@ const removeGroupMemberSchema = z.object({
 })
 
 export async function removeGroupParticipant(input: unknown): Promise<ActionResult> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = removeGroupMemberSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requireSession()
@@ -284,6 +299,8 @@ const sendSchema = z.object({
 export async function sendMessage(
   input: unknown
 ): Promise<ActionResult<{ id: string; createdAt: string }>> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = sendSchema.safeParse(input)
   if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requireSession()
@@ -312,7 +329,7 @@ export async function sendMessage(
     }
   }
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await tenantTransaction(session.businessId, async (tx) => {
     const msg = await tx.message.create({
       data: {
         conversationId: parsed.data.conversationId,
@@ -352,6 +369,8 @@ const reactionSchema = z.object({
 })
 
 export async function toggleMessageReaction(input: unknown): Promise<ActionResult> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = reactionSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz tepki', parsed.error.issues)
   const session = await requireSession()
@@ -413,6 +432,8 @@ export async function toggleMessageReaction(input: unknown): Promise<ActionResul
 const markReadSchema = z.object({ conversationId: z.string().uuid() })
 
 export async function markConversationRead(input: unknown): Promise<ActionResult> {
+  const disabled = assertMessagingEnabled()
+  if (disabled) return disabled
   const parsed = markReadSchema.safeParse(input)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requireSession()

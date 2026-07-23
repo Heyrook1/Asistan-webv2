@@ -158,9 +158,9 @@ export function ClinicFilters() {
   }
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 bg-background/80 px-4 pb-3 pt-2 backdrop-blur md:mx-0 md:px-0">
+    <div className="sticky top-0 z-20 -mx-1 bg-[#E8EEF6]/80 px-1 pb-3 pt-1 backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        <div className="flex flex-1 gap-2 overflow-x-auto pb-1 pr-2 no-scrollbar">
+        <div className="flex flex-1 gap-2 overflow-x-auto pb-0.5 pr-1 no-scrollbar">
           {CHIPS.map((chip) => {
             const active = chipState.get(chip.key) ?? false
             return (
@@ -169,11 +169,10 @@ export function ClinicFilters() {
                 type="button"
                 onClick={() => toggleChip(chip)}
                 className={cn(
-                  'shrink-0 rounded-full px-4 py-2.5 text-xs font-semibold',
-                  'transition-all duration-150 active:scale-95',
+                  'shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition duration-150 active:scale-95',
                   active
-                    ? 'bg-primary text-white shadow-[0_2px_8px_rgba(14,154,167,0.3)] ring-1 ring-primary/20'
-                    : 'bg-white text-foreground ring-1 ring-border hover:ring-primary/30 hover:bg-primary-soft',
+                    ? 'bg-[#0071E3] text-white'
+                    : 'bg-white/90 text-slate-700 ring-1 ring-slate-900/5 hover:ring-[#0071E3]/25',
                 )}
               >
                 {chipLabels[chip.labelKey]}
@@ -184,10 +183,10 @@ export function ClinicFilters() {
 
         <Select value={currentSort} onValueChange={(v) => updateParams({ sort: v })}>
           <SelectTrigger
-            className="h-10 w-[150px] shrink-0 rounded-xl bg-card text-sm shadow-sm"
+            className="h-10 w-[140px] shrink-0 rounded-full border-0 bg-white/90 text-sm shadow-none ring-1 ring-slate-900/5"
             aria-label={t({ tr: 'Sıralama', en: 'Sort' })}
           >
-            <SlidersHorizontal className="mr-2 h-4 w-4 text-muted-foreground" />
+            <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5 text-slate-400" />
             <SelectValue placeholder={t({ tr: 'Sırala', en: 'Sort' })} />
           </SelectTrigger>
           <SelectContent>
@@ -204,7 +203,7 @@ export function ClinicFilters() {
             variant="outline"
             size="icon"
             onClick={clearFilters}
-            className="h-10 w-10 shrink-0 rounded-xl bg-card shadow-sm"
+            className="h-10 w-10 shrink-0 rounded-full border-0 bg-white/90 shadow-none ring-1 ring-slate-900/5"
             aria-label={t({ tr: 'Filtreleri temizle', en: 'Clear filters' })}
           >
             <X className="h-4 w-4" />

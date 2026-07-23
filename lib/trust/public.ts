@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/prisma'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
+import type { PublicTrustStats } from '@/lib/trust/publish-policy'
 
-export type PublicTrustStats = {
-  activeClinics: number
-  verifiedDoctors: number
-  completedAppointments: number
-  reviewCount: number
-  averageRating: number | null
-}
+export type { PublicTrustStats } from '@/lib/trust/publish-policy'
+export {
+  PUBLIC_TRUST_STATS_MIN_COMPLETED,
+  shouldPublishPublicTrustStats,
+} from '@/lib/trust/publish-policy'
 
 export type DoctorVerification = {
   level: 'verified' | 'partial' | 'unverified'
@@ -65,36 +65,39 @@ export function getDoctorVerification(input: {
 
 export async function getPublicTrustStats(): Promise<PublicTrustStats> {
   try {
-    const [activeClinics, verifiedDoctors, completedAppointments, reviewAgg] = await Promise.all([
-      prisma.business.count({ where: { isActive: true, deletedAt: null } }),
-      prisma.teamMember.count({
-        where: {
-          isActive: true,
-          role: { in: ['DOKTOR', 'ISLETME_SAHIBI'] },
-          OR: [
-            { medicalLicenseNo: { not: null } },
-            { diplomaNo: { not: null } },
-            { kktcIdentityNo: { not: null } },
-          ],
-        },
-      }),
-      prisma.appointment.count({
-        where: { status: 'COMPLETED', deletedAt: null },
-      }),
-      prisma.review.aggregate({
-        where: { deletedAt: null },
-        _count: { _all: true },
-        _avg: { rating: true },
-      }),
-    ])
+    // Platform-wide marketing aggregates — intentional cross-tenant read.
+    return await runWithTenantBypassAsync('trust:public-stats', async () => {
+      const [activeClinics, verifiedDoctors, completedAppointments, reviewAgg] = await Promise.all([
+        prisma.business.count({ where: { isActive: true, deletedAt: null } }),
+        prisma.teamMember.count({
+          where: {
+            isActive: true,
+            role: { in: ['DOKTOR', 'ISLETME_SAHIBI'] },
+            OR: [
+              { medicalLicenseNo: { not: null } },
+              { diplomaNo: { not: null } },
+              { kktcIdentityNo: { not: null } },
+            ],
+          },
+        }),
+        prisma.appointment.count({
+          where: { status: 'COMPLETED', deletedAt: null },
+        }),
+        prisma.review.aggregate({
+          where: { deletedAt: null },
+          _count: { _all: true },
+          _avg: { rating: true },
+        }),
+      ])
 
-    return {
-      activeClinics,
-      verifiedDoctors,
-      completedAppointments,
-      reviewCount: reviewAgg._count._all,
-      averageRating: reviewAgg._avg.rating ? Number(reviewAgg._avg.rating.toFixed(1)) : null,
-    }
+      return {
+        activeClinics,
+        verifiedDoctors,
+        completedAppointments,
+        reviewCount: reviewAgg._count._all,
+        averageRating: reviewAgg._avg.rating ? Number(reviewAgg._avg.rating.toFixed(1)) : null,
+      }
+    })
   } catch {
     return {
       activeClinics: 0,
@@ -108,34 +111,36 @@ export async function getPublicTrustStats(): Promise<PublicTrustStats> {
 
 export async function getPublicVerifiedReviews(limit = 6) {
   try {
-    const rows = await prisma.review.findMany({
-      where: {
-        deletedAt: null,
-        comment: { not: null },
-        rating: { gte: 4 },
-        appointment: { status: 'COMPLETED' },
-      },
-      include: {
-        business: { select: { name: true, city: true } },
-        staff: { select: { fullName: true } },
-        clientUser: { select: { fullName: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    })
+    return await runWithTenantBypassAsync('trust:public-reviews', async () => {
+      const rows = await prisma.review.findMany({
+        where: {
+          deletedAt: null,
+          comment: { not: null },
+          rating: { gte: 4 },
+          appointment: { status: 'COMPLETED' },
+        },
+        include: {
+          business: { select: { name: true, city: true } },
+          staff: { select: { fullName: true } },
+          clientUser: { select: { fullName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
 
-    return rows
-      .filter((row) => Boolean(row.comment?.trim()))
-      .map((row) => ({
-        id: row.id,
-        rating: row.rating,
-        comment: row.comment!.trim(),
-        clinicName: row.business.name,
-        city: row.business.city,
-        doctorName: row.staff?.fullName ?? null,
-        authorName: maskName(row.clientUser.fullName),
-        createdAt: row.createdAt.toISOString(),
-      }))
+      return rows
+        .filter((row) => Boolean(row.comment?.trim()))
+        .map((row) => ({
+          id: row.id,
+          rating: row.rating,
+          comment: row.comment!.trim(),
+          clinicName: row.business.name,
+          city: row.business.city,
+          doctorName: row.staff?.fullName ?? null,
+          authorName: maskName(row.clientUser.fullName),
+          createdAt: row.createdAt.toISOString(),
+        }))
+    })
   } catch {
     return []
   }

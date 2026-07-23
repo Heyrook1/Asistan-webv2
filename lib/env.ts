@@ -22,6 +22,8 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     DATABASE_URL: optionalConnectionString,
     DIRECT_URL: optionalConnectionString,
+    /** Owner / migrate / identity connection (preferred for DDL + asistan_identity ops). */
+    DATABASE_URL_MIGRATE: optionalConnectionString,
     POSTGRES_PRISMA_URL: optionalConnectionString,
     POSTGRES_URL: optionalConnectionString,
     POSTGRES_URL_NON_POOLING: optionalConnectionString,
@@ -36,7 +38,32 @@ const envSchema = z
     EMAIL_PROVIDER_WEBHOOK_URL: optionalUrl,
     SMS_PROVIDER_WEBHOOK_URL: optionalUrl,
     WHATSAPP_PROVIDER_WEBHOOK_URL: optionalUrl,
+    /** Meta webhook verify (GET hub.challenge). */
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: optionalSecret,
+    /** Meta App Secret — required for `X-Hub-Signature-256` on inbound WA webhooks. */
+    WHATSAPP_APP_SECRET: optionalSecret,
+    /**
+     * Outbound notification webhook auth + inbound WA adapter master secret.
+     * Inbound bearer must be clinic-bound (HMAC), never this value alone.
+     */
     NOTIFICATION_PROVIDER_TOKEN: optionalSecret,
+    /** Optional static per-slug inbound tokens: `slug:token,slug2:token2` or JSON. */
+    WHATSAPP_INBOUND_TOKENS: optionalSecret,
+    /** Protects `/api/cron/*` — required in every environment (fail-closed). */
+    CRON_SECRET: optionalSecret,
+    GOOGLE_CALENDAR_CLIENT_ID: optionalSecret,
+    GOOGLE_CALENDAR_CLIENT_SECRET: optionalSecret,
+    GOOGLE_CALENDAR_REDIRECT_ORIGIN: optionalUrl,
+    CALENDAR_TOKEN_ENCRYPTION_KEY: optionalSecret,
+    PAYMENT_PROVIDER: optionalSecret,
+    STRIPE_SECRET_KEY: optionalSecret,
+    STRIPE_WEBHOOK_SECRET: optionalSecret,
+    MEMBERSHIP_BANK_INSTRUCTIONS: optionalSecret,
+    /** Optional KKTC Maliye e-Fatura API (pilot). */
+    KKTC_EFATURA_BASE_URL: optionalUrl,
+    KKTC_EFATURA_BEARER_TOKEN: optionalSecret,
+    KKTC_EFATURA_VKN: optionalSecret,
+    PERSON_IDENTITY_PEPPER: optionalSecret,
     UPSTASH_REDIS_REST_URL: optionalUrl,
     UPSTASH_REDIS_REST_TOKEN: optionalSecret,
     NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY: optionalSecret,
@@ -72,6 +99,18 @@ const envSchema = z
         message: 'Supabase anon/publishable key is required',
       })
     }
+
+    // National-ID hashing must not fall back to service-role / DB URL material in production.
+    if (env.NODE_ENV === 'production') {
+      const pepper = env.PERSON_IDENTITY_PEPPER?.trim() ?? ''
+      if (pepper.length < 16) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['PERSON_IDENTITY_PEPPER'],
+          message: 'PERSON_IDENTITY_PEPPER (≥16 chars) is required in production',
+        })
+      }
+    }
   })
 
 const parsed = envSchema.safeParse(process.env)
@@ -88,6 +127,14 @@ export const env = {
     parsed.data.POSTGRES_PRISMA_URL ??
     parsed.data.POSTGRES_URL ??
     parsed.data.POSTGRES_URL_NON_POOLING!,
+  /** Prefer migrate URL for DDL / identity; falls back to direct then databaseUrl. */
+  databaseUrlMigrate:
+    parsed.data.DATABASE_URL_MIGRATE ??
+    parsed.data.DIRECT_URL ??
+    parsed.data.POSTGRES_URL_NON_POOLING ??
+    parsed.data.DATABASE_URL ??
+    parsed.data.POSTGRES_PRISMA_URL ??
+    parsed.data.POSTGRES_URL,
   directUrl: parsed.data.DIRECT_URL ?? parsed.data.POSTGRES_URL_NON_POOLING,
   supabaseUrl: parsed.data.NEXT_PUBLIC_SUPABASE_URL ?? parsed.data.SUPABASE_URL!,
   supabaseAnonKey:

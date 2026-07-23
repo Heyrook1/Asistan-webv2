@@ -52,10 +52,14 @@ export function GlobalCommandPalette({
   session,
   showPlatformAdmin = false,
   showSuperAdmin = false,
+  teamMessagingEnabled = false,
+  clinicAnalyticsEnabled = false,
 }: {
   session: SessionContext
   showPlatformAdmin?: boolean
   showSuperAdmin?: boolean
+  teamMessagingEnabled?: boolean
+  clinicAnalyticsEnabled?: boolean
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -123,7 +127,7 @@ export function GlobalCommandPalette({
       href: '/dashboard/mesajlar',
       icon: MessageCircle,
       keywords: 'chat mesaj konusma',
-      visible: true,
+      visible: teamMessagingEnabled,
     },
     {
       title: 'Bildirimler',
@@ -137,7 +141,7 @@ export function GlobalCommandPalette({
       href: '/dashboard/analitik',
       icon: BarChart3,
       keywords: 'analytics rapor ciro',
-      visible: hasPermission('analytics.view'),
+      visible: clinicAnalyticsEnabled && hasPermission('analytics.view'),
     },
     {
       title: 'Yönetişim',

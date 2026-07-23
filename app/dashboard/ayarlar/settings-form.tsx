@@ -17,6 +17,17 @@ import { ROLE_LABELS } from '@/lib/rbac'
 import { updateBusinessSettings } from '@/lib/actions/business'
 import { readUiPreference, UI_PREF_KEYS, writeUiPreference } from '@/lib/ui-preferences'
 import { MembershipPanel, type MembershipSnapshot } from '@/components/dashboard/membership-panel'
+import type { MembershipPaymentView } from '@/lib/actions/membership-payment'
+import {
+  CalendarIntegrationPanel,
+  type CalendarConnectionRow,
+  type CalendarStaffRow,
+} from '@/components/dashboard/calendar-integration-panel'
+import { PublicBookingLinkCard } from '@/components/dashboard/public-booking-link-card'
+import {
+  PatientOutboundChannelsPanel,
+  type PatientOutboundChannelFlags,
+} from '@/components/dashboard/patient-outbound-channels-panel'
 
 type BusinessForm = {
   name: string
@@ -30,11 +41,22 @@ type BusinessForm = {
   currency: 'TRY' | 'USD' | 'EUR'
   timezone: string
   autoConfirmClientAppointments: boolean
+  depositEnabled: boolean
+  depositAmount: string
+  noShowFeeEnabled: boolean
+  noShowFeeAmount: string
+  noShowFeeNote: string
+  invoiceEnabled: boolean
+  taxVkn: string
+  taxOffice: string
+  invoiceTitle: string
+  invoiceAddress: string
+  whatsappAgentEnabled: boolean
 }
 
-const SETTINGS_TABS = ['hesap', 'isletme', 'randevu', 'marka', 'abonelik'] as const
+const SETTINGS_TABS = ['hesap', 'isletme', 'randevu', 'fatura', 'marka', 'entegrasyonlar', 'abonelik'] as const
 type SettingsTab = (typeof SETTINGS_TABS)[number]
-const OWNER_SETTINGS_TABS: SettingsTab[] = ['isletme', 'randevu', 'marka', 'abonelik']
+const OWNER_SETTINGS_TABS: SettingsTab[] = ['isletme', 'randevu', 'fatura', 'marka', 'abonelik']
 
 function isSettingsTab(value: string | null | undefined): value is SettingsTab {
   return Boolean(value && SETTINGS_TABS.includes(value as SettingsTab))
@@ -50,10 +72,28 @@ export function SettingsForm({
   session,
   initial,
   membership,
+  pendingPayment = null,
+  selfServeEnabled = true,
+  calendar,
+  bookingSlug,
+  patientChannels,
+  patientChannelDelivery = null,
 }: {
   session: SessionContext
   initial: BusinessForm
   membership: MembershipSnapshot | null
+  pendingPayment?: MembershipPaymentView | null
+  selfServeEnabled?: boolean
+  calendar: {
+    enabled: boolean
+    configured: boolean
+    canManageTeam: boolean
+    staff: CalendarStaffRow[]
+    connections: CalendarConnectionRow[]
+  }
+  bookingSlug: string
+  patientChannels: PatientOutboundChannelFlags
+  patientChannelDelivery?: import('@/lib/notifications/channel-delivery-store').BusinessChannelDeliveryStats | null
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -131,13 +171,24 @@ export function SettingsForm({
               <TabsTrigger value="randevu" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
                 Randevu
               </TabsTrigger>
+              <TabsTrigger value="fatura" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
+                Fatura
+              </TabsTrigger>
               <TabsTrigger value="marka" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
                 Marka & dil
+              </TabsTrigger>
+              <TabsTrigger value="entegrasyonlar" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
+                Entegrasyonlar
               </TabsTrigger>
               <TabsTrigger value="abonelik" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
                 Abonelik
               </TabsTrigger>
             </>
+          )}
+          {!canManageBusiness && (
+            <TabsTrigger value="entegrasyonlar" className="rounded-full border px-4 data-[state=active]:border-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white">
+              Entegrasyonlar
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -197,12 +248,13 @@ export function SettingsForm({
         <TabsContent value="randevu">
           <Card>
             <CardContent className="space-y-4 p-5">
+              <PublicBookingLinkCard slug={bookingSlug} clinicName={form.name || session.businessName} />
               <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-brand-ink">Mobil / web randevularını otomatik onayla</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Açıkken hasta talepleri doğrudan onaylanır. Kapalıyken klinik onayı gerekir.
+                      Açıkken hasta talepleri (marketplace + genel link) doğrudan onaylanır. Kapalıyken klinik onayı gerekir.
                     </p>
                   </div>
                   <Switch
@@ -215,6 +267,80 @@ export function SettingsForm({
                   />
                 </div>
               </div>
+
+              <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-brand-ink">Genel linkte depozito iste</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Randevu oluşunca hasta için depozito kaydı açılır (Stripe bağlıysa PaymentIntent; değilse manuel talimat).
+                      Randevu soft-fail — ödeme başarısız olsa bile rezervasyon kalır.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.depositEnabled}
+                    onCheckedChange={(checked) => setForm({ ...form, depositEnabled: checked })}
+                    disabled={!session.isOwner}
+                    aria-label="Depozito zorunluluğu"
+                  />
+                </div>
+                {form.depositEnabled && (
+                  <Field label={`Depozito tutarı (${form.currency})`}>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={form.depositAmount}
+                      onChange={(e) => setForm({ ...form, depositAmount: e.target.value })}
+                      disabled={!session.isOwner}
+                      inputMode="decimal"
+                    />
+                  </Field>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-brand-ink">Gelinmedi ücreti politikası</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Hastaya genel linkte gösterilir. Tahsilat sonra da olabilir — MVP politikayı kaydeder ve
+                      gelinmedi durumunda funnel’a yazar.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.noShowFeeEnabled}
+                    onCheckedChange={(checked) => setForm({ ...form, noShowFeeEnabled: checked })}
+                    disabled={!session.isOwner}
+                    aria-label="Gelinmedi ücreti politikası"
+                  />
+                </div>
+                {form.noShowFeeEnabled && (
+                  <>
+                    <Field label={`Gelinmedi ücreti (${form.currency})`}>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="1"
+                        value={form.noShowFeeAmount}
+                        onChange={(e) => setForm({ ...form, noShowFeeAmount: e.target.value })}
+                        disabled={!session.isOwner}
+                        inputMode="decimal"
+                      />
+                    </Field>
+                    <Field label="Politika notu (hastaya görünür)">
+                      <Textarea
+                        rows={2}
+                        value={form.noShowFeeNote}
+                        onChange={(e) => setForm({ ...form, noShowFeeNote: e.target.value })}
+                        disabled={!session.isOwner}
+                        placeholder="Örn. Gelinmezse depozito iade edilmez / ücret klinik politikasına göre alınır."
+                      />
+                    </Field>
+                  </>
+                )}
+              </div>
+
               <div className="flex justify-end">
                 <Button
                   type="button"
@@ -228,9 +354,114 @@ export function SettingsForm({
                     startTransition(async () => {
                       const result = await updateBusinessSettings({
                         autoConfirmClientAppointments: form.autoConfirmClientAppointments,
+                        depositEnabled: form.depositEnabled,
+                        depositAmount: form.depositEnabled
+                          ? form.depositAmount === ''
+                            ? null
+                            : Number(form.depositAmount)
+                          : null,
+                        noShowFeeEnabled: form.noShowFeeEnabled,
+                        noShowFeeAmount: form.noShowFeeEnabled
+                          ? form.noShowFeeAmount === ''
+                            ? null
+                            : Number(form.noShowFeeAmount)
+                          : null,
+                        noShowFeeNote: form.noShowFeeEnabled ? form.noShowFeeNote || null : null,
                       })
                       if (!result.ok) { toast.error(result.error); return }
                       toast.success('Randevu ayarı güncellendi')
+                      router.refresh()
+                    })
+                  }}
+                >
+                  {pending ? 'Kaydediliyor...' : 'Kaydet'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fatura">
+          <Card>
+            <CardContent className="space-y-4 p-5">
+              <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4 text-xs leading-5 text-muted-foreground">
+                KKTC Maliye e-Fatura taslakları için vergi profili. TR GİB e-SMM / e-Fatura entegrasyonu yoktur.
+                API gönderimi yalnızca sunucu env (`KKTC_EFATURA_*`) ile açılır.
+              </div>
+              <div className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-slate-50/70 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-brand-ink">Fatura taslaklarını aç</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Açıkken tamamlanan randevudan Faturalar sayfasında taslak üretilebilir.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.invoiceEnabled}
+                  onCheckedChange={(checked) => setForm({ ...form, invoiceEnabled: checked })}
+                  disabled={!session.isOwner}
+                  aria-label="Fatura özelliğini aç"
+                />
+              </div>
+              {form.invoiceEnabled && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Fatura ünvanı">
+                    <Input
+                      value={form.invoiceTitle}
+                      onChange={(e) => setForm({ ...form, invoiceTitle: e.target.value })}
+                      placeholder={form.name || 'İşletme ünvanı'}
+                      disabled={!session.isOwner}
+                    />
+                  </Field>
+                  <Field label="Vergi no (VKN)">
+                    <Input
+                      value={form.taxVkn}
+                      onChange={(e) => setForm({ ...form, taxVkn: e.target.value })}
+                      placeholder="KKTC vergi kimlik no"
+                      disabled={!session.isOwner}
+                    />
+                  </Field>
+                  <Field label="Vergi dairesi">
+                    <Input
+                      value={form.taxOffice}
+                      onChange={(e) => setForm({ ...form, taxOffice: e.target.value })}
+                      disabled={!session.isOwner}
+                    />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Fatura adresi">
+                      <Textarea
+                        value={form.invoiceAddress}
+                        onChange={(e) => setForm({ ...form, invoiceAddress: e.target.value })}
+                        rows={2}
+                        disabled={!session.isOwner}
+                      />
+                    </Field>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  disabled={pending || !session.isOwner}
+                  className="bg-brand-teal hover:bg-brand-teal-hover text-white"
+                  onClick={() => {
+                    if (!session.isOwner) {
+                      toast.error('Bu ayarları yalnızca işletme sahibi düzenleyebilir')
+                      return
+                    }
+                    startTransition(async () => {
+                      const result = await updateBusinessSettings({
+                        invoiceEnabled: form.invoiceEnabled,
+                        taxVkn: form.invoiceEnabled ? form.taxVkn || null : null,
+                        taxOffice: form.invoiceEnabled ? form.taxOffice || null : null,
+                        invoiceTitle: form.invoiceEnabled ? form.invoiceTitle || null : null,
+                        invoiceAddress: form.invoiceEnabled ? form.invoiceAddress || null : null,
+                      })
+                      if (!result.ok) {
+                        toast.error(result.error)
+                        return
+                      }
+                      toast.success('Fatura ayarı güncellendi')
                       router.refresh()
                     })
                   }}
@@ -294,8 +525,73 @@ export function SettingsForm({
           </Card>
         </TabsContent>
 
+        <TabsContent value="entegrasyonlar">
+          <CalendarIntegrationPanel
+            enabled={calendar.enabled}
+            configured={calendar.configured}
+            canManageTeam={calendar.canManageTeam}
+            selfStaffId={session.staffMemberId}
+            staff={calendar.staff}
+            connections={calendar.connections}
+          />
+          {canManageBusiness && (
+            <Card className="mt-4">
+              <CardContent className="space-y-3 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-brand-ink">WhatsApp randevu asistanı</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Kural tabanlı ön büro: gelen mesaj → mevcut slot motoru → genel link booking.
+                      “Yapay zeka” iddiası değildir. Webhook:{' '}
+                      <code className="text-[11px]">POST /api/webhooks/whatsapp?slug=…</code>
+                      {' '}
+                      (Meta HMAC veya klinik-bağlı token; ham global bearer yetmez).
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.whatsappAgentEnabled}
+                    onCheckedChange={(checked) => setForm({ ...form, whatsappAgentEnabled: checked })}
+                    aria-label="WhatsApp randevu asistanını aç"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    disabled={pending}
+                    className="bg-brand-teal text-white hover:bg-brand-teal-hover"
+                    onClick={() => {
+                      startTransition(async () => {
+                        const result = await updateBusinessSettings({
+                          whatsappAgentEnabled: form.whatsappAgentEnabled,
+                        })
+                        if (!result.ok) {
+                          toast.error(result.error)
+                          return
+                        }
+                        toast.success('WhatsApp asistan ayarı güncellendi')
+                        router.refresh()
+                      })
+                    }}
+                  >
+                    {pending ? 'Kaydediliyor...' : 'Kaydet'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          <PatientOutboundChannelsPanel
+            channels={patientChannels}
+            delivery={patientChannelDelivery}
+          />
+        </TabsContent>
+
         <TabsContent value="abonelik">
-          <MembershipPanel membership={membership} />
+          <MembershipPanel
+            membership={membership}
+            pendingPayment={pendingPayment}
+            selfServeEnabled={selfServeEnabled}
+            isOwner={session.isOwner}
+          />
         </TabsContent>
       </Tabs>
     </div>

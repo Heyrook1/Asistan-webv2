@@ -1,8 +1,10 @@
-import { redirect } from 'next/navigation'
 import { requireSession } from '@/lib/session'
 import { getConversationThread, getMyConversations } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
+import { isTeamMessagingEnabled } from '@/lib/messaging/policy'
+import { MesajlarDeprecatedPanel } from '@/components/dashboard/mesajlar-deprecated-panel'
 import { MesajlarBoard } from './mesajlar-board'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +12,11 @@ type SearchParams = Promise<{ conversation?: string; with?: string }>
 
 export default async function MesajlarPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await requireSession()
+
+  if (!isTeamMessagingEnabled()) {
+    return <MesajlarDeprecatedPanel />
+  }
+
   const params = await searchParams
 
   // Existing conversations for the rail.

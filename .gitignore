@@ -32,13 +32,11 @@ next-env.d.ts
 # Claude Code workspace
 .claude/
 
-# v0.dev generated drafts/injection helpers
-.v0/
-
 # test artifacts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/.lighthouseci/
 
 # temp log/pid files
 *.err.log

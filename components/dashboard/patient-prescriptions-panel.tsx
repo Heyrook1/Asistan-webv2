@@ -22,7 +22,7 @@ export function PatientPrescriptionsPanel({
     <div className="rounded-xl border border-border/70 bg-white p-4">
       <div className="mb-3 flex items-center gap-2">
         <FileText className="h-4 w-4 text-brand-teal" />
-        <p className="text-sm font-semibold text-brand-ink">E-Reçeteler</p>
+        <p className="text-sm font-semibold text-brand-ink">Klinik reçeteler</p>
       </div>
       <ul className="space-y-2">
         {prescriptions.map((item) => (

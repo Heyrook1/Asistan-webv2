@@ -1,4 +1,9 @@
 import { getLoginPath, getRegisterPath, normalizeAuthLanguage } from '@/lib/auth-routes'
+import {
+  applyResponseSecurityHeaders,
+  buildContentSecurityPolicy,
+  isNonceEligiblePath,
+} from '@/lib/security/response-headers'
 import { updateSession } from '@/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
@@ -7,11 +12,34 @@ function authLanguageFromRequest(request: NextRequest) {
   return normalizeAuthLanguage(request.cookies.get('asistan-lang')?.value)
 }
 
+/**
+ * Per-request CSP nonce for dynamic PHI surfaces (dashboard / book / intake).
+ * Set on the *request* CSP header so Next.js tags its inline scripts, and on
+ * the *response* CSP so browsers enforce it. Dev + static routes: no nonce.
+ */
+function issueCspNonce(request: NextRequest): string | null {
+  if (process.env.NODE_ENV === 'development') return null
+  if (!isNonceEligiblePath(request.nextUrl.pathname)) return null
+
+  const nonce = btoa(crypto.randomUUID())
+  // Next.js reads the nonce from the incoming CSP request header.
+  request.headers.set(
+    'content-security-policy',
+    buildContentSecurityPolicy({
+      pathname: request.nextUrl.pathname,
+      embedParam: request.nextUrl.searchParams.get('embed'),
+      nonce,
+    })
+  )
+  request.headers.set('x-nonce', nonce)
+  return nonce
+}
+
 /** Redirect while keeping ?query (e.g. reason=package-expired). */
 function redirectWithSearch(request: NextRequest, pathname: string) {
   const url = request.nextUrl.clone()
   url.pathname = pathname
-  return NextResponse.redirect(url)
+  return secureResponse(NextResponse.redirect(url), request)
 }
 
 import { buildAllowedOrigins, isAllowedOrigin as originIsAllowed } from '@/lib/cors'
@@ -65,11 +93,23 @@ function applyCorsHeaders(
   return response
 }
 
+function secureResponse(response: NextResponse, request: NextRequest) {
+  return applyResponseSecurityHeaders(response, {
+    pathname: request.nextUrl.pathname,
+    embedParam: request.nextUrl.searchParams.get('embed'),
+    // Set by issueCspNonce at the start of proxy() for eligible routes.
+    nonce: request.headers.get('x-nonce'),
+  })
+}
+
 // Next.js proxy entrypoint. This is not a development HTTP proxy.
 // It must stay at the project root so Next can run Supabase session refresh
 // before matched requests; implementation details live under lib/supabase.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Per-request CSP nonce for dynamic PHI surfaces (before any response is built).
+  issueCspNonce(request)
 
   // Protect /dashboard route
   if (pathname.startsWith('/dashboard')) {
@@ -82,7 +122,17 @@ export async function proxy(request: NextRequest) {
         process.env.SUPABASE_PUBLISHABLE_KEY
     }
 
-    if (config.url && config.key) {
+    if (!config.url || !config.key) {
+      // Fail closed in production: without Supabase env we cannot verify the session,
+      // so never let unauthenticated traffic reach /dashboard. Local dev stays usable.
+      if (process.env.NODE_ENV === 'production') {
+        const redirectUrl = getLoginPath(authLanguageFromRequest(request))
+        return secureResponse(
+          NextResponse.redirect(new URL(redirectUrl, request.url)),
+          request
+        )
+      }
+    } else {
       let tempResponse = NextResponse.next({ request })
       const supabase = createServerClient(
         config.url,
@@ -109,7 +159,10 @@ export async function proxy(request: NextRequest) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !user.email_confirmed_at) {
         const redirectUrl = getLoginPath(authLanguageFromRequest(request))
-        return NextResponse.redirect(new URL(redirectUrl, request.url))
+        return secureResponse(
+          NextResponse.redirect(new URL(redirectUrl, request.url)),
+          request
+        )
       }
     }
   }
@@ -147,21 +200,11 @@ export async function proxy(request: NextRequest) {
     return redirectWithSearch(request, '/en/register')
   }
 
-  if (pathname === '/tr/giris') {
-    return NextResponse.rewrite(new URL('/tr/auth/login' + request.nextUrl.search, request.url))
-  }
-  if (pathname === '/en/login') {
-    return NextResponse.rewrite(new URL('/en/auth/login' + request.nextUrl.search, request.url))
-  }
-  if (pathname === '/tr/kayit') {
-    return NextResponse.rewrite(new URL('/tr/auth/register' + request.nextUrl.search, request.url))
-  }
-  if (pathname === '/en/register') {
-    return NextResponse.rewrite(new URL('/en/auth/register' + request.nextUrl.search, request.url))
-  }
+  // /tr/kayit, /tr/giris, /en/register, /en/login are real App Router pages (Turbopack-friendly).
+  // Do not rewrite them into /[lang]/auth/* — that broke under Turbopack and forced slow webpack.
 
   if (!isClientApiPath(pathname)) {
-    return await updateSession(request)
+    return secureResponse(await updateSession(request), request)
   }
 
   const origin = request.headers.get('origin')
@@ -171,18 +214,24 @@ export async function proxy(request: NextRequest) {
 
   if (!origin || !isAllowedOrigin(origin)) {
     if (request.method === 'OPTIONS') {
-      return new NextResponse(null, { status: 403 })
+      return secureResponse(new NextResponse(null, { status: 403 }), request)
     }
-    return await updateSession(request)
+    return secureResponse(await updateSession(request), request)
   }
 
   if (request.method === 'OPTIONS') {
     const preflightResponse = new NextResponse(null, { status: 204 })
-    return applyCorsHeaders(preflightResponse, origin, requestHeaders, privateNetworkRequested)
+    return secureResponse(
+      applyCorsHeaders(preflightResponse, origin, requestHeaders, privateNetworkRequested),
+      request
+    )
   }
 
   const response = await updateSession(request)
-  return applyCorsHeaders(response, origin, requestHeaders, privateNetworkRequested)
+  return secureResponse(
+    applyCorsHeaders(response, origin, requestHeaders, privateNetworkRequested),
+    request
+  )
 }
 
 export const config = {

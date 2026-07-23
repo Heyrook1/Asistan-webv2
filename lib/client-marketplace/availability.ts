@@ -4,12 +4,14 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { AvailabilitySlot } from './types'
 import {
-  addMinutesToTime,
   getCurrentDateAndTimeForTimezone,
   getWeekdayFromDateString,
-  parseTimeToMinutes,
-  rangesOverlap,
 } from './time'
+import {
+  computeAvailableSlots,
+  type AvailabilityRuleRow,
+  type BusyInterval,
+} from './availability-compute'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -47,14 +49,6 @@ async function isDoctorAssignedToService(
   })
 
   return Boolean(linked)
-}
-
-function deDupeSlots(slots: AvailabilitySlot[]) {
-  const map = new Map<string, AvailabilitySlot>()
-  for (const slot of slots) {
-    map.set(`${slot.startTime}-${slot.endTime}`, slot)
-  }
-  return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime))
 }
 
 async function getAvailableSlotsWithDb(
@@ -108,14 +102,6 @@ async function getAvailableSlotsWithDb(
   })
   if (allRules.length === 0) return []
 
-  const locationRules =
-    input.locationId != null
-      ? allRules.filter((rule) => rule.locationId === input.locationId)
-      : []
-  const globalRules = allRules.filter((rule) => rule.locationId == null)
-  const activeRules = locationRules.length > 0 ? locationRules : globalRules
-  if (activeRules.length === 0) return []
-
   const [appointments, blocks] = await Promise.all([
     db.appointment.findMany({
       where: {
@@ -139,42 +125,17 @@ async function getAvailableSlotsWithDb(
   ])
 
   const now = getCurrentDateAndTimeForTimezone(business.timezone || 'Europe/Istanbul')
-  const isPastDate = input.date < now.date
-  if (isPastDate) return []
 
-  const candidateSlots: AvailabilitySlot[] = []
-
-  for (const rule of activeRules) {
-    const step = Math.max(5, rule.slotIntervalMin || 15)
-    const startMin = parseTimeToMinutes(rule.startTime)
-    const endMin = parseTimeToMinutes(rule.endTime)
-    const duration = service.durationMin
-    const lastStart = endMin - duration
-    if (lastStart < startMin) continue
-
-    for (let current = startMin; current <= lastStart; current += step) {
-      const startTime = addMinutesToTime('00:00', current)
-      const endTime = addMinutesToTime(startTime, duration)
-
-      if (input.date === now.date && startTime <= now.time) {
-        continue
-      }
-
-      const collidesAppointment = appointments.some((item) =>
-        rangesOverlap(startTime, endTime, item.startTime, item.endTime)
-      )
-      if (collidesAppointment) continue
-
-      const collidesBlock = blocks.some((item) =>
-        rangesOverlap(startTime, endTime, item.startTime, item.endTime)
-      )
-      if (collidesBlock) continue
-
-      candidateSlots.push({ startTime, endTime })
-    }
-  }
-
-  return deDupeSlots(candidateSlots)
+  return computeAvailableSlots({
+    durationMin: service.durationMin,
+    rules: allRules as AvailabilityRuleRow[],
+    appointments: appointments as BusyInterval[],
+    blocks: blocks as BusyInterval[],
+    date: input.date,
+    nowDate: now.date,
+    nowTime: now.time,
+    locationId: input.locationId,
+  })
 }
 
 export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
@@ -188,3 +149,4 @@ export async function getAvailableSlotsTx(
   return getAvailableSlotsWithDb(tx, input)
 }
 
+export { computeAvailableSlots, deDupeSlots } from './availability-compute'

@@ -1,17 +1,27 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, CreditCard, Mail } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
+  cancelPendingMembershipPayment,
+  requestMembershipUpgrade,
+  type MembershipPaymentView,
+} from '@/lib/actions/membership-payment'
+import {
   VENDOR_MEMBERSHIP_LABELS,
   buildMembershipRenewMailto,
   daysUntilAccessEnd,
   getMembershipUrgency,
+  getVendorPlanPrice,
   listVendorPlans,
+  type MembershipBillingPeriodValue,
   type MembershipUrgency,
   type VendorMembershipStatusValue,
 } from '@/lib/vendor-membership'
@@ -47,7 +57,21 @@ function urgencyStyles(urgency: MembershipUrgency) {
   }
 }
 
-export function MembershipPanel({ membership }: { membership: MembershipSnapshot | null }) {
+export function MembershipPanel({
+  membership,
+  pendingPayment = null,
+  selfServeEnabled = true,
+  isOwner = false,
+}: {
+  membership: MembershipSnapshot | null
+  pendingPayment?: MembershipPaymentView | null
+  selfServeEnabled?: boolean
+  isOwner?: boolean
+}) {
+  const router = useRouter()
+  const [period, setPeriod] = useState<MembershipBillingPeriodValue>('MONTHLY')
+  const [pending, startTransition] = useTransition()
+
   if (!membership) {
     return (
       <Card>
@@ -86,11 +110,40 @@ export function MembershipPanel({ membership }: { membership: MembershipSnapshot
 
   let urgencyMessage = 'Paketiniz aktif görünüyor.'
   if (urgency === 'expired') {
-    urgencyMessage = 'Erişim süresi dolmuş veya paket askıda. Yenileme için ekibimizle iletişime geçin.'
+    urgencyMessage = 'Erişim süresi dolmuş veya paket askıda. Yenileme için yükseltme talebi oluşturun.'
   } else if (urgency === 'critical' && daysLeft !== null) {
     urgencyMessage = `Erişiminizin bitmesine ${daysLeft} gün kaldı. Yenilemeyi şimdiden planlayın.`
   } else if (urgency === 'soon' && daysLeft !== null) {
     urgencyMessage = `Erişiminizin bitmesine ${daysLeft} gün kaldı.`
+  }
+
+  function requestPlan(planCode: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE') {
+    if (!isOwner) {
+      toast.error('Yalnızca işletme sahibi paket yükseltebilir')
+      return
+    }
+    startTransition(async () => {
+      const result = await requestMembershipUpgrade({ planCode, billingPeriod: period })
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Ödeme talebi oluşturuldu — onay bekleniyor')
+      router.refresh()
+    })
+  }
+
+  function cancelPending() {
+    if (!pendingPayment) return
+    startTransition(async () => {
+      const result = await cancelPendingMembershipPayment(pendingPayment.id)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success('Bekleyen ödeme iptal edildi')
+      router.refresh()
+    })
   }
 
   return (
@@ -139,21 +192,56 @@ export function MembershipPanel({ membership }: { membership: MembershipSnapshot
             />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
-            <div className="flex items-start gap-2">
-              <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />
-              <p>
-                Ödeme şu an <strong className="text-brand-ink">elden / faturalı</strong> yürütülür. Talebinizden
-                sonra ekibimiz paketi ve erişim tarihini günceller. Online kart ödemesi yakında eklenecek.
-              </p>
+          {pendingPayment ? (
+            <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-amber-950">Ödeme bekleniyor</p>
+                  <p className="mt-1 text-xs text-amber-900/80">
+                    {pendingPayment.planName} ·{' '}
+                    {pendingPayment.billingPeriod === 'YEARLY' ? 'Yıllık' : 'Aylık'} ·{' '}
+                    {pendingPayment.amount} {pendingPayment.currency} · {pendingPayment.provider}
+                  </p>
+                </div>
+                <Badge className="bg-amber-600 text-white">PENDING</Badge>
+              </div>
+              {pendingPayment.instructions ? (
+                <pre className="whitespace-pre-wrap rounded-lg bg-white/80 p-3 text-xs text-slate-700">
+                  {pendingPayment.instructions}
+                </pre>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {isOwner ? (
+                  <Button type="button" variant="outline" size="sm" disabled={pending} onClick={cancelPending}>
+                    Talebi iptal et
+                  </Button>
+                ) : null}
+                <Button asChild variant="ghost" size="sm">
+                  <a href={renewHref}>
+                    <Mail className="mr-1.5 size-3.5" />
+                    E-posta yedek kanal
+                  </a>
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
+              <div className="flex items-start gap-2">
+                <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />
+                <p>
+                  Self-serve yükseltme talebi oluşturun; ödeme{' '}
+                  <strong className="text-brand-ink">elden / havale</strong> veya yapılandırılmışsa Stripe ile
+                  alınır. Onay sonrası paket otomatik etkinleşir.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
-            <Button asChild className="bg-brand-blue text-white hover:bg-brand-blue-hover">
+            <Button asChild variant="outline">
               <a href={renewHref}>
                 <Mail className="mr-2 h-4 w-4" />
-                Yenileme / yükseltme talebi
+                E-posta ile talep
               </a>
             </Button>
             <Button asChild variant="outline">
@@ -168,13 +256,48 @@ export function MembershipPanel({ membership }: { membership: MembershipSnapshot
 
       <Card>
         <CardContent className="p-5">
-          <h3 className="text-base font-bold text-brand-ink">Planlar (bilgi)</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Karşılaştırma amaçlıdır. Geçiş elden onay ile yapılır; burada otomatik ücret alınmaz.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-brand-ink">Plan yükselt / yenile</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Talep → ödeme bekleniyor → admin/Stripe onayı → erişim uzar.
+              </p>
+            </div>
+            <div className="flex rounded-full border p-1">
+              <button
+                type="button"
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-xs font-semibold',
+                  period === 'MONTHLY' ? 'bg-brand-blue text-white' : 'text-slate-600'
+                )}
+                onClick={() => setPeriod('MONTHLY')}
+              >
+                Aylık
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-xs font-semibold',
+                  period === 'YEARLY' ? 'bg-brand-blue text-white' : 'text-slate-600'
+                )}
+                onClick={() => setPeriod('YEARLY')}
+              >
+                Yıllık
+              </button>
+            </div>
+          </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {plans.map((plan) => {
               const current = plan.code === membership.planCode && !membership.isDemo
+              const price = getVendorPlanPrice(plan.code, period)
+              const canRequest =
+                selfServeEnabled &&
+                isOwner &&
+                !pendingPayment &&
+                plan.code !== 'DEMO_14_DAYS' &&
+                (membership.isDemo || plan.code !== membership.planCode || urgency !== 'ok')
+
               return (
                 <div
                   key={plan.code}
@@ -193,9 +316,11 @@ export function MembershipPanel({ membership }: { membership: MembershipSnapshot
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{plan.description}</p>
                   <p className="mt-3 text-sm font-semibold text-brand-ink">
-                    {plan.monthlyPriceEur === 0 || plan.monthlyPriceEur === null
-                      ? 'Teklif'
-                      : `€${plan.monthlyPriceEur}/ay`}
+                    {price
+                      ? period === 'YEARLY'
+                        ? `€${price.amount}/yıl`
+                        : `€${price.amount}/ay`
+                      : 'Teklif'}
                   </p>
                   <ul className="mt-2 space-y-1">
                     {plan.features.slice(0, 4).map((feature) => (
@@ -205,6 +330,23 @@ export function MembershipPanel({ membership }: { membership: MembershipSnapshot
                       </li>
                     ))}
                   </ul>
+                  {selfServeEnabled && plan.code !== 'DEMO_14_DAYS' ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="mt-3 w-full bg-brand-blue text-white hover:bg-brand-blue-hover"
+                      disabled={!canRequest || pending}
+                      onClick={() =>
+                        requestPlan(plan.code as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE')
+                      }
+                    >
+                      {current && urgency === 'ok' && !membership.isDemo
+                        ? 'Aktif plan'
+                        : pending
+                          ? 'Gönderiliyor…'
+                          : 'Yükselt / yenile'}
+                    </Button>
+                  ) : null}
                 </div>
               )
             })}

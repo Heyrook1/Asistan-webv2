@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { requireSuperAdminSession } from '@/lib/session'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import {
   DEFAULT_VENDOR_MEMBERSHIP_STATUS,
   normalizeVendorPlanCode,
@@ -88,50 +89,52 @@ export default async function SystemAdminPage() {
     appointmentRowsRaw,
     patientRowsRaw,
     messageRowsRaw,
-  ] = await Promise.all([
-    prisma.appointment.count(),
-    prisma.patient.count(),
-    prisma.business.count(),
-    prisma.business.count({ where: { isActive: true } }),
-    prisma.teamMember.count({ where: { isActive: true } }),
-    prisma.appointment.count({ where: { status: 'SCHEDULED' } }),
-    prisma.appointment.count({
-      where: {
-        status: 'NO_SHOW',
-        createdAt: { gte: last30 },
-      },
-    }),
-    prisma.appointment.count({
-      where: {
-        createdAt: { gte: last30 },
-      },
-    }),
-    prisma.message.count({ where: { createdAt: { gte: today } } }),
-    prisma.notification.count({ where: { createdAt: { gte: today } } }),
-    prisma.patient.count({ where: { createdAt: { gte: today } } }),
-    prisma.teamMember.count({ where: { isActive: true, lastSeenAt: { gte: today } } }),
-    prisma.$queryRaw<DailyCountRow[]>`
+  ] = await runWithTenantBypassAsync('super-admin:platform-metrics', () =>
+    Promise.all([
+      prisma.appointment.count(),
+      prisma.patient.count(),
+      prisma.business.count(),
+      prisma.business.count({ where: { isActive: true } }),
+      prisma.teamMember.count({ where: { isActive: true } }),
+      prisma.appointment.count({ where: { status: 'SCHEDULED' } }),
+      prisma.appointment.count({
+        where: {
+          status: 'NO_SHOW',
+          createdAt: { gte: last30 },
+        },
+      }),
+      prisma.appointment.count({
+        where: {
+          createdAt: { gte: last30 },
+        },
+      }),
+      prisma.message.count({ where: { createdAt: { gte: today } } }),
+      prisma.notification.count({ where: { createdAt: { gte: today } } }),
+      prisma.patient.count({ where: { createdAt: { gte: today } } }),
+      prisma.teamMember.count({ where: { isActive: true, lastSeenAt: { gte: today } } }),
+      prisma.$queryRaw<DailyCountRow[]>`
       SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::int AS count
       FROM "Appointment"
       WHERE "createdAt" >= ${last14}
       GROUP BY 1
       ORDER BY 1
     `,
-    prisma.$queryRaw<DailyCountRow[]>`
+      prisma.$queryRaw<DailyCountRow[]>`
       SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::int AS count
       FROM "Patient"
       WHERE "createdAt" >= ${last14}
       GROUP BY 1
       ORDER BY 1
     `,
-    prisma.$queryRaw<DailyCountRow[]>`
+      prisma.$queryRaw<DailyCountRow[]>`
       SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::int AS count
       FROM "Message"
       WHERE "createdAt" >= ${last14}
       GROUP BY 1
       ORDER BY 1
     `,
-  ])
+    ]),
+  )
 
   let vendorSchemaReady = true
   let vendors: Array<{
@@ -152,45 +155,49 @@ export default async function SystemAdminPage() {
   }>
 
   try {
-    vendors = await prisma.business.findMany({
-      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
-      include: {
-        owner: { select: { fullName: true, email: true } },
-        vendorAccount: {
-          select: {
-            status: true,
-            plan: true,
-            balance: true,
-            currency: true,
-            notes: true,
+    vendors = await runWithTenantBypassAsync('super-admin:platform-metrics', () =>
+      prisma.business.findMany({
+        orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          owner: { select: { fullName: true, email: true } },
+          vendorAccount: {
+            select: {
+              status: true,
+              plan: true,
+              balance: true,
+              currency: true,
+              notes: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+              patients: true,
+              appointments: true,
+            },
           },
         },
-        _count: {
-          select: {
-            members: true,
-            patients: true,
-            appointments: true,
-          },
-        },
-      },
-      take: 200,
-    })
+        take: 200,
+      }),
+    )
   } catch {
     vendorSchemaReady = false
-    const fallback = await prisma.business.findMany({
-      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
-      include: {
-        owner: { select: { fullName: true, email: true } },
-        _count: {
-          select: {
-            members: true,
-            patients: true,
-            appointments: true,
+    const fallback = await runWithTenantBypassAsync('super-admin:platform-metrics', () =>
+      prisma.business.findMany({
+        orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          owner: { select: { fullName: true, email: true } },
+          _count: {
+            select: {
+              members: true,
+              patients: true,
+              appointments: true,
+            },
           },
         },
-      },
-      take: 200,
-    })
+        take: 200,
+      }),
+    )
     vendors = fallback.map((vendor) => ({ ...vendor, vendorAccount: null }))
   }
 

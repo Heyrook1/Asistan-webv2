@@ -13,30 +13,32 @@ export default async function AuthErrorPage({
 
   return (
     <AuthShell
-      badge="Auth Error"
-      title="Kimlik dogrulama adiminda bir sorun olustu."
-      description="Baglanti suresi dolmus olabilir veya oturum gecersiz hale gelmis olabilir."
+      badge="Kimlik doğrulama"
+      title="Kimlik doğrulama adımında bir sorun oluştu."
+      description="Bağlantı süresi dolmuş olabilir veya oturum geçersiz hale gelmiş olabilir."
       highlights={[
-        'Baglantiyi tekrar acmayi deneyin',
-        'Sifirlama/giris adimini yeniden baslatin',
-        'Sorun surerse destek ile iletisime gecin',
+        'Bağlantıyı tekrar açmayı deneyin',
+        'Sıfırlama veya giriş adımını yeniden başlatın',
+        'Sorun sürerse destek ile iletişime geçin',
       ]}
     >
       <div className="text-center">
         <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
           <AlertTriangle className="size-7" />
         </div>
-        <h2 className="text-2xl font-black text-brand-navy">Oturum acilamadi</h2>
+        <h2 className="text-2xl font-black text-brand-navy">Oturum açılamadı</h2>
         <p className="mt-2 text-sm leading-7 text-slate-500">
-          {params?.error ? `Hata kodu: ${params.error}` : 'Belirlenemeyen bir dogrulama hatasi olustu.'}
+          {params?.error
+            ? `Hata kodu: ${params.error}`
+            : 'Belirlenemeyen bir doğrulama hatası oluştu.'}
         </p>
 
         <div className="mt-6 grid gap-2">
           <Button asChild className="h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90">
-            <Link href="/auth/login">Giris Sayfasina Git</Link>
+            <Link href="/auth/login">Giriş sayfasına git</Link>
           </Button>
           <Button asChild variant="outline" className="h-11 w-full rounded-lg border-brand-blue/20">
-            <Link href="/auth/forgot-password">Sifre Sifirlama</Link>
+            <Link href="/auth/forgot-password">Şifre sıfırlama</Link>
           </Button>
         </div>
       </div>

@@ -26,13 +26,13 @@ const BASE_SECTORS = [
   {
     image: '/images/medical-team.jpg',
     icon: Activity,
-    accent: 'from-emerald-500/20 via-teal-600/5 to-transparent',
+    accent: 'from-sky-500/20 via-blue-600/5 to-transparent',
     gridClass: 'col-span-1',
   },
   {
     image: '/images/industry-beauty.jpg',
     icon: Sparkles,
-    accent: 'from-pink-500/20 via-purple-600/5 to-transparent',
+    accent: 'from-rose-500/20 via-blue-600/5 to-transparent',
     gridClass: 'col-span-1',
   },
   {

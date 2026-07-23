@@ -41,4 +41,13 @@ describe('lib/brand/claim-bank', () => {
       ),
     ).toBe(false)
   })
+
+  it('flags hospital-depth claims postponed by product boundary', () => {
+    expect(STAGE_HONESTY.productFocus).toBe('outpatient-smb')
+    expect(looksLikeForbiddenClaim('Resmi e-reçete entegrasyonu')).toBe(true)
+    expect(looksLikeForbiddenClaim('E-reçete oluşturuldu')).toBe(true)
+    expect(looksLikeForbiddenClaim('telehealth hazır')).toBe(true)
+    expect(looksLikeForbiddenClaim('LIS laboratuvar entegrasyon')).toBe(true)
+    expect(looksLikeForbiddenClaim('Yazdırılabilir klinik reçete')).toBe(false)
+  })
 })

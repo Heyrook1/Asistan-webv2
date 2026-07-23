@@ -12,8 +12,19 @@ import {
 import { prisma } from '@/lib/prisma'
 import { writeAuditLog } from '@/lib/audit'
 import { requirePermission } from '@/lib/session'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
+import {
+  notifyPatientChannels,
+  summarizeNotifyResults,
+  type PatientChannelSummary,
+} from '@/lib/notifications/patient-channels'
+import {
+  offerOpenedSlotToWaitlistCandidates,
+  type FillGapOfferResult,
+} from '@/lib/ops/fill-the-gap'
+import { trackFunnelEvent } from '@/lib/observability/funnel'
 import { createClientNotification } from '@/lib/client-marketplace/notifications'
 import { canTransitionAppointmentStatus } from '@/lib/appointment-transitions'
 
@@ -61,19 +72,35 @@ async function hasActiveStaffConflict(input: {
   startTime: string
   endTime: string
   excludeAppointmentId?: string
-}) {
-  const conflicts = await prisma.appointment.findMany({
-    where: {
-      businessId: input.businessId,
-      staffId: input.staffId,
-      date: input.date,
-      status: { in: ['SCHEDULED', 'CONFIRMED'] },
-      id: input.excludeAppointmentId ? { not: input.excludeAppointmentId } : undefined,
-    },
-    select: { startTime: true, endTime: true },
-  })
+}): Promise<'appointment' | 'unavailable' | null> {
+  const [conflicts, blocks] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        businessId: input.businessId,
+        staffId: input.staffId,
+        date: input.date,
+        status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        id: input.excludeAppointmentId ? { not: input.excludeAppointmentId } : undefined,
+      },
+      select: { startTime: true, endTime: true },
+    }),
+    prisma.teamMemberUnavailableBlock.findMany({
+      where: {
+        businessId: input.businessId,
+        staffId: input.staffId,
+        date: input.date,
+      },
+      select: { startTime: true, endTime: true },
+    }),
+  ])
 
-  return conflicts.some((c) => c.startTime < input.endTime && c.endTime > input.startTime)
+  if (conflicts.some((c) => c.startTime < input.endTime && c.endTime > input.startTime)) {
+    return 'appointment'
+  }
+  if (blocks.some((b) => b.startTime < input.endTime && b.endTime > input.startTime)) {
+    return 'unavailable'
+  }
+  return null
 }
 
 const createSchema = z.object({
@@ -166,10 +193,13 @@ export async function createAppointment(rawInput: unknown): Promise<ActionResult
       startTime: input.startTime,
       endTime,
     })
-    if (overlap) return err('Seçilen personel için çakışan bir randevu var')
+    if (overlap === 'appointment') return err('Seçilen personel için çakışan bir randevu var')
+    if (overlap === 'unavailable') {
+      return err('Seçilen personel bu saatte müsait değil (takvim meşgul bloğu)')
+    }
   }
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await tenantTransaction(session.businessId, async (tx) => {
     const appointment = await tx.appointment.create({
       data: {
         businessId: session.businessId,
@@ -330,7 +360,14 @@ const statusSchema = z.object({
     .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), z.string().max(2000).optional()),
 })
 
-export async function setAppointmentStatus(rawInput: unknown): Promise<ActionResult> {
+export async function setAppointmentStatus(
+  rawInput: unknown
+): Promise<
+  ActionResult<{
+    channelDelivery?: PatientChannelSummary
+    fillGapOffer?: FillGapOfferResult | null
+  }>
+> {
   const parsed = statusSchema.safeParse(rawInput)
   if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requirePermission('appointment.manage')
@@ -355,7 +392,10 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       endTime: existing.endTime,
       excludeAppointmentId: existing.id,
     })
-    if (overlap) return err('Bu saat için bekleyen veya onaylanmış başka bir randevu var')
+    if (overlap === 'appointment') return err('Bu saat için bekleyen veya onaylanmış başka bir randevu var')
+    if (overlap === 'unavailable') {
+      return err('Bu saat personel takviminde meşgul (Google Calendar / müsait değil bloğu)')
+    }
   }
 
   const map: Record<AppointmentStatus, TimelineEventType> = {
@@ -366,11 +406,12 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
     NO_SHOW: TimelineEventType.APPOINTMENT_CANCELLED,
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: parsed.data.id },
+  await tenantTransaction(session.businessId, async (tx) => {
+    const updated = await tx.appointment.updateMany({
+      where: { id: parsed.data.id, businessId: session.businessId },
       data: { status: parsed.data.status, notes: parsed.data.notes ?? existing.notes },
     })
+    if (updated.count === 0) throw new Error('Randevu bulunamadı')
 
     await tx.timelineEvent.create({
       data: {
@@ -387,23 +428,23 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
   // Fan a notification out to the other interested parties (owner + assigned
   // doctor), skipping the actor.
   const [patient, service, staff, business, location] = await Promise.all([
-    prisma.patient.findUnique({
-      where: { id: existing.patientId },
-      select: { fullName: true },
+    prisma.patient.findFirst({
+      where: { id: existing.patientId, businessId: existing.businessId },
+      select: { fullName: true, phone: true, email: true },
     }),
-    prisma.service.findUnique({
-      where: { id: existing.serviceId },
+    prisma.service.findFirst({
+      where: { id: existing.serviceId, businessId: existing.businessId },
       select: { name: true },
     }),
     existing.staffId
-      ? prisma.teamMember.findUnique({
-          where: { id: existing.staffId },
+      ? prisma.teamMember.findFirst({
+          where: { id: existing.staffId, businessId: existing.businessId },
           select: { userId: true, fullName: true },
         })
       : Promise.resolve(null),
     prisma.business.findUnique({
       where: { id: existing.businessId },
-      select: { ownerUserId: true },
+      select: { ownerUserId: true, name: true },
     }),
     existing.locationId
       ? prisma.location.findFirst({
@@ -415,6 +456,8 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
 
   const dateStr = existing.date.toISOString().slice(0, 10)
   const detail = `${service?.name ?? 'Hizmet'}${location?.name ? ` • ${location.name}` : ''} • ${dateStr} ${existing.startTime}`
+  const ajandaLink = `/dashboard/ajanda?mode=liste&id=${existing.id}`
+  const startsAt = `${dateStr}T${existing.startTime}:00`
   const recipients = [staff?.userId, business?.ownerUserId].filter(
     (id): id is string => Boolean(id)
   )
@@ -431,6 +474,9 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
     startTime: existing.startTime,
   }
 
+  let channelDelivery: PatientChannelSummary | undefined
+  let fillGapOffer: FillGapOfferResult | null | undefined
+
   if (status === AppointmentStatus.CONFIRMED) {
     await createNotification({
       businessId: existing.businessId,
@@ -443,7 +489,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       message: `${patient?.fullName ?? 'Hasta'} için randevu onaylandı. ${detail}`,
       entityType: 'appointment',
       entityId: existing.id,
-      link: `/dashboard/randevular?id=${existing.id}`,
+      link: `${ajandaLink}&status=CONFIRMED`,
       metadata: meta,
     })
     if (existing.clientUserId) {
@@ -458,6 +504,20 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
         metadata: meta,
       })
     }
+    // Soft-fail: channel errors never roll back approve.
+    const channelResults = await notifyPatientChannels({
+      businessId: existing.businessId,
+      appointmentId: existing.id,
+      patientId: existing.patientId,
+      patientName: patient?.fullName ?? 'Hasta',
+      patientPhone: patient?.phone,
+      patientEmail: patient?.email,
+      serviceName: service?.name ?? 'Hizmet',
+      startsAt,
+      clinicName: business?.name,
+      kind: 'confirm',
+    })
+    channelDelivery = summarizeNotifyResults(channelResults)
   } else if (status === AppointmentStatus.CANCELLED || status === AppointmentStatus.NO_SHOW) {
     await createNotification({
       businessId: existing.businessId,
@@ -470,7 +530,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       message: `${patient?.fullName ?? 'Hasta'} için randevu iptal edildi. ${detail}`,
       entityType: 'appointment',
       entityId: existing.id,
-      link: `/dashboard/randevular?id=${existing.id}`,
+      link: `${ajandaLink}&status=${status}`,
       priority: NotificationPriority.HIGH,
       metadata: meta,
     })
@@ -486,6 +546,60 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
         metadata: meta,
       })
     }
+    const channelResults = await notifyPatientChannels({
+      businessId: existing.businessId,
+      appointmentId: existing.id,
+      patientId: existing.patientId,
+      patientName: patient?.fullName ?? 'Hasta',
+      patientPhone: patient?.phone,
+      patientEmail: patient?.email,
+      serviceName: service?.name ?? 'Hizmet',
+      startsAt,
+      clinicName: business?.name,
+      kind: 'cancel',
+    })
+    channelDelivery = summarizeNotifyResults(channelResults)
+
+    // Soft-fail waitlist auto-fill: offer opened slot to returning patients.
+    try {
+      fillGapOffer = await offerOpenedSlotToWaitlistCandidates({
+        businessId: existing.businessId,
+        appointmentId: existing.id,
+        staffId: existing.staffId,
+        serviceName: service?.name ?? 'Hizmet',
+        startsAt,
+        clinicName: business?.name,
+        dateIso: dateStr,
+        startTime: existing.startTime,
+      })
+    } catch {
+      fillGapOffer = null
+    }
+
+    if (status === AppointmentStatus.NO_SHOW) {
+      const feePolicy = await prisma.business.findUnique({
+        where: { id: existing.businessId },
+        select: {
+          noShowFeeEnabled: true,
+          noShowFeeAmount: true,
+          currency: true,
+        },
+      })
+      if (feePolicy?.noShowFeeEnabled && feePolicy.noShowFeeAmount) {
+        trackFunnelEvent({
+          step: 'deposit_pending',
+          businessId: existing.businessId,
+          appointmentId: existing.id,
+          ok: true,
+          metadata: {
+            kind: 'no_show_fee_policy',
+            amount: Number(feePolicy.noShowFeeAmount),
+            currency: feePolicy.currency,
+            collection: 'later',
+          },
+        })
+      }
+    }
   } else if (status === AppointmentStatus.COMPLETED) {
     await createNotification({
       businessId: existing.businessId,
@@ -498,7 +612,7 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
       message: `${patient?.fullName ?? 'Hasta'} için randevu tamamlandı. ${detail}`,
       entityType: 'appointment',
       entityId: existing.id,
-      link: `/dashboard/randevular?id=${existing.id}`,
+      link: `${ajandaLink}&status=COMPLETED`,
       metadata: meta,
     })
     if (existing.clientUserId) {
@@ -529,9 +643,15 @@ export async function setAppointmentStatus(rawInput: unknown): Promise<ActionRes
     entityId: existing.id,
     severity: parsed.data.status === 'CANCELLED' ? 'WARN' : 'INFO',
     summary: `Randevu durumu güncellendi: ${parsed.data.status}`,
-    metadata: { status: parsed.data.status, patientId: existing.patientId },
+    metadata: {
+      status: parsed.data.status,
+      patientId: existing.patientId,
+      channelOutcome: channelDelivery?.outcome ?? null,
+      fillGapAttempted: fillGapOffer?.attempted ?? null,
+      fillGapNotified: fillGapOffer?.notified ?? null,
+    },
   })
-  return ok(undefined)
+  return ok({ channelDelivery, fillGapOffer })
 }
 
 const rescheduleSchema = z.object({
@@ -566,12 +686,15 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
       endTime,
       excludeAppointmentId: existing.id,
     })
-    if (overlap) return err('Bu saat için bekleyen veya onaylanmış başka bir randevu var')
+    if (overlap === 'appointment') return err('Bu saat için bekleyen veya onaylanmış başka bir randevu var')
+    if (overlap === 'unavailable') {
+      return err('Bu saat personel takviminde meşgul (Google Calendar / müsait değil bloğu)')
+    }
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: parsed.data.id },
+  await tenantTransaction(session.businessId, async (tx) => {
+    const updated = await tx.appointment.updateMany({
+      where: { id: parsed.data.id, businessId: session.businessId },
       data: {
         date: rescheduledDate,
         startTime: parsed.data.startTime,
@@ -581,6 +704,7 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
         status: AppointmentStatus.SCHEDULED,
       },
     })
+    if (updated.count === 0) throw new Error('Randevu bulunamadı')
     await tx.timelineEvent.create({
       data: {
         businessId: session.businessId,
@@ -595,17 +719,17 @@ export async function rescheduleAppointment(rawInput: unknown): Promise<ActionRe
   })
 
   const [patient, service, staff, business, location] = await Promise.all([
-    prisma.patient.findUnique({
-      where: { id: existing.patientId },
+    prisma.patient.findFirst({
+      where: { id: existing.patientId, businessId: existing.businessId },
       select: { fullName: true },
     }),
-    prisma.service.findUnique({
-      where: { id: existing.serviceId },
+    prisma.service.findFirst({
+      where: { id: existing.serviceId, businessId: existing.businessId },
       select: { name: true },
     }),
     existing.staffId
-      ? prisma.teamMember.findUnique({
-          where: { id: existing.staffId },
+      ? prisma.teamMember.findFirst({
+          where: { id: existing.staffId, businessId: existing.businessId },
           select: { userId: true },
         })
       : Promise.resolve(null),

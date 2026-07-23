@@ -1,0 +1,43 @@
+{
+  "$schemaComment": "I4 CI budgets — first-load JS from Next route-bundle-stats + Lighthouse floors. Uncompressed = Next diagnostics; gzip = on-disk chunk gzip sum.",
+  "bundle": {
+    "statsPath": ".next/diagnostics/route-bundle-stats.json",
+    "routes": {
+      "/": {
+        "maxFirstLoadUncompressedJsBytes": 1500000,
+        "maxFirstLoadGzipJsBytes": 420000
+      },
+      "/book/[slug]": {
+        "maxFirstLoadUncompressedJsBytes": 850000,
+        "maxFirstLoadGzipJsBytes": 250000
+      },
+      "/randevu/[slug]": {
+        "maxFirstLoadUncompressedJsBytes": 850000,
+        "maxFirstLoadGzipJsBytes": 250000
+      },
+      "/client": {
+        "maxFirstLoadUncompressedJsBytes": 900000,
+        "maxFirstLoadGzipJsBytes": 260000
+      },
+      "/dashboard": {
+        "maxFirstLoadUncompressedJsBytes": 1600000,
+        "maxFirstLoadGzipJsBytes": 450000
+      }
+    },
+    "global": {
+      "maxAnyRouteUncompressedJsBytes": 1900000
+    }
+  },
+  "lighthouse": {
+    "urls": ["/", "/guven"],
+    "minScores": {
+      "accessibility": 0.85,
+      "best-practices": 0.7,
+      "seo": 0.8
+    },
+    "warnScores": {
+      "performance": 0.25
+    },
+    "maxScriptTransferBytes": 500000
+  }
+}

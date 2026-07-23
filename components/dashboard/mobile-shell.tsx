@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   BarChart3,
   Bell,
+  ClipboardList,
   Briefcase,
   CalendarDays,
   CalendarPlus,
@@ -19,11 +20,13 @@ import {
   Search,
   Settings,
   Shield,
+  Sparkles,
   StickyNote,
   Upload,
   UserCog,
   UserPlus,
   Users,
+  FileText,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -71,17 +74,47 @@ const PRIMARY_NAV: PrimaryNav[] = [
       p.startsWith('/dashboard/takvim/'),
   },
   { name: 'Hastalar', href: '/dashboard/hastalar', icon: Users, permission: 'patient.view' },
+  {
+    name: 'Kimlik',
+    href: '/dashboard/kimlik-eslesmeleri',
+    icon: Sparkles,
+    permission: 'patient.edit',
+  },
 ]
+
+const ANALITIK_SECONDARY_NAV: SecondaryNav = {
+  name: 'Analitik',
+  href: '/dashboard/analitik',
+  icon: BarChart3,
+  permission: 'analytics.view',
+}
 
 const SECONDARY_NAV: SecondaryNav[] = [
   { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
   { name: 'Hizmetler', href: '/dashboard/hizmetler', icon: Briefcase, permission: 'service.manage' },
+  { name: 'Anketler', href: '/dashboard/anketler', icon: ClipboardList, permission: 'service.manage' },
+  {
+    name: 'Faturalar',
+    href: '/dashboard/faturalar',
+    icon: FileText,
+    anyOfPermissions: ['appointment.manage', 'analytics.revenue.view'],
+  },
   { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
   { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
-  { name: 'Analitik', href: '/dashboard/analitik', icon: BarChart3, permission: 'analytics.view' },
   { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Shield, superAdminOnly: true },
   { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
 ]
+
+function buildSecondaryNav(clinicAnalyticsEnabled: boolean): SecondaryNav[] {
+  if (!clinicAnalyticsEnabled) return SECONDARY_NAV
+  const yonetisimIdx = SECONDARY_NAV.findIndex((item) => item.href === '/dashboard/yonetisim')
+  if (yonetisimIdx < 0) return [...SECONDARY_NAV, ANALITIK_SECONDARY_NAV]
+  return [
+    ...SECONDARY_NAV.slice(0, yonetisimIdx),
+    ANALITIK_SECONDARY_NAV,
+    ...SECONDARY_NAV.slice(yonetisimIdx),
+  ]
+}
 
 export function MobileShell({
   session,
@@ -89,12 +122,16 @@ export function MobileShell({
   unreadMessages = 0,
   pendingAppointments = 0,
   showSuperAdmin = false,
+  teamMessagingEnabled = false,
+  clinicAnalyticsEnabled = false,
 }: {
   session: SessionContext
   unreadCount: number
   unreadMessages?: number
   pendingAppointments?: number
   showSuperAdmin?: boolean
+  teamMessagingEnabled?: boolean
+  clinicAnalyticsEnabled?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -118,7 +155,8 @@ export function MobileShell({
     if (item.anyOfPermissions) return canAny(item.anyOfPermissions)
     return can(item.permission)
   })
-  const secondaryItems = SECONDARY_NAV.filter((i) => {
+  const secondaryItems = buildSecondaryNav(clinicAnalyticsEnabled).filter((i) => {
+    if (i.href === '/dashboard/mesajlar' && !teamMessagingEnabled) return false
     if (i.superAdminOnly && !showSuperAdmin) return false
     return can(i.permission)
   })
@@ -132,6 +170,8 @@ export function MobileShell({
 
   function primaryLabel(item: PrimaryNav) {
     if (item.href === '/dashboard/ajanda') return scheduleLabels.agendaShort
+    // Compact label so 5 equal tabs fit narrow phones without horizontal overflow.
+    if (item.href === '/dashboard') return 'Ana'
     return item.name
   }
 
@@ -139,7 +179,7 @@ export function MobileShell({
     const path = item.href.split('?')[0]
     return pathname === path || pathname.startsWith(`${path}/`)
   })
-  const menuBadgeCount = unreadCount + unreadMessages
+  const menuBadgeCount = unreadCount + (teamMessagingEnabled ? unreadMessages : 0)
 
   async function handleLogout() {
     const supabase = createClient()
@@ -192,59 +232,79 @@ export function MobileShell({
     router.push(`/dashboard/hastalar/${patientId}?action=${action}`)
   }
 
+  const tabCount = primaryItems.length + 1 // primary tabs + Menü
+
   return (
     <>
+      {/*
+        Mobile bottom nav: one equal-width row (never wrap). FAB sits above this bar
+        via --dashboard-mobile-nav-h so it never covers tab hit targets.
+      */}
       <nav
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-white/90 backdrop-blur-xl pb-safe lg:hidden"
         aria-label="Alt gezinme"
       >
-        <div className="grid grid-cols-4">
+        <div
+          className="mx-auto grid w-full max-w-lg min-h-[3.5rem] items-stretch px-1"
+          style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}
+        >
           {primaryItems.map((item) => {
+            const href =
+              item.badge === 'pendingAppointments' && pendingAppointments > 0
+                ? '/dashboard/ajanda?mode=liste&status=SCHEDULED'
+                : item.href
             const active = item.match
               ? item.match(pathname)
               : pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const label = primaryLabel(item)
+            const a11yLabel = item.href === '/dashboard' ? 'Ana Sayfa' : label
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href}
+                title={a11yLabel}
+                aria-label={a11yLabel}
                 className={cn(
-                  'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
+                  'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] font-medium leading-tight transition-colors sm:text-[11px]',
                   active ? 'text-brand-blue' : 'text-muted-foreground',
                 )}
                 aria-current={active ? 'page' : undefined}
               >
-                <span className="relative">
-                  <item.icon className="h-[22px] w-[22px]" />
-                  {active && <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-brand-blue" />}
+                <span className="relative shrink-0">
+                  <item.icon className="h-5 w-5 sm:h-[22px] sm:w-[22px]" aria-hidden />
+                  {active && (
+                    <span className="absolute -top-2.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-brand-blue sm:w-6" />
+                  )}
                   {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
                     <span className="absolute -right-2.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold leading-none text-amber-950 ring-2 ring-white">
                       {pendingAppointments > 9 ? '9+' : pendingAppointments}
                     </span>
                   )}
                 </span>
-                {primaryLabel(item)}
+                <span className="w-full truncate text-center">{label}</span>
               </Link>
             )
           })}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
+            title="Menü"
             className={cn(
-              'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
+              'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] font-medium leading-tight transition-colors sm:text-[11px]',
               menuOpen || isSecondaryActive ? 'text-brand-blue' : 'text-muted-foreground',
             )}
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
           >
-            <span className="relative">
-              <Menu className="h-[22px] w-[22px]" />
+            <span className="relative shrink-0">
+              <Menu className="h-5 w-5 sm:h-[22px] sm:w-[22px]" aria-hidden />
               {menuBadgeCount > 0 && !isSecondaryActive && (
                 <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-blue px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
                   {menuBadgeCount > 9 ? '9+' : menuBadgeCount}
                 </span>
               )}
             </span>
-            Menü
+            <span className="w-full truncate text-center">Menü</span>
           </button>
         </div>
       </nav>
@@ -253,10 +313,14 @@ export function MobileShell({
         type="button"
         onClick={() => setFabOpen(true)}
         aria-label="Hızlı işlemler"
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-blue text-white shadow-xl shadow-blue-500/40 transition-transform active:scale-95 lg:hidden"
-        style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
+        className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-blue text-white shadow-xl shadow-blue-500/40 transition-transform active:scale-95 lg:hidden"
+        style={{
+          // Clear the nav bar + safe area; never sit on top of tab labels/icons.
+          bottom:
+            'calc(var(--dashboard-mobile-nav-h, 3.5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem)',
+        }}
       >
-        <Plus className="h-7 w-7" />
+        <Plus className="h-7 w-7" aria-hidden />
       </button>
 
       <Sheet open={fabOpen} onOpenChange={setFabOpen}>
@@ -379,7 +443,11 @@ export function MobileShell({
       </Sheet>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="right" className="w-full max-w-full border-0 bg-sidebar p-0 text-white sm:max-w-sm">
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-full max-w-full border-0 bg-sidebar p-0 text-white sm:max-w-sm"
+        >
           <SheetTitle className="sr-only">Menü</SheetTitle>
           <div className="flex h-full flex-col pt-safe">
             <div className="flex items-center justify-between px-5 py-4">

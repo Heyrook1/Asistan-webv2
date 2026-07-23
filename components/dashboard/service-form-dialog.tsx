@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { createService, updateService } from '@/lib/actions/services'
+import { assignIntakeFormToService } from '@/lib/actions/intake-forms'
 
 export type ServiceDraft = {
   id?: string
@@ -20,6 +21,7 @@ export type ServiceDraft = {
   currency: 'TRY' | 'USD' | 'EUR'
   color: string
   isActive: boolean
+  intakeFormId?: string | null
 }
 
 const empty: ServiceDraft = {
@@ -31,6 +33,7 @@ const empty: ServiceDraft = {
   currency: 'TRY',
   color: '#0071E3',
   isActive: true,
+  intakeFormId: null,
 }
 
 export function ServiceFormDialog({
@@ -38,11 +41,13 @@ export function ServiceFormDialog({
   onOpenChange,
   onSaved,
   initial,
+  intakeForms = [],
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   onSaved?: () => void
   initial?: ServiceDraft
+  intakeForms?: Array<{ id: string; name: string }>
 }) {
   const [draft, setDraft] = useState<ServiceDraft>(initial ?? empty)
   const [pending, startTransition] = useTransition()
@@ -72,6 +77,19 @@ export function ServiceFormDialog({
         toast.error(result.error)
         return
       }
+
+      const serviceId = draft.id ?? (result.ok && 'data' in result ? result.data?.id : undefined)
+      if (serviceId && intakeForms.length > 0) {
+        const assign = await assignIntakeFormToService({
+          serviceId,
+          intakeFormId: draft.intakeFormId ?? null,
+        })
+        if (!assign.ok) {
+          toast.error(assign.error)
+          return
+        }
+      }
+
       toast.success(draft.id ? 'Hizmet güncellendi' : 'Hizmet eklendi')
       onSaved?.()
       onOpenChange(false)
@@ -126,6 +144,25 @@ export function ServiceFormDialog({
             <Label className="text-xs text-muted-foreground mb-1.5 block">Açıklama</Label>
             <Textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={3} />
           </div>
+          {intakeForms.length > 0 ? (
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Ön kayıt anketi</Label>
+              <select
+                className="h-10 w-full rounded-md border px-3 text-sm"
+                value={draft.intakeFormId ?? ''}
+                onChange={(e) =>
+                  setDraft({ ...draft, intakeFormId: e.target.value ? e.target.value : null })
+                }
+              >
+                <option value="">Klinik varsayılanı / yok</option>
+                {intakeForms.map((form) => (
+                  <option key={form.id} value={form.id}>
+                    {form.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <label className="flex items-center gap-2 text-sm">
             <Switch checked={draft.isActive} onCheckedChange={(v) => setDraft({ ...draft, isActive: v })} />
             Aktif

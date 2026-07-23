@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -29,25 +29,14 @@ export async function POST(request: NextRequest) {
       return apiError(message, 400, 'VALIDATION_ERROR')
     }
 
-    const { email } = result.data
+    const email = result.data.email.trim().toLowerCase()
 
-    // Ensure table exists without requiring a schema migration (mirrors waitlist pattern)
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "NewsletterSubscriber" (
-        "id"        TEXT PRIMARY KEY,
-        "email"     TEXT NOT NULL UNIQUE,
-        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `)
-
-    // ON CONFLICT DO NOTHING → duplicate subscriptions silently accepted (no error shown to user)
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "NewsletterSubscriber" ("id", "email", "createdAt")
-       VALUES ($1, $2, CURRENT_TIMESTAMP)
-       ON CONFLICT ("email") DO NOTHING`,
-      crypto.randomUUID(),
-      email,
-    )
+    // Duplicate subscriptions silently accepted (no error shown to user).
+    await prisma.newsletterSubscriber.upsert({
+      where: { email },
+      create: { email },
+      update: {},
+    })
 
     return apiSuccess({ success: true })
   } catch (error: unknown) {

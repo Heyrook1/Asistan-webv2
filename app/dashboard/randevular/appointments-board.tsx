@@ -33,9 +33,11 @@ import {
   Check,
   Calendar as CalendarIcon,
   Frown,
+  FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { setAppointmentStatus, rescheduleAppointment, deleteAppointment } from '@/lib/actions/appointments'
+import { createDraftInvoiceFromAppointment } from '@/lib/actions/invoices'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
 import { AjandaModeSwitch } from '@/components/dashboard/ajanda-mode-switch'
 import { EmptyState } from '@/components/dashboard/empty-state'
@@ -128,7 +130,7 @@ const STATUS_ICON: Record<AppointmentStatus, typeof Clock> = {
 
 const FILTERS: Array<{ value: FilterValue; label: string; icon: typeof Clock; iconClass: string }> = [
   { value: 'ALL', label: 'Tümü', icon: Check, iconClass: 'text-current' },
-  { value: 'SCHEDULED', label: 'Planlandı', icon: Clock, iconClass: 'text-orange-500' },
+  { value: 'SCHEDULED', label: 'Onay bekliyor', icon: Clock, iconClass: 'text-orange-500' },
   { value: 'CONFIRMED', label: 'Onaylandı', icon: CalendarCheck, iconClass: 'text-sky-500' },
   { value: 'COMPLETED', label: 'Tamamlandı', icon: CheckCircle2, iconClass: 'text-emerald-500' },
   { value: 'CANCELLED', label: 'İptal', icon: XCircle, iconClass: 'text-rose-500' },
@@ -228,20 +230,71 @@ export function AppointmentsBoard({
 
   useEffect(() => {
     if (!focusId) return
+    const focused = appointments.find((a) => a.id === focusId)
+    if (!focused) return
+    // Deep-link must not be hidden by a conflicting status chip / saved pref.
+    if (status !== 'ALL' && status !== focused.status) {
+      setStatus(focused.status)
+      writeUiPreference(UI_PREF_KEYS.appointmentStatusFilter, focused.status)
+      const params = new URLSearchParams(searchParams.toString())
+      if (pathname.includes('/ajanda')) params.set('mode', 'liste')
+      params.set('status', focused.status)
+      params.set('id', focusId)
+      const qs = params.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    }
+  }, [focusId, appointments, status, pathname, router, searchParams])
+
+  useEffect(() => {
+    if (!focusId) return
     const el = document.getElementById(`appointment-${focusId}`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [focusId, appointments])
+    if (!el) return
+    const timer = window.setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+    return () => window.clearTimeout(timer)
+  }, [focusId, appointments, status])
 
   const filtered = useMemo(
     () => (status === 'ALL' ? appointments : appointments.filter((a) => a.status === status)),
     [appointments, status]
   )
 
+  const scheduledCount = useMemo(
+    () => appointments.filter((a) => a.status === 'SCHEDULED').length,
+    [appointments]
+  )
+
   function changeStatus(id: string, next: AppointmentStatus) {
     startTransition(async () => {
       const result = await setAppointmentStatus({ id, status: next })
       if (!result.ok) { toast.error(result.error); return }
-      toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`)
+      const channel = result.data.channelDelivery
+      const offer = result.data.fillGapOffer
+      const offerNote =
+        offer && offer.attempted > 0
+          ? `Boşalan saat için ${offer.attempted} dönen hastaya teklif denendi.`
+          : null
+
+      if (channel && channel.outcome === 'error') {
+        toast.warning(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, {
+          description: [channel.label, offerNote].filter(Boolean).join(' '),
+        })
+      } else if (channel && channel.outcome === 'not_configured') {
+        toast.message(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, {
+          description: [channel.label, offerNote].filter(Boolean).join(' '),
+        })
+      } else if (channel && (channel.outcome === 'sent' || channel.outcome === 'skipped')) {
+        toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, {
+          description: [channel.label, offerNote].filter(Boolean).join(' ') || undefined,
+        })
+      } else if (offerNote) {
+        toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, {
+          description: offerNote,
+        })
+      } else {
+        toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`)
+      }
       router.refresh()
     })
   }
@@ -282,12 +335,49 @@ export function AppointmentsBoard({
         )}
       </div>
 
+      {/* Onay bekleyenler inbox */}
+      {scheduledCount > 0 && status !== 'SCHEDULED' && (
+        <button
+          type="button"
+          onClick={() => selectStatusFilter('SCHEDULED')}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-left transition-colors hover:bg-amber-50"
+        >
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-amber-900">
+              Onay bekleyenler
+              <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-amber-950">
+                {scheduledCount > 99 ? '99+' : scheduledCount}
+              </span>
+            </p>
+            <p className="mt-0.5 text-[12px] text-amber-800/80">
+              Hasta talepleri onay veya iptal bekliyor — kuyruğu açın.
+            </p>
+          </div>
+          <span className="shrink-0 text-[12px] font-semibold text-amber-900">Kuyruk →</span>
+        </button>
+      )}
+
+      {status === 'SCHEDULED' && (
+        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-2.5">
+          <p className="text-[13px] font-bold text-amber-900">
+            Onay bekleyenler
+            {scheduledCount > 0 ? (
+              <span className="ml-2 font-semibold text-amber-800/80">({scheduledCount})</span>
+            ) : null}
+          </p>
+          <p className="text-[12px] text-amber-800/75">
+            Onaylayın veya iptal edin — hasta SMS/WhatsApp ile bilgilendirilir (kanal bağlıysa).
+          </p>
+        </div>
+      )}
+
       {/* Filter chips + Filtrele */}
       <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
         <div className="grid w-full grid-cols-3 gap-2 md:flex md:w-auto md:flex-1 md:flex-nowrap md:overflow-x-auto md:no-scrollbar">
           {FILTERS.map((filter) => {
             const active = status === filter.value
             const FilterIcon = filter.icon
+            const chipCount = filter.value === 'SCHEDULED' ? scheduledCount : null
             return (
               <button
                 key={filter.value}
@@ -303,6 +393,16 @@ export function AppointmentsBoard({
               >
                 <FilterIcon className={cn('h-4 w-4', active ? 'text-white' : filter.iconClass)} />
                 {filter.label}
+                {chipCount != null && chipCount > 0 ? (
+                  <span
+                    className={cn(
+                      'inline-flex h-5 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                      active ? 'bg-white/25 text-white' : 'bg-amber-400 text-amber-950'
+                    )}
+                  >
+                    {chipCount > 9 ? '9+' : chipCount}
+                  </span>
+                ) : null}
               </button>
             )
           })}
@@ -356,6 +456,19 @@ export function AppointmentsBoard({
                 onNoShow={() => changeStatus(appointment.id, 'NO_SHOW')}
                 onReschedule={() => setReschedule(appointment)}
                 onDelete={() => setDeleteTarget(appointment)}
+                onInvoice={() => {
+                  startTransition(async () => {
+                    const result = await createDraftInvoiceFromAppointment({
+                      appointmentId: appointment.id,
+                    })
+                    if (!result.ok) {
+                      toast.error(result.error)
+                      return
+                    }
+                    toast.success(`Fatura taslağı: ${result.data.number}`)
+                    router.push('/dashboard/faturalar')
+                  })
+                }}
               />
             </li>
           ))}
@@ -415,6 +528,7 @@ function AppointmentRow({
   onNoShow,
   onReschedule,
   onDelete,
+  onInvoice,
 }: {
   appointment: PlainAppointment
   focused?: boolean
@@ -426,6 +540,7 @@ function AppointmentRow({
   onNoShow: () => void
   onReschedule: () => void
   onDelete: () => void
+  onInvoice: () => void
 }) {
   const tone = STATUS_TONE[appointment.status]
   const StatusIcon = STATUS_ICON[appointment.status]
@@ -478,7 +593,7 @@ function AppointmentRow({
         <div className="hidden shrink-0 items-center md:flex">
           <span
             className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white"
-            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-teal)'}, var(--brand-cyan))` }}
+            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-blue)'}, var(--brand-blue-hover))` }}
           >
             {initialsOf(appointment.patientName)}
           </span>
@@ -489,7 +604,7 @@ function AppointmentRow({
           <div className="flex items-start gap-3">
             <span
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white md:hidden"
-              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-teal)'}, var(--brand-cyan))` }}
+              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-blue)'}, var(--brand-blue-hover))` }}
             >
               {initialsOf(appointment.patientName)}
             </span>
@@ -592,6 +707,11 @@ function AppointmentRow({
                 {canMarkNoShow ? (
                   <DropdownMenuItem onClick={onNoShow} disabled={pending}>
                     <Frown className="mr-2 h-4 w-4 text-slate-600" /> Gelmedi
+                  </DropdownMenuItem>
+                ) : null}
+                {appointment.status === 'COMPLETED' ? (
+                  <DropdownMenuItem onClick={onInvoice} disabled={pending}>
+                    <FileText className="mr-2 h-4 w-4 text-brand-teal" /> Fatura taslağı
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuItem onClick={onDelete} disabled={pending} className="text-rose-600 focus:text-rose-600">

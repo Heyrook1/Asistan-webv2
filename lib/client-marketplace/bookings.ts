@@ -1,81 +1,26 @@
 import 'server-only'
 
-import { Prisma, AppointmentStatus, NotificationActionType, NotificationPriority, NotificationType, TimelineEventType } from '@prisma/client'
+import {
+  AppointmentStatus,
+  NotificationActionType,
+  NotificationPriority,
+  NotificationType,
+  Prisma,
+} from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications/service'
-import { getAvailableSlotsTx } from './availability'
+import { notifyPatientChannels } from '@/lib/notifications/patient-channels'
 import {
   createClientBookingSchema,
   type CreateClientBookingInput,
 } from './booking-schema'
+import {
+  runSlotAppointmentTransaction,
+  SlotConflictError,
+} from '@/lib/booking/create-slot-appointment'
 
 export { createClientBookingSchema }
 export type { CreateClientBookingInput }
-
-class SlotConflictError extends Error {
-  constructor() {
-    super('Bu saat az önce doldu. Lütfen başka bir saat seçin.')
-  }
-}
-
-async function nextPatientNumber(tx: Prisma.TransactionClient, businessId: string) {
-  const rows = await tx.$queryRaw<Array<{ next_patient_number: string }>>`
-    select public.next_patient_number(${businessId}) as next_patient_number
-  `
-  const patientNumber = rows[0]?.next_patient_number
-  if (!patientNumber) throw new Error('Hasta numarasi uretilemedi')
-  return patientNumber
-}
-
-async function getOrCreatePatientFromClient(
-  tx: Prisma.TransactionClient,
-  input: CreateClientBookingInput
-) {
-  const email = input.email?.toLowerCase() ?? null
-  const byEmail = email
-    ? await tx.patient.findFirst({
-        where: { businessId: input.businessId, email },
-        select: { id: true, fullName: true },
-      })
-    : null
-
-  const byPhone = byEmail
-    ? null
-    : await tx.patient.findFirst({
-        where: { businessId: input.businessId, phone: input.phone },
-        select: { id: true, fullName: true },
-      })
-
-  const existing = byEmail ?? byPhone
-  if (existing) {
-    await tx.patient.update({
-      where: { id: existing.id },
-      data: {
-        fullName: input.fullName,
-        phone: input.phone,
-        email,
-        address: input.address ?? undefined,
-        city: input.city ?? undefined,
-      },
-    })
-    return existing.id
-  }
-
-  const patientNumber = await nextPatientNumber(tx, input.businessId)
-  const created = await tx.patient.create({
-    data: {
-      businessId: input.businessId,
-      patientNumber,
-      fullName: input.fullName,
-      phone: input.phone,
-      email,
-      address: input.address ?? null,
-      city: input.city ?? null,
-    },
-    select: { id: true },
-  })
-  return created.id
-}
 
 async function notifyDashboardActors(input: {
   businessId: string
@@ -166,126 +111,20 @@ async function createClientBookingOnce(input: {
   clientUserId: string
   authUserId: string
 }) {
-  const booking = await prisma.$transaction(
-    async (tx) => {
-      const [business, doctor, service] = await Promise.all([
-        tx.business.findFirst({
-          where: { id: input.payload.businessId, isActive: true },
-          select: { id: true, autoConfirmClientAppointments: true },
-        }),
-        tx.teamMember.findFirst({
-          where: {
-            id: input.payload.doctorId,
-            businessId: input.payload.businessId,
-            role: 'DOKTOR',
-            isBookable: true,
-            isActive: true,
-          },
-          select: { id: true, fullName: true },
-        }),
-        tx.service.findFirst({
-          where: {
-            id: input.payload.serviceId,
-            businessId: input.payload.businessId,
-            isActive: true,
-          },
-          select: { id: true, name: true, durationMin: true, price: true },
-        }),
-      ])
-
-      if (!business || !doctor || !service) {
-        throw new Error('Klinik, doktor veya hizmet bilgisi bulunamadi')
-      }
-
-      await tx.$queryRaw`
-        select "id"
-        from "Appointment"
-        where "businessId" = ${input.payload.businessId}::uuid
-          and "staffId" = ${input.payload.doctorId}::uuid
-          and "date" = ${input.payload.date}::date
-          and "status" in ('SCHEDULED', 'CONFIRMED')
-        for update
-      `
-
-      const availableSlots = await getAvailableSlotsTx(tx, {
-        businessId: input.payload.businessId,
-        doctorId: input.payload.doctorId,
-        serviceId: input.payload.serviceId,
-        date: input.payload.date,
-        locationId: input.payload.locationId ?? null,
-      })
-
-      const matched = availableSlots.find((slot) => slot.startTime === input.payload.startTime)
-      if (!matched) {
-        throw new SlotConflictError()
-      }
-
-      const location = input.payload.locationId
-        ? await tx.location.findFirst({
-            where: {
-              id: input.payload.locationId,
-              businessId: input.payload.businessId,
-              isActive: true,
-            },
-            select: { id: true, name: true },
-          })
-        : await tx.location.findFirst({
-            where: { businessId: input.payload.businessId, isActive: true },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: { id: true, name: true },
-          })
-
-      if (!location) {
-        throw new Error('Randevu icin uygun sube bulunamadi')
-      }
-
-      const patientId = await getOrCreatePatientFromClient(tx, input.payload)
-      const status = business.autoConfirmClientAppointments
-        ? AppointmentStatus.CONFIRMED
-        : AppointmentStatus.SCHEDULED
-
-      const appointment = await tx.appointment.create({
-        data: {
-          businessId: input.payload.businessId,
-          locationId: location.id,
-          patientId,
-          serviceId: input.payload.serviceId,
-          staffId: input.payload.doctorId,
-          clientUserId: input.clientUserId,
-          date: new Date(input.payload.date),
-          startTime: matched.startTime,
-          endTime: matched.endTime,
-          status,
-          source: 'CLIENT_APP',
-          notes: input.payload.note ?? null,
-          price: service.price,
-        },
-        select: {
-          id: true,
-          status: true,
-          date: true,
-          startTime: true,
-        },
-      })
-
-      await tx.timelineEvent.create({
-        data: {
-          businessId: input.payload.businessId,
-          patientId,
-          type: TimelineEventType.APPOINTMENT_CREATED,
-          title: 'Client uygulamasindan randevu olusturuldu',
-          description: `${service.name} • ${input.payload.date} ${input.payload.startTime}`,
-          actorName: input.payload.fullName,
-          actorId: input.authUserId,
-        },
-      })
-
+  return runSlotAppointmentTransaction({
+    payload: input.payload,
+    clientUserId: input.clientUserId,
+    actorUserId: input.authUserId,
+    notes: input.payload.note ?? null,
+    timelineTitle: 'Client uygulamasından randevu oluşturuldu',
+    requireLocationIfIdProvided: true,
+    onAfterAppointment: async (tx, ctx) => {
       const notificationType =
-        status === AppointmentStatus.CONFIRMED
+        ctx.status === AppointmentStatus.CONFIRMED
           ? 'BOOKING_CONFIRMATION'
           : 'BOOKING_PENDING'
       const notificationTitle =
-        status === AppointmentStatus.CONFIRMED
+        ctx.status === AppointmentStatus.CONFIRMED
           ? 'Randevunuz onaylandi'
           : 'Randevunuz onay bekliyor'
 
@@ -293,36 +132,20 @@ async function createClientBookingOnce(input: {
         data: {
           clientUserId: input.clientUserId,
           businessId: input.payload.businessId,
-          appointmentId: appointment.id,
+          appointmentId: ctx.appointmentId,
           type: notificationType,
           title: notificationTitle,
           message: `${input.payload.date} ${input.payload.startTime} randevunuz olusturuldu.`,
-          link: `/client/bookings?id=${appointment.id}`,
+          link: `/client/bookings?id=${ctx.appointmentId}`,
           metadata: {
-            appointmentId: appointment.id,
+            appointmentId: ctx.appointmentId,
             doctorId: input.payload.doctorId,
             serviceId: input.payload.serviceId,
           },
         },
       })
-
-      return {
-        appointmentId: appointment.id,
-        patientId,
-        status: appointment.status,
-        locationName: location.name,
-        serviceName: service.name,
-        doctorName: doctor.fullName,
-      }
     },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      maxWait: 8_000,
-      timeout: 15_000,
-    }
-  )
-
-  return booking
+  })
 }
 
 export async function createClientBooking(input: {
@@ -350,6 +173,25 @@ export async function createClientBooking(input: {
         pendingApproval: booking.status === AppointmentStatus.SCHEDULED,
       })
 
+      if (booking.status === AppointmentStatus.CONFIRMED) {
+        const business = await prisma.business.findUnique({
+          where: { id: input.payload.businessId },
+          select: { name: true },
+        })
+        await notifyPatientChannels({
+          businessId: input.payload.businessId,
+          appointmentId: booking.appointmentId,
+          patientId: booking.patientId,
+          patientName: input.payload.fullName,
+          patientPhone: input.payload.phone,
+          patientEmail: input.payload.email,
+          serviceName: booking.serviceName,
+          startsAt: `${input.payload.date}T${input.payload.startTime}:00`,
+          clinicName: business?.name,
+          kind: 'confirm',
+        })
+      }
+
       return {
         ok: true as const,
         data: {
@@ -369,7 +211,11 @@ export async function createClientBooking(input: {
         }
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && attempt < maxAttempts) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034' &&
+        attempt < maxAttempts
+      ) {
         continue
       }
 

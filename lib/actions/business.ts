@@ -19,6 +19,38 @@ const businessSchema = z.object({
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
   timezone: z.string().default('Europe/Istanbul'),
   autoConfirmClientAppointments: z.boolean().optional(),
+  depositEnabled: z.boolean().optional(),
+  depositAmount: z.preprocess(
+    (v) => (v === '' || v == null ? null : v),
+    z.coerce.number().min(0).max(1_000_000).nullable().optional()
+  ),
+  noShowFeeEnabled: z.boolean().optional(),
+  noShowFeeAmount: z.preprocess(
+    (v) => (v === '' || v == null ? null : v),
+    z.coerce.number().min(0).max(1_000_000).nullable().optional()
+  ),
+  noShowFeeNote: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().max(1000).nullable().optional()
+  ),
+  invoiceEnabled: z.boolean().optional(),
+  taxVkn: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().max(32).nullable().optional()
+  ),
+  taxOffice: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().max(120).nullable().optional()
+  ),
+  invoiceTitle: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().max(200).nullable().optional()
+  ),
+  invoiceAddress: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.string().max(400).nullable().optional()
+  ),
+  whatsappAgentEnabled: z.boolean().optional(),
 })
 
 export async function updateBusinessSettings(input: unknown): Promise<ActionResult> {
@@ -39,5 +71,7 @@ export async function updateBusinessSettings(input: unknown): Promise<ActionResu
   })
   revalidatePath('/dashboard/ayarlar')
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/faturalar')
+  revalidatePath('/book')
   return ok(undefined)
 }

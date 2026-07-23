@@ -16,7 +16,11 @@ import { MarketingPageShell } from '@/components/marketing/page-shell'
 import { FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getPublicTrustStats } from '@/lib/trust/public'
+import {
+  getPublicTrustStats,
+  PUBLIC_TRUST_STATS_MIN_COMPLETED,
+  shouldPublishPublicTrustStats,
+} from '@/lib/trust/public'
 import { withCanonical } from '@/lib/seo'
 
 export const metadata: Metadata = withCanonical('/guven', {
@@ -81,6 +85,7 @@ const proofItems = [
 
 export default async function TrustCenterPage() {
   const stats = await getPublicTrustStats()
+  const publishStats = shouldPublishPublicTrustStats(stats)
 
   const statCards = [
     { label: 'Aktif klinik', value: stats.activeClinics },
@@ -105,28 +110,46 @@ export default async function TrustCenterPage() {
               Güven, rozet değil; doğrulanabilir kontrol.
             </h1>
             <p className="mt-5 text-base leading-8 text-slate-600 md:text-lg">
-              Bu sayfa Asistan’ın güvenlik, KVKK ve kanıt yaklaşımını özetler. Aşağıdaki sayılar canlı
-              veritabanından gelir; veri yoksa sıfır görünür — abartılmaz.
+              Bu sayfa güvenlik mimarisi, KVKK kontrolleri ve üründe gördüğünüz doğrulama sinyallerini
+              anlatır. Canlı platform sayıları yalnızca yeterli randevu örneği birikince yayınlanır.
             </p>
           </FadeUp>
         </div>
       </section>
 
-      <section className="bg-white py-14">
-        <div className="marketing-container grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((item, index) => (
-            <ScaleIn key={item.label} delay={0.04 * index}>
-              <article className="rounded-2xl border border-black/5 bg-[#F7FAFC] p-5">
-                <p className="text-3xl font-black tracking-tight text-brand-navy">
-                  {item.value}
-                  {item.suffix ?? ''}
+      {publishStats ? (
+        <section className="bg-white py-14">
+          <div className="marketing-container grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {statCards.map((item, index) => (
+              <ScaleIn key={item.label} delay={0.04 * index}>
+                <article className="rounded-2xl border border-black/5 bg-[#F7FAFC] p-5">
+                  <p className="text-3xl font-black tracking-tight text-brand-navy">
+                    {item.value}
+                    {item.suffix ?? ''}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-600">{item.label}</p>
+                </article>
+              </ScaleIn>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="bg-white py-14">
+          <div className="marketing-container">
+            <ScaleIn>
+              <article className="rounded-2xl border border-brand-blue/10 bg-[#F7FAFC] px-6 py-5 text-sm leading-7 text-slate-600">
+                <p className="font-semibold text-brand-navy">Canlı platform metrikleri henüz yayında değil</p>
+                <p className="mt-2">
+                  Erken aşamada sıfır veya tek haneli sayıları vitrine koymuyoruz. Önce ürün kontrolleri
+                  (KVKK, rol erişimi, denetim izi, hekim doğrulama) devrede; toplam{' '}
+                  {PUBLIC_TRUST_STATS_MIN_COMPLETED}+ tamamlanan randevu birikince özet istatistikler burada
+                  açılır.
                 </p>
-                <p className="mt-1 text-sm font-medium text-slate-600">{item.label}</p>
               </article>
             </ScaleIn>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       <section className="bg-dashboard-surface py-20">
         <div className="marketing-container">

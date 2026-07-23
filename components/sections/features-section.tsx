@@ -21,7 +21,7 @@ import { useLandingLocale } from '@/components/sections/landing-locale'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getClinicTrialPath, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
+import { getClinicTrialPath, PATIENT_BOOK_PATH, ENTRY_CTA } from '@/lib/entry-routes'
 import { revealSoft, staggerContainer } from '@/lib/animations'
 
 type FeatureItem = {
@@ -52,8 +52,8 @@ const FEATURES_COPY = {
     title: 'Klinik paneli ve hasta randevusu aynı Asistan ekosisteminde',
     clinicTab: 'Klinik paneli',
     patientTab: 'Hasta randevusu',
-    clinicCta: 'Klinik denemesini başlat',
-    patientCta: 'Hasta olarak randevu ara',
+    clinicCta: ENTRY_CTA.clinicTrial.tr,
+    patientCta: ENTRY_CTA.patientBook.tr,
     clinicFoot: 'Web panel',
     patientFoot: 'Web + mobil',
     clinicItems: [
@@ -76,8 +76,8 @@ const FEATURES_COPY = {
     title: 'Clinic panel and patient booking in one Asistan ecosystem',
     clinicTab: 'Clinic panel',
     patientTab: 'Patient booking',
-    clinicCta: 'Start clinic trial',
-    patientCta: 'Find a clinic as patient',
+    clinicCta: ENTRY_CTA.clinicTrial.en,
+    patientCta: ENTRY_CTA.patientBook.en,
     clinicFoot: 'Web dashboard',
     patientFoot: 'Web + mobile',
     clinicItems: CLINIC_ITEMS,

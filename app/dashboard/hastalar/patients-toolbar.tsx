@@ -4,8 +4,9 @@ import { useEffect, useState, useTransition, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Archive, Search, UserPlus, X, Users } from 'lucide-react'
+import { Archive, Search, Upload, UserPlus, X, Users } from 'lucide-react'
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
+import { PatientImportDialog } from '@/components/dashboard/patient-import-dialog'
 import { readUiPreference, UI_PREF_KEYS, writeUiPreference, type PatientsToolbarPref } from '@/lib/ui-preferences'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +27,7 @@ export function PatientsToolbar({
   const router = useRouter()
   const params = useSearchParams()
   const [drawer, setDrawer] = useState(initialCreateOpen)
+  const [importOpen, setImportOpen] = useState(false)
   const [query, setQuery] = useState(params.get('q') ?? '')
   const archived = params.get('archived') === '1'
   const [, startTransition] = useTransition()
@@ -122,13 +124,23 @@ export function PatientsToolbar({
         </form>
 
         {canCreate && (
-          <Button
-            type="button"
-            onClick={() => setDrawer(true)}
-            className="hidden h-10 bg-brand-teal text-white hover:bg-brand-teal-hover lg:inline-flex"
-          >
-            <UserPlus className="mr-2 h-4 w-4" /> Hasta Ekle
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              className="h-11 flex-1 gap-2 lg:h-10 lg:flex-none"
+            >
+              <Upload className="h-4 w-4" /> CSV İçe Aktar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setDrawer(true)}
+              className="hidden h-10 bg-brand-teal text-white hover:bg-brand-teal-hover lg:inline-flex"
+            >
+              <UserPlus className="mr-2 h-4 w-4" /> Hasta Ekle
+            </Button>
+          </div>
         )}
       </div>
 
@@ -156,6 +168,7 @@ export function PatientsToolbar({
       </div>
 
       <PatientFormDrawer open={drawer} onOpenChange={setDrawer} />
+      <PatientImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   )
 }

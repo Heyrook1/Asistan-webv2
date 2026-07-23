@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   ],
   appleWebApp: {
     capable: true,
-    title: 'Asistan',
+    title: 'Asistan Rezervasyon',
     statusBarStyle: 'default',
   },
   formatDetection: {
@@ -85,7 +85,6 @@ export const viewport: Viewport = {
 
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { QueryProvider } from '@/lib/query-provider'
 import { SkipToContent } from '@/components/skip-to-content'
 import { RegisterServiceWorker } from '@/components/pwa/register-sw'
 import { cookies } from 'next/headers'
@@ -104,13 +103,11 @@ export default async function RootLayout({
       <body className="font-sans antialiased">
         <SkipToContent />
         <ErrorBoundary>
-          <QueryProvider>
-            <LanguageProvider>
-              <div className="min-h-screen">
-                {children}
-              </div>
-            </LanguageProvider>
-          </QueryProvider>
+          <LanguageProvider initialLanguage={lang}>
+            <div className="min-h-screen">
+              {children}
+            </div>
+          </LanguageProvider>
           <Toaster position="top-right" richColors duration={4000} />
           <RegisterServiceWorker />
           {/* Vercel Web Analytics: Vercel Dashboard > Analytics > Enable to re-activate */}

@@ -10,12 +10,12 @@ Strateji: **KKTC önce → uluslararası**. Üç katman. Dördüncü ürün adı
 |--------|------|--------------|-----------|
 | Şirket | **Asistan** | Holding / ekosistem | Kurumsal iletişim, basın |
 | Klinik B2B | **Asistan Health** | Randevu, hasta, ekip, abonelik | `/`, `/urun`, `/dashboard`, deneme, demo |
-| Hasta | **Asistan Rezervasyon** | Keşif + randevu talebi | `/client`, mobil, mağaza waitlist |
+| Hasta | **Asistan Rezervasyon** | Keşif + randevu talebi | `/client`, PWA install, Opsiyonel mağaza e-postası |
 
 ## Kurallar
 
 1. Klinik satış ve fiyatlama dili = **Asistan Health** (master ticari yüz).
-2. Hasta uygulaması / store waitlist = **Asistan Rezervasyon** (alt ürün).
+2. Hasta uygulaması / PWA = **Asistan Rezervasyon** (alt ürün); native mağaza isteğe bağlı.
 3. Yasal metinlerde şirket “Asistan”; ürün “Asistan Health” diye geçebilir (privacy/terms mevcut dil).
 4. Yasak UI isimleri: `Asistan Client`, `Asistan Mobile`, `Asistan Health Ecosystem`, `Asistan App`.
 5. “Asistan Rezervasyon yakında” yalnızca **mağaza yayını** için; web `/client` canlıysa “web’de kullanılabilir, mağaza bekleme listesi” de.

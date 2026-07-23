@@ -68,13 +68,14 @@ export async function cancelClientAppointment(input: {
     : existing.notes
 
   await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: existing.id },
+    const updated = await tx.appointment.updateMany({
+      where: { id: existing.id, clientUserId: input.clientUserId },
       data: {
         status: AppointmentStatus.CANCELLED,
         notes: cancellationNote,
       },
     })
+    if (updated.count === 0) throw new Error('Randevu bulunamadi')
 
     await tx.timelineEvent.create({
       data: {
@@ -164,8 +165,8 @@ export async function rescheduleClientAppointment(input: {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: existing.id },
+    const updated = await tx.appointment.updateMany({
+      where: { id: existing.id, clientUserId: input.clientUserId },
       data: {
         date: new Date(parsed.data.date),
         startTime: parsed.data.startTime,
@@ -173,6 +174,7 @@ export async function rescheduleClientAppointment(input: {
         status: AppointmentStatus.SCHEDULED,
       },
     })
+    if (updated.count === 0) throw new Error('Randevu bulunamadi')
 
     await tx.timelineEvent.create({
       data: {

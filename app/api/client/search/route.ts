@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiError } from '@/lib/api-response'
 import type { ClientDiscoveryFilters, ClientDiscoverySort } from '@/lib/client-marketplace/types'
 import { searchMarketplace } from '@/lib/client-marketplace/discovery'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +13,12 @@ function parseNumber(value: string | null) {
 }
 
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon'
+  const allowed = await checkRateLimit(`client-search:${ip}`, RATE_LIMITS.api.limit, RATE_LIMITS.api.window)
+  if (!allowed) {
+    return apiError('Çok fazla istek', 429)
+  }
+
   try {
     const params = request.nextUrl.searchParams
 
@@ -46,15 +54,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error'
     if (/can't reach database server|prisma|p1001/i.test(message)) {
-      return NextResponse.json(
-        {
-          error:
-            'Veritabani baglantisi kurulamadi. Lutfen backend/.env.local ayarlarinizi ve internet baglantinizi kontrol edin.',
-        },
-        { status: 503 }
-      )
+      return apiError('Veritabani baglantisi kurulamadi. Lutfen backend/.env.local ayarlarinizi ve internet baglantinizi kontrol edin.', 503)
     }
 
-    return NextResponse.json({ error: 'Arama sonuclari yuklenemedi.' }, { status: 500 })
+    return apiError('Arama sonuclari yuklenemedi.', 500)
   }
 }

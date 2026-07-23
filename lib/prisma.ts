@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { env } from '@/lib/env'
+import { applyTenantGuard } from '@/lib/security/tenant-guard'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 const resolvedDbUrl =
@@ -67,6 +68,12 @@ const prismaClient =
   })
 
 prismaClient.$use(async (params, next) => {
+  applyTenantGuard({
+    model: params.model,
+    action: params.action,
+    args: params.args,
+  })
+
   if (!isSoftDeleteModel(params.model)) {
     return next(params)
   }

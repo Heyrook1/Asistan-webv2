@@ -37,7 +37,7 @@ export function DoctorPrescriptionProfileCard({
         toast.error(result.error)
         return
       }
-      toast.success('Doktor recete profili guncellendi')
+      toast.success('Klinik reçete profili güncellendi')
       router.refresh()
     })
   }
@@ -45,9 +45,9 @@ export function DoctorPrescriptionProfileCard({
   return (
     <Card>
       <CardContent className="p-5">
-        <p className="text-sm font-semibold text-brand-ink mb-1">Doktor E-Reçete Profili</p>
-        <p className="text-xs text-muted-foreground mb-4">
-          KKTC e-reçetelerinde otomatik doldurulacak doktor bilgileri.
+        <p className="mb-1 text-sm font-semibold text-brand-ink">Klinik reçete profili</p>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Yazdırılabilir klinik reçetelerde kullanılacak doktor bilgileri. Resmi e-reçete ağı entegrasyonu yoktur.
         </p>
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <Field label="Unvan">
@@ -57,7 +57,7 @@ export function DoctorPrescriptionProfileCard({
               placeholder="Dr."
             />
           </Field>
-          <Field label="Uzmanlik">
+          <Field label="Uzmanlık">
             <Input
               value={form.specialty}
               onChange={(e) => setForm({ ...form, specialty: e.target.value })}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Root-level error boundary — replaces the root layout, so we cannot rely on
@@ -23,6 +24,10 @@ export default function GlobalError({
   error: Error & { digest?: string }
 }) {
   useEffect(() => {
+    Sentry.captureException(error, {
+      tags: { boundary: 'global-error' },
+      extra: error.digest ? { digest: error.digest } : undefined,
+    })
     if (process.env.NODE_ENV !== 'production') {
       console.error(error)
     }

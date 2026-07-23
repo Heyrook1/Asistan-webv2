@@ -93,8 +93,8 @@ export const INTERNATIONAL_GATE = {
   claimBankAndLegalReview: true,
   /** Need 10+ verified clinic references / cases */
   verifiedClinicProofs: false,
-  /** Dedicated EN marketing surface beyond auth lang switch */
-  enMarketingSurface: false,
+  /** Dedicated EN marketing surface beyond auth lang switch (/visit-cyprus EN/RU) */
+  enMarketingSurface: true,
   /** Clear self-serve or invoice story for non-KKTC */
   billingStoryForNewMarket: false,
   /** Do not soft-launch by pointing apex at the same TR-KKTC copy */

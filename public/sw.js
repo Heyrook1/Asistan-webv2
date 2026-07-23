@@ -1,11 +1,11 @@
 // Asistan Health service worker — push notifications + light offline shell.
 //
 // Push delivery is handled server-side when VAPID keys are configured.
-// Offline: precache shell assets only. No aggressive caching of /api or
-// /dashboard HTML (auth safety).
+// Offline: precache shell assets only. Never cache /_next/* (avoids stale
+// JS vs fresh SSR hydration mismatches under Turbopack / deploys).
 
-const CACHE_VERSION = 'asistan-shell-v1'
-const PRECACHE = ['/offline.html', '/images/icon-192.png', '/images/icon-512.png']
+const CACHE_VERSION = 'asistan-shell-v3'
+const PRECACHE = ['/offline.html', '/images/icon-192.png', '/images/icon-512.png', '/images/apple-touch-icon.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -29,8 +29,11 @@ self.addEventListener('activate', (event) => {
 
 function isExcludedPath(pathname) {
   return (
+    pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/client') ||
+    pathname.startsWith('/book') ||
     pathname.startsWith('/tr/') ||
     pathname.startsWith('/en/') ||
     pathname.startsWith('/auth')
@@ -40,7 +43,6 @@ function isExcludedPath(pathname) {
 function isStaticAsset(pathname) {
   return (
     pathname.startsWith('/images/') ||
-    pathname.startsWith('/_next/static/') ||
     pathname === '/offline.html' ||
     pathname.endsWith('.png') ||
     pathname.endsWith('.svg') ||
@@ -69,7 +71,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Same-origin static assets: cache-first
+  // Same-origin static assets (images/fonts only): cache-first
   if (isStaticAsset(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => {

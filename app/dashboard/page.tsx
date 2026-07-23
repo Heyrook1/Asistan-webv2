@@ -11,6 +11,10 @@ import {
 } from '@/lib/queries'
 import { buildPriorityItems } from '@/lib/priority-engine'
 import type { SessionContext } from '@/lib/rbac'
+import { isTeamMessagingEnabled } from '@/lib/messaging/policy'
+import { isClinicAnalyticsEnabled } from '@/lib/analytics/policy'
+import { isFillTheGapEnabled } from '@/lib/ops/policy'
+import { getFillTheGapSnapshot } from '@/lib/ops/fill-the-gap'
 
 export const dynamic = 'force-dynamic'
 
@@ -204,6 +208,7 @@ export default async function DashboardPage() {
     reminders,
     todayPending,
     recentNoShows,
+    fillGap,
   ] = await Promise.all([
     getDashboardStats(session.businessId),
     loadLookups(session.businessId),
@@ -248,6 +253,9 @@ export default async function DashboardPage() {
         date: { gte: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7) },
       },
     }),
+    isFillTheGapEnabled()
+      ? getFillTheGapSnapshot(session.businessId)
+      : Promise.resolve(null),
   ])
 
   const { services, staff, business, lookups } = lookupsBundle
@@ -318,6 +326,32 @@ export default async function DashboardPage() {
       canManageService={can(session, 'service.manage')}
       canViewAnalytics={can(session, 'analytics.view')}
       defaultStaffId={session.staffMemberId ?? undefined}
+      teamMessagingEnabled={isTeamMessagingEnabled()}
+      clinicAnalyticsEnabled={isClinicAnalyticsEnabled()}
+      fillGap={
+        fillGap?.headline
+          ? {
+              headline: fillGap.headline,
+              detail: fillGap.detail,
+              ajandaHref: fillGap.ajandaHref,
+              clusters: fillGap.clusters.map((c) => ({
+                date: c.date,
+                weekdayLabel: c.weekdayLabel,
+                doctorName: c.doctorName,
+                serviceName: c.serviceName,
+                slotCount: c.slotCount,
+                sampleTimes: c.sampleTimes,
+              })),
+              patients: fillGap.patients.map((p) => ({
+                id: p.id,
+                fullName: p.fullName,
+                phone: p.phone,
+                lastVisitDate: p.lastVisitDate,
+                lastServiceName: p.lastServiceName,
+              })),
+            }
+          : null
+      }
     />
   )
 }

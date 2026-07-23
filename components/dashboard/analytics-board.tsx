@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { Download, FileText, TrendingUp, Wallet, Users, Calendar } from 'lucide-react'
+import { CalendarDays, Download, FileText, TrendingUp, Wallet, Users, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -37,7 +38,7 @@ const revenueChartConfig = {
 
 const volumeChartConfig = {
   completed: { label: 'Tamamlanan', color: '#10B981' },
-  cancelled: { label: 'İptal / No-show', color: '#F43F5E' },
+  cancelled: { label: 'İptal / Gelinmedi', color: '#F43F5E' },
   total: { label: 'Toplam', color: '#94A3B8' },
 } satisfies ChartConfig
 
@@ -56,7 +57,6 @@ export function AnalyticsBoard({
   funnel,
   utilization,
   canViewRevenue,
-  cancellationRate,
 }: {
   months: AnalyticsMonthRange
   stats: {
@@ -71,7 +71,6 @@ export function AnalyticsBoard({
   funnel: AppointmentFunnel | null
   utilization: StaffUtilizationRow[]
   canViewRevenue: boolean
-  cancellationRate: number
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -89,6 +88,11 @@ export function AnalyticsBoard({
   const totalCompleted = snapshot.reduce((acc, s) => acc + s.completed, 0)
   const totalCancelled = snapshot.reduce((acc, s) => acc + s.cancelled, 0)
   const totalAppointments = snapshot.reduce((acc, s) => acc + s.total, 0)
+  // Period-matched rate (not all-time dashboard stats) — honest overview.
+  const periodCancellationRate =
+    totalCompleted + totalCancelled > 0
+      ? totalCancelled / (totalCompleted + totalCancelled)
+      : 0
 
   function setMonths(next: AnalyticsMonthRange) {
     const params = new URLSearchParams(searchParams.toString())
@@ -98,7 +102,7 @@ export function AnalyticsBoard({
 
   function summaryRows(): string[][] {
     return [
-      ['Ay', 'Toplam randevu', 'Tamamlanan', 'Iptal/No-show', ...(canViewRevenue ? ['Ciro'] : [])],
+      ['Ay', 'Toplam randevu', 'Tamamlanan', 'İptal/Gelinmedi', ...(canViewRevenue ? ['Ciro'] : [])],
       ...snapshot.map((s) => [
         s.month,
         String(s.total),
@@ -171,8 +175,8 @@ export function AnalyticsBoard({
       sections.push({ heading: 'Finans defteri (tamamlanan)', rows: ledgerRows() })
     }
     const ok = printReportAsPdf({
-      title: 'Asistan Analitik / Finans Raporu',
-      subtitle: `Son ${months} ay · ${new Date().toLocaleString('tr-TR')}`,
+      title: 'Asistan Operasyon Raporu',
+      subtitle: `Son ${months} ay · ${new Date().toLocaleString('tr-TR')} · ölçülen randevu/ciro`,
       sections,
     })
     if (!ok) toast.error('Açılır pencere engellendi — tarayıcıda pop-up’a izin verin')
@@ -182,8 +186,10 @@ export function AnalyticsBoard({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-brand-ink">Analitik</h1>
-          <p className="text-sm text-muted-foreground">Son {months} ay performans özeti</p>
+          <h1 className="text-2xl font-bold text-brand-ink">Operasyon raporu</h1>
+          <p className="text-sm text-muted-foreground">
+            Son {months} ay — randevu ve ciro sayıları (ölçülen veri; tahmin yüzdesi yok)
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-full border border-slate-200 bg-white p-1">
@@ -244,11 +250,21 @@ export function AnalyticsBoard({
             )}
           </div>
           {!canViewRevenue ? (
-            <p className="text-sm text-muted-foreground">Ciro verilerini görüntüleme yetkiniz yok.</p>
+            <AnalyticsEmpty
+              title="Ciro yetkisi yok"
+              description="Ciro verilerini görüntüleme yetkiniz yok. İşletme sahibi veya yetkili bir rolden erişin."
+              actionHref="/dashboard/takim"
+              actionLabel="Takım yetkileri"
+            />
           ) : totalRevenue === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Henüz ciro verisi yok. Tamamlanan randevular oluştuktan sonra burada görünür.
-            </p>
+            <AnalyticsEmpty
+              title="Henüz ciro verisi yok"
+              description="Tamamlanan randevular oluştuktan sonra aylık ciro burada görünür."
+              actionHref="/dashboard/ajanda"
+              actionLabel="Ajanda"
+              secondaryHref="/dashboard/ayarlar?tab=isletme"
+              secondaryLabel="Randevu linkini paylaş"
+            />
           ) : (
             <ChartContainer config={revenueChartConfig} className="aspect-[16/7] w-full">
               <BarChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
@@ -284,7 +300,14 @@ export function AnalyticsBoard({
               <p className="text-xs text-muted-foreground">{totalAppointments} randevu</p>
             </div>
             {totalAppointments === 0 ? (
-              <p className="text-sm text-muted-foreground">Seçilen dönemde randevu yok.</p>
+              <AnalyticsEmpty
+                title="Seçilen dönemde randevu yok"
+                description="Dönemi genişletin veya randevu linkini paylaşarak talep toplayın; hacim grafiği ölçülen randevularla dolar."
+                actionHref="/dashboard/ajanda"
+                actionLabel="Ajanda"
+                secondaryHref="/dashboard/ayarlar?tab=isletme"
+                secondaryLabel="Randevu linkini paylaş"
+              />
             ) : (
               <ChartContainer config={volumeChartConfig} className="aspect-[16/9] w-full">
                 <BarChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
@@ -311,13 +334,13 @@ export function AnalyticsBoard({
               </div>
               <div className="rounded-xl border bg-dashboard-surface p-4">
                 <p className="text-2xl font-bold text-rose-600">{totalCancelled}</p>
-                <p className="text-[11px] text-muted-foreground">İptal/No-Show</p>
+                <p className="text-[11px] text-muted-foreground">İptal / Gelinmedi</p>
               </div>
               <div className="rounded-xl border bg-dashboard-surface p-4">
                 <p className="text-2xl font-bold text-brand-ink">
-                  {(cancellationRate * 100).toFixed(1)}%
+                  {(periodCancellationRate * 100).toFixed(1)}%
                 </p>
-                <p className="text-[11px] text-muted-foreground">İptal oranı</p>
+                <p className="text-[11px] text-muted-foreground">İptal oranı (seçilen dönem)</p>
               </div>
             </div>
           </CardContent>
@@ -327,13 +350,19 @@ export function AnalyticsBoard({
       <div className="grid gap-3 lg:grid-cols-2">
         <BreakdownCard
           title="Personel kırılımı"
-          empty="Tamamlanan randevulu personel yok."
+          emptyTitle="Tamamlanan randevulu personel yok"
+          emptyDescription="Personel kırılımı, tamamlanan randevular oluştukça burada listelenir."
+          emptyActionHref="/dashboard/takim"
+          emptyActionLabel="Takımı yönet"
           rows={byStaff}
           canViewRevenue={canViewRevenue}
         />
         <BreakdownCard
           title="Hizmet kırılımı"
-          empty="Tamamlanan randevulu hizmet yok."
+          emptyTitle="Tamamlanan randevulu hizmet yok"
+          emptyDescription="Hizmet kırılımı için tamamlanan randevu gerekir. Önce hizmetleri yayınlayın."
+          emptyActionHref="/dashboard/hizmetler"
+          emptyActionLabel="Hizmetleri yönet"
           rows={byService}
           canViewRevenue={canViewRevenue}
         />
@@ -342,7 +371,7 @@ export function AnalyticsBoard({
       {funnel ? (
         <Card>
           <CardContent className="p-5">
-            <p className="mb-4 text-sm font-semibold text-brand-ink">Randevu hunisi (no-show dahil)</p>
+            <p className="mb-4 text-sm font-semibold text-brand-ink">Randevu hunisi (gelinmedi dahil)</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <FunnelStat label="Bekleyen" value={funnel.scheduled} />
               <FunnelStat label="Onaylı" value={funnel.confirmed} />
@@ -356,7 +385,7 @@ export function AnalyticsBoard({
                 <strong className="text-brand-ink">{(funnel.completionRate * 100).toFixed(1)}%</strong>
               </span>
               <span>
-                No-show oranı:{' '}
+                Gelinmedi oranı:{' '}
                 <strong className="text-brand-ink">{(funnel.noShowRate * 100).toFixed(1)}%</strong>
               </span>
             </div>
@@ -394,6 +423,43 @@ export function AnalyticsBoard({
   )
 }
 
+function AnalyticsEmpty({
+  title,
+  description,
+  actionHref,
+  actionLabel,
+  secondaryHref,
+  secondaryLabel,
+}: {
+  title: string
+  description: string
+  actionHref: string
+  actionLabel: string
+  secondaryHref?: string
+  secondaryLabel?: string
+}) {
+  return (
+    <div
+      role="status"
+      className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center"
+    >
+      <CalendarDays className="mx-auto size-8 text-slate-400" aria-hidden />
+      <p className="mt-3 text-sm font-semibold text-brand-ink">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <Button asChild className="h-11 min-h-11 bg-brand-blue text-white hover:bg-brand-blue/90">
+          <Link href={actionHref}>{actionLabel}</Link>
+        </Button>
+        {secondaryHref && secondaryLabel ? (
+          <Button asChild variant="outline" className="h-11 min-h-11">
+            <Link href={secondaryHref}>{secondaryLabel}</Link>
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function FunnelStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl border bg-dashboard-surface p-3 text-center">
@@ -405,12 +471,18 @@ function FunnelStat({ label, value }: { label: string; value: number }) {
 
 function BreakdownCard({
   title,
-  empty,
+  emptyTitle,
+  emptyDescription,
+  emptyActionHref,
+  emptyActionLabel,
   rows,
   canViewRevenue,
 }: {
   title: string
-  empty: string
+  emptyTitle: string
+  emptyDescription: string
+  emptyActionHref: string
+  emptyActionLabel: string
   rows: AnalyticsBreakdownRow[]
   canViewRevenue: boolean
 }) {
@@ -419,7 +491,14 @@ function BreakdownCard({
       <CardContent className="p-5">
         <p className="mb-4 text-sm font-semibold text-brand-ink">{title}</p>
         {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{empty}</p>
+          <AnalyticsEmpty
+            title={emptyTitle}
+            description={emptyDescription}
+            actionHref={emptyActionHref}
+            actionLabel={emptyActionLabel}
+            secondaryHref="/dashboard/ajanda"
+            secondaryLabel="Ajanda"
+          />
         ) : (
           <ul className="space-y-2">
             {rows.map((row) => (

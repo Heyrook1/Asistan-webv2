@@ -23,8 +23,16 @@ import {
 import { uploadPatientFile } from '@/lib/storage'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
 import { PrescriptionFormDrawer } from '@/components/dashboard/prescription-form-drawer'
+import {
+  defaultSoapNoteTitle,
+  emptySoapSections,
+  formatSoapNoteBody,
+  soapSectionsHaveContent,
+  type SoapSections,
+} from '@/lib/clinical-notes/soap'
 
 type Modal = 'note' | 'medication' | 'allergy' | 'treatment' | 'lab' | 'file' | 'appointment' | 'prescription' | null
+type NoteMode = 'free' | 'soap'
 
 type DoctorOption = {
   id: string
@@ -63,6 +71,8 @@ export function PatientActionButtons({
   const router = useRouter()
   const [open, setOpen] = useState<Modal>(null)
   const [pending, startTransition] = useTransition()
+  const [noteMode, setNoteMode] = useState<NoteMode>('free')
+  const [soap, setSoap] = useState<SoapSections>(() => emptySoapSections())
   const deepLinkHandled = useRef(false)
 
   // shared form state
@@ -72,6 +82,14 @@ export function PatientActionButtons({
   const treatmentRef = useRef({ title: '', description: '', doctorName: '', startDate: '', endDate: '', status: 'PLANLANDI' as const, cost: '', notes: '' })
   const labRef = useRef({ title: '', description: '', resultDate: '', labName: '', notes: '' })
   const fileRef = useRef<{ file: File | null; category: string; description: string }>({ file: null, category: 'DIGER', description: '' })
+
+  function openNote(mode: NoteMode = 'free') {
+    setNoteMode(mode)
+    if (mode === 'soap' && !noteRef.current.title.trim()) {
+      noteRef.current.title = defaultSoapNoteTitle()
+    }
+    setOpen('note')
+  }
 
   useEffect(() => {
     if (deepLinkHandled.current || !initialAction) return
@@ -101,7 +119,7 @@ export function PatientActionButtons({
             variant="outline"
             className="h-11 border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 md:h-9"
           >
-            <FileText className="mr-2 h-4 w-4" /> E-Reçete
+            <FileText className="mr-2 h-4 w-4" /> Reçete
           </Button>
         )}
         <DropdownMenu>
@@ -112,8 +130,11 @@ export function PatientActionButtons({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem onClick={() => setOpen('note')}>
+            <DropdownMenuItem onClick={() => openNote('free')}>
               <NotebookPen className="mr-2 h-4 w-4" /> Not ekle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openNote('soap')}>
+              <ClipboardList className="mr-2 h-4 w-4" /> SOAP notu
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setOpen('medication')}>
               <Pill className="mr-2 h-4 w-4" /> İlaç ekle
@@ -162,27 +183,136 @@ export function PatientActionButtons({
         defaultStaffId={defaultStaffId}
       />
 
-      <Dialog open={open === 'note'} onOpenChange={(v) => !v && setOpen(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Not Ekle</DialogTitle></DialogHeader>
+      <Dialog
+        open={open === 'note'}
+        onOpenChange={(v) => {
+          if (!v) {
+            setOpen(null)
+            setSoap(emptySoapSections())
+            setNoteMode('free')
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{noteMode === 'soap' ? 'SOAP notu ekle' : 'Not ekle'}</DialogTitle>
+          </DialogHeader>
+          <div className="mb-1 flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={noteMode === 'free' ? 'default' : 'outline'}
+              className={noteMode === 'free' ? 'bg-brand-teal text-white hover:bg-brand-teal-hover' : ''}
+              onClick={() => setNoteMode('free')}
+            >
+              Serbest
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={noteMode === 'soap' ? 'default' : 'outline'}
+              className={noteMode === 'soap' ? 'bg-brand-teal text-white hover:bg-brand-teal-hover' : ''}
+              onClick={() => {
+                if (!noteRef.current.title.trim()) noteRef.current.title = defaultSoapNoteTitle()
+                setNoteMode('soap')
+              }}
+            >
+              SOAP
+            </Button>
+          </div>
+          <p className="mb-2 text-xs text-muted-foreground">
+            {noteMode === 'soap'
+              ? 'Yapılandırılmış şablon — ses yazımı veya yapay zeka yok; hekim düzenler ve kaydeder.'
+              : 'Serbest klinik notu.'}
+          </p>
           <form
             className="grid gap-3"
             onSubmit={(e) => {
               e.preventDefault()
-              const { title, note } = noteRef.current
-              if (!title.trim() || !note.trim()) { toast.error('Başlık ve not zorunlu'); return }
+              const title = noteRef.current.title.trim() || (noteMode === 'soap' ? defaultSoapNoteTitle() : '')
+              const note =
+                noteMode === 'soap' ? formatSoapNoteBody(soap) : noteRef.current.note.trim()
+
+              if (!title) {
+                toast.error('Başlık zorunlu')
+                return
+              }
+              if (noteMode === 'soap') {
+                if (!soapSectionsHaveContent(soap)) {
+                  toast.error('En az bir SOAP alanı doldurun')
+                  return
+                }
+              } else if (!note) {
+                toast.error('Başlık ve not zorunlu')
+                return
+              }
+
               withTransition(async () => {
                 const result = await addPatientNote({ patientId, title, note })
-                if (!result.ok) { toast.error(result.error); return }
-                toast.success('Not eklendi')
+                if (!result.ok) {
+                  toast.error(result.error)
+                  return
+                }
+                toast.success(noteMode === 'soap' ? 'SOAP notu eklendi' : 'Not eklendi')
                 noteRef.current = { title: '', note: '' }
+                setSoap(emptySoapSections())
+                setNoteMode('free')
                 setOpen(null)
                 router.refresh()
               })
             }}
           >
-            <Field label="Başlık *"><Input defaultValue="" onChange={(e) => (noteRef.current.title = e.target.value)} /></Field>
-            <Field label="Not *"><Textarea rows={5} defaultValue="" onChange={(e) => (noteRef.current.note = e.target.value)} /></Field>
+            <Field label="Başlık *">
+              <Input
+                key={`note-title-${noteMode}`}
+                defaultValue={noteMode === 'soap' ? noteRef.current.title || defaultSoapNoteTitle() : noteRef.current.title}
+                onChange={(e) => (noteRef.current.title = e.target.value)}
+              />
+            </Field>
+            {noteMode === 'soap' ? (
+              <>
+                <Field label="S — Öznel (Subjective)">
+                  <Textarea
+                    rows={2}
+                    placeholder="Hasta şikayeti, öykü…"
+                    value={soap.subjective}
+                    onChange={(e) => setSoap((s) => ({ ...s, subjective: e.target.value }))}
+                  />
+                </Field>
+                <Field label="O — Nesnel (Objective)">
+                  <Textarea
+                    rows={2}
+                    placeholder="Muayene bulguları, ölçümler…"
+                    value={soap.objective}
+                    onChange={(e) => setSoap((s) => ({ ...s, objective: e.target.value }))}
+                  />
+                </Field>
+                <Field label="A — Değerlendirme (Assessment)">
+                  <Textarea
+                    rows={2}
+                    placeholder="Tanı / klinik değerlendirme…"
+                    value={soap.assessment}
+                    onChange={(e) => setSoap((s) => ({ ...s, assessment: e.target.value }))}
+                  />
+                </Field>
+                <Field label="P — Plan">
+                  <Textarea
+                    rows={2}
+                    placeholder="Tedavi, takip, yönlendirme…"
+                    value={soap.plan}
+                    onChange={(e) => setSoap((s) => ({ ...s, plan: e.target.value }))}
+                  />
+                </Field>
+              </>
+            ) : (
+              <Field label="Not *">
+                <Textarea
+                  rows={5}
+                  defaultValue=""
+                  onChange={(e) => (noteRef.current.note = e.target.value)}
+                />
+              </Field>
+            )}
             <DialogFooter pending={pending} />
           </form>
         </DialogContent>

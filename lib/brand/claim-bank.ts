@@ -57,6 +57,24 @@ export const APPROVED_CLAIMS: BrandClaim[] = [
     en: 'No unverified certificate claims',
     surfaces: ['social'],
   },
+  {
+    id: 'patient-channels-webhook',
+    tr: 'SMS/WhatsApp bildirimleri webhook ile bağlanabilir',
+    en: 'SMS/WhatsApp notifications can be connected via webhook',
+    surfaces: ['pricing', 'ads', 'social'],
+  },
+  {
+    id: 'ops-report',
+    tr: 'Ölçülen operasyon raporu (randevu/ciro)',
+    en: 'Measured operations report (appointments/revenue)',
+    surfaces: ['pricing', 'ads', 'social'],
+  },
+  {
+    id: 'asistan-passport',
+    tr: 'Asistan pasaportu (ziyaret özeti)',
+    en: 'Asistan passport (visit summary)',
+    surfaces: ['badge', 'social', 'store'],
+  },
 ]
 
 /** Never use these as present-tense product claims without legal/proof review */
@@ -78,6 +96,28 @@ export const FORBIDDEN_CLAIM_PATTERNS = [
   /market\s+leader/i,
   /KKTC['']?(nin|de)\s+(en\s+iyi|#\s?1)/i,
   /leading\s+clinic\s+(saas|platform|software)/i,
+  /** Depth honesty — outpatient SMB; hospital integrations postponed */
+  /resmi\s+e-?re[cç]ete/i,
+  /e-?re[cç]ete\s+(entegrasyon|sistemi|a[gğ]ı|network)/i,
+  /** BUG-006 — shipped UX must not celebrate “E-reçete oluşturuldu” */
+  /e-?re[cç]ete\s+olu[şs]tur/i,
+  /e-?recete\s+olustur/i,
+  /\bLIS\b/,
+  /laboratuvar\s+(cihaz|entegrasyon)/i,
+  /telehealth/i,
+  /tele[- ]?t[ıi]p/i,
+  /video\s+muayene\s+(haz[ıi]r|var|canl[ıi])/i,
+  /hastane\s+(HIS|EMR|grup\s+entegrasyon)/i,
+  /yatakhane|yatakl[ıi]\s+servis|oda\s+y[oö]netimi/i,
+  /Netgsm\s+haz[ıi]r/i,
+  /Twilio\s+(haz[ıi]r|ready)/i,
+  /iyzico\s+haz[ıi]r/i,
+  /e-?SMM\s+haz[ıi]r/i,
+  /G[İI]B\s+(entegre|entegrasyon|haz[ıi]r)/i,
+  /e-?Fatura\s+(G[İI]B|TR)\s+haz[ıi]r/i,
+  /t[ıi]bbi\s+pasaport/i,
+  /FHIR\s+pasaport/i,
+  /health\s+passport\s+(ready|live|haz[ıi]r)/i,
 ] as const
 
 /**
@@ -86,8 +126,16 @@ export const FORBIDDEN_CLAIM_PATTERNS = [
  */
 export const STAGE_HONESTY = {
   productStage: 'early-access' as const,
-  approvedPresent: ['Erken erişim', 'KKTC kliniklerine odaklı', 'Kanıt yoksa iddia etme'],
+  productFocus: 'outpatient-smb' as const,
+  approvedPresent: [
+    'Erken erişim',
+    'KKTC kliniklerine odaklı',
+    'Kanıt yoksa iddia etme',
+    'Poliklinik / muayenehane operasyonu',
+  ],
   aspirationOkWhen: 'Hedefimiz / vizyon / yol haritası — never as current ranking',
+  depthPostpone:
+    'Official e-reçete, LIS, telehealth, rooms/wards, hospital EMR — see docs/product-boundary.md',
 } as const
 
 export function getClaim(id: string, lang: 'tr' | 'en' = 'tr'): string {
@@ -99,6 +147,26 @@ export function getClaim(id: string, lang: 'tr' | 'en' = 'tr'): string {
 /** Returns true if copy looks like a forbidden overclaim */
 export function looksLikeForbiddenClaim(text: string): boolean {
   return FORBIDDEN_CLAIM_PATTERNS.some((re) => re.test(text))
+}
+
+/**
+ * Scan product UI string for affirmative e-reçete claims (BUG-006).
+ * Honesty denials (“yoktur / yok / değildir”) are allowed.
+ */
+export function looksLikeForbiddenEreceteUx(text: string): boolean {
+  const normalized = text.trim()
+  if (!normalized) return false
+  if (/(yoktur|bulunmaz|de[gğ]ildir|\byok\b)/i.test(normalized) && /e-?re[cç]ete/i.test(normalized)) {
+    return false
+  }
+  if (/e-?re[cç]ete\s+olu[şs]tur/i.test(normalized) || /e-?recete\s+olustur/i.test(normalized)) {
+    return true
+  }
+  // Bare “E-reçete” toast/title without printable clinic framing
+  if (/^\s*e-?re[cç]ete\b/i.test(normalized) && !/klinik\s+re[cç]ete/i.test(normalized)) {
+    return true
+  }
+  return looksLikeForbiddenClaim(normalized) && /e-?re[cç]ete/i.test(normalized)
 }
 
 /** True when “ilk tercih” style language is used as present achievement */

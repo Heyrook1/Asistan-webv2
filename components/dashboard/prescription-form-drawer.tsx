@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createPrescription, getPrescriptionDraft } from '@/lib/actions/prescriptions'
 import type { PrescriptionLineInput } from '@/lib/prescriptions/schema'
+import { prescriptionUiCopy } from '@/lib/prescriptions/ui-copy'
 
 type DoctorOption = {
   id: string
@@ -80,7 +81,7 @@ export function PrescriptionFormDrawer({
     getPrescriptionDraft(patientId)
       .then((result) => {
         if (!result.ok || !result.data) {
-          toast.error(result.ok ? 'Taslak olusturulamadi' : result.error)
+          toast.error(result.ok ? prescriptionUiCopy.draftFailed : result.error)
           return
         }
         const next = result.data as DraftState
@@ -149,7 +150,7 @@ export function PrescriptionFormDrawer({
         return
       }
 
-      toast.success(`E-recete olusturuldu (${result.data.protocolNo})`)
+      toast.success(prescriptionUiCopy.createSuccess(result.data.protocolNo))
       onOpenChange(false)
       router.push(`/dashboard/hastalar/${patientId}/receteler/${result.data.id}`)
       router.refresh()
@@ -160,7 +161,7 @@ export function PrescriptionFormDrawer({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>KKTC E-Reçete Oluştur</DialogTitle>
+          <DialogTitle>{prescriptionUiCopy.createTitle}</DialogTitle>
         </DialogHeader>
 
         {loading || !draft ? (
@@ -348,7 +349,7 @@ export function PrescriptionFormDrawer({
                 onClick={submit}
               >
                 <Printer className="mr-2 h-4 w-4" />
-                {pending ? 'Olusturuluyor...' : 'E-receteyi olustur'}
+                {pending ? prescriptionUiCopy.createPending : prescriptionUiCopy.createSubmit}
               </Button>
             </div>
           </div>

@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiError, apiValidationError, parsePathId } from '@/lib/api-response'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
 import { cancelClientAppointment } from '@/lib/client-marketplace/appointment-lifecycle'
+import { rateLimitClientMutation } from '@/lib/client-marketplace/mutation-rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,14 +18,21 @@ export async function POST(
 ) {
   const auth = await requireClientAuth(request)
   if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return apiError('Unauthorized', 401)
   }
 
-  const { id } = await context.params
+  if (!(await rateLimitClientMutation(request, 'cancel', auth.clientUser.id, 15))) {
+    return apiError('Too many requests', 429)
+  }
+
+  const id = parsePathId((await context.params).id)
+  if (!id) {
+    return apiError('Gecersiz randevu kimligi', 400)
+  }
   const body = await request.json().catch(() => ({}))
   const parsed = bodySchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Gecersiz istek', issues: parsed.error.issues }, { status: 400 })
+    return apiValidationError('Gecersiz istek', parsed.error.issues, 400)
   }
 
   const result = await cancelClientAppointment({
@@ -33,7 +42,7 @@ export async function POST(
   })
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 409 })
+    return apiError(result.error, 409)
   }
 
   revalidatePath('/dashboard/ajanda')

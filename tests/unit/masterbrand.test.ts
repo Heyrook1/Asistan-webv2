@@ -24,6 +24,8 @@ describe('lib/brand/masterbrand', () => {
     expect(productRole('booking', 'tr')).toMatch(/Hasta/i)
     expect(BRAND_PRODUCTS.health.surfaces).toContain('/dashboard')
     expect(BRAND_PRODUCTS.booking.surfaces).toContain('/client')
+    expect(BRAND_PRODUCTS.booking.surfaces).toContain('web-mobile')
+    expect(BRAND_PRODUCTS.booking.surfaces).toContain('/r')
   })
 
   it('lists forbidden alias names', () => {

@@ -2,53 +2,71 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, LockKeyhole } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
-import { ENTRY_CTA, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
+import { ENTRY_CTA } from '@/lib/entry-routes'
 import { Button } from '@/components/ui/button'
+import {
+  formatPublicPlanPrice,
+  listPublicMarketingPlanCards,
+  publicPlanDisplayName,
+  publicPlanMonthlyAmount,
+} from '@/lib/pricing/public-catalog'
 
+/** Hero CTA budget: one primary + risk reducer + price teaser (matrix Fiyat). */
 export function HomeCTA() {
   const { t, language } = useLanguage()
+  const locale = language === 'en' ? 'en' : 'tr'
+  const starter =
+    listPublicMarketingPlanCards().find((p) => p.code === 'STARTER') ??
+    listPublicMarketingPlanCards()[0]
+  const starterAmount = starter ? publicPlanMonthlyAmount(starter, 'monthly') : null
+  const starterName = starter ? publicPlanDisplayName(starter, locale) : 'Starter'
+  const starterPrice = formatPublicPlanPrice(starterAmount, locale)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
+      className="mt-8 flex w-full max-w-md flex-col items-center gap-3"
     >
       <Button
         asChild
-        className="group relative h-14 w-full rounded-2xl bg-gradient-to-r from-[#0071E3] to-[#00b4d8] px-8 text-base font-bold text-white shadow-lg shadow-blue-500/25 transition duration-300 hover:scale-102 hover:shadow-blue-500/35 active:scale-98 sm:w-auto"
+        className="group relative h-14 w-full rounded-2xl bg-gradient-to-r from-[#0071E3] to-[#2563EB] px-8 text-base font-bold text-white shadow-lg shadow-blue-500/25 transition duration-300 hover:scale-102 hover:shadow-blue-500/35 active:scale-98 sm:w-auto sm:min-w-[16rem]"
       >
         <Link href={getRegisterPath(language)} className="flex items-center justify-center gap-2">
           <span>{t(ENTRY_CTA.clinicTrial)}</span>
-          <ArrowRight className="size-5 transition duration-300 group-hover:translate-x-1" />
+          <ArrowRight className="size-5 transition duration-300 group-hover:translate-x-1" aria-hidden />
         </Link>
       </Button>
 
-      <Button
-        asChild
-        variant="outline"
-        className="h-14 w-full rounded-2xl border border-black/10 bg-white/40 px-8 text-base font-bold text-[#1D1D1F] shadow-sm backdrop-blur-md transition duration-300 hover:border-black/20 hover:bg-white/60 active:scale-98 sm:w-auto"
-      >
-        <Link href={PATIENT_BOOK_PATH} className="flex items-center justify-center gap-2">
-          <span>{t(ENTRY_CTA.patientBook)}</span>
-        </Link>
-      </Button>
+      <p className="max-w-sm text-center text-sm font-medium text-[#5D6068]">
+        {t(ENTRY_CTA.clinicTrialRiskReducer)}
+      </p>
 
-      <Button
-        asChild
-        variant="ghost"
-        className="h-12 w-full rounded-2xl px-6 text-sm font-semibold text-[#5D6068] hover:bg-white/50 hover:text-[#1D1D1F] sm:w-auto"
-      >
-        <Link href={getLoginPath(language)} className="flex items-center justify-center gap-2">
-          <LockKeyhole className="size-4 text-[#5D6068]" />
-          <span>{t(ENTRY_CTA.clinicLogin)}</span>
+      <p className="text-center text-sm text-[#5D6068]">
+        <Link
+          href="#pricing"
+          className="font-semibold text-[#1D1D1F] underline-offset-4 hover:text-[#0071E3] hover:underline"
+        >
+          {t({
+            tr: `${starterName} ${starterPrice}/ay · 14 gün, kart yok`,
+            en: `${starterName} ${starterPrice}/mo · 14 days, no card`,
+          })}
         </Link>
-      </Button>
+      </p>
+
+      <p className="text-center text-sm text-[#5D6068]">
+        <Link
+          href={getLoginPath(language)}
+          className="font-semibold text-[#5D6068] underline-offset-4 hover:text-[#1D1D1F] hover:underline"
+        >
+          {t(ENTRY_CTA.clinicLogin)}
+        </Link>
+      </p>
     </motion.div>
   )
 }

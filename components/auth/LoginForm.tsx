@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getRegisterPath } from '@/lib/auth-routes'
-import { CheckCircle2, Mail, Lock, ShieldAlert, Loader2, ArrowRight } from 'lucide-react'
+import { ENTRY_CTA } from '@/lib/entry-routes'
+import { authFormCopy } from '@/lib/auth/auth-form-copy'
+import { CheckCircle2, Mail, Lock, ShieldAlert, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
@@ -19,26 +21,45 @@ export function LoginForm() {
   const { t, language } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   const packageExpired = searchParams.get('reason') === 'package-expired'
   const supabase = createClient()
 
-  // Real-time email validation
-  useEffect(() => {
-    if (!email) {
-      setEmailError('')
-      return
+  function validateEmail(value: string, opts?: { allowEmpty?: boolean }) {
+    if (!value.trim()) {
+      if (opts?.allowEmpty) {
+        setEmailError('')
+        return false
+      }
+      setEmailError(t({ tr: 'E-posta gerekli', en: 'Email is required' }))
+      return false
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setEmailError(t({ tr: 'Geçersiz e-posta formatı', en: 'Invalid email format' }))
-    } else {
-      setEmailError('')
+    if (!emailRegex.test(value)) {
+      setEmailError(t(authFormCopy.emailInvalid))
+      return false
     }
-  }, [email, t])
+    setEmailError('')
+    return true
+  }
+
+  function validatePassword(value: string, opts?: { allowEmpty?: boolean }) {
+    if (!value) {
+      if (opts?.allowEmpty) {
+        setPasswordError('')
+        return false
+      }
+      setPasswordError(t({ tr: 'Şifre gerekli', en: 'Password is required' }))
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
 
   // Break dashboard↔login loop when package is expired; otherwise redirect if already logged in
   useEffect(() => {
@@ -62,7 +83,9 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (emailError) return
+    const emailOk = validateEmail(email)
+    const passwordOk = validatePassword(password)
+    if (!emailOk || !passwordOk) return
 
     setLoading(true)
     try {
@@ -207,7 +230,10 @@ export function LoginForm() {
             {/* Email Field */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="login-email">
-                {t({ tr: 'E-posta Adresi', en: 'Email Address' })}
+                {t({ tr: 'E-posta Adresi', en: 'Email Address' })}{' '}
+                <span className="text-red-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
@@ -217,11 +243,17 @@ export function LoginForm() {
                   required
                   disabled={loading}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (emailError) setEmailError('')
+                  }}
+                  onBlur={() => validateEmail(email, { allowEmpty: !email.trim() })}
+                  placeholder={t(authFormCopy.emailPlaceholder)}
+                  autoComplete="email"
+                  aria-required="true"
                   aria-describedby={emailError ? 'login-email-error' : undefined}
                   aria-invalid={emailError ? true : undefined}
-                  className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
+                  className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-base md:text-sm focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
                 />
               </div>
               {emailError && (
@@ -235,7 +267,10 @@ export function LoginForm() {
             <div className="space-y-1.5">
               <div className="flex justify-between items-center px-0.5">
                 <label className="text-xs font-bold text-[#1D1D1F]/80" htmlFor="login-password">
-                  {t({ tr: 'Şifre', en: 'Password' })}
+                  {t({ tr: 'Şifre', en: 'Password' })}{' '}
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
                 </label>
                 <Link href="/auth/forgot-password" className="text-xs text-[#0071E3] hover:underline font-semibold">
                   {t({ tr: 'Şifremi Unuttum', en: 'Forgot password?' })}
@@ -245,22 +280,53 @@ export function LoginForm() {
                 <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                 <Input
                   id="login-password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   disabled={loading}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    if (passwordError) setPasswordError('')
+                  }}
+                  onBlur={() => validatePassword(password, { allowEmpty: !password })}
                   placeholder="••••••••"
-                  className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
+                  autoComplete="current-password"
+                  aria-required="true"
+                  aria-describedby={passwordError ? 'login-password-error' : undefined}
+                  aria-invalid={passwordError ? true : undefined}
+                  className="pl-10.5 pr-12 h-11 rounded-xl bg-white/80 border-slate-200 text-base md:text-sm focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
                 />
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
+                  aria-label={
+                    showPassword
+                      ? t({ tr: 'Şifreyi gizle', en: 'Hide password' })
+                      : t({ tr: 'Şifreyi göster', en: 'Show password' })
+                  }
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                  )}
+                </button>
               </div>
+              {passwordError && (
+                <p id="login-password-error" role="alert" className="text-xs text-red-500 font-medium px-0.5">
+                  {passwordError}
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={loading || !!emailError}
-              className="w-full h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0063C8] font-bold text-sm shadow-md transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] mt-6"
+              disabled={loading || !!emailError || !!passwordError}
+              className="mt-6 h-11 min-h-11 w-full rounded-xl bg-[#0071E3] text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-[1.01] hover:bg-[#0063C8] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
             >
               {loading ? (
                 <>
@@ -281,7 +347,7 @@ export function LoginForm() {
             <p className="text-xs text-[#86868B] font-semibold">
               {t({ tr: 'Hesabınız yok mu?', en: "Don't have an account?" })}{' '}
               <Link href={registerUrl} className="text-[#0071E3] hover:underline font-bold">
-                {t({ tr: 'Kayıt Olun', en: 'Register' })}
+                {t(ENTRY_CTA.clinicTrial.short)}
               </Link>
             </p>
           </div>

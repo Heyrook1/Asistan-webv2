@@ -8,7 +8,7 @@ import { useLandingLocale } from '@/components/sections/landing-locale'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { revealSoft, staggerContainer, appleEase } from '@/lib/animations'
-import type { PublicTrustStats } from '@/lib/trust/public'
+import type { PublicTrustStats } from '@/lib/trust/publish-policy'
 
 type PublicReview = {
   id: string
@@ -24,9 +24,11 @@ type PublicReview = {
 const COPY = {
   tr: {
     badge: 'Güven mimarisi',
-    title: 'Kanıtlanabilir kontroller, abartısız sonuçlar',
+    title: 'Kanıtlanabilir kontroller, önce mimari',
     description:
-      'Aşağıdaki sayılar canlı sistemden gelir. Yorumlar yalnızca tamamlanmış randevuya bağlı gerçek kayıtlardır. Sahte testimonial kullanmıyoruz.',
+      'Güven rozet değil: işletme ayrımı, rol erişimi, denetim izi ve hekim doğrulama üründe çalışır. Canlı platform sayıları yalnızca yeterli randevu örneği birikince gösterilir.',
+    statsPending:
+      'Canlı platform metrikleri henüz yayında değil. Erken aşamada sıfır veya tek haneli sayıları vitrine koymuyoruz; önce kontroller devrede.',
     controlsTitle: 'Nasıl güvence altına alıyoruz?',
     reviewsTitle: 'Doğrulanmış hasta yorumları',
     emptyReviews:
@@ -64,9 +66,11 @@ const COPY = {
   },
   en: {
     badge: 'Trust architecture',
-    title: 'Verifiable controls, no inflated claims',
+    title: 'Verifiable controls, architecture first',
     description:
-      'Stats below come from the live system. Reviews are only shown when tied to a completed appointment. We do not publish fake testimonials.',
+      'Trust is not a badge: business isolation, role access, audit logs, and doctor verification ship in product. Live platform counts unlock only after enough completed appointments.',
+    statsPending:
+      'Live platform metrics are not published yet. We do not put early single-digit counts on the homepage; controls come first.',
     controlsTitle: 'How we protect trust',
     reviewsTitle: 'Verified patient reviews',
     emptyReviews:
@@ -107,9 +111,11 @@ const COPY = {
 export function TrustSection({
   stats,
   reviews,
+  publishStats,
 }: {
   stats: PublicTrustStats
   reviews: PublicReview[]
+  publishStats: boolean
 }) {
   const { locale } = useLandingLocale()
   const copy = COPY[locale]
@@ -159,24 +165,30 @@ export function TrustSection({
           </motion.div>
         </motion.div>
 
-        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {statItems.map((item, idx) => (
-            <motion.div
-              key={item.label}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: idx * 0.05, ease: appleEase }}
-              className="rounded-2xl border border-black/5 bg-[#F7FAFC] p-4"
-            >
-              <p className="text-2xl font-black tracking-tight text-[#1D1D1F]">
-                {item.value}
-                {item.hint ? <span className="ml-2 text-sm font-semibold text-[#5D6068]">{item.hint}</span> : null}
-              </p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#86868B]">{item.label}</p>
-            </motion.div>
-          ))}
-        </div>
+        {publishStats ? (
+          <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {statItems.map((item, idx) => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: idx * 0.05, ease: appleEase }}
+                className="rounded-2xl border border-black/5 bg-[#F7FAFC] p-4"
+              >
+                <p className="text-2xl font-black tracking-tight text-[#1D1D1F]">
+                  {item.value}
+                  {item.hint ? <span className="ml-2 text-sm font-semibold text-[#5D6068]">{item.hint}</span> : null}
+                </p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#86868B]">{item.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="mb-10 rounded-2xl border border-dashed border-black/10 bg-[#F7FAFC] px-5 py-4 text-sm leading-7 text-[#5D6068]">
+            {copy.statsPending}
+          </div>
+        )}
 
         <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
           <div>

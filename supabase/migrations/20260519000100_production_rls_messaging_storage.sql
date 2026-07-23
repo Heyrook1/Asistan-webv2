@@ -56,7 +56,7 @@ create index if not exists "MessageReaction_userId_idx" on "MessageReaction" ("u
 
 alter table "Message" alter column "body" set default '';
 
-create or replace function public.is_conversation_participant(target_conversation_id uuid)
+create or replace function public.is_conversation_participant(target_conversation_id text)
 returns boolean
 language sql
 stable
@@ -69,13 +69,13 @@ as $$
     join "Conversation" c on c.id = cp."conversationId"
     where cp."conversationId" = target_conversation_id
       and cp."isActive" = true
-      and cp."userId" = auth.uid()
+      and cp."userId" = auth.uid()::text
       and public.is_business_member(c."businessId")
   );
 $$;
 
-create or replace function public.message_business_id(target_message_id uuid)
-returns uuid
+create or replace function public.message_business_id(target_message_id text)
+returns text
 language sql
 stable
 security definer
@@ -87,8 +87,8 @@ as $$
   where m.id = target_message_id;
 $$;
 
-create or replace function public.message_conversation_id(target_message_id uuid)
-returns uuid
+create or replace function public.message_conversation_id(target_message_id text)
+returns text
 language sql
 stable
 security definer
@@ -100,11 +100,11 @@ as $$
 $$;
 
 create or replace function public.storage_conversation_id(object_name text)
-returns uuid
+returns text
 language sql
 stable
 as $$
-  select nullif((storage.foldername(object_name))[2], '')::uuid;
+  select nullif((storage.foldername(object_name))[2], '');
 $$;
 
 alter table "NotificationAction" enable row level security;
@@ -122,7 +122,7 @@ create policy "notification_action_member_select" on "NotificationAction"
       from "Notification" n
       where n.id = "NotificationAction"."notificationId"
         and public.is_business_member(n."businessId")
-        and (n."userId" is null or n."userId" = auth.uid())
+        and (n."userId" is null or n."userId" = auth.uid()::text)
     )
   );
 
@@ -134,7 +134,7 @@ create policy "notification_action_member_update" on "NotificationAction"
       from "Notification" n
       where n.id = "NotificationAction"."notificationId"
         and public.is_business_member(n."businessId")
-        and (n."userId" is null or n."userId" = auth.uid())
+        and (n."userId" is null or n."userId" = auth.uid()::text)
     )
   )
   with check (
@@ -143,7 +143,7 @@ create policy "notification_action_member_update" on "NotificationAction"
       from "Notification" n
       where n.id = "NotificationAction"."notificationId"
         and public.is_business_member(n."businessId")
-        and (n."userId" is null or n."userId" = auth.uid())
+        and (n."userId" is null or n."userId" = auth.uid()::text)
     )
   );
 
@@ -177,8 +177,8 @@ create policy "conversation_participant_member_insert" on "ConversationParticipa
 
 drop policy if exists "conversation_participant_self_update" on "ConversationParticipant";
 create policy "conversation_participant_self_update" on "ConversationParticipant"
-  for update using ("userId" = auth.uid() and public.is_conversation_participant("conversationId"))
-  with check ("userId" = auth.uid() and public.is_conversation_participant("conversationId"));
+  for update using ("userId" = auth.uid()::text and public.is_conversation_participant("conversationId"))
+  with check ("userId" = auth.uid()::text and public.is_conversation_participant("conversationId"));
 
 drop policy if exists "message_participant_select" on "Message";
 create policy "message_participant_select" on "Message"
@@ -187,14 +187,14 @@ create policy "message_participant_select" on "Message"
 drop policy if exists "message_participant_insert" on "Message";
 create policy "message_participant_insert" on "Message"
   for insert with check (
-    "senderUserId" = auth.uid()
+    "senderUserId" = auth.uid()::text
     and public.is_conversation_participant("conversationId")
   );
 
 drop policy if exists "message_sender_update" on "Message";
 create policy "message_sender_update" on "Message"
-  for update using ("senderUserId" = auth.uid() and public.is_conversation_participant("conversationId"))
-  with check ("senderUserId" = auth.uid() and public.is_conversation_participant("conversationId"));
+  for update using ("senderUserId" = auth.uid()::text and public.is_conversation_participant("conversationId"))
+  with check ("senderUserId" = auth.uid()::text and public.is_conversation_participant("conversationId"));
 
 drop policy if exists "message_attachment_participant_select" on "MessageAttachment";
 create policy "message_attachment_participant_select" on "MessageAttachment"
@@ -214,11 +214,11 @@ create policy "message_reaction_participant_select" on "MessageReaction"
 drop policy if exists "message_reaction_self_manage" on "MessageReaction";
 create policy "message_reaction_self_manage" on "MessageReaction"
   for all using (
-    "userId" = auth.uid()
+    "userId" = auth.uid()::text
     and public.is_conversation_participant(public.message_conversation_id("messageId"))
   )
   with check (
-    "userId" = auth.uid()
+    "userId" = auth.uid()::text
     and public.is_conversation_participant(public.message_conversation_id("messageId"))
   );
 

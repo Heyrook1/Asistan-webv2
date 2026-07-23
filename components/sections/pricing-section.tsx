@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { getRegisterPath } from '@/lib/auth-routes'
 import { revealSoft, staggerContainer, appleEase } from '@/lib/animations'
-import { DEMO_CONTACT_PATH } from '@/lib/entry-routes'
+import { DEMO_CONTACT_PATH, ENTRY_CTA } from '@/lib/entry-routes'
 import {
   formatPublicPlanPrice,
   listPublicMarketingPlanCards,
@@ -50,7 +50,7 @@ const PRICING_COPY = {
     tableHeader: 'Özellik karşılaştırma matrisi',
     demoText: 'Kliniğinizin kurulum süreçlerini detaylıca görüşmek ister misiniz?',
     demoCta: 'Demo talep et',
-    registerCta: 'Klinik denemesini başlat',
+    registerCta: ENTRY_CTA.clinicTrial.tr,
     demoPlanCta: 'Demo talep et',
     schedulerTitle: 'Asistan demo görüşmesi',
     schedulerSub:
@@ -81,7 +81,7 @@ const PRICING_COPY = {
     tableHeader: 'Detailed Feature Matrix',
     demoText: 'Would you like a customized walkthrough of the platform?',
     demoCta: 'Request a demo',
-    registerCta: 'Start clinic trial',
+    registerCta: ENTRY_CTA.clinicTrial.en,
     demoPlanCta: 'Request a demo',
     schedulerTitle: 'Request an Asistan demo',
     schedulerSub:

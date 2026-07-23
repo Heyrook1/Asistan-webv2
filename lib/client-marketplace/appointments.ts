@@ -7,7 +7,7 @@ export async function listClientAppointments(clientUserId: string) {
     where: { clientUserId },
     orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
     include: {
-      business: { select: { id: true, name: true } },
+      business: { select: { id: true, name: true, slug: true } },
       service: { select: { id: true, name: true } },
       staff: { select: { id: true, fullName: true, specialty: true } },
       location: { select: { id: true, name: true, address: true } },

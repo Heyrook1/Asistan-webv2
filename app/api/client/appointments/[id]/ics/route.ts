@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiError, parsePathId } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
 
@@ -20,10 +21,13 @@ export async function GET(
 ) {
   const auth = await requireClientAuth(request)
   if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return apiError('Unauthorized', 401)
   }
 
-  const { id } = await context.params
+  const id = parsePathId((await context.params).id)
+  if (!id) {
+    return apiError('Gecersiz randevu kimligi', 400)
+  }
   const appointment = await prisma.appointment.findFirst({
     where: {
       id,
@@ -39,7 +43,7 @@ export async function GET(
   })
 
   if (!appointment) {
-    return NextResponse.json({ error: 'Randevu bulunamadi' }, { status: 404 })
+    return apiError('Randevu bulunamadi', 404)
   }
 
   const summary = `${appointment.service.name} — ${appointment.business.name}`

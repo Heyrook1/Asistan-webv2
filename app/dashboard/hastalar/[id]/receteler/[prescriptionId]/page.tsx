@@ -30,7 +30,7 @@ export default async function PrescriptionPrintPage({
         <header className="border-b border-border pb-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-teal">KKTC E-Reçete</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-teal">Klinik reçete</p>
               <h1 className="mt-2 text-2xl font-bold text-brand-ink">{prescription.clinicName}</h1>
               <p className="text-sm text-muted-foreground">
                 {[prescription.clinicAddress, prescription.clinicCity].filter(Boolean).join(' • ')}

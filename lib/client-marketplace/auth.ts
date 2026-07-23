@@ -73,8 +73,11 @@ async function upsertClientUser(input: {
   }
 
   if (input.email) {
+    // Only adopt an *orphan* ClientUser (no authUserId yet, e.g. created via guest
+    // booking). Never re-point a row that is already bound to a different auth user —
+    // that would be an email-based account takeover.
     const byEmail = await prisma.clientUser.findFirst({
-      where: { email: input.email },
+      where: { email: input.email, authUserId: null },
       select: { id: true, fullName: true, email: true, phone: true, city: true },
     })
 
@@ -111,6 +114,12 @@ export async function requireClientAuth(request: NextRequest): Promise<ClientAut
   if (error || !data.user) return null
 
   const authUser = data.user
+  // Require a confirmed identity before minting a client session (mirrors clinic staff
+  // requirement in lib/session.ts). Prefer email confirmation; allow phone-only signups
+  // that have a confirmed phone. Unconfirmed accounts are rejected.
+  const confirmedAt = authUser.email_confirmed_at ?? authUser.phone_confirmed_at ?? null
+  if (!confirmedAt) return null
+
   const email = normalizeEmail(authUser.email)
   const fullName = pickDisplayName({
     email: authUser.email,
@@ -137,7 +146,11 @@ export async function requireClientAuth(request: NextRequest): Promise<ClientAut
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       const existing = await prisma.clientUser.findFirst({
         where: {
-          OR: [{ authUserId: authUser.id }, ...(email ? [{ email }] : [])],
+          OR: [
+            { authUserId: authUser.id },
+            // email fallback only matches orphan rows (no takeover of bound accounts)
+            ...(email ? [{ email, authUserId: null }] : []),
+          ],
         },
         select: { id: true, fullName: true, email: true, phone: true, city: true },
       })

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiError, apiValidationError } from '@/lib/api-response'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
@@ -18,7 +19,7 @@ const updateProfileSchema = z.object({
 export async function GET(request: NextRequest) {
   const auth = await requireClientAuth(request)
   if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return apiError('Unauthorized', 401)
   }
 
   const profile = await prisma.clientUser.findFirst({
@@ -53,19 +54,13 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const auth = await requireClientAuth(request)
   if (!auth) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return apiError('Unauthorized', 401)
   }
 
   const body = await request.json().catch(() => null)
   const parsed = updateProfileSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: 'Gecersiz profil verisi',
-        issues: parsed.error.issues,
-      },
-      { status: 400 }
-    )
+    return apiValidationError('Gecersiz profil verisi', parsed.error.issues, 400)
   }
 
   const patch = parsed.data

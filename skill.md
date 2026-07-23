@@ -115,7 +115,7 @@
 
 ## 5. Domain (Sektörel) Yetkinlikler
 
-- **Sağlık sektörü iş akışları** – Hasta randevu, klinik yönetimi, e-reçete (opsiyonel)
+- **Sağlık sektörü iş akışları** – Hasta randevu, klinik yönetimi, yazdırılabilir klinik reçete (resmi e-reçete / LIS / telehealth ertelendi)
 - **KVKK / GDPR** – Kişisel sağlık verilerinin işlenmesi, saklanması
 - **Veri güvenliği** – Uçtan uca şifreleme, denetim kayıtları (audit logs)
 - **Ödeme entegrasyonları** – İyzico / Stripe (abonelik ödemeleri)

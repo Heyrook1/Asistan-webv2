@@ -31,6 +31,10 @@ export function UpcomingAppointmentsTable({
   allLabel = 'Tümü',
   emptyTitle = 'Yaklaşan randevu görünmüyor',
   emptyDescription = 'Yeni bir randevu oluşturabilir veya online rezervasyon bağlantınızı paylaşabilirsiniz.',
+  emptyActionHref,
+  emptyActionLabel,
+  emptySecondaryHref,
+  emptySecondaryLabel,
   showShare = true,
   showQuickStart = true,
 }: {
@@ -44,9 +48,22 @@ export function UpcomingAppointmentsTable({
   allLabel?: string
   emptyTitle?: string
   emptyDescription?: string
+  /** Always-visible empty CTA (role homes that disable share/quick-start). */
+  emptyActionHref?: string
+  emptyActionLabel?: string
+  /** Second empty CTA — typically public booking share (UX-004). */
+  emptySecondaryHref?: string
+  emptySecondaryLabel?: string
   showShare?: boolean
   showQuickStart?: boolean
 }) {
+  const hasEmptyActions =
+    canCreateAppointment ||
+    showShare ||
+    showQuickStart ||
+    Boolean(emptyActionHref) ||
+    Boolean(emptySecondaryHref)
+
   return (
     <Card className="border-border/60 bg-white/85 shadow-sm backdrop-blur-md">
       <CardContent className="p-4 lg:p-5">
@@ -58,32 +75,61 @@ export function UpcomingAppointmentsTable({
         </div>
 
         {upcomingAppointments.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-slate-50/70 px-4 py-6 text-center">
+          <div role="status" className="rounded-2xl border border-dashed bg-slate-50/70 px-4 py-6 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-teal/10 text-brand-teal">
-              <PlayCircle className="h-6 w-6" />
+              <PlayCircle className="h-6 w-6" aria-hidden />
             </div>
             <p className="text-sm font-semibold text-brand-ink">{emptyTitle}</p>
             <p className="mt-1 text-xs text-muted-foreground">{emptyDescription}</p>
-            <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
-              {canCreateAppointment && (
-                <Button size="sm" onClick={onCreateAppointment} className="bg-brand-teal text-white hover:bg-brand-teal-hover">
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  Randevu Oluştur
+            {hasEmptyActions ? (
+              <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
+                {canCreateAppointment && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={onCreateAppointment}
+                    className="h-11 min-h-11 bg-brand-teal text-white hover:bg-brand-teal-hover"
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Randevu Oluştur
+                  </Button>
+                )}
+                {emptyActionHref && emptyActionLabel ? (
+                  <Button asChild size="sm" variant="outline" className="h-11 min-h-11">
+                    <Link href={emptyActionHref}>
+                      <PlayCircle className="mr-2 h-4 w-4" />
+                      {emptyActionLabel}
+                    </Link>
+                  </Button>
+                ) : null}
+                {emptySecondaryHref && emptySecondaryLabel ? (
+                  <Button asChild size="sm" variant="outline" className="h-11 min-h-11">
+                    <Link href={emptySecondaryHref}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      {emptySecondaryLabel}
+                    </Link>
+                  </Button>
+                ) : null}
+                {showShare && (
+                  <Button type="button" size="sm" variant="outline" className="h-11 min-h-11" onClick={onShareCalendar}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Randevu linkini paylaş
+                  </Button>
+                )}
+                {showQuickStart && (
+                  <Button type="button" size="sm" variant="outline" className="h-11 min-h-11" onClick={onOpenQuickStart}>
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Hızlı başlangıç turu
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <Button asChild size="sm" className="h-11 min-h-11 bg-brand-teal text-white hover:bg-brand-teal-hover">
+                  <Link href={allHref}>{allLabel}</Link>
                 </Button>
-              )}
-              {showShare && (
-                <Button size="sm" variant="outline" onClick={onShareCalendar}>
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Takvimi Paylaş
-                </Button>
-              )}
-              {showQuickStart && (
-                <Button size="sm" variant="outline" onClick={onOpenQuickStart}>
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Hızlı başlangıç turu
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         ) : (
           <>

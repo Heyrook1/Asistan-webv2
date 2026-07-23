@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
+  ClipboardList,
   BarChart3,
   Bell,
   Briefcase,
@@ -18,6 +19,7 @@ import {
   ScrollText,
   UserCog,
   Users,
+  FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -40,7 +42,15 @@ type NavItem = {
   badge?: 'notifications' | 'messages' | 'pendingAppointments'
 }
 
-const navItems: NavItem[] = [
+/** Analitik nav — honest ops overview (on by default). Hidden when clinicAnalytics is off. */
+const ANALITIK_NAV_ITEM: NavItem = {
+  name: 'Analitik',
+  href: '/dashboard/analitik',
+  icon: BarChart3,
+  permission: 'analytics.view',
+}
+
+const BASE_NAV_ITEMS: NavItem[] = [
   { name: 'Genel Bakış', href: '/dashboard', icon: LayoutDashboard },
   {
     name: 'Ajanda',
@@ -50,16 +60,54 @@ const navItems: NavItem[] = [
     badge: 'pendingAppointments',
   },
   { name: 'Hastalar', href: '/dashboard/hastalar', icon: Users, permission: 'patient.view' },
+  {
+    name: 'Kimlik eşleşmeleri',
+    href: '/dashboard/kimlik-eslesmeleri',
+    icon: Sparkles,
+    permission: 'patient.edit',
+  },
   { name: 'Hizmetler', href: '/dashboard/hizmetler', icon: Briefcase, permission: 'service.manage' },
+  { name: 'Anketler', href: '/dashboard/anketler', icon: ClipboardList, permission: 'service.manage' },
+  {
+    name: 'Faturalar',
+    href: '/dashboard/faturalar',
+    icon: FileText,
+    anyOfPermissions: ['appointment.manage', 'analytics.revenue.view'],
+  },
   { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
   { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
   { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
-  { name: 'Analitik', href: '/dashboard/analitik', icon: BarChart3, permission: 'analytics.view' },
   { name: 'Denetim', href: '/dashboard/denetim', icon: ScrollText, permission: 'audit.view' },
   { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Scale, superAdminOnly: true },
   { name: 'Super Admin', href: '/dashboard/super-admin', icon: Shield, superAdminOnly: true },
   { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
 ]
+
+function buildNavItems(clinicAnalyticsEnabled: boolean): NavItem[] {
+  if (!clinicAnalyticsEnabled) return BASE_NAV_ITEMS
+  const denetimIdx = BASE_NAV_ITEMS.findIndex((item) => item.href === '/dashboard/denetim')
+  if (denetimIdx < 0) return [...BASE_NAV_ITEMS, ANALITIK_NAV_ITEM]
+  return [
+    ...BASE_NAV_ITEMS.slice(0, denetimIdx),
+    ANALITIK_NAV_ITEM,
+    ...BASE_NAV_ITEMS.slice(denetimIdx),
+  ]
+}
+
+function isNavActive(pathname: string, href: string) {
+  const path = href.split('?')[0]
+  if (path === '/dashboard/ajanda') {
+    return (
+      pathname === '/dashboard/ajanda' ||
+      pathname.startsWith('/dashboard/ajanda/') ||
+      pathname === '/dashboard/randevular' ||
+      pathname.startsWith('/dashboard/randevular/') ||
+      pathname === '/dashboard/takvim' ||
+      pathname.startsWith('/dashboard/takvim/')
+    )
+  }
+  return pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
+}
 
 export function DashboardSidebar({
   unreadNotifications,
@@ -68,6 +116,8 @@ export function DashboardSidebar({
   session,
   showPlatformAdmin = false,
   showSuperAdmin = false,
+  teamMessagingEnabled = false,
+  clinicAnalyticsEnabled = false,
 }: {
   unreadNotifications: number
   unreadMessages?: number
@@ -75,12 +125,15 @@ export function DashboardSidebar({
   session: SessionContext
   showPlatformAdmin?: boolean
   showSuperAdmin?: boolean
+  teamMessagingEnabled?: boolean
+  clinicAnalyticsEnabled?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const scheduleLabels = appointmentScheduleNavLabels(session)
 
-  const visibleItems = navItems.filter((item) => {
+  const visibleItems = buildNavItems(clinicAnalyticsEnabled).filter((item) => {
+    if (item.href === '/dashboard/mesajlar' && !teamMessagingEnabled) return false
     if (item.adminOnly && !showPlatformAdmin) return false
     if (item.superAdminOnly && !showSuperAdmin) return false
     if (item.anyOfPermissions?.length) {
@@ -104,21 +157,6 @@ export function DashboardSidebar({
     return item.name
   }
 
-  function isActive(href: string) {
-    const path = href.split('?')[0]
-    if (path === '/dashboard/ajanda') {
-      return (
-        pathname === '/dashboard/ajanda' ||
-        pathname.startsWith('/dashboard/ajanda/') ||
-        pathname === '/dashboard/randevular' ||
-        pathname.startsWith('/dashboard/randevular/') ||
-        pathname === '/dashboard/takvim' ||
-        pathname.startsWith('/dashboard/takvim/')
-      )
-    }
-    return pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
-  }
-
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -127,8 +165,8 @@ export function DashboardSidebar({
     router.refresh()
   }
 
-  function SidebarContent() {
-    return (
+  return (
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col">
       <div className="relative flex h-full flex-col overflow-hidden bg-sidebar">
         <div className="pointer-events-none absolute -left-20 -top-32 h-64 w-64 rounded-full bg-brand-blue/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-brand-blue/5 blur-3xl" />
@@ -145,11 +183,15 @@ export function DashboardSidebar({
         <ScrollArea className="relative flex-1 py-4">
           <nav className="space-y-1 px-3">
             {visibleItems.map((item) => {
-              const active = isActive(item.href)
+              const href =
+                item.badge === 'pendingAppointments' && pendingAppointments > 0
+                  ? '/dashboard/ajanda?mode=liste&status=SCHEDULED'
+                  : item.href
+              const active = isNavActive(pathname, item.href)
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={href}
                   className={cn(
                     'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     active
@@ -225,12 +267,6 @@ export function DashboardSidebar({
           </button>
         </div>
       </div>
-    )
-  }
-
-  return (
-    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col">
-      <SidebarContent />
     </aside>
   )
 }

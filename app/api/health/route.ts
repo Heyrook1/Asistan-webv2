@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import * as Sentry from '@sentry/nextjs'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,15 +10,28 @@ interface HealthStatus {
   timestamp: string
   checks: {
     database: 'healthy' | 'degraded' | 'unhealthy'
-    uptime: number
   }
 }
 
-export async function GET(): Promise<NextResponse<HealthStatus>> {
+export async function GET(request: NextRequest): Promise<NextResponse<HealthStatus | { error: string }>> {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+
+  // Public probe — keep cheap but rate-limited (recon / DB hammer).
+  const allowed = await checkRateLimit(
+    `health:${ip}`,
+    Math.min(RATE_LIMITS.api.limit, 30),
+    RATE_LIMITS.api.window
+  )
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const timestamp = new Date().toISOString()
 
   try {
-    // Test database connection
     await prisma.$queryRaw`SELECT 1`
 
     return NextResponse.json(
@@ -26,7 +40,6 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
         timestamp,
         checks: {
           database: 'healthy',
-          uptime: process.uptime(),
         },
       },
       { status: 200 }
@@ -43,7 +56,6 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
         timestamp,
         checks: {
           database: 'unhealthy',
-          uptime: process.uptime(),
         },
       },
       { status: 503 }

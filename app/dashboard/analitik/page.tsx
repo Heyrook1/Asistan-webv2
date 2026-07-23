@@ -10,7 +10,9 @@ import {
   parseAnalyticsMonthRange,
 } from '@/lib/queries'
 import { AnalyticsBoard } from '@/components/dashboard/analytics-board'
+import { AnalitikDeprecatedPanel } from '@/components/dashboard/analitik-deprecated-panel'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import { isClinicAnalyticsEnabled } from '@/lib/analytics/policy'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +22,11 @@ export default async function AnalitikPage({
   searchParams: Promise<{ months?: string }>
 }) {
   const session = await requirePagePermission('analytics.view')
+
+  if (!isClinicAnalyticsEnabled()) {
+    return <AnalitikDeprecatedPanel />
+  }
+
   const params = await searchParams
   const months = parseAnalyticsMonthRange(params.months)
   const canViewRevenue = can(session, 'analytics.revenue.view')
@@ -52,7 +59,6 @@ export default async function AnalitikPage({
         funnel={funnel}
         utilization={utilization}
         canViewRevenue={canViewRevenue}
-        cancellationRate={stats.cancellationRate}
       />
     </Suspense>
   )

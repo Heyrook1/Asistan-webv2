@@ -6,6 +6,7 @@ import { headers } from 'next/headers'
 import { NotificationType, TeamRole } from '@prisma/client'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
 import { writeAuditLog } from '@/lib/audit'
 import { requirePermission, requireSession, can, ROLE_DEFAULT_PERMISSIONS, PERMISSIONS, ROLE_LABELS } from '@/lib/session'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -27,7 +28,7 @@ const memberSchema = z.object({
   sendInvite: z.boolean().optional().default(true),
   password: z.preprocess(
     (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
-    z.string().min(6, 'Sifre en az 6 karakter olmali').max(128).optional()
+    z.string().min(6, 'Şifre en az 6 karakter olmalı').max(128).optional()
   ),
 })
 
@@ -146,7 +147,11 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
   const parsed = memberSchema.safeParse(input)
   if (!parsed.success) return err('Form hatali', parsed.error.issues)
   const session = await requirePermission('team.create')
-  if (!session.isOwner && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(parsed.data.role)) {
+  // SUPER_ADMIN is a platform-level role and can never be assigned via tenant team actions.
+  if (parsed.data.role === 'SUPER_ADMIN') {
+    return err('SUPER_ADMIN platform rolu ekip yonetimi uzerinden atanamaz.')
+  }
+  if (!session.isOwner && parsed.data.role === 'ISLETME_SAHIBI') {
     return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
   }
 
@@ -210,13 +215,15 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
       } catch (error) {
         const message = error instanceof Error ? error.message.toLowerCase() : ''
         if (parsed.data.password && message.includes('invalid api key')) {
-          return err('Yonetici tarafindan sifre belirlemek icin gecerli Supabase admin anahtari gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY degerini duzeltin.')
+          return err(
+            'Yönetici tarafından şifre belirlemek için geçerli Supabase admin anahtarı gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY değerini düzeltin.'
+          )
         }
         if (!message.includes('invalid api key')) throw error
       }
     }
 
-    const created = await prisma.$transaction(async (tx) => {
+    const created = await tenantTransaction(session.businessId, async (tx) => {
       let user = await tx.user.findUnique({ where: { email } })
       if (!user) {
         user = await tx.user.create({
@@ -326,7 +333,11 @@ export async function updateTeamMember(input: unknown): Promise<ActionResult> {
   if (profileChanged && !can(session, 'team.manage')) {
     return err('Ekip uyesi duzenleme yetkiniz yok')
   }
-  if (!session.isOwner && patch.role && ['SUPER_ADMIN', 'ISLETME_SAHIBI'].includes(patch.role)) {
+  // SUPER_ADMIN is a platform-level role and can never be assigned via tenant team actions.
+  if (patch.role === 'SUPER_ADMIN') {
+    return err('SUPER_ADMIN platform rolu ekip yonetimi uzerinden atanamaz.')
+  }
+  if (!session.isOwner && patch.role === 'ISLETME_SAHIBI') {
     return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
   }
   await prisma.teamMember.update({
@@ -486,7 +497,7 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
 
 const resetPasswordSchema = z.object({
   id: z.string().uuid(),
-  password: z.string().min(6, 'Sifre en az 6 karakter olmali').max(128),
+  password: z.string().min(6, 'Şifre en az 6 karakter olmalı').max(128),
 })
 
 export async function resetTeamMemberPassword(input: unknown): Promise<ActionResult> {
@@ -502,7 +513,9 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
 
   const admin = createAdminClient()
   if (!admin) {
-    return err('Sifre sifirlama icin Supabase admin anahtari gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY ayarlanmali.')
+    return err(
+      'Şifre sıfırlama için Supabase admin anahtarı gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY ayarlanmalı.'
+    )
   }
 
   try {
@@ -540,7 +553,7 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
 
     if (!authUserId) return err('Supabase kullanicisi olusturulamadi')
 
-    await prisma.$transaction(async (tx) => {
+    await tenantTransaction(session.businessId, async (tx) => {
       let user = await tx.user.findUnique({ where: { email: target.email.toLowerCase() } })
       if (!user) {
         user = await tx.user.create({
@@ -570,7 +583,7 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
     if (e instanceof Error && e.message.toLowerCase().includes('invalid api key')) {
       return err('Supabase admin anahtari gecersiz. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY degerini duzeltin.')
     }
-    return err(e instanceof Error ? e.message : 'Sifre sifirlanamadi.')
+    return err(e instanceof Error ? e.message : 'Şifre sıfırlanamadı.')
   }
 }
 

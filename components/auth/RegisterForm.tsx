@@ -8,9 +8,12 @@ import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath } from '@/lib/auth-routes'
-import { CheckCircle2, User, Mail, Lock, ShieldAlert, Loader2, ArrowRight, ShieldCheck } from 'lucide-react'
+import { ENTRY_CTA } from '@/lib/entry-routes'
+import { authFormCopy } from '@/lib/auth/auth-form-copy'
+import { CheckCircle2, User, Mail, Lock, ShieldAlert, Loader2, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { checkDuplicateEmail } from '@/app/register/actions'
+import { markForceQuickStart } from '@/lib/onboarding/quick-start-handoff'
 import { toast } from 'sonner'
 
 export function RegisterForm() {
@@ -19,31 +22,91 @@ export function RegisterForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [signUpSuccess, setSignUpSuccess] = useState(false)
 
-  // Real-time validations
+  // Field errors: Empty ✅ on blur/submit (not keystroke for email — BUG-008)
   const [emailError, setEmailError] = useState('')
+  const [nameError, setNameError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [termsError, setTermsError] = useState('')
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, text: '', color: '' })
   const [passwordMatchError, setPasswordMatchError] = useState('')
 
   const supabase = createClient()
 
-  // Real-time email validation
-  useEffect(() => {
-    if (!email) {
-      setEmailError('')
-      return
+  function validateName(value: string, opts?: { allowEmpty?: boolean }) {
+    if (!value.trim()) {
+      if (opts?.allowEmpty) {
+        setNameError('')
+        return false
+      }
+      setNameError(t({ tr: 'Ad soyad gerekli', en: 'Full name is required' }))
+      return false
+    }
+    if (value.trim().length < 2) {
+      setNameError(t({ tr: 'Lütfen adınızı ve soyadınızı eksiksiz girin.', en: 'Please enter your full name.' }))
+      return false
+    }
+    setNameError('')
+    return true
+  }
+
+  function validateEmail(value: string, opts?: { allowEmpty?: boolean }) {
+    if (!value.trim()) {
+      if (opts?.allowEmpty) {
+        setEmailError('')
+        return false
+      }
+      setEmailError(t({ tr: 'E-posta gerekli', en: 'Email is required' }))
+      return false
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setEmailError(t({ tr: 'Geçersiz e-posta formatı', en: 'Invalid email format' }))
-    } else {
-      setEmailError('')
+    if (!emailRegex.test(value)) {
+      setEmailError(t(authFormCopy.emailInvalid))
+      return false
     }
-  }, [email, t])
+    setEmailError('')
+    return true
+  }
+
+  function validatePassword(value: string, opts?: { allowEmpty?: boolean }) {
+    if (!value) {
+      if (opts?.allowEmpty) {
+        setPasswordError('')
+        return false
+      }
+      setPasswordError(t({ tr: 'Şifre gerekli', en: 'Password is required' }))
+      return false
+    }
+    if (value.length < 6) {
+      setPasswordError(t({ tr: 'Şifre en az 6 karakter olmalı', en: 'Password must be at least 6 characters' }))
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
+
+  function validateConfirmPassword(value: string, opts?: { allowEmpty?: boolean }) {
+    if (!value) {
+      if (opts?.allowEmpty) {
+        setPasswordMatchError('')
+        return false
+      }
+      setPasswordMatchError(t({ tr: 'Şifre tekrarı gerekli', en: 'Confirm password is required' }))
+      return false
+    }
+    if (value !== password) {
+      setPasswordMatchError(t({ tr: 'Şifreler eşleşmiyor', en: 'Passwords do not match' }))
+      return false
+    }
+    setPasswordMatchError('')
+    return true
+  }
 
   // Real-time password strength validation
   useEffect(() => {
@@ -92,20 +155,16 @@ export function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
-    if (name.trim().length < 2) {
-      setError(t({
-        tr: 'Lütfen adınızı ve soyadınızı eksiksiz girin.',
-        en: 'Please enter your full name.'
-      }))
-      return
-    }
+    setTermsError('')
 
-    if (emailError) return
-    if (password.length < 6) return
-    if (passwordMatchError) return
+    const nameOk = validateName(name)
+    const emailOk = validateEmail(email)
+    const passwordOk = validatePassword(password)
+    const confirmOk = validateConfirmPassword(confirmPassword)
+    if (!nameOk || !emailOk || !passwordOk || !confirmOk) return
 
     if (!agreeTerms) {
+      setTermsError(t({ tr: 'Kullanım koşullarını kabul etmelisiniz.', en: 'Please accept the terms of use.' }))
       toast.warning(t({ tr: 'Lütfen kullanım koşullarını kabul edin.', en: 'Please accept the terms of use.' }))
       return
     }
@@ -151,6 +210,7 @@ export function RegisterForm() {
         return
       }
 
+      markForceQuickStart()
       setSignUpSuccess(true)
       toast.success(t({ tr: 'Kayıt işlemi başlatıldı', en: 'Account created — check your email' }))
     } catch {
@@ -211,10 +271,10 @@ export function RegisterForm() {
           <div className="space-y-6">
             <div className="space-y-1">
               <h2 className="text-xl font-bold tracking-tight text-[#1D1D1F]">
-                {t({ tr: 'Kayıt Ol', en: 'Register' })}
+                {t(ENTRY_CTA.clinicTrial)}
               </h2>
-              <p className="text-xs text-[#86868B] font-semibold">
-                {t({ tr: 'Hemen ücretsiz hesabınızı oluşturun', en: 'Create your free account now' })}
+              <p className="text-xs font-semibold text-[#86868B]">
+                {t(ENTRY_CTA.clinicTrialRiskReducer)}
               </p>
             </div>
 
@@ -228,11 +288,14 @@ export function RegisterForm() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               {/* Full Name Field */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-name">
-                  {t({ tr: 'Ad Soyad', en: 'Full Name' })}
+                  {t({ tr: 'Ad Soyad', en: 'Full Name' })}{' '}
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
@@ -242,17 +305,33 @@ export function RegisterForm() {
                     required
                     disabled={loading}
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      if (nameError) setNameError('')
+                    }}
+                    onBlur={() => validateName(name, { allowEmpty: !name.trim() })}
+                    placeholder={t(authFormCopy.namePlaceholder)}
+                    autoComplete="name"
+                    aria-required="true"
+                    aria-describedby={nameError ? 'register-name-error' : undefined}
+                    aria-invalid={nameError ? true : undefined}
+                    className="h-11 rounded-xl border-slate-200 bg-white/80 pl-10.5 text-base focus-visible:ring-2 focus-visible:ring-[#0071E3]/40 md:text-sm"
                   />
                 </div>
+                {nameError && (
+                  <p id="register-name-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                    {nameError}
+                  </p>
+                )}
               </div>
 
               {/* Email Field */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-email">
-                  {t({ tr: 'E-posta Adresi', en: 'Email Address' })}
+                  {t({ tr: 'E-posta Adresi', en: 'Email Address' })}{' '}
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
@@ -262,15 +341,21 @@ export function RegisterForm() {
                     required
                     disabled={loading}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (emailError) setEmailError('')
+                    }}
+                    onBlur={() => validateEmail(email, { allowEmpty: !email.trim() })}
+                    placeholder={t(authFormCopy.emailPlaceholder)}
+                    autoComplete="email"
+                    aria-required="true"
                     aria-describedby={emailError ? 'register-email-error' : undefined}
                     aria-invalid={emailError ? true : undefined}
-                    className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
+                    className="h-11 rounded-xl border-slate-200 bg-white/80 pl-10.5 text-base focus-visible:ring-2 focus-visible:ring-[#0071E3]/40 md:text-sm"
                   />
                 </div>
                 {emailError && (
-                  <p id="register-email-error" role="alert" className="text-xs text-red-500 font-medium px-0.5">
+                  <p id="register-email-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
                     {emailError}
                   </p>
                 )}
@@ -281,22 +366,56 @@ export function RegisterForm() {
                 {/* Password Field */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-password">
-                    {t({ tr: 'Şifre', en: 'Password' })}
+                    {t({ tr: 'Şifre', en: 'Password' })}{' '}
+                    <span className="text-red-500" aria-hidden="true">
+                      *
+                    </span>
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                     <Input
                       id="register-password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       disabled={loading}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (passwordError) setPasswordError('')
+                      }}
+                      onBlur={() => validatePassword(password, { allowEmpty: !password })}
                       placeholder="••••••••"
-                      className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
+                      autoComplete="new-password"
+                      aria-required="true"
+                      aria-describedby={passwordError ? 'register-password-error' : undefined}
+                      aria-invalid={passwordError ? true : undefined}
+                      className="h-11 rounded-xl border-slate-200 bg-white/80 pl-10.5 pr-12 text-base focus-visible:ring-2 focus-visible:ring-[#0071E3]/40 md:text-sm"
                     />
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
+                      aria-label={
+                        showPassword
+                          ? t({ tr: 'Şifreyi gizle', en: 'Hide password' })
+                          : t({ tr: 'Şifreyi göster', en: 'Show password' })
+                      }
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
-                  {password && (
+                  {passwordError && (
+                    <p id="register-password-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                      {passwordError}
+                    </p>
+                  )}
+                  {password && !passwordError && (
                     <div className="mt-1 flex items-center gap-1.5 px-0.5" aria-live="polite">
                       <div className="h-1 w-12 overflow-hidden rounded-full bg-black/10">
                         <div className={`h-full ${passwordStrength.color}`} style={{ width: `${(passwordStrength.score / 5) * 100}%` }} />
@@ -309,25 +428,52 @@ export function RegisterForm() {
                 {/* Confirm Password Field */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-confirm-password">
-                    {t({ tr: 'Şifre Tekrar', en: 'Confirm Password' })}
+                    {t({ tr: 'Şifre Tekrar', en: 'Confirm Password' })}{' '}
+                    <span className="text-red-500" aria-hidden="true">
+                      *
+                    </span>
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" aria-hidden="true" />
                     <Input
                       id="register-confirm-password"
-                      type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       required
                       disabled={loading}
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        if (passwordMatchError) setPasswordMatchError('')
+                      }}
+                      onBlur={() => validateConfirmPassword(confirmPassword, { allowEmpty: !confirmPassword })}
                       placeholder="••••••••"
+                      autoComplete="new-password"
+                      aria-required="true"
                       aria-describedby={passwordMatchError ? 'register-password-match-error' : undefined}
                       aria-invalid={passwordMatchError ? true : undefined}
-                      className="pl-10.5 h-11 rounded-xl bg-white/80 border-slate-200 text-sm focus-visible:ring-1 focus-visible:ring-[#0071E3]"
+                      className="h-11 rounded-xl border-slate-200 bg-white/80 pl-10.5 pr-12 text-base focus-visible:ring-2 focus-visible:ring-[#0071E3]/40 md:text-sm"
                     />
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
+                      aria-label={
+                        showConfirmPassword
+                          ? t({ tr: 'Şifreyi gizle', en: 'Hide password' })
+                          : t({ tr: 'Şifreyi göster', en: 'Show password' })
+                      }
+                      aria-pressed={showConfirmPassword}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
                   {passwordMatchError && (
-                    <p id="register-password-match-error" role="alert" className="text-xs text-red-500 font-medium px-0.5">
+                    <p id="register-password-match-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
                       {passwordMatchError}
                     </p>
                   )}
@@ -335,72 +481,93 @@ export function RegisterForm() {
               </div>
 
               {/* Terms Checkbox */}
-              <div className="flex items-start gap-2 py-1.5">
-                <input
-                  id="register-terms"
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  disabled={loading}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0071E3] focus:ring-0 cursor-pointer"
-                />
-                <label htmlFor="register-terms" className="text-xs leading-normal font-semibold text-[#5D6068] cursor-pointer selection:bg-transparent">
-                  {language === 'tr' ? (
-                    <>
-                      <Link
-                        href="/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2 hover:text-[#0071E3]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Kullanım şartlarını
-                      </Link>
-                      {' '}ve{' '}
-                      <Link
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2 hover:text-[#0071E3]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        gizlilik politikasını
-                      </Link>
-                      {' '}kabul ediyorum.
-                    </>
-                  ) : (
-                    <>
-                      I agree to the{' '}
-                      <Link
-                        href="/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2 hover:text-[#0071E3]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        terms of use
-                      </Link>
-                      {' '}and{' '}
-                      <Link
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2 hover:text-[#0071E3]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        privacy policy
-                      </Link>
-                      .
-                    </>
-                  )}
-                </label>
+              <div className="space-y-1 py-1.5">
+                <div className="flex items-start gap-2">
+                  <input
+                    id="register-terms"
+                    type="checkbox"
+                    checked={agreeTerms}
+                    onChange={(e) => {
+                      setAgreeTerms(e.target.checked)
+                      if (e.target.checked) setTermsError('')
+                    }}
+                    disabled={loading}
+                    aria-required="true"
+                    aria-invalid={termsError ? true : undefined}
+                    aria-describedby={termsError ? 'register-terms-error' : undefined}
+                    className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/40"
+                  />
+                  <label htmlFor="register-terms" className="cursor-pointer text-xs font-semibold leading-normal text-[#5D6068] selection:bg-transparent">
+                    {language === 'tr' ? (
+                      <>
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-[#0071E3]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Kullanım şartlarını
+                        </Link>
+                        {' '}ve{' '}
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-[#0071E3]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          gizlilik politikasını
+                        </Link>
+                        {' '}kabul ediyorum.
+                        <span className="text-red-500" aria-hidden="true">
+                          {' '}
+                          *
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        I agree to the{' '}
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-[#0071E3]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          terms of use
+                        </Link>
+                        {' '}and{' '}
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-[#0071E3]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          privacy policy
+                        </Link>
+                        .
+                        <span className="text-red-500" aria-hidden="true">
+                          {' '}
+                          *
+                        </span>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {termsError && (
+                  <p id="register-terms-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                    {termsError}
+                  </p>
+                )}
               </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={loading || !!emailError || !!passwordMatchError || password.length < 6 || !agreeTerms}
-                className="w-full h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0063C8] font-bold text-sm shadow-md transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] mt-3"
+                disabled={loading || !!emailError || !!nameError || !!passwordError || !!passwordMatchError || !!termsError}
+                className="mt-3 h-11 min-h-11 w-full rounded-xl bg-[#0071E3] text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-[1.01] hover:bg-[#0063C8] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
               >
                 {loading ? (
                   <>
@@ -409,11 +576,14 @@ export function RegisterForm() {
                   </>
                 ) : (
                   <>
-                    {t({ tr: 'Kayıt Ol', en: 'Register' })}
+                    {t(ENTRY_CTA.clinicTrial)}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
               </Button>
+              <p className="px-0.5 text-center text-[11px] font-medium text-[#86868B]">
+                {t(ENTRY_CTA.clinicTrialRiskReducer)}
+              </p>
             </form>
 
             {/* Footer Link */}
@@ -437,8 +607,8 @@ export function RegisterForm() {
               </h3>
               <p className="text-xs text-[#5D6068] leading-relaxed max-w-sm mx-auto font-semibold">
                 {t({
-                  tr: 'E-posta adresinize bir doğrulama linki gönderdik. Lütfen hesabınızı doğrulamak için linke tıklayın. Ardından giriş yapabilirsiniz.',
-                  en: 'We have sent a verification link to your email. Please click the link to verify your account, and then proceed to log in.',
+                  tr: 'E-postanızdaki doğrulama linkine tıklayın. Panele girdiğinizde 3 adımlık hızlı başlangıç turu açılır — ilk randevunuzu dakikalar içinde oluşturursunuz.',
+                  en: 'Click the verification link in your email. When you open the panel, a 3-step quick-start tour appears so you can book your first appointment in minutes.',
                 })}
               </p>
             </div>

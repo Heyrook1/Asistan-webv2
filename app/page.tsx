@@ -1,13 +1,12 @@
 import dynamic from 'next/dynamic'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 
-import { HeroCoverFlow } from '@/components/sections/HeroCoverFlow'
 import { LandingLocaleProvider } from '@/components/sections/landing-locale'
 import { PageTransition } from '@/components/sections/page-transition'
 import { SectionSkeleton } from '@/components/sections/section-skeleton'
 import { SiteFooter } from '@/components/sections/site-footer'
 import { SiteHeader } from '@/components/sections/site-header'
-import { FloatingCTA } from '@/components/ui/FloatingCTA'
 import { withCanonical } from '@/lib/seo'
 
 export const metadata: Metadata = withCanonical('/', {
@@ -16,6 +15,22 @@ export const metadata: Metadata = withCanonical('/', {
   },
   description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi platformu.',
 })
+
+/** Hero pulls framer-motion — separate chunk so first paint stays lean. */
+const HeroCoverFlow = dynamic(
+  () => import('@/components/sections/HeroCoverFlow').then((mod) => mod.HeroCoverFlow),
+  { loading: () => <SectionSkeleton lines={5} className="min-h-[70vh]" /> },
+)
+
+const WhyAsistanSection = dynamic(
+  () =>
+    import('@/components/sections/why-asistan-section').then(
+      (mod) => mod.WhyAsistanSection,
+    ),
+  {
+    loading: () => <SectionSkeleton lines={3} />,
+  },
+)
 
 const MobileAppShowcaseSection = dynamic(
   () =>
@@ -67,6 +82,16 @@ const PricingSection = dynamic(
   },
 )
 
+const OutcomeCasesSection = dynamic(
+  () =>
+    import('@/components/sections/outcome-cases-section-server').then(
+      (mod) => mod.OutcomeCasesSectionServer,
+    ),
+  {
+    loading: () => <SectionSkeleton lines={4} />,
+  },
+)
+
 const TrustSection = dynamic(
   () =>
     import('@/components/sections/trust-section-server').then(
@@ -77,6 +102,11 @@ const TrustSection = dynamic(
   },
 )
 
+const FloatingCTA = dynamic(
+  () => import('@/components/ui/FloatingCTA').then((mod) => mod.FloatingCTA),
+  { loading: () => null },
+)
+
 export default function HomePage() {
   return (
     <PageTransition>
@@ -85,12 +115,16 @@ export default function HomePage() {
           <div className="noise-overlay pointer-events-none fixed inset-0 opacity-[0.18]" />
           <SiteHeader />
           <main id="main-content" tabIndex={-1}>
-            <HeroCoverFlow />
+            <Suspense fallback={<SectionSkeleton lines={5} className="min-h-[70vh]" />}>
+              <HeroCoverFlow />
+            </Suspense>
+            <WhyAsistanSection />
             <MobileAppShowcaseSection />
             <EcosystemFlowSection />
             <PricingSection />
             <ForWhomSection />
             <FeaturesSection />
+            <OutcomeCasesSection />
             <TrustSection />
           </main>
           <SiteFooter />

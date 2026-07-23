@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiError, parsePathId } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { getAvailableSlots } from '@/lib/client-marketplace/availability'
 import { getDoctorReviewSummary } from '@/lib/client-marketplace/reviews'
 import { getDoctorVerification } from '@/lib/trust/public'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +31,16 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon'
+  const allowed = await checkRateLimit(`client-doctor:${ip}`, RATE_LIMITS.api.limit, RATE_LIMITS.api.window)
+  if (!allowed) {
+    return apiError('Çok fazla istek', 429)
+  }
+
+  const id = parsePathId((await context.params).id)
+  if (!id) {
+    return apiError('Gecersiz doktor kimligi', 400)
+  }
   const date = request.nextUrl.searchParams.get('date') ?? todayIso()
   const serviceId = request.nextUrl.searchParams.get('serviceId')
 
@@ -78,7 +89,7 @@ export async function GET(
   })
 
   if (!doctor) {
-    return NextResponse.json({ error: 'Doktor bulunamadi' }, { status: 404 })
+    return apiError('Doktor bulunamadi', 404)
   }
 
   const services =

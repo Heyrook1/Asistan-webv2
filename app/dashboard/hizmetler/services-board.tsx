@@ -25,10 +25,12 @@ import { formatCurrency, formatDuration } from '@/lib/format'
 
 export function ServicesBoard({
   services,
+  intakeForms = [],
   canManage,
   initialCreateOpen = false,
 }: {
   services: ServiceDraft[]
+  intakeForms?: Array<{ id: string; name: string }>
   canManage: boolean
   initialCreateOpen?: boolean
 }) {
@@ -140,6 +142,7 @@ export function ServicesBoard({
         open={dialog.open}
         onOpenChange={(v) => setDialog({ open: v })}
         initial={dialog.initial}
+        intakeForms={intakeForms}
         onSaved={() => router.refresh()}
       />
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>

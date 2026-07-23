@@ -33,7 +33,7 @@ type AppointmentRow = {
   doctorId: string | null
   locationId: string | null
   hasReview?: boolean
-  clinic: { id: string; name: string }
+  clinic: { id: string; name: string; slug?: string | null }
   doctor: { id: string; fullName: string; specialty: string | null } | null
   service: { id: string; name: string }
   location: { id: string; name: string; address: string | null } | null
@@ -121,8 +121,8 @@ export function ClientBookingsPanel() {
 
   const [showPast, setShowPast] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) setLoading(true)
     try {
       const data = await clientFetch<{ appointments: AppointmentRow[] }>('/api/client/appointments')
       setRows(data.appointments)
@@ -131,16 +131,31 @@ export function ClientBookingsPanel() {
       if (error instanceof Error && error.message === 'AUTH_REQUIRED') {
         setAuthRequired(true)
         setRows([])
-      } else {
+      } else if (!opts?.quiet) {
         toast.error(error instanceof Error ? error.message : 'Randevular yüklenemedi')
       }
     } finally {
-      setLoading(false)
+      if (!opts?.quiet) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void load()
+    function onVisible() {
+      if (document.visibilityState === 'visible') void load({ quiet: true })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [load])
+
+  // Soft poll while tab is focused — catch clinic approve/cancel without manual refresh.
+  useEffect(() => {
+    const SOFT_POLL_MS = 30_000
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void load({ quiet: true })
+    }, SOFT_POLL_MS)
+    return () => window.clearInterval(timer)
   }, [load])
 
   useEffect(() => {
@@ -265,13 +280,26 @@ export function ClientBookingsPanel() {
 
   if (authRequired) {
     return (
-      <main className="space-y-4">
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Randevularım</h1>
-        <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
-          Randevularınızı görmek için hasta hesabınızla giriş yapın.
-          <div className="mt-4">
-            <Button asChild>
-              <Link href="/client/profile">Profil / giriş</Link>
+      <main className="space-y-5">
+        <header className="space-y-1">
+          <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight text-slate-900">
+            Randevularım
+          </h1>
+          <p className="text-[13px] text-slate-500">
+            Kayıtlı randevularınızı görmek, iptal veya yeniden planlamak için giriş yapın.
+          </p>
+        </header>
+        <div className="rounded-[1.25rem] bg-white p-5 ring-1 ring-slate-200/70">
+          <p className="text-sm text-slate-600">
+            Misafir olarak klinik sayfasından randevu alabilirsiniz. Takip için{' '}
+            <span className="font-semibold text-slate-900">Asistan Rezervasyon</span> hesabı gerekir.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
+              <Link href="/client/profile">Giriş / kayıt</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-11 rounded-xl">
+              <Link href="/client/clinics">Hesapsız klinik bul</Link>
             </Button>
           </div>
         </div>
@@ -281,11 +309,18 @@ export function ClientBookingsPanel() {
 
   return (
     <main className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Randevularım</h1>
-        <p className="text-sm text-muted-foreground">
-          Onay, hatırlatma, iptal ve yeniden planlama — randevu sonrası adımlar burada.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight text-slate-900">
+            Randevularım
+          </h1>
+          <p className="text-[13px] text-slate-500">
+            Onay, iptal, yeniden planlama ve değerlendirme burada.
+          </p>
+        </div>
+        <Button asChild className="h-10 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
+          <Link href="/client/clinics">Yeni randevu</Link>
+        </Button>
       </header>
 
       {loading ? (
@@ -294,10 +329,13 @@ export function ClientBookingsPanel() {
           Randevular yükleniyor…
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
-          Henüz randevunuz yok.
+        <div className="rounded-[1.25rem] bg-white p-6 ring-1 ring-slate-200/70">
+          <p className="text-sm font-semibold text-slate-900">Henüz randevunuz yok</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Klinik keşfedin veya bildiğiniz klinik linkinden 3 adımda talep oluşturun.
+          </p>
           <div className="mt-4">
-            <Button asChild variant="outline">
+            <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
               <Link href="/client/clinics">Klinik ara</Link>
             </Button>
           </div>
@@ -368,6 +406,15 @@ export function ClientBookingsPanel() {
                 onSubmitReview={() => void submitReview(row.id)}
               />
             ))}
+            {past.length > 0 ? (
+              <Link
+                href="/client/health"
+                className="block rounded-[1.15rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 transition hover:border-[#0071E3]/30 hover:bg-[#0071E3]/5"
+              >
+                Boylamsal ziyaret görünümü için{' '}
+                <span className="font-semibold text-[#0071E3]">Sağlık zaman çizelgesi</span>
+              </Link>
+            ) : null}
           </section>
         </>
       )}
@@ -426,8 +473,8 @@ function BookingCard({
     <article
       id={`booking-${row.id}`}
       className={cn(
-        'rounded-2xl border bg-card p-4 shadow-sm transition',
-        focused && 'ring-2 ring-[#0071E3]/40'
+        'rounded-[1.35rem] bg-white/90 p-4 ring-1 ring-slate-900/5 transition',
+        focused && 'ring-2 ring-[#0071E3]/35',
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -515,6 +562,18 @@ function BookingCard({
         </div>
       ) : null}
 
+      {row.clinic.slug ? (
+        <div className="mt-3">
+          <Button asChild size="sm" variant="ghost" className="h-9 px-0 text-[#0071E3]">
+            <Link
+              href={`/book/${row.clinic.slug}${row.doctorId ? `?doctorId=${encodeURIComponent(row.doctorId)}` : ''}${row.serviceId ? `${row.doctorId ? '&' : '?'}serviceId=${encodeURIComponent(row.serviceId)}` : ''}`}
+            >
+              Bu klinikten yeni randevu
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+
       {row.status === 'COMPLETED' && row.hasReview ? (
         <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -539,7 +598,7 @@ function BookingCard({
                   type="button"
                   onClick={() => onSelectSlot?.(slot.startTime)}
                   className={cn(
-                    'rounded-lg border px-2.5 py-1.5 text-xs font-semibold',
+                    'flex h-11 min-h-11 items-center justify-center rounded-xl border px-3 text-base font-semibold',
                     selectedSlot === slot.startTime
                       ? 'border-[#0071E3] bg-[#0071E3] text-white'
                       : 'bg-white text-foreground'

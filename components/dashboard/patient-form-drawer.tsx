@@ -246,8 +246,17 @@ export function PatientFormDrawer({
                     className={errors.fullName ? "border-red-500 ring-red-500" : ""}
                   />
                 </Field>
-                <Field label="TC Kimlik No">
-                  <Input value={identity.identityNumber} onChange={(e) => setIdentity({ ...identity, identityNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })} placeholder="11 haneli" inputMode="numeric" />
+                <Field label="Kimlik / pasaport no">
+                  <Input
+                    value={identity.identityNumber}
+                    onChange={(e) =>
+                      setIdentity({
+                        ...identity,
+                        identityNumber: e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40),
+                      })
+                    }
+                    placeholder="Kimlik veya pasaport no"
+                  />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Doğum Tarihi">

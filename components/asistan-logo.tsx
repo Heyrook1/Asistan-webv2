@@ -36,7 +36,6 @@ export function AsistanLogo({
 }: AsistanLogoProps) {
   const height = HEIGHTS[size]
   const width = Math.round(height * LOGO_ASPECT[variant])
-  const hasExplicitHeightClass = /\bh-\S+/.test(className)
 
   return (
     <Image
@@ -48,10 +47,7 @@ export function AsistanLogo({
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
       className={`block max-w-full select-none object-contain object-left ${className}`}
-      style={{
-        width: 'auto',
-        ...(hasExplicitHeightClass ? {} : { height }),
-      }}
+      style={{ width: 'auto', height: 'auto', maxHeight: height }}
     />
   )
 }
@@ -65,14 +61,17 @@ export function AsistanIcon({
   size?: number
   priority?: boolean
 }) {
+  // Native <img> for SVG marks — next/image does not optimize SVGs.
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element -- SVG mark; avoid next/image unoptimized
+    <img
       src="/images/asistan-mark.svg"
       alt="Asistan"
       width={size}
       height={size}
-      priority={priority}
-      unoptimized
+      decoding="async"
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       className={`block select-none ${className}`}
     />
   )
