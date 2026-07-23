@@ -19,6 +19,7 @@ env:
   NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key-not-for-production
   PERSON_IDENTITY_PEPPER: ci-person-identity-pepper-do-not-use
+  # pnpm/action-setup reads version from package.json "packageManager" (do not set version:).
 
 jobs:
   # 1) pnpm install → ESLint
@@ -28,8 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -47,8 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -64,8 +61,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -101,8 +96,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -139,8 +132,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -200,8 +191,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -273,8 +262,6 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         if: steps.guard.outputs.ready == 'true'
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         if: steps.guard.outputs.ready == 'true'
         with:
@@ -333,8 +320,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
