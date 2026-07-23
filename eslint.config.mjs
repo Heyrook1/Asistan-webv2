@@ -45,6 +45,8 @@ export default tseslint.config(
       'node_modules/**',
       'public/**',
       'supabase/**',
+      // Ops / CDP / migration scripts — Node tooling, not app surface
+      'scripts/**',
       // Expo app — linted separately; CommonJS + require() asset patterns break root ESLint
       'mobile/**',
       'next-env.d.ts',
