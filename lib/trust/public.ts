@@ -8,6 +8,22 @@ export {
   shouldPublishPublicTrustStats,
 } from '@/lib/trust/publish-policy'
 
+const EMPTY_TRUST_STATS: PublicTrustStats = {
+  activeClinics: 0,
+  verifiedDoctors: 0,
+  completedAppointments: 0,
+  reviewCount: 0,
+  averageRating: null,
+}
+
+/** Public marketing pages must not 500 when CI/placeholder DB is unreachable. */
+function shouldSkipPublicTrustDb(): boolean {
+  if (process.env.ASISTAN_PUBLIC_TRUST_SKIP_DB === '1') return true
+  if (process.env.CI === 'true') return true
+  const dbUrl = process.env.DATABASE_URL ?? ''
+  return /@localhost:5432\/ci(?:\?|$)/.test(dbUrl)
+}
+
 export type DoctorVerification = {
   level: 'verified' | 'partial' | 'unverified'
   label: string
@@ -64,6 +80,10 @@ export function getDoctorVerification(input: {
 }
 
 export async function getPublicTrustStats(): Promise<PublicTrustStats> {
+  if (shouldSkipPublicTrustDb()) {
+    return EMPTY_TRUST_STATS
+  }
+
   try {
     // Platform-wide marketing aggregates — intentional cross-tenant read.
     return await runWithTenantBypassAsync('trust:public-stats', async () => {
@@ -99,17 +119,15 @@ export async function getPublicTrustStats(): Promise<PublicTrustStats> {
       }
     })
   } catch {
-    return {
-      activeClinics: 0,
-      verifiedDoctors: 0,
-      completedAppointments: 0,
-      reviewCount: 0,
-      averageRating: null,
-    }
+    return EMPTY_TRUST_STATS
   }
 }
 
 export async function getPublicVerifiedReviews(limit = 6) {
+  if (shouldSkipPublicTrustDb()) {
+    return []
+  }
+
   try {
     return await runWithTenantBypassAsync('trust:public-reviews', async () => {
       const rows = await prisma.review.findMany({

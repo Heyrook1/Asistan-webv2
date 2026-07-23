@@ -20,6 +20,24 @@ export type PlatformOutcomeSnapshot = {
 const MIN_SAMPLE = 40
 
 export async function getPlatformOutcomeSnapshot(): Promise<PlatformOutcomeSnapshot> {
+  if (
+    process.env.ASISTAN_PUBLIC_TRUST_SKIP_DB === '1' ||
+    process.env.CI === 'true' ||
+    /@localhost:5432\/ci(?:\?|$)/.test(process.env.DATABASE_URL ?? '')
+  ) {
+    return {
+      ready: false,
+      sampleSize: 0,
+      completed: 0,
+      noShow: 0,
+      cancelled: 0,
+      noShowRatePct: null,
+      reviewCount: 0,
+      averageRating: null,
+      activeClinics: 0,
+    }
+  }
+
   try {
     return await runWithTenantBypassAsync('trust:platform-outcomes', async () => {
       const [completed, noShow, cancelled, reviewAgg, activeClinics] = await Promise.all([

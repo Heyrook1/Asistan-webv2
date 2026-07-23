@@ -33,22 +33,24 @@ export function FloatingCTA() {
   const { t, language } = useLanguage()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
-  const supabase = createClient()
 
   const blocked = isAppShellPath(pathname)
 
   useEffect(() => {
     if (blocked) return
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session)
-    })
+    let subscription: { unsubscribe: () => void } | undefined
+    try {
+      const supabase = createClient()
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsLoggedIn(!!session)
+      })
+      subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsLoggedIn(!!session)
+      }).data.subscription
+    } catch {
+      // Missing/invalid public Supabase env — keep CTA visible without session state.
+    }
 
     const handleScroll = () => {
       setIsVisible(window.scrollY > 200)
@@ -58,10 +60,10 @@ export function FloatingCTA() {
     handleScroll()
 
     return () => {
-      subscription.unsubscribe()
+      subscription?.unsubscribe()
       window.removeEventListener('scroll', handleScroll)
     }
-  }, [blocked, supabase.auth])
+  }, [blocked])
 
   if (blocked) return null
 

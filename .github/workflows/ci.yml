@@ -169,10 +169,26 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           PERSON_IDENTITY_PEPPER: ${{ secrets.PERSON_IDENTITY_PEPPER || env.PERSON_IDENTITY_PEPPER }}
           DATABASE_URL: ${{ secrets.DATABASE_URL || env.DATABASE_URL }}
+      - name: Smoke public URLs
+        run: |
+          for path in / /guven; do
+            code=$(curl -sS -o "/tmp/smoke${path//\//_}.html" -w "%{http_code}" "http://127.0.0.1:3000${path}")
+            echo "${path} → ${code}"
+            if ! echo "$code" | grep -Eq '200|301|302|307|308'; then
+              echo "::error::${path} returned ${code}"
+              head -c 2000 "/tmp/smoke${path//\//_}.html" || true
+              exit 1
+            fi
+          done
       - name: Lighthouse budgets
         run: |
-          export LH_CHROME_PATH="$(node -e "const {chromium}=require('playwright'); console.log(chromium.executablePath())")"
-          echo "Using Chrome: $LH_CHROME_PATH"
+          # playwright is transitive via @playwright/test — resolve binary from the cache, not require('playwright').
+          LH_CHROME_PATH="$(find "$HOME/.cache/ms-playwright" -path '*/chrome-linux*/chrome' -type f 2>/dev/null | head -n 1)"
+          if [ -z "$LH_CHROME_PATH" ]; then
+            LH_CHROME_PATH="$(find "$HOME/.cache/ms-playwright" -name chrome -type f 2>/dev/null | head -n 1)"
+          fi
+          export LH_CHROME_PATH
+          echo "Using Chrome: ${LH_CHROME_PATH:-<lighthouse default>}"
           pnpm check:lighthouse
         env:
           LH_BASE_URL: http://127.0.0.1:3000
