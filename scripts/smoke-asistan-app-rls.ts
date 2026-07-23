@@ -30,8 +30,6 @@ const prisma = new PrismaClient(
   ownerUrl ? { datasources: { db: { url: ownerUrl } } } : undefined,
 )
 
-type Row = Record<string, unknown>
-
 async function main() {
   const checks: Array<{ name: string; pass: boolean; detail?: string }> = []
 

@@ -2,6 +2,42 @@ import js from '@eslint/js'
 import reactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
 
+/** Node / browser globals used across App Router + scripts (no `globals` pkg). */
+const sharedGlobals = {
+  Blob: 'readonly',
+  Buffer: 'readonly',
+  clearTimeout: 'readonly',
+  console: 'readonly',
+  document: 'readonly',
+  File: 'readonly',
+  FormData: 'readonly',
+  navigator: 'readonly',
+  process: 'readonly',
+  React: 'readonly',
+  RequestInit: 'readonly',
+  setTimeout: 'readonly',
+  URL: 'readonly',
+  URLSearchParams: 'readonly',
+  window: 'readonly',
+}
+
+const nodeScriptGlobals = {
+  ...sharedGlobals,
+  __dirname: 'readonly',
+  __filename: 'readonly',
+  exports: 'writable',
+  module: 'writable',
+  require: 'readonly',
+  global: 'readonly',
+  fetch: 'readonly',
+  Headers: 'readonly',
+  Request: 'readonly',
+  Response: 'readonly',
+  AbortController: 'readonly',
+  setInterval: 'readonly',
+  clearInterval: 'readonly',
+}
+
 export default tseslint.config(
   {
     ignores: [
@@ -9,6 +45,8 @@ export default tseslint.config(
       'node_modules/**',
       'public/**',
       'supabase/**',
+      // Expo app — linted separately; CommonJS + require() asset patterns break root ESLint
+      'mobile/**',
       'next-env.d.ts',
       'tsconfig.tsbuildinfo',
     ],
@@ -17,21 +55,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     languageOptions: {
-      globals: {
-        Blob: 'readonly',
-        Buffer: 'readonly',
-        console: 'readonly',
-        document: 'readonly',
-        File: 'readonly',
-        FormData: 'readonly',
-        navigator: 'readonly',
-        process: 'readonly',
-        React: 'readonly',
-        RequestInit: 'readonly',
-        setTimeout: 'readonly',
-        URL: 'readonly',
-        window: 'readonly',
-      },
+      globals: sharedGlobals,
     },
   },
   {
@@ -62,6 +86,27 @@ export default tseslint.config(
   },
   {
     files: ['**/*.{js,mjs,cjs}'],
-    ...tseslint.configs.disableTypeChecked,
-  }
+    languageOptions: {
+      globals: nodeScriptGlobals,
+      sourceType: 'module',
+    },
+    rules: {
+      // From typescript-eslint disableTypeChecked — avoid projectService on plain JS
+      '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/restrict-plus-operands': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
+  },
 )
