@@ -147,6 +147,10 @@ jobs:
         with:
           name: nextjs-build
           path: .next
+      - name: Generate + link Prisma client for Next runtime
+        run: |
+          pnpm db:generate
+          node scripts/ci-link-prisma-for-next.mjs
       - name: Install Chromium
         run: pnpm exec playwright install chromium --with-deps
       - name: Start production server
@@ -223,6 +227,10 @@ jobs:
         with:
           name: nextjs-build
           path: .next
+      - name: Generate + link Prisma client for Next runtime
+        run: |
+          pnpm db:generate
+          node scripts/ci-link-prisma-for-next.mjs
       - run: pnpm exec playwright install --with-deps
         name: Install Playwright browsers
       - run: pnpm e2e

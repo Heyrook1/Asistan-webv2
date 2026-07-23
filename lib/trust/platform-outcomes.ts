@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
 export type PlatformOutcomeSnapshot = {
@@ -19,26 +18,31 @@ export type PlatformOutcomeSnapshot = {
 
 const MIN_SAMPLE = 40
 
+const EMPTY_SNAPSHOT: PlatformOutcomeSnapshot = {
+  ready: false,
+  sampleSize: 0,
+  completed: 0,
+  noShow: 0,
+  cancelled: 0,
+  noShowRatePct: null,
+  reviewCount: 0,
+  averageRating: null,
+  activeClinics: 0,
+}
+
+function shouldSkipPublicTrustDb(): boolean {
+  if (process.env.ASISTAN_PUBLIC_TRUST_SKIP_DB === '1') return true
+  if (process.env.CI === 'true') return true
+  return /@localhost:5432\/ci(?:\?|$)/.test(process.env.DATABASE_URL ?? '')
+}
+
 export async function getPlatformOutcomeSnapshot(): Promise<PlatformOutcomeSnapshot> {
-  if (
-    process.env.ASISTAN_PUBLIC_TRUST_SKIP_DB === '1' ||
-    process.env.CI === 'true' ||
-    /@localhost:5432\/ci(?:\?|$)/.test(process.env.DATABASE_URL ?? '')
-  ) {
-    return {
-      ready: false,
-      sampleSize: 0,
-      completed: 0,
-      noShow: 0,
-      cancelled: 0,
-      noShowRatePct: null,
-      reviewCount: 0,
-      averageRating: null,
-      activeClinics: 0,
-    }
+  if (shouldSkipPublicTrustDb()) {
+    return EMPTY_SNAPSHOT
   }
 
   try {
+    const { prisma } = await import('@/lib/prisma')
     return await runWithTenantBypassAsync('trust:platform-outcomes', async () => {
       const [completed, noShow, cancelled, reviewAgg, activeClinics] = await Promise.all([
         prisma.appointment.count({ where: { status: 'COMPLETED', deletedAt: null } }),
@@ -70,16 +74,6 @@ export async function getPlatformOutcomeSnapshot(): Promise<PlatformOutcomeSnaps
       }
     })
   } catch {
-    return {
-      ready: false,
-      sampleSize: 0,
-      completed: 0,
-      noShow: 0,
-      cancelled: 0,
-      noShowRatePct: null,
-      reviewCount: 0,
-      averageRating: null,
-      activeClinics: 0,
-    }
+    return EMPTY_SNAPSHOT
   }
 }

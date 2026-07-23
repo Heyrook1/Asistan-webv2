@@ -56,6 +56,7 @@ const baselineSecurityHeaders = [
 
 const nextConfig = {
   // Do not pin LAN IPs here — breaks other developers and leaks network layout.
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   experimental: {
     optimizePackageImports: [
       'lucide-react',

@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import type { PublicTrustStats } from '@/lib/trust/publish-policy'
 
@@ -85,6 +84,8 @@ export async function getPublicTrustStats(): Promise<PublicTrustStats> {
   }
 
   try {
+    // Lazy import so CI skip path never loads @prisma/client (broken across .next artifacts).
+    const { prisma } = await import('@/lib/prisma')
     // Platform-wide marketing aggregates — intentional cross-tenant read.
     return await runWithTenantBypassAsync('trust:public-stats', async () => {
       const [activeClinics, verifiedDoctors, completedAppointments, reviewAgg] = await Promise.all([
@@ -129,6 +130,7 @@ export async function getPublicVerifiedReviews(limit = 6) {
   }
 
   try {
+    const { prisma } = await import('@/lib/prisma')
     return await runWithTenantBypassAsync('trust:public-reviews', async () => {
       const rows = await prisma.review.findMany({
         where: {
