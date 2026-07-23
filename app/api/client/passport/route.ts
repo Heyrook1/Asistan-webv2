@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { type NextRequest } from 'next/server'
 import { apiError, apiSuccess } from '@/lib/api-response'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
 import { getClientPassport } from '@/lib/passport'

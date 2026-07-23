@@ -73,7 +73,7 @@ export async function writeAuditLog(input: WriteAuditInput) {
         userAgent: input.userAgent ?? requestContext?.userAgent ?? null,
       },
     })
-  } catch (error) {
+  } catch (_error) {
     // Never block the primary business action if audit write fails.
     log.error('audit.write_failed', {
       action: input.action,

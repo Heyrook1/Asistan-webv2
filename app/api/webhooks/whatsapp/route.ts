@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
   const rawBody = await request.text()
 
-  let body: InboundBody = {}
+  let body: InboundBody
   try {
     body = rawBody ? (JSON.parse(rawBody) as InboundBody) : {}
   } catch {

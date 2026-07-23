@@ -16,17 +16,12 @@ const toneClass: Record<GlassCardTone, string> = {
   accent: 'liquid-glass-accent',
 }
 
-const blurClass: Record<GlassCardBlur, string> = {
-  md: 'backdrop-blur-md',
-  xl: 'backdrop-blur-xl',
-}
-
 export function GlassCard({
   className,
   children,
   interactive = false,
   tone = 'neutral',
-  blur = 'xl',
+  blur: _blur = 'xl',
   ...props
 }: GlassCardProps) {
   return (

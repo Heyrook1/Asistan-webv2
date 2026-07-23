@@ -433,7 +433,6 @@ export function PublicBookingWidget({
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">Asistan Rezervasyon</p>
             <div className="flex items-start gap-3">
               {clinic.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={clinic.logoUrl} alt="" className="size-12 rounded-2xl object-cover ring-1 ring-slate-900/5" />
               ) : (
                 <div

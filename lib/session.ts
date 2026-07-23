@@ -311,7 +311,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
     })
   }
 
-  let role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
+  const role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
   let resolvedBusiness = business
   let resolvedIsOwner = isOwner
   let supportMode: SessionContext['supportMode'] = null

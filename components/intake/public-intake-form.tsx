@@ -72,7 +72,6 @@ export function PublicIntakeForm(props: Props) {
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Ön kayıt formu</p>
         <div className="flex items-start gap-3">
           {props.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={props.logoUrl} alt="" className="size-12 rounded-2xl object-cover" />
           ) : (
             <div

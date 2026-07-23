@@ -229,7 +229,7 @@ export default async function SuperAdminPage() {
     currency: string
     provider: string
     createdAt: string
-  }> = []
+  }>
 
   try {
     const rows = await runWithTenantBypassAsync('super-admin:platform-metrics', () =>

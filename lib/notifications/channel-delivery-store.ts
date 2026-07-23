@@ -48,7 +48,7 @@ export async function getBusinessChannelDeliveryStats(
   windowHours = 24
 ): Promise<BusinessChannelDeliveryStats> {
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000)
-  let rows: Array<{ channel: string; status: string; provider: string | null }> = []
+  let rows: Array<{ channel: string; status: string; provider: string | null }>
   try {
     rows = await prisma.patientChannelAttempt.findMany({
       where: { businessId, createdAt: { gte: since } },

@@ -82,7 +82,6 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
           aria-label={item.businessName}
         >
           {item.businessLogoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- clinic logos may be any HTTPS host
             <img src={item.businessLogoUrl} alt="" className="size-full object-cover" />
           ) : (
             <span className="flex size-full items-center justify-center text-2xl font-bold text-white">

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { CreatePaymentIntentInput, CreatePaymentIntentResult, MembershipPaymentProvider } from './types'
+import type { CreatePaymentIntentResult, MembershipPaymentProvider } from './types'
 import { manualMembershipProvider } from './manual-provider'
 
 /**

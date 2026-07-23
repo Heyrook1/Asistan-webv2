@@ -63,7 +63,6 @@ export function AsistanIcon({
 }) {
   // Native <img> for SVG marks — next/image does not optimize SVGs.
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- SVG mark; avoid next/image unoptimized
     <img
       src="/images/asistan-mark.svg"
       alt="Asistan"

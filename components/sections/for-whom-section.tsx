@@ -6,8 +6,7 @@ import { Activity, BriefcaseMedical, Sparkles, Stethoscope } from 'lucide-react'
 
 import { useLandingLocale } from '@/components/sections/landing-locale'
 import { GlassCard } from '@/components/ui/glass-card'
-import { revealSoft, staggerContainer, baseSpring, appleEase } from '@/lib/animations'
-import { cn } from '@/lib/utils'
+import { revealSoft, staggerContainer, appleEase } from '@/lib/animations'
 
 type SectorCard = {
   title: string

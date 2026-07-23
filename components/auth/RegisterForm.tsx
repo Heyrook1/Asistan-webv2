@@ -122,21 +122,14 @@ export function RegisterForm() {
     if (/[0-9]/.test(password)) score += 1
     if (/[^A-Za-z0-9]/.test(password)) score += 1
 
-    let text = ''
-    let color = ''
+    const strength =
+      score <= 2
+        ? { text: t({ tr: 'Zayıf', en: 'Weak' }), color: 'bg-red-500' }
+        : score <= 4
+          ? { text: t({ tr: 'Orta', en: 'Medium' }), color: 'bg-amber-500' }
+          : { text: t({ tr: 'Güçlü', en: 'Strong' }), color: 'bg-emerald-500' }
 
-    if (score <= 2) {
-      text = t({ tr: 'Zayıf', en: 'Weak' })
-      color = 'bg-red-500'
-    } else if (score <= 4) {
-      text = t({ tr: 'Orta', en: 'Medium' })
-      color = 'bg-amber-500'
-    } else {
-      text = t({ tr: 'Güçlü', en: 'Strong' })
-      color = 'bg-emerald-500'
-    }
-
-    setPasswordStrength({ score, text, color })
+    setPasswordStrength({ score, text: strength.text, color: strength.color })
   }, [password, t])
 
   // Real-time password matching check

@@ -16,7 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
-import { useLanguage, Language } from '@/contexts/LanguageContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { productName } from '@/lib/brand/masterbrand'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 

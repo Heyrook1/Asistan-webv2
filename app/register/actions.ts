@@ -1,6 +1,5 @@
 'use server'
 
-import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { emailInputSchema } from '@/lib/actions/validation'
 
