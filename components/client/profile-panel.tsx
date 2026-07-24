@@ -71,14 +71,36 @@ export function ClientProfilePanel() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     void (async () => {
       setBooting(true)
       try {
+        // CI may use a placeholder Supabase host — never leave the gate spinner forever.
+        const token = await Promise.race([
+          getAccessToken(),
+          new Promise<null>((resolve) => {
+            window.setTimeout(() => resolve(null), 4_000)
+          }),
+        ])
+        if (cancelled) return
+        if (!token) {
+          setAuthed(false)
+          setProfile(null)
+          return
+        }
         await loadProfile()
+      } catch {
+        if (!cancelled) {
+          setAuthed(false)
+          setProfile(null)
+        }
       } finally {
-        setBooting(false)
+        if (!cancelled) setBooting(false)
       }
     })()
+    return () => {
+      cancelled = true
+    }
   }, [loadProfile])
 
   async function handleAuth(e: React.FormEvent) {
@@ -200,13 +222,23 @@ export function ClientProfilePanel() {
           <form onSubmit={handleAuth} className="space-y-3">
             {mode === 'register' ? (
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-500">Ad soyad</label>
-                <Input value={authName} onChange={(e) => setAuthName(e.target.value)} autoComplete="name" />
+                <label htmlFor="client-auth-name" className="mb-1.5 block text-xs font-medium text-slate-500">
+                  Ad soyad
+                </label>
+                <Input
+                  id="client-auth-name"
+                  value={authName}
+                  onChange={(e) => setAuthName(e.target.value)}
+                  autoComplete="name"
+                />
               </div>
             ) : null}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-500">E-posta</label>
+              <label htmlFor="client-auth-email" className="mb-1.5 block text-xs font-medium text-slate-500">
+                E-posta
+              </label>
               <Input
+                id="client-auth-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -215,8 +247,11 @@ export function ClientProfilePanel() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-500">Şifre</label>
+              <label htmlFor="client-auth-password" className="mb-1.5 block text-xs font-medium text-slate-500">
+                Şifre
+              </label>
               <Input
+                id="client-auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
