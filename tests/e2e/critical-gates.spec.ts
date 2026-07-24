@@ -21,13 +21,12 @@ test.describe('Critical gates: booking / patient / RBAC surfaces', () => {
   test('patient profile page is gated', async ({ page }) => {
     await page.goto('/client/profile', { waitUntil: 'domcontentloaded' })
     // Unauthenticated profile must show login/register — not private profile fields.
+    // Avoid locator.or() here: when the gate renders, all branches match and strict mode fails.
     await expect(page.getByRole('heading', { name: /^profil$/i })).toBeVisible({
       timeout: 30_000,
     })
-    const emailField = page.getByLabel(/e-?posta|email/i).first()
-    const loginSubmit = page.getByRole('button', { name: /giriş yap|log ?in|oturum/i }).first()
-    const loginTab = page.getByRole('button', { name: /^giriş$|^login$/i }).first()
-    await expect(emailField.or(loginSubmit).or(loginTab)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByLabel(/e-?posta|email/i)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('button', { name: /giriş yap|log ?in/i })).toBeVisible()
     // Must not show the authenticated profile save surface.
     await expect(page.getByRole('button', { name: /^kaydet$|^save$/i })).toHaveCount(0)
   })
