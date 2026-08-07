@@ -1,7 +1,9 @@
 import 'server-only'
 
 import type { Prisma } from '@prisma/client'
-import { catalogPrisma } from '@/lib/prisma-owner'
+import { prisma } from '@/lib/prisma'
+import { withTenantDb } from '@/lib/security/tenant-db-context'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import type { AvailabilitySlot } from './types'
 import {
   getCurrentDateAndTimeForTimezone,
@@ -13,7 +15,7 @@ import {
   type BusyInterval,
 } from './availability-compute'
 
-type DbClient = Prisma.TransactionClient | ReturnType<typeof catalogPrisma>
+type DbClient = Prisma.TransactionClient | typeof prisma
 
 export type GetAvailableSlotsInput = {
   doctorId: string
@@ -49,6 +51,12 @@ async function isDoctorAssignedToService(
   })
 
   return Boolean(linked)
+}
+
+function appointmentDateOnly(isoDate: string): Date {
+  // Prisma @db.Date — UTC noon keeps the calendar day stable across TZ.
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
 }
 
 async function getAvailableSlotsWithDb(
@@ -102,12 +110,13 @@ async function getAvailableSlotsWithDb(
   })
   if (allRules.length === 0) return []
 
+  const day = appointmentDateOnly(input.date)
   const [appointments, blocks] = await Promise.all([
     db.appointment.findMany({
       where: {
         businessId: input.businessId,
         staffId: input.doctorId,
-        date: new Date(input.date),
+        date: day,
         status: { in: ['SCHEDULED', 'CONFIRMED'] },
         ...(input.excludeAppointmentId ? { id: { not: input.excludeAppointmentId } } : {}),
       },
@@ -117,14 +126,20 @@ async function getAvailableSlotsWithDb(
       where: {
         businessId: input.businessId,
         staffId: input.doctorId,
-        date: new Date(input.date),
+        date: day,
         ...(input.locationId ? { OR: [{ locationId: input.locationId }, { locationId: null }] } : {}),
       },
       select: { startTime: true, endTime: true },
     }),
   ])
 
-  const now = getCurrentDateAndTimeForTimezone(business.timezone || 'Europe/Istanbul')
+  const timezone = business.timezone?.trim() || 'Europe/Nicosia'
+  let now: { date: string; time: string }
+  try {
+    now = getCurrentDateAndTimeForTimezone(timezone)
+  } catch {
+    now = getCurrentDateAndTimeForTimezone('Europe/Istanbul')
+  }
 
   return computeAvailableSlots({
     durationMin: service.durationMin,
@@ -133,13 +148,19 @@ async function getAvailableSlotsWithDb(
     blocks: blocks as BusyInterval[],
     date: input.date,
     nowDate: now.date,
-    nowTime: now.time,
+    nowTime: now.time === '24:00' ? '00:00' : now.time,
     locationId: input.locationId,
   })
 }
 
+/**
+ * Public slot query — scoped via app.business_id GUC (asistan_app).
+ * Prefer this over a second owner Prisma client (pooler / host fragile).
+ */
 export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
-  return getAvailableSlotsWithDb(catalogPrisma(), input)
+  return runWithTenantBypassAsync('marketplace:availability', () =>
+    withTenantDb(input.businessId, (tx) => getAvailableSlotsWithDb(tx, input)),
+  )
 }
 
 export async function getAvailableSlotsTx(

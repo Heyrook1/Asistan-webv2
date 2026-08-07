@@ -57,12 +57,19 @@ export function computeAvailableSlots(input: {
   const candidateSlots: AvailabilitySlot[] = []
 
   for (const rule of activeRules) {
-    const step = Math.max(5, rule.slotIntervalMin || 15)
+    const step = Math.max(5, Number(rule.slotIntervalMin) || 15)
+    if (!Number.isFinite(step)) continue
     const startMin = parseTimeToMinutes(rule.startTime)
     const endMin = parseTimeToMinutes(rule.endTime)
+    if (!Number.isFinite(startMin) || !Number.isFinite(endMin)) continue
     const duration = input.durationMin
+    if (!Number.isFinite(duration) || duration <= 0) continue
     const lastStart = endMin - duration
     if (lastStart < startMin) continue
+
+    // Hard cap — bad data must not spin the event loop (prod 500 / empty upstream).
+    const maxIterations = Math.floor((lastStart - startMin) / step) + 1
+    if (maxIterations > 500) continue
 
     for (let current = startMin; current <= lastStart; current += step) {
       const startTime = addMinutesToTime('00:00', current)
