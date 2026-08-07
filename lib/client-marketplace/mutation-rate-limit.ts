@@ -16,7 +16,7 @@ function clientIp(request: NextRequest): string {
  */
 export async function rateLimitClientMutation(
   request: NextRequest,
-  action: 'bookings' | 'cancel' | 'reschedule' | 'reviews' | 'profile' | 'notifications',
+  action: 'bookings' | 'cancel' | 'reschedule' | 'reviews' | 'profile' | 'notifications' | 'history' | 'claim',
   clientUserId: string,
   limit = 20,
   window = '1 m'
