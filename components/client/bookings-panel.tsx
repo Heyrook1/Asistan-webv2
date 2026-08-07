@@ -712,7 +712,7 @@ function BookingCard({
                     <p className="text-muted-foreground">{event.description}</p>
                   ) : null}
                   <p className="text-[10px] text-slate-400">
-                    {new Date(event.createdAt).toLocaleString('tr-TR')}
+                    {event.createdAt.slice(0, 16).replace('T', ' ')}
                   </p>
                 </div>
               ))

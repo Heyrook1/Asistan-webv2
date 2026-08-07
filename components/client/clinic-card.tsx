@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { MapPin, Star, ArrowRight } from 'lucide-react'
 
 import type { ClientDiscoveryItem } from '@/lib/client-marketplace/types'
+import { formatNextSlotLabelStable } from '@/lib/datetime/calendar-label'
 import { formatCurrency } from '@/lib/format'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getPublicBookPath } from '@/lib/public-booking/paths'
@@ -15,35 +16,8 @@ function formatDistanceKm(km: number | null) {
   return `${value} km`
 }
 
-function formatNextSlotLabel(
-  nextAvailableAt: string | null,
-  labels: { today: string; tomorrow: string },
-  locale: string,
-): string | null {
-  if (!nextAvailableAt) return null
-  const d = new Date(nextAvailableAt)
-  if (Number.isNaN(d.getTime())) return null
-
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfTomorrow = new Date(startOfToday)
-  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
-  const startOfTarget = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-
-  const dayLabel =
-    startOfTarget.getTime() === startOfToday.getTime()
-      ? labels.today
-      : startOfTarget.getTime() === startOfTomorrow.getTime()
-        ? labels.tomorrow
-        : d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
-
-  const timeLabel = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-  return `${dayLabel} · ${timeLabel}`
-}
-
 export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
   const { t, language } = useLanguage()
-  const locale = language === 'en' ? 'en-GB' : 'tr-TR'
   const detailHref = `/client/clinics/${item.businessId}`
   const params = new URLSearchParams()
   if (item.doctorId) params.set('doctorId', item.doctorId)
@@ -59,13 +33,9 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
     item.minPrice != null
       ? formatCurrency(item.minPrice)
       : t({ tr: 'Fiyat sorulur', en: 'Ask clinic' })
-  const nextSlotLabel = formatNextSlotLabel(
+  const nextSlotLabel = formatNextSlotLabelStable(
     item.nextAvailableAt,
-    {
-      today: t({ tr: 'Bugün', en: 'Today' }),
-      tomorrow: t({ tr: 'Yarın', en: 'Tomorrow' }),
-    },
-    locale,
+    language === 'en' ? 'en' : 'tr',
   )
 
   return (

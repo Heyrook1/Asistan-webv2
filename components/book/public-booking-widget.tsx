@@ -12,13 +12,19 @@ import {
   readJsonResponse,
   userMessageFromUnknown,
 } from '@/lib/http/read-json'
+import {
+  addCalendarDays,
+  calendarDateInTimeZone,
+  formatBookingWhenStable,
+  formatDayChipLabel,
+} from '@/lib/datetime/calendar-label'
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
 type Slot = { startTime: string; endTime: string }
 type Step = 1 | 2 | 3
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  return calendarDateInTimeZone()
 }
 
 function formatPrice(price: number | null, currency: string) {
@@ -36,32 +42,15 @@ function newIdempotencyKey() {
 }
 
 function addDaysIso(iso: string, days: number) {
-  const d = new Date(`${iso}T12:00:00`)
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
+  return addCalendarDays(iso, days)
 }
 
 function dayChipLabel(iso: string, lang: 'tr' | 'en' | 'ru') {
-  const d = new Date(`${iso}T12:00:00`)
-  const locale = lang === 'en' ? 'en-GB' : lang === 'ru' ? 'ru-RU' : 'tr-TR'
-  if (iso === todayIso()) return lang === 'en' ? 'Today' : lang === 'ru' ? 'Сегодня' : 'Bugün'
-  if (iso === addDaysIso(todayIso(), 1)) return lang === 'en' ? 'Tomorrow' : lang === 'ru' ? 'Завтра' : 'Yarın'
-  return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+  return formatDayChipLabel(iso, lang)
 }
 
 function formatBookingWhen(date: string, time: string | null, lang: 'tr' | 'en' | 'ru') {
-  if (!time) return date
-  const d = new Date(`${date}T${time.length === 5 ? `${time}:00` : time}`)
-  if (Number.isNaN(d.getTime())) return `${date} ${time}`
-  const locale = lang === 'en' ? 'en-GB' : lang === 'ru' ? 'ru-RU' : 'tr-TR'
-  return d.toLocaleString(locale, {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatBookingWhenStable(date, time, lang)
 }
 
 const DAY_CHIP_COUNT = 14
