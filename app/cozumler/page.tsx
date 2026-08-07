@@ -85,7 +85,7 @@ const roadmap = [
 export default function SolutionsPage() {
   return (
     <MarketingPageShell>
-      <section className="relative overflow-hidden bg-brand-light pb-16 pt-28 md:pb-24 md:pt-32">
+      <section className="relative overflow-hidden bg-brand-light pb-16 pt-10 md:pb-24 md:pt-12">
         <div className="absolute inset-0 z-0 mesh-hero soft-grid opacity-70" />
         <div className="pointer-events-none absolute -left-20 top-24 h-64 w-64 rounded-full bg-brand-cyan/20 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 top-32 h-72 w-72 rounded-full bg-brand-blue/20 blur-3xl" />

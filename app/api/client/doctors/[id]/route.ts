@@ -5,6 +5,7 @@ import { getAvailableSlots } from '@/lib/client-marketplace/availability'
 import { getDoctorReviewSummary } from '@/lib/client-marketplace/reviews'
 import { getDoctorVerification } from '@/lib/trust/public'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,49 +45,51 @@ export async function GET(
   const date = request.nextUrl.searchParams.get('date') ?? todayIso()
   const serviceId = request.nextUrl.searchParams.get('serviceId')
 
-  const doctor = await prisma.teamMember.findFirst({
-    where: {
-      id,
-      role: 'DOKTOR',
-      isActive: true,
-      isBookable: true,
-      business: { isActive: true },
-    },
-    include: {
-      business: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          address: true,
-          city: true,
-          locationLat: true,
-          locationLng: true,
-        },
+  const doctor = await runWithTenantBypassAsync('marketplace:doctor-detail', () =>
+    prisma.teamMember.findFirst({
+      where: {
+        id,
+        role: 'DOKTOR',
+        isActive: true,
+        isBookable: true,
+        business: { isActive: true },
       },
-      serviceAssignments: {
-        where: { isActive: true },
-        include: {
-          service: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              durationMin: true,
-              price: true,
-              currency: true,
-              isActive: true,
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            address: true,
+            city: true,
+            locationLat: true,
+            locationLng: true,
+          },
+        },
+        serviceAssignments: {
+          where: { isActive: true },
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                durationMin: true,
+                price: true,
+                currency: true,
+                isActive: true,
+              },
             },
           },
         },
+        availabilityRules: {
+          where: { isActive: true },
+          orderBy: [{ weekday: 'asc' }, { startTime: 'asc' }],
+          select: { weekday: true, startTime: true, endTime: true, locationId: true, slotIntervalMin: true },
+        },
       },
-      availabilityRules: {
-        where: { isActive: true },
-        orderBy: [{ weekday: 'asc' }, { startTime: 'asc' }],
-        select: { weekday: true, startTime: true, endTime: true, locationId: true, slotIntervalMin: true },
-      },
-    },
-  })
+    })
+  )
 
   if (!doctor) {
     return apiError('Doktor bulunamadi', 404)
@@ -97,18 +100,20 @@ export async function GET(
       ? doctor.serviceAssignments
           .map((assignment) => assignment.service)
           .filter((service) => service.isActive)
-      : await prisma.service.findMany({
-          where: { businessId: doctor.businessId, isActive: true },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            durationMin: true,
-            price: true,
-            currency: true,
-          },
-          orderBy: { name: 'asc' },
-        })
+      : await runWithTenantBypassAsync('marketplace:doctor-detail', () =>
+          prisma.service.findMany({
+            where: { businessId: doctor.businessId, isActive: true },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              durationMin: true,
+              price: true,
+              currency: true,
+            },
+            orderBy: { name: 'asc' },
+          })
+        )
 
   const selectedServiceId = serviceId ?? services[0]?.id
   const slots =
@@ -123,27 +128,33 @@ export async function GET(
 
   const [reviewSummary, ratingRows, completedAppointments, completedPatientRows] = await Promise.all([
     getDoctorReviewSummary(doctor.id),
-    prisma.review.groupBy({
-      by: ['rating'],
-      where: { staffId: doctor.id, deletedAt: null },
-      _count: { _all: true },
-    }),
-    prisma.appointment.count({
-      where: {
-        staffId: doctor.id,
-        status: 'COMPLETED',
-        deletedAt: null,
-      },
-    }),
-    prisma.appointment.findMany({
-      where: {
-        staffId: doctor.id,
-        status: 'COMPLETED',
-        deletedAt: null,
-      },
-      distinct: ['patientId'],
-      select: { patientId: true },
-    }),
+    runWithTenantBypassAsync('marketplace:doctor-detail', () =>
+      prisma.review.groupBy({
+        by: ['rating'],
+        where: { staffId: doctor.id, deletedAt: null },
+        _count: { _all: true },
+      })
+    ),
+    runWithTenantBypassAsync('marketplace:doctor-detail', () =>
+      prisma.appointment.count({
+        where: {
+          staffId: doctor.id,
+          status: 'COMPLETED',
+          deletedAt: null,
+        },
+      })
+    ),
+    runWithTenantBypassAsync('marketplace:doctor-detail', () =>
+      prisma.appointment.findMany({
+        where: {
+          staffId: doctor.id,
+          status: 'COMPLETED',
+          deletedAt: null,
+        },
+        distinct: ['patientId'],
+        select: { patientId: true },
+      })
+    ),
   ])
 
   const ratingDistribution = buildRatingDistribution(ratingRows)

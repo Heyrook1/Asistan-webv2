@@ -3,6 +3,7 @@ import { apiError, apiValidationError } from '@/lib/api-response'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,15 @@ export async function GET(request: NextRequest) {
   const auth = await requireClientAuth(request)
   if (!auth) {
     return apiError('Unauthorized', 401)
+  }
+
+  const allowed = await checkRateLimit(
+    `poll:client-profile:${auth.clientUser.id}`,
+    RATE_LIMITS.poll.limit,
+    RATE_LIMITS.poll.window
+  )
+  if (!allowed) {
+    return apiError('Too many requests', 429)
   }
 
   const profile = await prisma.clientUser.findFirst({

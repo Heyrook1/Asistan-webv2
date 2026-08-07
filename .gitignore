@@ -44,6 +44,9 @@ next-env.d.ts
 *.pid
 tmp-*.log
 
+# local debug dumps (screenshots, 404 HTML, CI logs)
+/artifacts/
+
 .vercel
 
 .vercel

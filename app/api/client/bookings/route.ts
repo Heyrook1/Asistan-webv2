@@ -1,3 +1,10 @@
+/**
+ * POST /api/client/bookings — hasta randevu oluşturma (marketplace).
+ *
+ * Auth + mutation rate-limit + zod; `createClientBooking`.
+ * Çakışma / iş kuralı hataları 409 döner.
+ */
+
 import { NextResponse, type NextRequest } from 'next/server'
 import { apiError, apiValidationError } from '@/lib/api-response'
 import { revalidatePath } from 'next/cache'

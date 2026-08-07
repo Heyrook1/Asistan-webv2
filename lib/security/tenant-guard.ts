@@ -1,14 +1,15 @@
 /**
- * Prisma tenant-guard — application-layer defense when Prisma bypasses RLS.
+ * Prisma kiracı koruması (uygulama katmanı) — RLS atlandığında ikinci kapı.
  *
- * Tenant-scoped models must filter (or write) with `businessId`, unless an
- * alternate owner scope applies (e.g. `clientUserId` for patient-owned rows)
- * or the call runs inside `runWithTenantBypass` (cron, marketplace catalog).
+ * Tenant modelleri okuma/yazmada `businessId` taşımalı; istisna:
+ * hasta sahipli satırlar (`clientUserId`) veya `runWithTenantBypass`
+ * (cron, marketplace katalog). Postgres RLS ile birlikte çalışır; tek başına
+ * yetmez.
  *
- * Mode (`ASISTAN_TENANT_GUARD`):
- *   - enforce — throw TenantGuardError (default in production + test)
- *   - warn    — log only (default in development)
- *   - off     — disabled
+ * Mod (`ASISTAN_TENANT_GUARD`):
+ *   - enforce — TenantGuardError fırlat (prod + test varsayılan)
+ *   - warn    — yalnız log (development varsayılan)
+ *   - off     — kapalı
  */
 import { AsyncLocalStorage } from 'node:async_hooks'
 
@@ -60,6 +61,11 @@ export const TENANT_SCOPED_MODELS = new Set<string>([
   'AuditLog',
   'DataDeletionRequest',
   'ComplianceDocument',
+  'AppointmentDeposit',
+  'ClinicInvoice',
+  'FrontDeskSession',
+  'PatientChannelAttempt',
+  'NotificationOutbox',
 ])
 
 /** Models where `businessId` is optional on create — still scoped on reads when present. */

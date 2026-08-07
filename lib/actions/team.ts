@@ -597,8 +597,8 @@ export async function deleteTeamMember(input: unknown): Promise<ActionResult> {
   })
   if (!target) return err('Uye bulunamadi')
   if (target.userId && target.userId === session.userId) return err('Kendinizi silemezsiniz')
-  await prisma.teamMember.update({
-    where: { id: parsed.data.id },
+  await prisma.teamMember.updateMany({
+    where: { id: parsed.data.id, businessId: session.businessId },
     data: {
       isActive: false,
       deletedAt: new Date(),

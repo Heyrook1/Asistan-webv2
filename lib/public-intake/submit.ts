@@ -4,27 +4,36 @@ import { IntakeInviteStatus, TimelineEventType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { parseIntakeFields, validateIntakeAnswers } from '@/lib/intake/schema'
 import { hashIntakeToken } from '@/lib/intake/tokens'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
+/**
+ * Public intake is a capability-URL flow (tokenHash). Tenant-guard cannot see
+ * businessId on token lookup — intentional bypass with scoped writes afterward.
+ */
 export async function getPublicIntakeByToken(token: string) {
   const tokenHash = hashIntakeToken(token)
-  const invite = await prisma.intakeInvite.findFirst({
-    where: { tokenHash },
-    include: {
-      form: { select: { id: true, name: true, description: true, fields: true, isActive: true, deletedAt: true } },
-      appointment: {
-        select: {
-          id: true,
-          date: true,
-          startTime: true,
-          status: true,
-          service: { select: { name: true } },
+  const invite = await runWithTenantBypassAsync('intake:public-token-read', () =>
+    prisma.intakeInvite.findFirst({
+      where: { tokenHash },
+      include: {
+        form: {
+          select: { id: true, name: true, description: true, fields: true, isActive: true, deletedAt: true },
         },
+        appointment: {
+          select: {
+            id: true,
+            date: true,
+            startTime: true,
+            status: true,
+            service: { select: { name: true } },
+          },
+        },
+        patient: { select: { fullName: true } },
+        business: { select: { name: true, primaryColor: true, logoUrl: true } },
+        response: { select: { id: true, submittedAt: true } },
       },
-      patient: { select: { fullName: true } },
-      business: { select: { name: true, primaryColor: true, logoUrl: true } },
-      response: { select: { id: true, submittedAt: true } },
-    },
-  })
+    })
+  )
 
   if (!invite) return { ok: false as const, error: 'not_found' }
   if (invite.status === IntakeInviteStatus.REVOKED) return { ok: false as const, error: 'revoked' }
@@ -38,10 +47,12 @@ export async function getPublicIntakeByToken(token: string) {
     }
   }
   if (invite.expiresAt.getTime() < Date.now()) {
-    await prisma.intakeInvite.update({
-      where: { id: invite.id },
-      data: { status: IntakeInviteStatus.EXPIRED },
-    })
+    await runWithTenantBypassAsync('intake:public-expire', () =>
+      prisma.intakeInvite.updateMany({
+        where: { id: invite.id, businessId: invite.businessId },
+        data: { status: IntakeInviteStatus.EXPIRED },
+      })
+    )
     return { ok: false as const, error: 'expired' }
   }
   if (!invite.form.isActive || invite.form.deletedAt) {
@@ -69,12 +80,14 @@ export async function getPublicIntakeByToken(token: string) {
 
 export async function submitPublicIntake(token: string, rawAnswers: unknown) {
   const tokenHash = hashIntakeToken(token)
-  const invite = await prisma.intakeInvite.findFirst({
-    where: { tokenHash },
-    include: {
-      form: { select: { id: true, name: true, fields: true, isActive: true, deletedAt: true } },
-    },
-  })
+  const invite = await runWithTenantBypassAsync('intake:public-token-read', () =>
+    prisma.intakeInvite.findFirst({
+      where: { tokenHash },
+      include: {
+        form: { select: { id: true, name: true, fields: true, isActive: true, deletedAt: true } },
+      },
+    })
+  )
 
   if (!invite) return { ok: false as const, error: 'Bağlantı geçersiz' }
   if (invite.status === IntakeInviteStatus.SUBMITTED) {
@@ -103,34 +116,36 @@ export async function submitPublicIntake(token: string, rawAnswers: unknown) {
   }
 
   const now = new Date()
-  await prisma.$transaction(async (tx) => {
-    await tx.intakeResponse.create({
-      data: {
-        businessId: invite.businessId,
-        formId: invite.formId,
-        inviteId: invite.id,
-        appointmentId: invite.appointmentId,
-        patientId: invite.patientId,
-        answers: validated.answers,
-        formSnapshot: fields,
-      },
+  await runWithTenantBypassAsync('intake:public-submit', () =>
+    prisma.$transaction(async (tx) => {
+      await tx.intakeResponse.create({
+        data: {
+          businessId: invite.businessId,
+          formId: invite.formId,
+          inviteId: invite.id,
+          appointmentId: invite.appointmentId,
+          patientId: invite.patientId,
+          answers: validated.answers,
+          formSnapshot: fields,
+        },
+      })
+      await tx.intakeInvite.updateMany({
+        where: { id: invite.id, businessId: invite.businessId },
+        data: { status: IntakeInviteStatus.SUBMITTED, submittedAt: now },
+      })
+      await tx.timelineEvent.create({
+        data: {
+          businessId: invite.businessId,
+          patientId: invite.patientId,
+          type: TimelineEventType.INTAKE_SUBMITTED,
+          title: 'Ön kayıt formu dolduruldu',
+          description: invite.form.name,
+          actorName: 'Hasta (ön kayıt)',
+          actorId: null,
+        },
+      })
     })
-    await tx.intakeInvite.update({
-      where: { id: invite.id },
-      data: { status: IntakeInviteStatus.SUBMITTED, submittedAt: now },
-    })
-    await tx.timelineEvent.create({
-      data: {
-        businessId: invite.businessId,
-        patientId: invite.patientId,
-        type: TimelineEventType.INTAKE_SUBMITTED,
-        title: 'Ön kayıt formu dolduruldu',
-        description: invite.form.name,
-        actorName: 'Hasta (ön kayıt)',
-        actorId: null,
-      },
-    })
-  })
+  )
 
   return { ok: true as const, message: 'Formunuz alındı. Teşekkürler.' }
 }

@@ -45,9 +45,9 @@ function formatPrice(price: number | null) {
 }
 
 function formatDateLabel(value: string | null) {
-  if (!value) return 'Musait saat bilgisi yok'
+  if (!value) return 'Müsait saat bilgisi yok'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Musait saat bilgisi yok'
+  if (Number.isNaN(date.getTime())) return 'Müsait saat bilgisi yok'
   return date.toLocaleString('tr-TR', {
     day: '2-digit',
     month: '2-digit',
@@ -178,10 +178,10 @@ export default function ClientSearchScreen() {
               <BrandLogo variant="light" height={28} />
               <Badge label={now} tone="info" />
               <AppText variant="hero" color={theme.colors.textInverse}>
-                Merhaba, sağlık asistanı hazır.
+                Asistan Rezervasyon
               </AppText>
               <AppText variant="body" color="#BCD1EF">
-                Hizli arama, guvenilir uzmanlar ve bugun icin uygun saatler tek ekranda.
+                Klinik keşfet, gerçek müsait saatlerden randevu al, pasaportunu takip et.
               </AppText>
             </View>
 
@@ -189,7 +189,7 @@ export default function ClientSearchScreen() {
               <SearchField
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Doktor, klinik veya uzmanlik ara"
+                placeholder="Doktor, klinik veya uzmanlık ara"
                 onSubmit={() => load()}
               />
 
@@ -349,17 +349,17 @@ export default function ClientSearchScreen() {
           ) : viewMode === 'map' ? (
             <EmptyState
               icon="map-outline"
-              title="Harita gorunumu yakinda"
-              description="Premium harita deneyimi bir sonraki surumde aktif olacak. Simdilik liste gorunumu ile devam edebilirsin."
-              primaryActionLabel="Listeye don"
+              title="Harita görünümü henüz yok"
+              description="Harita bir sonraki sürümde gelecek. Şimdilik liste görünümüyle klinik arayabilirsiniz."
+              primaryActionLabel="Listeye dön"
               onPrimaryAction={() => setViewMode('list')}
             />
           ) : (
             <EmptyState
               icon="search-outline"
-              title="Sonuc bulunamadi"
-              description="Filtreleri sadeleştirip tekrar dene. Alternatif olarak en yakin siralama ile goruntule."
-              primaryActionLabel="Filtreleri sifirla"
+              title="Sonuç bulunamadı"
+              description="Filtreleri sadeleştirip tekrar deneyin. Alternatif olarak en yakın sıralama ile görüntüleyin."
+              primaryActionLabel="Filtreleri sıfırla"
               onPrimaryAction={() => {
                 setSort('nearest')
                 setAvailableToday(false)

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
 import { listClientNotifications } from '@/lib/client-marketplace/notifications'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,15 @@ export async function GET(request: NextRequest) {
   const auth = await requireClientAuth(request)
   if (!auth) {
     return apiError('Unauthorized', 401)
+  }
+
+  const allowed = await checkRateLimit(
+    `poll:client-notifications:${auth.clientUser.id}`,
+    RATE_LIMITS.poll.limit,
+    RATE_LIMITS.poll.window
+  )
+  if (!allowed) {
+    return apiError('Too many requests', 429)
   }
 
   const notifications = await listClientNotifications(auth.clientUser.id)

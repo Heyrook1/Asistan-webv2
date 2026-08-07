@@ -60,7 +60,7 @@ export function RezervasyonHomeHub({
   }
 
   return (
-    <main className="space-y-8 pb-2">
+    <main data-rz-home className="space-y-8 pb-2">
       {/* First viewport: one composition — brand + atmosphere + one CTA group */}
       <section className="rz-enter relative -mx-4 overflow-hidden md:-mx-5">
         <div className="relative min-h-[min(58vh,420px)] w-full">
@@ -74,14 +74,14 @@ export function RezervasyonHomeHub({
           />
           <div
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-[#0B1F33]/92 via-[#0B1F33]/45 to-[#0B1F33]/20"
+            className="absolute inset-0 bg-gradient-to-t from-[#0B1F33]/92 via-[#0B1F33]/45 to-[#0B1F33]/25"
           />
           <div
             aria-hidden
             className="absolute inset-0 bg-[radial-gradient(70%_55%_at_20%_10%,rgba(0,113,227,0.28),transparent_60%)]"
           />
 
-          <div className="relative flex min-h-[min(58vh,420px)] flex-col justify-end px-5 pb-6 pt-16">
+          <div className="relative flex min-h-[min(58vh,420px)] flex-col justify-end px-5 pb-6 pt-[calc(4.5rem+env(safe-area-inset-top))]">
             <p className="rz-enter font-heading text-[1.65rem] font-extrabold tracking-tight text-white sm:text-[1.85rem]">
               {brand}
             </p>

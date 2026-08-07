@@ -2,7 +2,7 @@ import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'
 import { MobileTopbar } from '@/components/dashboard/mobile-topbar'
 import { MobileShell } from '@/components/dashboard/mobile-shell'
-import { GlobalCommandPalette } from '@/components/dashboard/global-command-palette'
+import { GlobalCommandPaletteLazy } from '@/components/dashboard/global-command-palette-lazy'
 import { requireSession, isSuperAdmin, isSystemAdmin } from '@/lib/session'
 import {
   getNotificationsList,
@@ -113,7 +113,7 @@ export default async function DashboardLayout({
           membership={membership}
           teamMessagingEnabled={teamMessagingEnabled}
         />
-        <GlobalCommandPalette
+        <GlobalCommandPaletteLazy
           session={session}
           showPlatformAdmin={showPlatformAdmin}
           showSuperAdmin={showSuperAdmin}

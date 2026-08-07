@@ -70,13 +70,12 @@ export async function notifyPatientChannels(
     const to =
       channel === 'email' ? input.patientEmail?.trim() : input.patientPhone?.trim()
     if (!to) continue
+    const payload = {
+      ...payloadBase,
+      to,
+    }
     try {
-      results.push(
-        await sendAppointmentReminder(channel, {
-          ...payloadBase,
-          to,
-        }),
-      )
+      results.push(await sendAppointmentReminder(channel, payload))
     } catch (error) {
       results.push({
         ok: false,
@@ -84,6 +83,21 @@ export async function notifyPatientChannels(
         provider: channel,
         channel,
         error: error instanceof Error ? error.message : 'channel send failed',
+      })
+    }
+    const last = results[results.length - 1]
+    if (last && !last.ok && last.status === 'error') {
+      const { enqueueFailedChannelSend } = await import(
+        '@/lib/notifications/notification-outbox'
+      )
+      await enqueueFailedChannelSend({
+        businessId: input.businessId,
+        appointmentId: input.appointmentId,
+        patientId: input.patientId,
+        channel,
+        kind: input.kind,
+        payload,
+        lastError: last.error,
       })
     }
   }

@@ -1,3 +1,10 @@
+/**
+ * GET /api/client/passport — oturumlu hasta sağlık özeti (pasaport).
+ *
+ * `requireClientAuth` + API rate-limit; veri `getClientPassport`.
+ * Klinik panel session’ı ile karıştırma.
+ */
+
 import { type NextRequest } from 'next/server'
 import { apiError, apiSuccess } from '@/lib/api-response'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'

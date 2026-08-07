@@ -9,7 +9,7 @@ import {
   getStaffUtilization,
   parseAnalyticsMonthRange,
 } from '@/lib/queries'
-import { AnalyticsBoard } from '@/components/dashboard/analytics-board'
+import { AnalyticsBoardLazy } from '@/components/dashboard/analytics-board-lazy'
 import { AnalitikDeprecatedPanel } from '@/components/dashboard/analitik-deprecated-panel'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { isClinicAnalyticsEnabled } from '@/lib/analytics/policy'
@@ -45,7 +45,7 @@ export default async function AnalitikPage({
 
   return (
     <Suspense fallback={<div className="rounded-2xl border bg-white p-6 text-sm text-muted-foreground">Analitik yükleniyor…</div>}>
-      <AnalyticsBoard
+      <AnalyticsBoardLazy
         months={months}
         stats={{
           todayAppointments: stats.todayAppointments,

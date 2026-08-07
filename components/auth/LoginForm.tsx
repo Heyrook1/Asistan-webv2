@@ -12,6 +12,7 @@ import { getRegisterPath } from '@/lib/auth-routes'
 import { ENTRY_CTA } from '@/lib/entry-routes'
 import { authFormCopy } from '@/lib/auth/auth-form-copy'
 import { CheckCircle2, Mail, Lock, ShieldAlert, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { sanitizeReturnPath } from '@/lib/auth/safe-return-path'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
@@ -28,6 +29,7 @@ export function LoginForm() {
   const [passwordError, setPasswordError] = useState('')
 
   const packageExpired = searchParams.get('reason') === 'package-expired'
+  const nextPath = sanitizeReturnPath(searchParams.get('next'), '/dashboard')
   const supabase = createClient()
 
   function validateEmail(value: string, opts?: { allowEmpty?: boolean }) {
@@ -73,7 +75,7 @@ export function LoginForm() {
         return
       }
 
-      router.push('/dashboard')
+      router.push(nextPath)
     })()
     return () => {
       cancelled = true
@@ -89,6 +91,18 @@ export function LoginForm() {
 
     setLoading(true)
     try {
+      const gateRes = await fetch('/api/auth/gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login' }),
+      })
+      if (gateRes.status === 429) {
+        setError(t({ tr: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.', en: 'Too many attempts. Try again in 15 minutes.' }))
+        toast.error(t({ tr: 'Çok fazla deneme', en: 'Too many attempts' }))
+        setLoading(false)
+        return
+      }
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -119,7 +133,7 @@ export function LoginForm() {
       }
 
       toast.success(t({ tr: 'Giriş Başarılı', en: 'Login Successful' }))
-      router.push('/dashboard')
+      router.push(nextPath)
       router.refresh()
     } catch {
       setError(t({

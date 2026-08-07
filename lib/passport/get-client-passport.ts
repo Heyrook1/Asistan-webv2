@@ -1,5 +1,13 @@
 import 'server-only'
 
+/**
+ * Hasta “pasaport” agregasyonu (Asistan Rezervasyon).
+ *
+ * ClientUser → Person link + klinik üyelikleri + ziyaret zaman çizelgesi.
+ * `gpiDisplay` opak kimliktir; FHIR / tıbbi pasaport değildir.
+ * Orphan veya RLS-gizli `service` satırlarında isim “Hizmet” fallback’i kullanılır.
+ */
+
 import { prisma } from '@/lib/prisma'
 import { ensureClientUserPersonLink } from '@/lib/passport/ensure-link'
 import { withPersonDb } from '@/lib/passport/person-db'
@@ -85,6 +93,8 @@ export async function getClientPassport(input: {
         take: 50,
       })
 
+      // Do not `include: { service }` — Prisma requires the relation; orphaned
+      // serviceId or RLS-hidden Service rows throw "got null instead".
       const appointments = await tx.appointment.findMany({
         where: {
           OR: [
@@ -93,14 +103,31 @@ export async function getClientPassport(input: {
           ],
         },
         orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
-        include: {
+        select: {
+          id: true,
+          status: true,
+          date: true,
+          startTime: true,
+          businessId: true,
+          serviceId: true,
           business: { select: { id: true, name: true, slug: true } },
-          service: { select: { id: true, name: true } },
           staff: { select: { id: true, fullName: true, specialty: true } },
           location: { select: { id: true, name: true, address: true } },
         },
         take: 200,
       })
+
+      const serviceIds = Array.from(
+        new Set(appointments.map((a) => a.serviceId).filter(Boolean))
+      )
+      const services =
+        serviceIds.length === 0
+          ? []
+          : await tx.service.findMany({
+              where: { id: { in: serviceIds } },
+              select: { id: true, name: true },
+            })
+      const serviceById = new Map(services.map((s) => [s.id, s]))
 
       const clinicMap = new Map<string, ClientPassportClinic>()
       for (const p of patients) {
@@ -131,7 +158,10 @@ export async function getClientPassport(input: {
         startTime: row.startTime,
         clinic: row.business,
         doctor: row.staff,
-        service: row.service,
+        service: serviceById.get(row.serviceId) ?? {
+          id: row.serviceId,
+          name: 'Hizmet',
+        },
         location: row.location,
       }))
 

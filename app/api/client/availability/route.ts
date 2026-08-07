@@ -17,11 +17,19 @@ const querySchema = z.object({
   locationId: idSchema.optional(),
 })
 
+/**
+ * GET /api/client/availability — gerçek slot listesi (misafir book + /client reschedule).
+ * Her code path geçerli JSON döner; ham exception kullanıcıya gitmez.
+ */
 export async function GET(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon'
-  const allowed = await checkRateLimit(`client-availability:${ip}`, RATE_LIMITS.api.limit, RATE_LIMITS.api.window)
+  const allowed = await checkRateLimit(
+    `client-availability:${ip}`,
+    RATE_LIMITS.api.limit,
+    RATE_LIMITS.api.window,
+  )
   if (!allowed) {
-    return apiError('Çok fazla istek', 429)
+    return apiError('Çok fazla istek. Lütfen biraz sonra tekrar deneyin.', 429, 'RATE_LIMITED')
   }
 
   const params = request.nextUrl.searchParams
@@ -34,14 +42,27 @@ export async function GET(request: NextRequest) {
   })
 
   if (!parsed.success) {
-    return apiValidationError('Gecersiz slot sorgusu', parsed.error.issues, 400)
+    return apiValidationError('Geçersiz slot sorgusu', parsed.error.issues, 400)
   }
 
   try {
     const slots = await getAvailableSlots(parsed.data)
-    return NextResponse.json({ slots })
+    // Dual shape: apiSuccess for contract + top-level `slots` for legacy clients.
+    const body = {
+      ok: true as const,
+      data: { slots },
+      slots,
+    }
+    return NextResponse.json(body, {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' },
+    })
   } catch (error) {
     console.error('[api/client/availability]', error)
-    return apiError('Musaitlik yuklenemedi', 500)
+    return apiError(
+      'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
+      500,
+      'AVAILABILITY_UNAVAILABLE',
+    )
   }
 }

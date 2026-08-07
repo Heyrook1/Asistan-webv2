@@ -42,7 +42,7 @@ export {
 
 /** Canonical bilingual CTA labels — keep marketing copy in sync with these. */
 export const ENTRY_CTA = {
-  /** Primary conversion — verb + outcome + free trial (5.2 → 3/3 with risk reducer line). */
+  /** Secondary conversion — free trial (landing primary is demoRequest). */
   clinicTrial: {
     tr: '14 gün ücretsiz klinik dene',
     en: 'Try clinic free for 14 days',
@@ -70,9 +70,15 @@ export const ENTRY_CTA = {
     tr: 'Mağaza haberleri (isteğe bağlı)',
     en: 'Store updates (optional)',
   },
+  /** Landing primary conversion — sales demo (not trial). */
   demoRequest: {
-    tr: 'Demo talep et',
-    en: 'Request a demo',
+    tr: 'Demo rezerve et',
+    en: 'Book a demo',
+    short: { tr: 'Demo', en: 'Demo' },
+  },
+  demoRiskReducer: {
+    tr: '20 dakikada paneli görün — taahhüt yok',
+    en: 'See the panel in 20 minutes — no commitment',
   },
 } as const
 

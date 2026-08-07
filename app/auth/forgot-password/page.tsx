@@ -23,6 +23,16 @@ export default function ForgotPasswordPage() {
     event.preventDefault()
     setLoading(true)
     try {
+      const gateRes = await fetch('/api/auth/gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'forgot' }),
+      })
+      if (gateRes.status === 429) {
+        toast.error('Çok fazla deneme. 15 dakika sonra tekrar deneyin.')
+        return
+      }
+
       const supabase = createClient()
       const redirectUrl = new URL('/auth/callback', window.location.origin)
       redirectUrl.searchParams.set('next', '/auth/reset-password')
@@ -30,13 +40,12 @@ export default function ForgotPasswordPage() {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl.toString(),
       })
+      // Never reveal whether the account exists.
       if (error) {
-        toast.error('Bağlantı gönderilemedi', { description: error.message })
-        return
+        console.error('[forgot-password]', error.message)
       }
-
       setSent(true)
-      toast.success('Sıfırlama bağlantısı gönderildi.')
+      toast.success('E-posta kayıtlıysa sıfırlama bağlantısı gönderildi.')
     } catch {
       toast.error('Beklenmeyen bir hata oluştu.')
     } finally {

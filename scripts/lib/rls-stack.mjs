@@ -28,6 +28,10 @@ export const RLS_MIGRATIONS = [
   '20260720000100_marketing_and_webhook_idempotency.sql',
   '20260720000200_prisma_guc_rls.sql',
   '20260721000100_asistan_app_booking_identity_bridge.sql',
+  '20260721000200_appointment_deposit.sql',
+  '20260721000300_clinic_invoice_kktc.sql',
+  '20260721000400_whatsapp_front_desk.sql',
+  '20260730000100_fix_guc_business_id_q3.sql',
 ]
 
 export function resolveDatabaseUrl() {

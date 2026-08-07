@@ -44,3 +44,11 @@ function getOwnerClient(): PrismaClient {
 export function sessionPrisma(): PrismaClient {
   return getOwnerClient()
 }
+
+/**
+ * Cross-tenant public catalog ( /client search, clinic detail, availability ).
+ * asistan_app GUC RLS cannot list bookable doctors without app.business_id.
+ */
+export function catalogPrisma(): PrismaClient {
+  return getOwnerClient()
+}

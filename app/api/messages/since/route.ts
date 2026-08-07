@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { isTeamMessagingEnabled } from '@/lib/messaging/policy'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,15 @@ export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) {
     return apiError('Unauthorized', 401)
+  }
+
+  const allowed = await checkRateLimit(
+    `poll:messages:${session.userId}`,
+    RATE_LIMITS.poll.limit,
+    RATE_LIMITS.poll.window
+  )
+  if (!allowed) {
+    return apiError('Too many requests', 429)
   }
 
   if (!isTeamMessagingEnabled()) {
@@ -23,21 +33,18 @@ export async function GET(request: NextRequest) {
     return apiError('Invalid after timestamp', 400)
   }
 
-  // Constrain to conversations the caller participates in (server-side ACL).
   const myConversationIds = await prisma.conversationParticipant.findMany({
     where: { userId: session.userId, isActive: true },
     select: { conversationId: true },
   })
-  const allowed = new Set(myConversationIds.map((c) => c.conversationId))
-  if (conversationId && !allowed.has(conversationId)) {
+  const allowedIds = new Set(myConversationIds.map((c) => c.conversationId))
+  if (conversationId && !allowedIds.has(conversationId)) {
     return NextResponse.json({ messages: [] })
   }
 
   const rows = await prisma.message.findMany({
     where: {
-      conversationId: conversationId
-        ? conversationId
-        : { in: Array.from(allowed) },
+      conversationId: conversationId ? conversationId : { in: Array.from(allowedIds) },
       createdAt: { gt: afterDate },
       deletedAt: null,
     },

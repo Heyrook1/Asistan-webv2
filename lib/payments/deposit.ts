@@ -2,8 +2,10 @@ import 'server-only'
 
 import { prisma } from '@/lib/prisma'
 import { isStripeBillingConfigured } from '@/lib/payments'
+import { buildPublicDepositUrl } from '@/lib/payments/deposit-access'
 import { trackFunnelEvent } from '@/lib/observability/funnel'
 import { parseDepositPolicy, type DepositPolicy } from '@/lib/payments/deposit-policy'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
 export type { DepositPolicy }
 export { parseDepositPolicy }
@@ -67,7 +69,7 @@ async function createStripeDepositIntent(input: {
   const origin = siteOrigin()
   return {
     providerRef: json.id,
-    checkoutUrl: `${origin}/book/deposit?depositId=${input.depositId}&pi=${json.id}`,
+    checkoutUrl: buildPublicDepositUrl(input.depositId, origin, { pi: json.id }),
     instructions: [
       'Kart ödemesi Stripe ile oluşturuldu.',
       `Tutar: ${input.amount} ${input.currency}`,
@@ -104,6 +106,8 @@ export async function createAppointmentDeposit(input: {
 }): Promise<CreateAppointmentDepositResult | null> {
   if (!(input.amount > 0)) return null
 
+  const origin = siteOrigin()
+
   const deposit = await prisma.appointmentDeposit.create({
     data: {
       businessId: input.businessId,
@@ -124,7 +128,7 @@ export async function createAppointmentDeposit(input: {
 
   let provider: 'MANUAL' | 'STRIPE' = 'MANUAL'
   let providerRef: string | null = `manual_${deposit.id}`
-  let checkoutUrl: string | null = null
+  let checkoutUrl: string | null = buildPublicDepositUrl(deposit.id, origin)
   let instructions = manualDepositInstructions({
     amount: input.amount,
     currency: input.currency,
@@ -158,8 +162,8 @@ export async function createAppointmentDeposit(input: {
     })
   }
 
-  await prisma.appointmentDeposit.update({
-    where: { id: deposit.id },
+  await prisma.appointmentDeposit.updateMany({
+    where: { id: deposit.id, businessId: input.businessId },
     data: {
       provider,
       providerRef,
@@ -193,15 +197,17 @@ export async function createAppointmentDeposit(input: {
 }
 
 export async function markAppointmentDepositPaid(depositId: string) {
-  const row = await prisma.appointmentDeposit.findUnique({
-    where: { id: depositId },
-    select: {
-      id: true,
-      businessId: true,
-      appointmentId: true,
-      status: true,
-    },
-  })
+  const row = await runWithTenantBypassAsync('deposit:mark-paid', () =>
+    prisma.appointmentDeposit.findUnique({
+      where: { id: depositId },
+      select: {
+        id: true,
+        businessId: true,
+        appointmentId: true,
+        status: true,
+      },
+    })
+  )
   if (!row) return { ok: false as const, error: 'Depozito bulunamadı' }
   if (row.status === 'PAID') {
     return { ok: true as const, alreadyPaid: true as const }
@@ -210,10 +216,12 @@ export async function markAppointmentDepositPaid(depositId: string) {
     return { ok: false as const, error: `Depozito durumu uygun değil: ${row.status}` }
   }
 
-  await prisma.appointmentDeposit.update({
-    where: { id: row.id },
-    data: { status: 'PAID', paidAt: new Date() },
-  })
+  await runWithTenantBypassAsync('deposit:mark-paid', () =>
+    prisma.appointmentDeposit.update({
+      where: { id: row.id },
+      data: { status: 'PAID', paidAt: new Date() },
+    })
+  )
 
   trackFunnelEvent({
     step: 'deposit_paid',

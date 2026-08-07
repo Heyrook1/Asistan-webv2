@@ -1,16 +1,19 @@
 import 'server-only'
 
+/**
+ * Klinik işlemleri için Postgres GUC `app.business_id` (SET LOCAL / set_config).
+ *
+ * `asistan_app` (NOBYPASSRLS) + Dilim-C politikaları açıksa sorgular DB’de
+ * bu businessId ile süzülür. Owner/privileged rolde GUC yazılır ama RLS
+ * değerlendirilmez — o durumda asıl kapı `tenant-guard` kalır.
+ */
+
 import type { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
 
 /**
- * Open a transaction with Postgres GUC `app.business_id` set (SET LOCAL via set_config).
- *
- * When `DATABASE_URL` uses the `asistan_app` role (NOBYPASSRLS) and Dilim-C policies
- * are applied, queries are filtered to this businessId at the DB layer.
- * With a privileged/owner role the GUC is set but RLS is not evaluated — app
- * tenant-guard remains the primary door until ops switches the role.
+ * Transaction açar ve `app.business_id` GUC’unu set eder (SET LOCAL).
  */
 export async function withTenantDb<T>(
   businessId: string,
@@ -20,8 +23,8 @@ export async function withTenantDb<T>(
 }
 
 /**
- * Preferred wrapper for all clinic-scoped Prisma interactive transactions.
- * Always sets `app.business_id` before business logic runs.
+ * Klinik kapsamlı etkileşimli Prisma transaction tercihi.
+ * İş mantığından önce her zaman `app.business_id` yazar.
  */
 export async function tenantTransaction<T>(
   businessId: string,
@@ -38,7 +41,7 @@ export async function tenantTransaction<T>(
   })
 }
 
-/** Set (or clear) tenant GUC on an existing interactive transaction. */
+/** Açık bir interactive transaction üzerinde kiracı GUC yazar. */
 export async function setTenantBusinessId(
   tx: Prisma.TransactionClient,
   businessId: string,
@@ -50,7 +53,7 @@ export async function setTenantBusinessId(
   await tx.$executeRaw`SELECT set_config('app.business_id', ${id}, true)`
 }
 
-/** Clear tenant GUC (e.g. before identity/platform work inside a longer tx). */
+/** Kiracı GUC temizler (aynı tx içinde platform/identity işi öncesi). */
 export async function clearTenantBusinessId(tx: Prisma.TransactionClient): Promise<void> {
   await tx.$executeRaw`SELECT set_config('app.business_id', '', true)`
 }

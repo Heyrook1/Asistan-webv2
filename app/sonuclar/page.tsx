@@ -23,7 +23,7 @@ export default function SonuclarPage() {
 
   return (
     <MarketingPageShell>
-      <section className="border-b border-slate-200/80 bg-white px-4 pb-12 pt-28 sm:px-6 lg:px-8">
+      <section className="border-b border-slate-200/80 bg-white px-4 pb-12 pt-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0071E3]">Asistan Health</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">Ölçülen operasyon sonuçları</h1>

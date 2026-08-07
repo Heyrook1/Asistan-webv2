@@ -421,6 +421,7 @@ export async function setAppointmentStatus(
         title: `Randevu durumu: ${parsed.data.status}`,
         actorName: session.fullName,
         actorId: session.userId,
+        metadata: { appointmentId: existing.id, source: 'clinic' },
       },
     })
   })

@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import {
+  extractAvailabilitySlots,
+  readJsonResponse,
+  userMessageFromUnknown,
+} from '@/lib/http/read-json'
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
 type Slot = { startTime: string; endTime: string }
@@ -186,10 +191,15 @@ export function PublicBookingWidget({
 
     fetch(`/api/client/availability?${params.toString()}`)
       .then(async (res) => {
-        const json = (await res.json()) as { slots?: Slot[]; error?: string }
-        if (!res.ok) throw new Error(json.error || 'Müsait saat alınamadı')
+        const { ok, data } = await readJsonResponse(res, { kind: 'availability' })
+        const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
+        if (!ok) {
+          throw new Error(
+            errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
+          )
+        }
         if (!cancelled) {
-          setSlots(json.slots ?? [])
+          setSlots(nextSlots)
           setStartTime(null)
           setSlotsError(null)
         }
@@ -197,7 +207,10 @@ export function PublicBookingWidget({
       .catch((error) => {
         if (!cancelled) {
           setSlots([])
-          const msg = error instanceof Error ? error.message : 'Müsait saat alınamadı'
+          const msg = userMessageFromUnknown(
+            error,
+            'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
+          )
           setSlotsError(msg)
           toast.error(msg)
         }
@@ -267,24 +280,20 @@ export function PublicBookingWidget({
             note: note.trim() || null,
           }),
         })
-        const json = (await res.json()) as {
-          ok?: boolean
-          error?: string
-          message?: string
-          appointmentId?: string
-          status?: string
-          intakeUrl?: string | null
-          intakeFormName?: string | null
-          idempotentReplay?: boolean
-          deposit?: {
-            amount: number
-            currency: string
-            checkoutUrl: string | null
-            instructions: string
-          } | null
-        }
-        if (!res.ok || !json.ok || !json.appointmentId) {
-          const msg = json.error || 'Randevu oluşturulamadı'
+        const { ok, status, data } = await readJsonResponse<Record<string, unknown>>(res, {
+          kind: 'generic',
+          emptyMessage: 'Randevu oluşturulamadı. Lütfen tekrar deneyin.',
+        })
+        const json = data
+        const appointmentId =
+          typeof json.appointmentId === 'string' ? json.appointmentId : null
+        const apiOk = json.ok === true
+        if (!ok || !apiOk || !appointmentId) {
+          const msg =
+            (typeof json.error === 'string' && json.error) ||
+            (status === 409
+              ? 'Bu saat az önce doldu veya istek çakıştı. Lütfen başka bir saat seçin.'
+              : 'Randevu oluşturulamadı')
           setSubmitError(msg)
           toast.error(msg)
           idempotencyKeyRef.current = newIdempotencyKey()
@@ -292,20 +301,31 @@ export function PublicBookingWidget({
         }
         setSubmitError(null)
         setDone({
-          message: json.message || 'Randevu alındı',
-          appointmentId: json.appointmentId,
-          status: json.status || 'SCHEDULED',
-          intakeUrl: json.intakeUrl,
-          intakeFormName: json.intakeFormName,
+          message: (typeof json.message === 'string' && json.message) || 'Randevu alındı',
+          appointmentId,
+          status: (typeof json.status === 'string' && json.status) || 'SCHEDULED',
+          intakeUrl: typeof json.intakeUrl === 'string' ? json.intakeUrl : null,
+          intakeFormName: typeof json.intakeFormName === 'string' ? json.intakeFormName : null,
           summary: {
             serviceName: selectedService?.name ?? null,
             doctorName: selectedDoctor?.fullName ?? null,
             whenLabel: formatBookingWhen(date, startTime, lang),
           },
-          deposit: json.deposit ?? null,
+          deposit:
+            json.deposit && typeof json.deposit === 'object'
+              ? (json.deposit as {
+                  amount: number
+                  currency: string
+                  checkoutUrl: string | null
+                  instructions: string
+                })
+              : null,
         })
-      } catch {
-        const msg = 'Ağ hatası — bağlantınızı kontrol edip tekrar deneyin'
+      } catch (error) {
+        const msg = userMessageFromUnknown(
+          error,
+          'Ağ hatası — bağlantınızı kontrol edip tekrar deneyin',
+        )
         setSubmitError(msg)
         toast.error(msg)
         idempotencyKeyRef.current = newIdempotencyKey()

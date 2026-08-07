@@ -1,7 +1,9 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import type { ClientDiscoveryFilters, ClientDiscoverySort } from '@/lib/client-marketplace/types'
 import { searchMarketplace } from '@/lib/client-marketplace/discovery'
 import { ClinicFilters } from '@/components/client/clinic-filters'
+import { ClinicSearchInput } from '@/components/client/clinic-search-input'
 import { ClinicCard } from '@/components/client/clinic-card'
 
 function parseNumber(input: string | string[] | undefined) {
@@ -21,11 +23,11 @@ function parseBoolean(input: string | string[] | undefined) {
 }
 
 async function loadClinics(searchParams: Record<string, string | string[] | undefined>) {
+  // Ignore unsupported distance filter until geolocation is live.
   const filters: ClientDiscoveryFilters = {
     query: parseString(searchParams.query) ?? undefined,
     specialty: parseString(searchParams.specialty) ?? undefined,
     serviceId: parseString(searchParams.serviceId) ?? undefined,
-    maxDistanceKm: parseNumber(searchParams.maxDistanceKm),
     minRating: parseNumber(searchParams.minRating),
     availableToday: parseBoolean(searchParams.availableToday),
     minPrice: parseNumber(searchParams.minPrice),
@@ -37,10 +39,13 @@ async function loadClinics(searchParams: Record<string, string | string[] | unde
 
   try {
     const rows = await searchMarketplace({ filters, sort, clientLocation: null })
-    return Array.isArray(rows) ? rows : []
+    return { clinics: Array.isArray(rows) ? rows : [], error: null as string | null }
   } catch (error) {
     console.error('[client/clinics] marketplace search failed:', error)
-    return []
+    return {
+      clinics: [],
+      error: 'Klinikler şu anda yüklenemiyor. Lütfen tekrar deneyin.',
+    }
   }
 }
 
@@ -50,8 +55,8 @@ export default async function ClientClinicsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
-  const clinics = await loadClinics(params)
-  const query = parseString(params.query)
+  const { clinics, error } = await loadClinics(params)
+  const query = parseString(params.query)?.trim()
 
   return (
     <main className="space-y-4">
@@ -60,11 +65,21 @@ export default async function ClientClinicsPage({
           {query ? `“${query}”` : 'Uzman veya klinik ara'}
         </h1>
         <p className="text-[13px] leading-relaxed text-slate-500">
-          {query
-            ? `${clinics.length} sonuç · puan, fiyat ve en erken saat`
-            : `${clinics.length} klinik · gerçek müsaitlikle karşılaştırın`}
+          {error
+            ? 'Arama geçici olarak kullanılamıyor'
+            : query
+              ? `${clinics.length} sonuç · puan ve gerçek müsaitlik`
+              : `${clinics.length} klinik · gerçek müsaitlikle karşılaştırın`}
         </p>
       </header>
+
+      <Suspense
+        fallback={
+          <div className="h-12 animate-pulse rounded-full bg-white/80 ring-1 ring-slate-200/80" />
+        }
+      >
+        <ClinicSearchInput />
+      </Suspense>
 
       <Suspense
         fallback={
@@ -75,10 +90,40 @@ export default async function ClientClinicsPage({
       </Suspense>
 
       <div className="space-y-3">
-        {clinics.length === 0 ? (
+        {error ? (
+          <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-rose-200/80">
+            <p className="text-sm font-bold text-slate-900">{error}</p>
+            <Link
+              href="/client/clinics"
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#0071E3] px-5 text-sm font-bold text-white"
+            >
+              Tekrar dene
+            </Link>
+          </div>
+        ) : clinics.length === 0 ? (
           <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-slate-200/80">
             <p className="text-sm font-bold text-slate-900">Eşleşen klinik yok</p>
-            <p className="mt-2 text-sm text-slate-500">Filtreleri gevşetin veya farklı bir arama deneyin.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {query
+                ? 'Farklı bir kelime deneyin veya filtreleri temizleyin.'
+                : 'Filtreleri gevşetin veya daha sonra tekrar bakın.'}
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {query ? (
+                <Link
+                  href="/client/clinics"
+                  className="inline-flex h-10 items-center rounded-full bg-slate-100 px-4 text-sm font-semibold text-slate-700"
+                >
+                  Aramayı temizle
+                </Link>
+              ) : null}
+              <Link
+                href="/client"
+                className="inline-flex h-10 items-center rounded-full bg-[#0071E3] px-4 text-sm font-bold text-white"
+              >
+                Ana sayfaya dön
+              </Link>
+            </div>
           </div>
         ) : (
           clinics.map((item) => (

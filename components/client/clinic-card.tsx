@@ -17,12 +17,12 @@ function formatDistanceKm(km: number | null) {
 
 function formatNextSlotLabel(
   nextAvailableAt: string | null,
-  labels: { none: string; today: string; tomorrow: string },
+  labels: { today: string; tomorrow: string },
   locale: string,
-) {
-  if (!nextAvailableAt) return labels.none
+): string | null {
+  if (!nextAvailableAt) return null
   const d = new Date(nextAvailableAt)
-  if (Number.isNaN(d.getTime())) return labels.none
+  if (Number.isNaN(d.getTime())) return null
 
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -44,6 +44,7 @@ function formatNextSlotLabel(
 export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
   const { t, language } = useLanguage()
   const locale = language === 'en' ? 'en-GB' : 'tr-TR'
+  const detailHref = `/client/clinics/${item.businessId}`
   const params = new URLSearchParams()
   if (item.doctorId) params.set('doctorId', item.doctorId)
   const qs = params.toString()
@@ -61,7 +62,6 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
   const nextSlotLabel = formatNextSlotLabel(
     item.nextAvailableAt,
     {
-      none: t({ tr: 'Saat yok', en: 'No slots' }),
       today: t({ tr: 'Bugün', en: 'Today' }),
       tomorrow: t({ tr: 'Yarın', en: 'Tomorrow' }),
     },
@@ -77,7 +77,7 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
     >
       <div className="flex gap-3 p-3">
         <Link
-          href={bookHref}
+          href={detailHref}
           className="relative size-[88px] shrink-0 overflow-hidden rounded-[1rem] bg-gradient-to-br from-[#0071E3] to-[#38BDF8]"
           aria-label={item.businessName}
         >
@@ -92,7 +92,7 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
 
         <div className="min-w-0 flex-1 py-0.5">
           <div className="flex items-start justify-between gap-2">
-            <Link href={bookHref} className="min-w-0">
+            <Link href={detailHref} className="min-w-0">
               <h3 className="truncate text-[15px] font-extrabold tracking-tight text-slate-900">
                 {item.businessName}
               </h3>
@@ -129,21 +129,31 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
             >
               {item.openNow ? t({ tr: 'Açık', en: 'Open' }) : t({ tr: 'Kapalı', en: 'Closed' })}
             </span>
-            <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
-              {nextSlotLabel}
-            </span>
+            {nextSlotLabel ? (
+              <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
+                {nextSlotLabel}
+              </span>
+            ) : null}
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{priceLabel}</span>
           </div>
         </div>
       </div>
 
-      <Link
-        href={bookHref}
-        className="rz-press flex h-11 items-center justify-center gap-1.5 border-t border-slate-100 text-[13px] font-bold text-[#0071E3] transition hover:bg-[#0071E3]/5"
-      >
-        {t({ tr: 'Randevu Al', en: 'Book' })}
-        <ArrowRight className="size-4" aria-hidden />
-      </Link>
+      <div className="grid grid-cols-2 border-t border-slate-100">
+        <Link
+          href={detailHref}
+          className="rz-press flex h-11 items-center justify-center gap-1.5 text-[13px] font-bold text-slate-700 transition hover:bg-slate-50"
+        >
+          {t({ tr: 'Detay', en: 'Details' })}
+        </Link>
+        <Link
+          href={bookHref}
+          className="rz-press flex h-11 items-center justify-center gap-1.5 border-l border-slate-100 text-[13px] font-bold text-[#0071E3] transition hover:bg-[#0071E3]/5"
+        >
+          {t({ tr: 'Randevu Al', en: 'Book' })}
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      </div>
     </article>
   )
 }

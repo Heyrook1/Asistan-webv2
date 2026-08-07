@@ -61,7 +61,7 @@ export default async function GuideArticlePage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <article className="bg-white pb-20 pt-28">
+      <article className="bg-white pb-20 pt-10">
         <div className="marketing-container max-w-3xl">
           <FadeUp>
             <Link

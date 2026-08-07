@@ -108,7 +108,7 @@ export default function ContactPage() {
 
   return (
     <MarketingPageShell>
-      <section className="relative overflow-hidden pb-16 pt-28 md:pt-32">
+      <section className="relative overflow-hidden pb-16 pt-10 md:pt-12">
         <div className="marketing-hero-bg absolute inset-0" />
         <div className="soft-grid absolute inset-0 opacity-60" />
         <div className="marketing-container relative z-10 grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">

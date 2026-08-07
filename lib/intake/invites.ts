@@ -46,7 +46,9 @@ export async function ensureIntakeInviteForAppointment(input: {
   }
 
   if (existing) {
-    await prisma.intakeInvite.delete({ where: { id: existing.id } })
+    await prisma.intakeInvite.deleteMany({
+      where: { id: existing.id, businessId: input.businessId },
+    })
   }
 
   const token = createIntakeToken()
@@ -93,7 +95,9 @@ export async function regenerateIntakeInviteToken(input: {
   }
 
   if (appointment.intakeInvite) {
-    await prisma.intakeInvite.delete({ where: { id: appointment.intakeInvite.id } })
+    await prisma.intakeInvite.deleteMany({
+      where: { id: appointment.intakeInvite.id, businessId: input.businessId },
+    })
   }
 
   return ensureIntakeInviteForAppointment({

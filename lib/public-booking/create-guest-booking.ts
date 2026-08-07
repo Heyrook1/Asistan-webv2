@@ -25,6 +25,8 @@ import {
   getIdempotentBookingResponse,
   IdempotencyConflictError,
   isValidIdempotencyKey,
+  hashBookingPayload,
+  IDEMPOTENCY_PAYLOAD_HASH_FIELD,
 } from '@/lib/public-booking/idempotency'
 import {
   runSlotAppointmentTransaction,
@@ -127,6 +129,7 @@ async function createGuestBookingOnce(
   payload: CreateClientBookingInput,
   idempotencyKey: string | null
 ) {
+  const payloadHash = hashBookingPayload(payload)
   return runSlotAppointmentTransaction({
     payload,
     clientUserId: null,
@@ -145,6 +148,7 @@ async function createGuestBookingOnce(
             intakeUrl: null,
             intakeFormName: null,
             message: bookingMessage(ctx.status),
+            [IDEMPOTENCY_PAYLOAD_HASH_FIELD]: payloadHash,
           })
         }
       : undefined,

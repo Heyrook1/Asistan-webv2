@@ -57,12 +57,12 @@ const CONFIG = {
     slug: 'asistan-demo-klinigi',
     name: 'Asistan Demo Klinigi',
     email: 'demo@asistan.health',
-    phone: '+90 212 555 0100',
-    address: 'Bagdat Cad. No:120 Kadikoy',
-    city: 'Istanbul',
-    locationLat: '40.987821',
-    locationLng: '29.048245',
-    timezone: 'Europe/Istanbul',
+    phone: '+90 392 555 0100',
+    address: 'Bedrettin Demirel Cad. No:120 Lefkoşa',
+    city: 'Lefkoşa',
+    locationLat: '35.185600',
+    locationLng: '33.382300',
+    timezone: 'Europe/Nicosia',
   },
   owner: {
     fullName: 'Dr. Ayse Yilmaz',
@@ -74,7 +74,7 @@ const CONFIG = {
     email: 'hasta.test@asistan.health',
     password: 'Hasta12345!',
     phone: '+90 555 900 0001',
-    city: 'Istanbul',
+    city: 'Lefkoşa',
   },
 }
 
@@ -186,17 +186,17 @@ const servicesSeed = [
 
 const locationsSeed = [
   {
-    name: 'Kadikoy Merkez',
-    address: 'Bagdat Cad. No:120 Kadikoy',
-    city: 'Istanbul',
-    phone: '+90 216 700 0001',
+    name: 'Lefkoşa Merkez',
+    address: 'Bedrettin Demirel Cad. No:120 Lefkoşa',
+    city: 'Lefkoşa',
+    phone: '+90 392 700 0001',
     sortOrder: 0,
   },
   {
-    name: 'Atasehir Poliklinik',
-    address: 'Atasehir Bulvari No:45 Atasehir',
-    city: 'Istanbul',
-    phone: '+90 216 700 0002',
+    name: 'Girne Şube',
+    address: 'Karaoğlanoğlu Cad. No:45 Girne',
+    city: 'Girne',
+    phone: '+90 392 700 0002',
     sortOrder: 1,
   },
 ]

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import {
   DISCOVERY_NEXT_AVAILABLE_QUERY_BUDGET,
   indexDiscoveryBusy,
@@ -61,6 +61,8 @@ export async function batchFindNextAvailable(
   today.setHours(0, 0, 0, 0)
   const horizonEnd = new Date(today)
   horizonEnd.setDate(horizonEnd.getDate() + horizon)
+
+  const prisma = catalogPrisma()
 
   const [services, rules, appointments, blocks] = await Promise.all([
     serviceIds.length === 0

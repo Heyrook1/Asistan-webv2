@@ -1,7 +1,7 @@
 import 'server-only'
 
 import type { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import type { AvailabilitySlot } from './types'
 import {
   getCurrentDateAndTimeForTimezone,
@@ -13,7 +13,7 @@ import {
   type BusyInterval,
 } from './availability-compute'
 
-type DbClient = Prisma.TransactionClient | typeof prisma
+type DbClient = Prisma.TransactionClient | ReturnType<typeof catalogPrisma>
 
 export type GetAvailableSlotsInput = {
   doctorId: string
@@ -139,7 +139,7 @@ async function getAvailableSlotsWithDb(
 }
 
 export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
-  return getAvailableSlotsWithDb(prisma, input)
+  return getAvailableSlotsWithDb(catalogPrisma(), input)
 }
 
 export async function getAvailableSlotsTx(

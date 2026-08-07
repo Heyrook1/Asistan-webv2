@@ -1,8 +1,21 @@
 import 'server-only'
 
+/**
+ * Misafir depozito görünümü / ödeme (HMAC `t` zorunlu).
+ *
+ * Eski düz `?depositId=` URL’leri bilinçli olarak kırık; erişim
+ * `verifyDepositAccessToken` ile. Okuma/yazma `runWithTenantBypass` altında
+ * ama deposit satırı token + id ile kilitlenir — enumerable ID tek sır değil.
+ */
+
 import { prisma } from '@/lib/prisma'
 import { isStripeBillingConfigured } from '@/lib/payments'
+import {
+  buildPublicDepositUrl,
+  verifyDepositAccessToken,
+} from '@/lib/payments/deposit-access'
 import { markAppointmentDepositPaid } from '@/lib/payments/deposit'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
 function siteOrigin() {
   return (
@@ -26,42 +39,62 @@ export type PublicDepositView = {
   error: string | null
 }
 
+function notFoundView(depositId: string): PublicDepositView {
+  return {
+    depositId,
+    amount: 0,
+    currency: 'TRY',
+    status: 'FAILED',
+    provider: 'MANUAL',
+    instructions: null,
+    clinicName: '',
+    payUrl: null,
+    stripeStatus: null,
+    error: 'Depozito bulunamadı veya bağlantı geçersiz',
+  }
+}
+
 /**
  * Public-safe deposit status for /book/deposit (no PHI beyond clinic name).
+ * Requires HMAC access token `t` (or Stripe return proof after gated load).
  */
 export async function getPublicDepositView(input: {
   depositId: string
+  accessToken?: string | null
   paymentIntentId?: string | null
   checkoutSessionId?: string | null
 }): Promise<PublicDepositView> {
-  const row = await prisma.appointmentDeposit.findUnique({
-    where: { id: input.depositId },
-    select: {
-      id: true,
-      amount: true,
-      currency: true,
-      status: true,
-      provider: true,
-      providerRef: true,
-      checkoutUrl: true,
-      instructions: true,
-      business: { select: { name: true } },
-    },
-  })
+  const depositId = input.depositId.trim()
+  if (!depositId) return notFoundView(depositId)
 
-  if (!row) {
-    return {
-      depositId: input.depositId,
-      amount: 0,
-      currency: 'TRY',
-      status: 'FAILED',
-      provider: 'MANUAL',
-      instructions: null,
-      clinicName: '',
-      payUrl: null,
-      stripeStatus: null,
-      error: 'Depozito bulunamadı',
-    }
+  const hasToken = verifyDepositAccessToken(depositId, input.accessToken)
+  const hasStripeReturn = Boolean(input.checkoutSessionId || input.paymentIntentId)
+  if (!hasToken && !hasStripeReturn) {
+    return notFoundView(depositId)
+  }
+
+  const row = await runWithTenantBypassAsync('deposit:public-read', () =>
+    prisma.appointmentDeposit.findUnique({
+      where: { id: depositId },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        status: true,
+        provider: true,
+        providerRef: true,
+        checkoutUrl: true,
+        instructions: true,
+        business: { select: { name: true } },
+      },
+    })
+  )
+
+  if (!row) return notFoundView(depositId)
+
+  // Stripe return without HMAC: only continue if PI/session will be checked below.
+  if (!hasToken && input.paymentIntentId && row.providerRef && input.paymentIntentId !== row.providerRef) {
+    return notFoundView(depositId)
   }
 
   const base: PublicDepositView = {
@@ -82,13 +115,16 @@ export async function getPublicDepositView(input: {
   }
 
   if (row.provider !== 'STRIPE' || !isStripeBillingConfigured()) {
+    if (!hasToken) return notFoundView(depositId)
     return base
   }
 
   const secret = process.env.STRIPE_SECRET_KEY?.trim()
-  if (!secret) return base
+  if (!secret) {
+    if (!hasToken) return notFoundView(depositId)
+    return base
+  }
 
-  // Prefer Checkout Session confirmation when returning from Stripe
   if (input.checkoutSessionId) {
     const sessionRes = await fetch(
       `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(input.checkoutSessionId)}`,
@@ -107,6 +143,7 @@ export async function getPublicDepositView(input: {
       await markAppointmentDepositPaid(row.id)
       return { ...base, status: 'PAID', payUrl: null, stripeStatus: 'paid' }
     }
+    if (!hasToken && !sessionRes.ok) return notFoundView(depositId)
   }
 
   const piId = input.paymentIntentId || row.providerRef
@@ -124,10 +161,13 @@ export async function getPublicDepositView(input: {
         await markAppointmentDepositPaid(row.id)
         return { ...base, status: 'PAID', payUrl: null, stripeStatus: 'succeeded' }
       }
+    } else if (!hasToken) {
+      return notFoundView(depositId)
     }
+  } else if (!hasToken) {
+    return notFoundView(depositId)
   }
 
-  // Ensure a fresh Checkout Session URL for card payment (no stripe.js required)
   const payUrl = await ensureDepositCheckoutSession({
     depositId: row.id,
     amount: Number(row.amount),
@@ -135,10 +175,12 @@ export async function getPublicDepositView(input: {
     clinicName: row.business.name,
   })
   if (payUrl) {
-    await prisma.appointmentDeposit.update({
-      where: { id: row.id },
-      data: { checkoutUrl: payUrl },
-    })
+    await runWithTenantBypassAsync('deposit:public-checkout-url', () =>
+      prisma.appointmentDeposit.update({
+        where: { id: row.id },
+        data: { checkoutUrl: payUrl },
+      })
+    )
     base.payUrl = payUrl
   }
 
@@ -156,10 +198,12 @@ async function ensureDepositCheckoutSession(input: {
 
   const origin = siteOrigin()
   const amountMinor = Math.round(input.amount * 100)
+  const successPath = buildPublicDepositUrl(input.depositId, origin)
+  const cancelPath = buildPublicDepositUrl(input.depositId, origin, { cancelled: '1' })
   const params = new URLSearchParams({
     mode: 'payment',
-    success_url: `${origin}/book/deposit?depositId=${input.depositId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/book/deposit?depositId=${input.depositId}&cancelled=1`,
+    success_url: `${successPath}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelPath,
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': input.currency.toLowerCase(),
     'line_items[0][price_data][unit_amount]': String(amountMinor),

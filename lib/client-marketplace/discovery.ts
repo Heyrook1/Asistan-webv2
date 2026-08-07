@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import { batchFindNextAvailable } from '@/lib/client-marketplace/discovery-next-available'
 import type {
@@ -57,6 +57,7 @@ export async function searchMarketplace(input: {
 }) {
   // Public catalog intentionally spans tenants; availability batch stays businessId-scoped in queries.
   return runWithTenantBypassAsync('marketplace:search-catalog', async () => {
+    const prisma = catalogPrisma()
     const filters = input.filters ?? {}
     const sort = input.sort ?? 'nearest'
 
@@ -70,6 +71,21 @@ export async function searchMarketplace(input: {
           : {}),
         business: {
           isActive: true,
+          // Demo vendor accounts and mainland-TR seed cities stay out of KKTC discovery.
+          NOT: {
+            OR: [
+              { vendorAccount: { isDemo: true } },
+              { city: { equals: 'İstanbul', mode: 'insensitive' } },
+              { city: { equals: 'Istanbul', mode: 'insensitive' } },
+              { city: { equals: 'Ataşehir', mode: 'insensitive' } },
+              { city: { equals: 'Ankara', mode: 'insensitive' } },
+              { city: { equals: 'İzmir', mode: 'insensitive' } },
+              { city: { equals: 'Izmir', mode: 'insensitive' } },
+              { address: { contains: 'Ataşehir', mode: 'insensitive' } },
+              { address: { contains: 'Istanbul', mode: 'insensitive' } },
+              { address: { contains: 'İstanbul', mode: 'insensitive' } },
+            ],
+          },
           ...(filters.city ? { city: { equals: filters.city, mode: 'insensitive' } } : {}),
         },
       },
@@ -174,7 +190,8 @@ export async function searchMarketplace(input: {
         const inDoctor = doctor.fullName.toLowerCase().includes(q)
         const inClinic = doctor.business.name.toLowerCase().includes(q)
         const inSpecialty = (doctor.specialty ?? '').toLowerCase().includes(q)
-        if (!inDoctor && !inClinic && !inSpecialty) continue
+        const inService = services.some((service) => service.name.toLowerCase().includes(q))
+        if (!inDoctor && !inClinic && !inSpecialty && !inService) continue
       }
 
       const prices = services

@@ -1,8 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, ArrowRightLeft } from 'lucide-react'
-import { motion } from 'framer-motion'
+import {
+  ArrowDown,
+  ArrowRight,
+  Building2,
+  LockKeyhole,
+  Link2,
+  Sparkles,
+} from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
 
 import { useLandingLocale } from '@/components/sections/landing-locale'
 import {
@@ -16,36 +23,47 @@ import { Button } from '@/components/ui/button'
 
 const COPY = {
   tr: {
-    badge: 'Ölçülen operasyon',
-    title: 'KKTC pilot sonuç çerçeveleri',
-    description:
-      'Sahte logo yok. Anonim süreç pilotları: tek ajanda, rol erişimi, genel randevu linki — yüzdelik no-show/NPS yalnızca imzalı kayıtla eklenir.',
+    badge: 'Pilot sonuçları',
+    title: 'Üç klinik tipi. Aynı net dönüşüm.',
+    description: 'Anonim erken erişim pilotları — sahte logo veya uydurma yüzde yok.',
     before: 'Önce',
     after: 'Sonra',
-    cta: 'Tüm sonuç çerçevesini gör',
+    cta: 'Tüm sonuçları gör',
     liveTitle: 'Canlı platform sinyali',
-    liveEmpty: 'Yeterli randevu örneği birikince platform no-show oranı burada açılır.',
-    liveNoShow: 'Platform no-show oranı',
-    liveSample: 'örnek (tamamlanan + gelinmedi)',
+    liveEmpty: 'Yeterli randevu örneği birikince burada açılır.',
+    liveNoShow: 'No-show oranı',
+    liveSample: 'örnek',
     liveClinics: 'Aktif klinik',
-    liveReviews: 'Doğrulanmış yorum ort.',
+    liveReviews: 'Yorum ort.',
   },
   en: {
-    badge: 'Measured operations',
-    title: 'Northern Cyprus pilot outcome frames',
-    description:
-      'No fake logos. Anonymized process pilots: one agenda, role access, public book link — percentage no-show/NPS only via signed records.',
+    badge: 'Pilot outcomes',
+    title: 'Three clinic types. One clear shift.',
+    description: 'Anonymized early-access pilots — no fake logos or invented percentages.',
     before: 'Before',
     after: 'After',
-    cta: 'See full outcomes page',
+    cta: 'See all outcomes',
     liveTitle: 'Live platform signal',
-    liveEmpty: 'Platform no-show rate unlocks once enough appointment samples exist.',
-    liveNoShow: 'Platform no-show rate',
-    liveSample: 'sample (completed + no-show)',
+    liveEmpty: 'Unlocks once enough appointment samples exist.',
+    liveNoShow: 'No-show rate',
+    liveSample: 'sample',
     liveClinics: 'Active clinics',
-    liveReviews: 'Verified review avg.',
+    liveReviews: 'Review avg.',
   },
 } as const
+
+const CASE_ICONS: Record<string, typeof Building2> = {
+  'kktc-dental-single-agenda': Sparkles,
+  'kktc-multi-staff-roles': LockKeyhole,
+  'kktc-aesthetic-public-book': Link2,
+}
+
+/** Split "A + B → C" headlines into before/after for faster scanning. */
+function splitHeadline(headline: string): { before: string; after: string } | null {
+  const parts = headline.split(/\s*→\s*/)
+  if (parts.length !== 2) return null
+  return { before: parts[0].trim(), after: parts[1].trim() }
+}
 
 function CaseCard({
   item,
@@ -58,41 +76,91 @@ function CaseCard({
   beforeLabel: string
   afterLabel: string
 }) {
-  return (
-    <article className="flex h-full flex-col rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-        {item.clinicType[locale]}
-      </p>
-      <h3 className="mt-2 text-lg font-bold leading-snug text-[#1D1D1F]">{item.headline[locale]}</h3>
-      <p className="mt-1 text-xs text-slate-500">
-        {item.region[locale]} · {item.period[locale]}
-      </p>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{item.summary[locale]}</p>
+  const reduceMotion = useReducedMotion()
+  const Icon = CASE_ICONS[item.id] ?? Building2
+  const split = splitHeadline(item.headline[locale])
+  // Show at most 2 metrics on the card — keep scan easy
+  const metrics = item.metrics.slice(0, 2)
 
-      <ul className="mt-5 space-y-3">
-        {item.metrics.map((metric) => (
-          <li key={metric.id} className="rounded-2xl border border-slate-100 bg-[#F8FAFC] px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              {metric.label[locale]}
-            </p>
-            <div className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-[#1D1D1F]">
-              <span className="text-slate-500">
-                <span className="text-[10px] font-medium uppercase text-slate-400">{beforeLabel}</span>{' '}
-                {metric.before}
-              </span>
-              <ArrowRightLeft className="size-3.5 shrink-0 text-[#0071E3]" aria-hidden />
-              <span>
-                <span className="text-[10px] font-medium uppercase text-[#0071E3]">{afterLabel}</span>{' '}
-                {metric.after}
+  return (
+    <motion.article
+      variants={revealSoft}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
+      transition={{ duration: 0.25 }}
+      className="flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-slate-200/90 bg-white shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)]"
+    >
+      <div className="border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-[#EEF6FF] text-[#0071E3]">
+            <Icon className="size-4" aria-hidden />
+          </span>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#0071E3]">
+            {item.clinicType[locale]}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-4 px-5 py-5">
+        {split ? (
+          <div className="space-y-2">
+            <div className="rounded-xl bg-slate-50 px-3.5 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                {beforeLabel}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-snug text-slate-500 line-through decoration-slate-300">
+                {split.before}
+              </p>
+            </div>
+            <div className="flex justify-center" aria-hidden>
+              <span className="flex size-7 items-center justify-center rounded-full bg-[#0071E3] text-white shadow-sm shadow-[#0071E3]/30">
+                <ArrowDown className="size-3.5" />
               </span>
             </div>
-            {metric.note ? <p className="mt-1 text-[11px] text-slate-500">{metric.note[locale]}</p> : null}
-          </li>
-        ))}
-      </ul>
+            <div className="rounded-xl border border-[#0071E3]/20 bg-[#EEF6FF]/70 px-3.5 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#0071E3]">
+                {afterLabel}
+              </p>
+              <p className="mt-1 text-base font-extrabold leading-snug text-[#1D1D1F]">
+                {split.after}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <h3 className="text-lg font-extrabold leading-snug text-[#1D1D1F]">
+            {item.headline[locale]}
+          </h3>
+        )}
 
-      <p className="mt-auto pt-4 text-[11px] leading-4 text-slate-400">{item.sourceLabel[locale]}</p>
-    </article>
+        <p className="text-sm leading-relaxed text-[#5D6068]">{item.summary[locale]}</p>
+
+        <ul className="mt-auto space-y-2">
+          {metrics.map((metric) => (
+            <li
+              key={metric.id}
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-slate-100 bg-[#FAFBFC] px-2.5 py-2.5"
+            >
+              <div className="min-w-0 text-left">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                  {beforeLabel}
+                </p>
+                <p className="truncate text-[12px] font-semibold text-slate-500">{metric.before}</p>
+              </div>
+              <ArrowRight className="size-3.5 shrink-0 text-[#0071E3]" aria-hidden />
+              <div className="min-w-0 text-right">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#0071E3]">
+                  {afterLabel}
+                </p>
+                <p className="truncate text-[12px] font-extrabold text-[#1D1D1F]">{metric.after}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <p className="text-[11px] text-slate-400">
+          {item.region[locale]} · {item.period[locale]}
+        </p>
+      </div>
+    </motion.article>
   )
 }
 
@@ -103,52 +171,58 @@ export function OutcomeCasesSection({
 }: {
   live?: PlatformOutcomeSnapshot | null
   cases?: OutcomeCase[]
-  /** Hide “full page” CTA when already on /sonuclar */
   showDetailCta?: boolean
 }) {
   const { locale: landingLocale } = useLandingLocale()
   const locale = landingLocale === 'en' ? 'en' : 'tr'
   const copy = COPY[locale]
+  const reduceMotion = useReducedMotion()
 
   return (
-    <section id="sonuclar" className="relative overflow-hidden py-20 md:py-24">
+    <section id="stories" className="relative scroll-mt-28 overflow-hidden py-16 md:py-20">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(0,113,227,0.06),_transparent_55%)]" />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="mx-auto mb-10 max-w-3xl text-center"
+          className="mx-auto mb-10 max-w-2xl text-center"
           variants={revealSoft}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.55, ease: appleEase }}
         >
-          <p className="mb-4 inline-block rounded-full bg-[#0071E3]/10 px-4 py-1.5 text-sm font-bold text-[#0071E3]">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#0071E3]">
             {copy.badge}
           </p>
-          <h2 className="text-3xl font-black tracking-tight text-[#1D1D1F] md:text-5xl">{copy.title}</h2>
-          <p className="mt-5 text-base leading-7 text-slate-600">{copy.description}</p>
+          <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#1D1D1F] md:text-4xl">
+            {copy.title}
+          </h2>
+          <p className="mt-3 text-base leading-relaxed text-[#5D6068]">{copy.description}</p>
         </motion.div>
 
         <motion.div
-          className="grid gap-4 md:grid-cols-3"
-          variants={staggerContainer(0.08, 0.02)}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
+          className="grid gap-5 md:grid-cols-3"
+          variants={reduceMotion ? undefined : staggerContainer(0.1, 0.02)}
+          initial={reduceMotion ? undefined : 'hidden'}
+          whileInView={reduceMotion ? undefined : 'visible'}
+          viewport={{ once: true, amount: 0.15 }}
         >
           {cases.map((item) => (
-            <motion.div key={item.id} variants={revealSoft}>
-              <CaseCard item={item} locale={locale} beforeLabel={copy.before} afterLabel={copy.after} />
-            </motion.div>
+            <CaseCard
+              key={item.id}
+              item={item}
+              locale={locale}
+              beforeLabel={copy.before}
+              afterLabel={copy.after}
+            />
           ))}
         </motion.div>
 
         {live ? (
-          <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
             <p className="text-sm font-bold text-[#1D1D1F]">{copy.liveTitle}</p>
             {live.ready && live.noShowRatePct != null ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-slate-100 bg-[#F8FAFC] px-4 py-3">
+                <div className="rounded-xl border border-slate-100 bg-[#F8FAFC] px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     {copy.liveNoShow}
                   </p>
@@ -157,20 +231,19 @@ export function OutcomeCasesSection({
                     {live.sampleSize} {copy.liveSample}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-100 bg-[#F8FAFC] px-4 py-3">
+                <div className="rounded-xl border border-slate-100 bg-[#F8FAFC] px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     {copy.liveClinics}
                   </p>
                   <p className="mt-1 text-2xl font-black text-[#1D1D1F]">{live.activeClinics}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-100 bg-[#F8FAFC] px-4 py-3">
+                <div className="rounded-xl border border-slate-100 bg-[#F8FAFC] px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     {copy.liveReviews}
                   </p>
                   <p className="mt-1 text-2xl font-black text-[#1D1D1F]">
                     {live.averageRating != null ? live.averageRating.toFixed(1) : '—'}
                   </p>
-                  <p className="text-[11px] text-slate-500">{live.reviewCount} kayıt</p>
                 </div>
               </div>
             ) : (
@@ -179,13 +252,13 @@ export function OutcomeCasesSection({
           </div>
         ) : null}
 
-        <p className="mx-auto mt-6 max-w-3xl text-center text-[11px] leading-5 text-slate-400">
+        <p className="mx-auto mt-6 max-w-2xl text-center text-[11px] leading-5 text-slate-400">
           {OUTCOME_CASES_DISCLAIMER[locale]}
         </p>
 
         {showDetailCta ? (
           <div className="mt-8 text-center">
-            <Button asChild className="rounded-xl bg-[#0071E3] text-white hover:bg-[#0071E3]/90">
+            <Button asChild className="rounded-xl bg-[#0071E3] text-white hover:bg-[#0063C8]">
               <Link href="/sonuclar">
                 {copy.cta}
                 <ArrowRight className="ml-1.5 size-4" />

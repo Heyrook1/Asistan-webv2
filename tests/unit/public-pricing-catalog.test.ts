@@ -44,10 +44,7 @@ describe('public pricing catalog', () => {
   })
 
   it('marketing pages use the shared marketing plan card catalog', () => {
-    const files = [
-      'components/sections/pricing-section.tsx',
-      'components/marketing/pricing-page-sections.tsx',
-    ]
+    const files = ['components/marketing/pricing-page-sections.tsx']
     for (const rel of files) {
       const source = readFileSync(path.join(process.cwd(), rel), 'utf8')
       expect(source, rel).toContain('listPublicMarketingPlanCards')

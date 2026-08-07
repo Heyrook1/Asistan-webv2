@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CalendarDays, HeartPulse, Loader2, LogOut, Search, UserRound } from 'lucide-react'
+import {
+  CalendarDays,
+  Eye,
+  EyeOff,
+  HeartPulse,
+  Loader2,
+  LogOut,
+  Search,
+  UserRound,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -26,14 +35,38 @@ async function getAccessToken() {
   return data.session?.access_token ?? null
 }
 
+async function claimGuestBookings(token: string) {
+  const res = await fetch('/api/client/bookings/claim', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) return
+  const json = (await res.json().catch(() => null)) as {
+    ok?: boolean
+    data?: { claimed?: number; message?: string }
+    claimed?: number
+    message?: string
+  } | null
+  const claimed = json?.data?.claimed ?? json?.claimed ?? 0
+  const message = json?.data?.message ?? json?.message
+  if (claimed > 0) {
+    toast.success(message || `${claimed} misafir randevu hesabınıza bağlandı.`)
+  } else if (message) {
+    toast.message(message)
+  }
+}
+
 export function ClientProfilePanel() {
   const [booting, setBooting] = useState(true)
   const [authed, setAuthed] = useState(false)
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [authName, setAuthName] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [authBusy, setAuthBusy] = useState(false)
+  const [verifyHint, setVerifyHint] = useState(false)
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [fullName, setFullName] = useState('')
@@ -42,8 +75,9 @@ export function ClientProfilePanel() {
   const [city, setCity] = useState('')
   const [address, setAddress] = useState('')
   const [saving, setSaving] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async (opts?: { claim?: boolean }) => {
     const token = await getAccessToken()
     if (!token) {
       setAuthed(false)
@@ -56,10 +90,14 @@ export function ClientProfilePanel() {
     if (!res.ok) {
       setAuthed(false)
       setProfile(null)
+      if (res.status === 401 || res.status === 403) {
+        setVerifyHint(true)
+      }
       return
     }
     const json = (await res.json()) as { profile: Profile | null }
     setAuthed(true)
+    setVerifyHint(false)
     setProfile(json.profile)
     if (json.profile) {
       setFullName(json.profile.fullName ?? '')
@@ -68,6 +106,9 @@ export function ClientProfilePanel() {
       setCity(json.profile.city ?? '')
       setAddress(json.profile.address ?? '')
     }
+    if (opts?.claim) {
+      await claimGuestBookings(token)
+    }
   }, [])
 
   useEffect(() => {
@@ -75,7 +116,6 @@ export function ClientProfilePanel() {
     void (async () => {
       setBooting(true)
       try {
-        // CI may use a placeholder Supabase host — never leave the gate spinner forever.
         const token = await Promise.race([
           getAccessToken(),
           new Promise<null>((resolve) => {
@@ -88,7 +128,7 @@ export function ClientProfilePanel() {
           setProfile(null)
           return
         }
-        await loadProfile()
+        await loadProfile({ claim: true })
       } catch {
         if (!cancelled) {
           setAuthed(false)
@@ -110,27 +150,56 @@ export function ClientProfilePanel() {
       toast.error('Geçerli e-posta ve en az 6 karakter şifre girin')
       return
     }
+    if (mode === 'register' && !acceptedTerms) {
+      toast.error('Devam etmek için gizlilik ve kullanım koşullarını kabul edin')
+      return
+    }
     setAuthBusy(true)
     const supabase = createClient()
     try {
+      const gateRes = await fetch('/api/auth/gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: mode === 'login' ? 'login' : 'register' }),
+      })
+      if (gateRes.status === 429) {
+        toast.error('Çok fazla deneme. 15 dakika sonra tekrar deneyin.')
+        return
+      }
+
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email: trimmed, password })
-        if (error) throw error
+        if (error) {
+          toast.error('Giriş başarısız. E-posta veya şifreyi kontrol edin.')
+          return
+        }
         toast.success('Giriş yapıldı')
+        await loadProfile({ claim: true })
       } else {
-        const { error } = await supabase.auth.signUp({
+        const origin = window.location.origin
+        const { data, error } = await supabase.auth.signUp({
           email: trimmed,
           password,
           options: {
             data: { full_name: authName.trim() || trimmed.split('@')[0] },
+            emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent('/client/profile')}`,
           },
         })
-        if (error) throw error
-        toast.success('Hesap oluşturuldu. Giriş yapıldıysa randevularınıza gidebilirsiniz.')
+        if (error) {
+          toast.error('Kayıt tamamlanamadı. Lütfen tekrar deneyin.')
+          return
+        }
+        if (data.session) {
+          toast.success('Hesap oluşturuldu')
+          await loadProfile({ claim: true })
+        } else {
+          setVerifyHint(true)
+          setMode('login')
+          toast.success('Doğrulama e-postası gönderildi. Gelen kutunuzu kontrol edin.')
+        }
       }
-      await loadProfile()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kimlik doğrulama başarısız')
+    } catch {
+      toast.error('Kimlik doğrulama başarısız. Lütfen tekrar deneyin.')
     } finally {
       setAuthBusy(false)
     }
@@ -158,11 +227,22 @@ export function ClientProfilePanel() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((json as { error?: string }).error || 'Kayıt başarısız')
       toast.success('Profil güncellendi')
-      await loadProfile()
+      await loadProfile({ claim: true })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Kayıt başarısız')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleClaim() {
+    const token = await getAccessToken()
+    if (!token) return
+    setClaiming(true)
+    try {
+      await claimGuestBookings(token)
+    } finally {
+      setClaiming(false)
     }
   }
 
@@ -194,6 +274,12 @@ export function ClientProfilePanel() {
             Randevularınızı takip etmek için giriş yapın. Hesap olmadan da kliniklerden randevu alabilirsiniz.
           </p>
         </header>
+
+        {verifyHint ? (
+          <div className="rounded-[1.15rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            E-posta doğrulaması gerekli. Gelen kutunuzdaki bağlantıyı açtıktan sonra tekrar giriş yapın.
+          </div>
+        ) : null}
 
         <div className="rounded-[1.35rem] bg-white/90 p-4 ring-1 ring-slate-900/5">
           <div className="mb-4 flex gap-1 rounded-full bg-slate-100/80 p-1">
@@ -250,16 +336,59 @@ export function ClientProfilePanel() {
               <label htmlFor="client-auth-password" className="mb-1.5 block text-xs font-medium text-slate-500">
                 Şifre
               </label>
-              <Input
-                id="client-auth-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                required
-                minLength={6}
-              />
+              <div className="relative">
+                <Input
+                  id="client-auth-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  required
+                  minLength={6}
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-slate-700"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
+
+            {mode === 'register' ? (
+              <label className="flex items-start gap-2 text-[12px] leading-relaxed text-slate-600">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 rounded border-slate-300"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                />
+                <span>
+                  <Link href="/privacy" className="font-semibold text-[#0071E3] underline-offset-2 hover:underline">
+                    Gizlilik
+                  </Link>
+                  {' '}ve{' '}
+                  <Link href="/terms" className="font-semibold text-[#0071E3] underline-offset-2 hover:underline">
+                    kullanım koşullarını
+                  </Link>{' '}
+                  okudum, kabul ediyorum.
+                </span>
+              </label>
+            ) : (
+              <div className="text-right">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-[12px] font-semibold text-[#0071E3] underline-offset-2 hover:underline"
+                >
+                  Şifremi unuttum
+                </Link>
+              </div>
+            )}
+
             <Button
               type="submit"
               disabled={authBusy}
@@ -347,6 +476,24 @@ export function ClientProfilePanel() {
         >
           {saving ? 'Kaydediliyor…' : 'Kaydet'}
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={claiming}
+          className="h-11 w-full rounded-xl"
+          onClick={handleClaim}
+        >
+          {claiming ? 'Bağlanıyor…' : 'Misafir randevularımı bağla'}
+        </Button>
+        <p className="text-center text-[11px] text-slate-400">
+          <Link href="/privacy" className="underline-offset-2 hover:underline">
+            Gizlilik
+          </Link>
+          {' · '}
+          <Link href="/terms" className="underline-offset-2 hover:underline">
+            Kullanım koşulları
+          </Link>
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

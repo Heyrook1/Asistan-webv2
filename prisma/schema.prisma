@@ -312,6 +312,7 @@ model Business {
   clinicInvoices    ClinicInvoice[]
   frontDeskSessions FrontDeskSession[]
   patientChannelAttempts PatientChannelAttempt[]
+  notificationOutboxes NotificationOutbox[]
   members           TeamMember[]
   patients          Patient[]
   services          Service[]
@@ -456,6 +457,29 @@ model PatientChannelAttempt {
 
   @@index([businessId, createdAt])
   @@index([businessId, status, createdAt])
+}
+
+/// Durable patient outbound queue — failed sends retry with backoff (Faz 4).
+model NotificationOutbox {
+  id            String   @id @default(uuid())
+  businessId    String
+  appointmentId String?
+  patientId     String?
+  channel       String
+  kind          String
+  /// Full ReminderPayload JSON (includes `to` — not shown in patient UI).
+  payload       Json
+  status        String   @default("pending") // pending | sent | dead
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([businessId, createdAt])
 }
 
 /// Clinic service invoice draft (KKTC e-Fatura path). Not TR GİB e-SMM submission.

@@ -62,7 +62,7 @@ export default function AboutPage() {
   return (
     <MarketingPageShell>
       {/* Hero — brand + story promise */}
-      <section className="relative overflow-hidden pb-16 pt-28 md:pb-24 md:pt-32">
+      <section className="relative overflow-hidden pb-16 pt-10 md:pb-24 md:pt-12">
         <div className="marketing-hero-bg absolute inset-0" />
         <div className="soft-grid absolute inset-0 opacity-50" />
         <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[48%] lg:block">

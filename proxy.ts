@@ -1,3 +1,11 @@
+/**
+ * Next.js edge proxy (eski middleware) — oturum, CSP nonce, CORS, auth yönlendirme.
+ *
+ * Supabase session yeniler; dashboard/book/intake için CSP nonce üretir;
+ * `/api/client/*` CORS allowlist uygular. İş mantığı burada yok — sadece
+ * request kapısı.
+ */
+
 import { getLoginPath, getRegisterPath, normalizeAuthLanguage } from '@/lib/auth-routes'
 import {
   applyResponseSecurityHeaders,
@@ -13,9 +21,9 @@ function authLanguageFromRequest(request: NextRequest) {
 }
 
 /**
- * Per-request CSP nonce for dynamic PHI surfaces (dashboard / book / intake).
- * Set on the *request* CSP header so Next.js tags its inline scripts, and on
- * the *response* CSP so browsers enforce it. Dev + static routes: no nonce.
+ * İstek başına CSP nonce (dashboard / book / intake PHI yüzeyleri).
+ * Request CSP’ye yazılır (Next inline script etiketler); response’ta tarayıcı uygular.
+ * Dev + nonce-dışı path: null.
  */
 function issueCspNonce(request: NextRequest): string | null {
   if (process.env.NODE_ENV === 'development') return null
@@ -35,7 +43,7 @@ function issueCspNonce(request: NextRequest): string | null {
   return nonce
 }
 
-/** Redirect while keeping ?query (e.g. reason=package-expired). */
+/** Query string’i koruyarak yönlendir (örn. reason=package-expired). */
 function redirectWithSearch(request: NextRequest, pathname: string) {
   const url = request.nextUrl.clone()
   url.pathname = pathname

@@ -53,7 +53,7 @@ export default async function PatientDetailPage({
 
   const age = ageFromBirthDate(patient.birthDate)
 
-  const [services, staff, locations, prescriptions, intakeResponses, intakeInvites] = await Promise.all([
+  const [services, staff, locations, prescriptions, intakeResponses, intakeInvites, doctors] = await Promise.all([
     prisma.service.findMany({
       where: { businessId: session.businessId, isActive: true },
       orderBy: { name: 'asc' },
@@ -109,22 +109,21 @@ export default async function PatientDetailPage({
           take: 20,
         })
       : Promise.resolve([]),
+    prisma.teamMember.findMany({
+      where: { businessId: session.businessId, isActive: true, role: 'DOKTOR' },
+      orderBy: { fullName: 'asc' },
+      select: {
+        id: true,
+        fullName: true,
+        specialty: true,
+        prescriptionTitle: true,
+        kktcIdentityNo: true,
+        medicalLicenseNo: true,
+        diplomaNo: true,
+        phone: true,
+      },
+    }),
   ])
-
-  const doctors = await prisma.teamMember.findMany({
-    where: { businessId: session.businessId, isActive: true, role: 'DOKTOR' },
-    orderBy: { fullName: 'asc' },
-    select: {
-      id: true,
-      fullName: true,
-      specialty: true,
-      prescriptionTitle: true,
-      kktcIdentityNo: true,
-      medicalLicenseNo: true,
-      diplomaNo: true,
-      phone: true,
-    },
-  })
 
   const initials = patient.fullName
     .split(' ')

@@ -83,6 +83,15 @@ export const RLS_ECOSYSTEM_DENY_TABLES: readonly string[] = [
   'BookingIdempotency',
 ] as const
 
+/** Q3 clinic money / front-desk — GUC app.business_id (fixed 20260730) */
+export const RLS_Q3_BUSINESS_SCOPED_TABLES: readonly string[] = [
+  'AppointmentDeposit',
+  'ClinicInvoice',
+  'FrontDeskSession',
+  'PatientChannelAttempt',
+  'NotificationOutbox',
+] as const
+
 /**
  * Full required set for production RLS verify (`pnpm check:production`).
  */
@@ -92,6 +101,10 @@ export const REQUIRED_RLS_TABLES: readonly RlsExpectation[] = [
   ...RLS_ECOSYSTEM_DENY_TABLES.map((table) => ({
     table,
     reason: 'ecosystem deny-default migration 20260716',
+  })),
+  ...RLS_Q3_BUSINESS_SCOPED_TABLES.map((table) => ({
+    table,
+    reason: 'Q3 business GUC RLS (deposit/invoice/front-desk)',
   })),
 ]
 

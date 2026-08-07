@@ -5,7 +5,13 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { hashIdempotencyKey } from '@/lib/public-booking/idempotency-key'
 
-export { hashIdempotencyKey, isValidIdempotencyKey } from '@/lib/public-booking/idempotency-key'
+export {
+  hashIdempotencyKey,
+  hashBookingPayload,
+  isValidIdempotencyKey,
+  IDEMPOTENCY_PAYLOAD_HASH_FIELD,
+  stripIdempotencyMeta,
+} from '@/lib/public-booking/idempotency-key'
 
 const TTL_MS = 24 * 60 * 60 * 1000
 

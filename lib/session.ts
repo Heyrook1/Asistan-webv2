@@ -1,5 +1,14 @@
 import 'server-only'
 
+/**
+ * Klinik panel oturumu (Asistan Health).
+ *
+ * Supabase Auth → TeamMember / VendorAccount çözümler; RBAC izinleri,
+ * demo paket süresi ve support-mode çerezi burada birleşir.
+ * Sayfa/API koruması: `requireSession` / `requirePermission` / `requirePagePermission`.
+ * Hasta (client) auth ayrıdır → `lib/client-marketplace/auth.ts`.
+ */
+
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'

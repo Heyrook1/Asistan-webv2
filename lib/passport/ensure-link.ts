@@ -31,6 +31,10 @@ async function readPersonGpi(personId: string): Promise<{ personId: string; gpiD
 
 /**
  * Ensure ClientUser has Person (GPI). Soft-fail when no contact signal.
+ *
+ * Sadece doğrulanmış client oturumu (requireClientAuth) sonrası çağrılmalı —
+ * e-posta/telefon metniyle sessiz Person birleştirme hasta yüzünde kapı değildir;
+ * skor kapısı `resolveOrCreatePerson` içinde kalır, staff kuyruğu zayıf eşleşmeler içindir.
  */
 export async function ensureClientUserPersonLink(input: {
   clientUserId: string

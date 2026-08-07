@@ -1,3 +1,12 @@
+/**
+ * Uygulama Prisma istemcisi — soft-delete middleware + tenant-guard.
+ *
+ * `prisma://` Accelerate URL’sinde `directUrl` kullanılır. Soft-delete
+ * modellerinde `deletedAt` süzülür; `Business` bilinçli olarak dışarıda
+ * (eski DB’de kolon yoksa session bootstrap P2022 olmasın).
+ * Kiracı filtresi: `applyTenantGuard` (RLS’ye ek uygulama kapısı).
+ */
+
 import { Prisma, PrismaClient } from '@prisma/client'
 import { env } from '@/lib/env'
 import { applyTenantGuard } from '@/lib/security/tenant-guard'

@@ -100,7 +100,7 @@ export default async function TrustCenterPage() {
 
   return (
     <MarketingPageShell>
-      <section className="relative overflow-hidden pb-16 pt-28 md:pb-20 md:pt-32">
+      <section className="relative overflow-hidden pb-16 pt-10 md:pb-20 md:pt-12">
         <div className="marketing-hero-bg absolute inset-0" />
         <div className="soft-grid absolute inset-0 opacity-60" />
         <div className="marketing-container relative z-10">

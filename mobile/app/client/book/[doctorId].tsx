@@ -69,14 +69,12 @@ export default function ClientBookDoctorScreen() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
   const [slots, setSlots] = useState<AvailabilitySlot[]>([])
   const [selectedStart, setSelectedStart] = useState<string | null>(prefStart)
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
-  const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
 
   useEffect(() => {
     if (!doctorId) return
@@ -92,12 +90,10 @@ export default function ClientBookDoctorScreen() {
           setFullName(profileResponse.profile.fullName ?? '')
           setPhone(profileResponse.profile.phone ?? '')
           setEmail(profileResponse.profile.email ?? '')
-          setAddress(profileResponse.profile.address ?? '')
-          setCity(profileResponse.profile.city ?? '')
         }
       })
       .catch((e) => {
-        Alert.alert('Hata', e instanceof Error ? e.message : 'Randevu ekrani acilamadi')
+        Alert.alert('Hata', e instanceof Error ? e.message : 'Randevu ekranı açılamadı')
       })
       .finally(() => setLoading(false))
   }, [doctorId, prefServiceId])
@@ -131,14 +127,17 @@ export default function ClientBookDoctorScreen() {
     () => doctor?.services.find((service) => service.id === selectedServiceId) ?? null,
     [doctor, selectedServiceId]
   )
-  const selectedSlot = useMemo(() => slots.find((slot) => slot.startTime === selectedStart) ?? null, [slots, selectedStart])
+  const selectedSlot = useMemo(
+    () => slots.find((slot) => slot.startTime === selectedStart) ?? null,
+    [slots, selectedStart]
+  )
   const canContinueStep1 = Boolean(selectedServiceId)
   const canContinueStep2 = Boolean(selectedStart)
-  const canContinueStep3 = Boolean(fullName.trim() && phone.trim())
+  const canSubmit = Boolean(fullName.trim() && phone.trim() && selectedServiceId && selectedStart)
 
   async function submitBooking() {
     if (!doctor || !selectedServiceId || !selectedStart) {
-      Alert.alert('Eksik bilgi', 'Lutfen hizmet ve saat secin.')
+      Alert.alert('Eksik bilgi', 'Lütfen hizmet ve saat seçin.')
       return
     }
     if (!fullName.trim() || !phone.trim()) {
@@ -162,19 +161,20 @@ export default function ClientBookDoctorScreen() {
         phone: phone.trim(),
         email: email.trim() || null,
         note: note.trim() || null,
-        address: address.trim() || null,
-        city: city.trim() || null,
       })
 
       if (!result.ok) {
-        Alert.alert('Randevu olusturulamadi', result.error ?? 'Lutfen tekrar deneyin.')
+        Alert.alert('Randevu oluşturulamadı', result.error ?? 'Lütfen tekrar deneyin.')
         return
       }
 
-      Alert.alert('Basarili', result.data?.message ?? 'Randevu olusturuldu.')
-      router.replace('/client/appointments')
+      Alert.alert(
+        'Randevu oluşturuldu',
+        result.data?.message ?? 'Randevunuz kaydedildi — Randevular sekmesinden yönetebilirsiniz.',
+        [{ text: 'Randevularım', onPress: () => router.replace('/client/appointments') }]
+      )
     } catch (e) {
-      Alert.alert('Hata', e instanceof Error ? e.message : 'Randevu olusturulamadi')
+      Alert.alert('Hata', e instanceof Error ? e.message : 'Randevu oluşturulamadı')
     } finally {
       setSaving(false)
     }
@@ -192,32 +192,32 @@ export default function ClientBookDoctorScreen() {
     )
   }
 
-  const progressWidth = `${(step / 4) * 100}%` as DimensionValue
+  const progressWidth = `${(step / 3) * 100}%` as DimensionValue
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={[styles.hero, { backgroundColor: theme.colors.heroMid }]}>
           <AppText variant="title" color="#FFFFFF">
-            Premium Randevu
+            Randevu al
           </AppText>
           <AppText variant="caption" color="#D5E5FF">
-            {doctor.fullName} - {doctor.clinic.name}
+            {doctor.fullName} · {doctor.clinic.name}
           </AppText>
           <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
             <View style={[styles.progressValue, { width: progressWidth }]} />
           </View>
           <View style={styles.progressMeta}>
-            <Badge label={`Adim ${step}/4`} tone="info" />
+            <Badge label={`Adım ${step}/3`} tone="info" />
             <AppText variant="micro" color="#D5E5FF">
-              Hatasiz onay icin bilgilerini adim adim tamamla
+              Hizmet → Saat → Onay
             </AppText>
           </View>
         </View>
 
         {step === 1 ? (
           <AppCard>
-            <SectionHeader title="1) Hizmet secimi" subtitle="Ihtiyacina uygun hizmeti belirle" />
+            <SectionHeader title="1) Ne için?" subtitle="İhtiyacınıza uygun hizmeti seçin" />
             <View style={styles.rowWrap}>
               {doctor.services.map((service) => (
                 <Chip
@@ -239,35 +239,45 @@ export default function ClientBookDoctorScreen() {
 
         {step === 2 ? (
           <AppCard>
-            <SectionHeader title="2) Tarih ve saat secimi" subtitle="Müsait zamanlari gor ve sec" />
+            <SectionHeader title="2) Ne zaman?" subtitle="Gerçek müsait saatlerden seçin" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
               {dateOptions.map((option) => (
-                <Chip key={option.iso} label={option.label} selected={date === option.iso} onPress={() => setDate(option.iso)} />
+                <Chip
+                  key={option.iso}
+                  label={option.label}
+                  selected={date === option.iso}
+                  onPress={() => setDate(option.iso)}
+                />
               ))}
             </ScrollView>
             <View style={styles.rowWrap}>
               {slots.length === 0 ? (
                 <EmptyState
                   icon="time-outline"
-                  title="Müsait saat bulunamadi"
-                  description="Farkli bir tarih secerek devam edebilirsin."
+                  title="Müsait saat bulunamadı"
+                  description="Farklı bir tarih seçerek devam edebilirsiniz."
                 />
               ) : (
                 slots.map((slot) => (
                   <Pressable
                     key={slot.startTime}
                     accessibilityRole="button"
-                    accessibilityLabel={`${slot.startTime} saatini sec`}
+                    accessibilityLabel={`${slot.startTime} saatini seç`}
                     style={[
                       styles.slot,
                       {
+                        minHeight: 44,
                         borderColor: selectedStart === slot.startTime ? theme.colors.primary : theme.colors.border,
-                        backgroundColor: selectedStart === slot.startTime ? theme.colors.primary : theme.colors.surfaceSoft,
+                        backgroundColor:
+                          selectedStart === slot.startTime ? theme.colors.primary : theme.colors.surfaceSoft,
                       },
                     ]}
                     onPress={() => setSelectedStart(slot.startTime)}
                   >
-                    <AppText variant="caption" color={selectedStart === slot.startTime ? '#FFFFFF' : theme.colors.text}>
+                    <AppText
+                      variant="caption"
+                      color={selectedStart === slot.startTime ? '#FFFFFF' : theme.colors.text}
+                    >
                       {slot.startTime}
                     </AppText>
                   </Pressable>
@@ -276,16 +286,54 @@ export default function ClientBookDoctorScreen() {
             </View>
             <View style={styles.wizardRow}>
               <AppButton label="Geri" variant="ghost" onPress={() => setStep(1)} style={{ flex: 1 }} />
-              <AppButton label="Devam et" disabled={!canContinueStep2} onPress={() => setStep(3)} style={{ flex: 1 }} />
+              <AppButton
+                label="Devam et"
+                disabled={!canContinueStep2}
+                onPress={() => setStep(3)}
+                style={{ flex: 1 }}
+              />
             </View>
           </AppCard>
         ) : null}
 
         {step === 3 ? (
           <AppCard>
-            <SectionHeader title="3) Hasta bilgileri" subtitle="Onay icin gerekli bilgileri gir" />
+            <SectionHeader title="3) Onayla" subtitle="Özet ve iletişim — profilinizden dolduruldu" />
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>
+                Doktor
+              </AppText>
+              <AppText variant="caption">{doctor.fullName}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>
+                Klinik
+              </AppText>
+              <AppText variant="caption">{doctor.clinic.name}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>
+                Hizmet
+              </AppText>
+              <AppText variant="caption">{selectedService?.name ?? '—'}</AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="micro" color={theme.colors.textMuted}>
+                Tarih / Saat
+              </AppText>
+              <AppText variant="caption">
+                {date} {selectedSlot?.startTime ?? '—'}
+              </AppText>
+            </View>
+
             <AppInput label="Ad Soyad" value={fullName} onChangeText={setFullName} accessibilityLabel="Ad soyad" />
-            <AppInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" accessibilityLabel="Telefon" />
+            <AppInput
+              label="Telefon"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              accessibilityLabel="Telefon"
+            />
             <AppInput
               label="E-posta (opsiyonel)"
               value={email}
@@ -293,88 +341,37 @@ export default function ClientBookDoctorScreen() {
               autoCapitalize="none"
               accessibilityLabel="E-posta"
             />
-            <AppInput label="Adres (opsiyonel)" value={address} onChangeText={setAddress} accessibilityLabel="Adres" />
-            <AppInput label="Sehir (opsiyonel)" value={city} onChangeText={setCity} accessibilityLabel="Sehir" />
             <AppInput
               label="Not (opsiyonel)"
               value={note}
               onChangeText={setNote}
               multiline
-              style={{ minHeight: 82, textAlignVertical: 'top' }}
+              style={{ minHeight: 72, textAlignVertical: 'top' }}
               accessibilityLabel="Randevu notu"
             />
+
             <View style={styles.wizardRow}>
               <AppButton label="Geri" variant="ghost" onPress={() => setStep(2)} style={{ flex: 1 }} />
-              <AppButton label="Ozeti gor" disabled={!canContinueStep3} onPress={() => setStep(4)} style={{ flex: 1 }} />
-            </View>
-          </AppCard>
-        ) : null}
-
-        {step === 4 ? (
-          <AppCard>
-            <SectionHeader title="4) Onay ve kontrol" subtitle="Randevu ozetini son kez kontrol et" />
-            <View style={styles.summaryRow}>
-              <AppText variant="micro" color={theme.colors.textMuted}>Doktor</AppText>
-              <AppText variant="caption">{doctor.fullName}</AppText>
-            </View>
-            <View style={styles.summaryRow}>
-              <AppText variant="micro" color={theme.colors.textMuted}>Klinik</AppText>
-              <AppText variant="caption">{doctor.clinic.name}</AppText>
-            </View>
-            <View style={styles.summaryRow}>
-              <AppText variant="micro" color={theme.colors.textMuted}>Hizmet</AppText>
-              <AppText variant="caption">{selectedService?.name ?? '-'}</AppText>
-            </View>
-            <View style={styles.summaryRow}>
-              <AppText variant="micro" color={theme.colors.textMuted}>Tarih / Saat</AppText>
-              <AppText variant="caption">{date} {selectedSlot?.startTime ?? '-'}</AppText>
-            </View>
-            <View style={styles.summaryRow}>
-              <AppText variant="micro" color={theme.colors.textMuted}>Hasta</AppText>
-              <AppText variant="caption">{fullName || '-'}</AppText>
-            </View>
-            <View style={styles.summaryRow}>
-              <AppText variant="micro" color={theme.colors.textMuted}>Iletisim</AppText>
-              <AppText variant="caption">{phone || '-'}</AppText>
-            </View>
-            <View style={styles.wizardRow}>
-              <AppButton label="Geri" variant="ghost" onPress={() => setStep(3)} style={{ flex: 1 }} />
-              <AppButton label="Randevuyu Onayla" loading={saving} onPress={submitBooking} style={{ flex: 1 }} />
+              <AppButton
+                label="Randevuyu onayla"
+                loading={saving}
+                disabled={!canSubmit || saving}
+                onPress={submitBooking}
+                style={{ flex: 1 }}
+              />
             </View>
           </AppCard>
         ) : null}
 
         <AppCard style={{ backgroundColor: theme.colors.surfaceSoft }}>
-          <SectionHeader title="Guvenli rezervasyon" subtitle="Bilgilerin gizlilik standartlarina uygun islenir" />
           <View style={styles.trustRow}>
             <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.success} />
             <AppText variant="caption" color={theme.colors.textMuted}>
-              Verilerin sifrelenerek saklanir.
-            </AppText>
-          </View>
-          <View style={styles.trustRow}>
-            <Ionicons name="time-outline" size={16} color={theme.colors.info} />
-            <AppText variant="caption" color={theme.colors.textMuted}>
-              Randevu sonrasinda otomatik hatirlatma alirsin.
+              Bilgileriniz gizlilik standartlarına uygun işlenir.
             </AppText>
           </View>
         </AppCard>
       </ScrollView>
-
-      <View style={[styles.sticky, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Randevuyu dogrudan onayla"
-          style={[styles.confirmButton, { backgroundColor: theme.colors.primary }]}
-          disabled={saving}
-          onPress={submitBooking}
-        >
-          <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-          <AppText variant="button" color="#FFFFFF">
-            Hizli Onay
-          </AppText>
-        </Pressable>
-      </View>
     </SafeAreaView>
   )
 }
@@ -383,7 +380,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: {
     padding: 16,
-    paddingBottom: 120,
+    paddingBottom: 40,
     gap: 12,
   },
   hero: {
@@ -437,25 +434,6 @@ const styles = StyleSheet.create({
   trustRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  sticky: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-  },
-  confirmButton: {
-    minHeight: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
     gap: 8,
   },
 })

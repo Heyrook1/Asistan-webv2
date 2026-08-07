@@ -2,52 +2,43 @@ import Image from 'next/image'
 
 interface AsistanLogoProps {
   className?: string
-  /** Kept for backwards compatibility: the full image already contains the wordmark. */
+  /** Kept for backwards compatibility. */
   showText?: boolean
-  /** Kept for backwards compatibility: tagline is no longer part of the bundled logo image. */
+  /** Kept for backwards compatibility. */
   showTagline?: boolean
-  /** 'dark' = navy wordmark for light backgrounds, 'light' = white wordmark for dark backgrounds. */
+  /** Kept for backwards compatibility — mark is the same on light/dark shells. */
   variant?: 'light' | 'dark'
   size?: 'sm' | 'md' | 'lg'
   priority?: boolean
 }
 
 const HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
-  sm: 24,
-  md: 32,
+  sm: 28,
+  md: 36,
   lg: 56,
 }
 
-const LOGO_ASPECT: Record<NonNullable<AsistanLogoProps['variant']>, number> = {
-  dark: 1210 / 334,
-  light: 2172 / 724,
-}
-
-const VARIANT_SRC: Record<NonNullable<AsistanLogoProps['variant']>, string> = {
-  dark: '/images/asistan-full-logo.png',
-  light: '/images/asistan-full-logo-light.png',
-}
+/** App mark (A + motion) — 1:1 squircle. */
+const MARK_SRC = '/images/asistan-icon.png'
 
 export function AsistanLogo({
   className = '',
-  variant = 'dark',
   size = 'md',
   priority = false,
 }: AsistanLogoProps) {
-  const height = HEIGHTS[size]
-  const width = Math.round(height * LOGO_ASPECT[variant])
+  const side = HEIGHTS[size]
 
   return (
     <Image
-      src={VARIANT_SRC[variant]}
+      src={MARK_SRC}
       alt="Asistan"
-      width={width}
-      height={height}
+      width={side}
+      height={side}
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block max-w-full select-none object-contain object-left ${className}`}
-      style={{ width: 'auto', height: 'auto', maxHeight: height }}
+      className={`block select-none object-contain ${className}`}
+      style={{ width: side, height: side }}
     />
   )
 }
@@ -61,17 +52,16 @@ export function AsistanIcon({
   size?: number
   priority?: boolean
 }) {
-  // Native <img> for SVG marks — next/image does not optimize SVGs.
   return (
-    <img
-      src="/images/asistan-mark.svg"
+    <Image
+      src={MARK_SRC}
       alt="Asistan"
       width={size}
       height={size}
-      decoding="async"
+      priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block select-none ${className}`}
+      className={`block select-none object-contain ${className}`}
     />
   )
 }

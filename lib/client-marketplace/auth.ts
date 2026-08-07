@@ -1,5 +1,13 @@
 import 'server-only'
 
+/**
+ * Hasta / marketplace istemci kimliği (Asistan Rezervasyon).
+ *
+ * Bearer (Authorization) veya cookie ile Supabase kullanıcıyı doğrular;
+ * `ClientUser` satırını upsert eder. Klinik `requireSession` ile karıştırma —
+ * burada `businessId` tenant oturumu yok; klinik verisi ayrı scoped API’lerde.
+ */
+
 import { Prisma } from '@prisma/client'
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'

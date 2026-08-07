@@ -100,8 +100,9 @@ export default async function AjandaPage({
   }
 
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - 12, 1)
-  const to = new Date(now.getFullYear(), now.getMonth() + 13, 0)
+  // Visible calendar window: current month ± 2 months (was ~25 months).
+  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+  const to = new Date(now.getFullYear(), now.getMonth() + 3, 0)
 
   const [appointments, patients, services, staff, business, locations, fillGap] = await Promise.all([
     getAppointmentsRange(session.businessId, { from, to }, session),

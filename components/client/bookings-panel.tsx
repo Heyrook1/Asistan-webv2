@@ -17,6 +17,15 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  extractAvailabilitySlots,
+  readJsonResponse,
+  userMessageFromUnknown,
+} from '@/lib/http/read-json'
+import {
+  canCancelOrRescheduleByPolicy,
+  DEFAULT_CANCEL_MIN_HOURS,
+} from '@/lib/client-marketplace/cancel-policy'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -61,6 +70,16 @@ function isActive(status: AppointmentStatus) {
   return status === 'SCHEDULED' || status === 'CONFIRMED'
 }
 
+function appointmentStartsAtMs(date: string, startTime: string): number {
+  const time = startTime.length === 5 ? `${startTime}:00` : startTime
+  return new Date(`${date}T${time}`).getTime()
+}
+
+/** Yaklaşan = aktif durum + henüz başlamamış (geçmiş tarihli SCHEDULED past'e düşer). */
+function isUpcomingRow(row: AppointmentRow, now = Date.now()) {
+  return isActive(row.status) && appointmentStartsAtMs(row.date, row.startTime) >= now
+}
+
 function nextStepCopy(status: AppointmentStatus) {
   switch (status) {
     case 'SCHEDULED':
@@ -75,6 +94,8 @@ function nextStepCopy(status: AppointmentStatus) {
       return 'Bu randevu gelinmedi olarak işaretlendi.'
   }
 }
+
+const CANCEL_MIN_HOURS = DEFAULT_CANCEL_MIN_HOURS
 
 async function getAccessToken() {
   const supabase = createClient()
@@ -165,22 +186,46 @@ export function ClientBookingsPanel() {
   }, [focusId, rows])
 
   const upcoming = useMemo(
-    () => rows.filter((row) => isActive(row.status)),
+    () =>
+      rows
+        .filter((row) => isUpcomingRow(row))
+        .sort(
+          (a, b) =>
+            appointmentStartsAtMs(a.date, a.startTime) - appointmentStartsAtMs(b.date, b.startTime)
+        ),
     [rows]
   )
   const past = useMemo(
-    () => rows.filter((row) => !isActive(row.status)),
+    () =>
+      rows
+        .filter((row) => !isUpcomingRow(row))
+        .sort(
+          (a, b) =>
+            appointmentStartsAtMs(b.date, b.startTime) - appointmentStartsAtMs(a.date, a.startTime)
+        ),
     [rows]
   )
 
-  async function cancelAppointment(id: string) {
-    setSavingId(id)
+  async function cancelAppointment(row: AppointmentRow) {
+    const policy = canCancelOrRescheduleByPolicy(row.date, row.startTime, CANCEL_MIN_HOURS)
+    if (!policy.ok) {
+      toast.error(
+        `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldığı için iptal edilemez. Klinik ile iletişime geçin.`
+      )
+      return
+    }
+    const confirmed = window.confirm(
+      `Bu randevuyu iptal etmek istiyor musunuz?\n\n${row.clinic.name} — ${row.date} ${row.startTime}\n\nİptal, randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce yapılmalıdır.`
+    )
+    if (!confirmed) return
+
+    setSavingId(row.id)
     try {
-      await clientFetch(`/api/client/appointments/${id}/cancel`, {
+      await clientFetch(`/api/client/appointments/${row.id}/cancel`, {
         method: 'POST',
         body: JSON.stringify({}),
       })
-      toast.success('Randevu iptal edildi')
+      toast.success('Randevu iptal edildi — bildirim gönderildi')
       await load()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'İptal başarısız')
@@ -190,6 +235,13 @@ export function ClientBookingsPanel() {
   }
 
   async function openReschedule(row: AppointmentRow) {
+    const policy = canCancelOrRescheduleByPolicy(row.date, row.startTime, CANCEL_MIN_HOURS)
+    if (!policy.ok) {
+      toast.error(
+        `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldığı için yeniden planlama yapılamaz.`
+      )
+      return
+    }
     setRescheduleId(row.id)
     setRescheduleDate(row.date)
     setSelectedSlot(null)
@@ -207,10 +259,21 @@ export function ClientBookingsPanel() {
         date: row.date,
       })
       if (row.locationId) params.set('locationId', row.locationId)
-      const data = await fetch(`/api/client/availability?${params}`).then((r) => r.json())
-      setSlots((data.slots as Slot[]) ?? [])
-    } catch {
-      toast.error('Uygun saatler yüklenemedi')
+      const { ok, data } = await readJsonResponse(await fetch(`/api/client/availability?${params}`), {
+        kind: 'availability',
+      })
+      const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
+      if (!ok) {
+        throw new Error(errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.')
+      }
+      setSlots(nextSlots)
+    } catch (error) {
+      toast.error(
+        userMessageFromUnknown(
+          error,
+          'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
+        ),
+      )
     } finally {
       setSlotsLoading(false)
     }
@@ -229,10 +292,21 @@ export function ClientBookingsPanel() {
         date,
       })
       if (row.locationId) params.set('locationId', row.locationId)
-      const data = await fetch(`/api/client/availability?${params}`).then((r) => r.json())
-      setSlots((data.slots as Slot[]) ?? [])
-    } catch {
-      toast.error('Uygun saatler yüklenemedi')
+      const { ok, data } = await readJsonResponse(await fetch(`/api/client/availability?${params}`), {
+        kind: 'availability',
+      })
+      const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
+      if (!ok) {
+        throw new Error(errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.')
+      }
+      setSlots(nextSlots)
+    } catch (error) {
+      toast.error(
+        userMessageFromUnknown(
+          error,
+          'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
+        ),
+      )
     } finally {
       setSlotsLoading(false)
     }
@@ -360,7 +434,7 @@ export function ClientBookingsPanel() {
                   slots={slots}
                   slotsLoading={slotsLoading}
                   selectedSlot={selectedSlot}
-                  onCancel={() => void cancelAppointment(row.id)}
+                  onCancel={() => void cancelAppointment(row)}
                   onOpenReschedule={() => void openReschedule(row)}
                   onDateChange={(date) => void loadSlotsForDate(row, date)}
                   onSelectSlot={setSelectedSlot}
@@ -469,6 +543,34 @@ function BookingCard({
   onCommentChange?: (value: string) => void
   onSubmitReview?: () => void
 }) {
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyEvents, setHistoryEvents] = useState<
+    Array<{ id: string; title: string; description: string | null; createdAt: string }>
+  >([])
+  const policyOk = canCancelOrRescheduleByPolicy(row.date, row.startTime, CANCEL_MIN_HOURS).ok
+
+  async function loadHistory() {
+    if (historyOpen) {
+      setHistoryOpen(false)
+      return
+    }
+    setHistoryOpen(true)
+    if (historyEvents.length > 0) return
+    setHistoryLoading(true)
+    try {
+      const data = await clientFetch<{
+        events: Array<{ id: string; title: string; description: string | null; createdAt: string }>
+      }>(`/api/client/appointments/${row.id}/history`)
+      setHistoryEvents(data.events ?? [])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Durum geçmişi alınamadı')
+      setHistoryOpen(false)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
   return (
     <article
       id={`booking-${row.id}`}
@@ -503,53 +605,60 @@ function BookingCard({
       <p className="mt-3 text-xs leading-5 text-muted-foreground">{nextStepCopy(row.status)}</p>
 
       {isActive(row.status) ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={saving}
-            onClick={onOpenReschedule}
-            className="gap-1.5"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Yeniden planla
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={saving}
-            onClick={onCancel}
-            className="gap-1.5 text-rose-700 hover:text-rose-800"
-          >
-            <XCircle className="h-3.5 w-3.5" />
-            İptal et
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={saving}
-            onClick={async () => {
-              try {
-                const token = await getAccessToken()
-                if (!token) throw new Error('AUTH_REQUIRED')
-                const response = await fetch(`/api/client/appointments/${row.id}/ics`, {
-                  headers: { authorization: `Bearer ${token}` },
-                })
-                if (!response.ok) throw new Error('Takvim dosyası alınamadı')
-                const blob = await response.blob()
-                const url = URL.createObjectURL(blob)
-                const anchor = document.createElement('a')
-                anchor.href = url
-                anchor.download = `asistan-randevu-${row.id.slice(0, 8)}.ics`
-                anchor.click()
-                URL.revokeObjectURL(url)
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : 'Takvim dosyası alınamadı')
-              }
-            }}
-          >
-            Takvime ekle
-          </Button>
+        <div className="mt-4 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={saving || !policyOk}
+              onClick={onOpenReschedule}
+              className="gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Yeniden planla
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={saving || !policyOk}
+              onClick={onCancel}
+              className="gap-1.5 text-rose-700 hover:text-rose-800"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              İptal et
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={saving}
+              onClick={async () => {
+                try {
+                  const token = await getAccessToken()
+                  if (!token) throw new Error('AUTH_REQUIRED')
+                  const response = await fetch(`/api/client/appointments/${row.id}/ics`, {
+                    headers: { authorization: `Bearer ${token}` },
+                  })
+                  if (!response.ok) throw new Error('Takvim dosyası alınamadı')
+                  const blob = await response.blob()
+                  const url = URL.createObjectURL(blob)
+                  const anchor = document.createElement('a')
+                  anchor.href = url
+                  anchor.download = `asistan-randevu-${row.id.slice(0, 8)}.ics`
+                  anchor.click()
+                  URL.revokeObjectURL(url)
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : 'Takvim dosyası alınamadı')
+                }
+              }}
+            >
+              Takvime ekle
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {policyOk
+              ? `İptal / yeniden planlama: randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce.`
+              : `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldı — iptal için klinik ile iletişime geçin.`}
+          </p>
         </div>
       ) : null}
 
@@ -577,9 +686,40 @@ function BookingCard({
       {row.status === 'COMPLETED' && row.hasReview ? (
         <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Değerlendirme gönderildi
+          Doğrulanmış ziyaret · değerlendirme gönderildi
         </p>
       ) : null}
+
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={() => void loadHistory()}
+          className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-[#0071E3] hover:underline"
+        >
+          {historyOpen ? 'Durum geçmişini gizle' : 'Durum geçmişini göster'}
+        </button>
+        {historyOpen ? (
+          <div className="mt-2 space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+            {historyLoading ? (
+              <p className="text-xs text-muted-foreground">Geçmiş yükleniyor…</p>
+            ) : historyEvents.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Henüz kayıtlı durum olayı yok.</p>
+            ) : (
+              historyEvents.map((event) => (
+                <div key={event.id} className="text-xs text-slate-700">
+                  <p className="font-medium">{event.title}</p>
+                  {event.description ? (
+                    <p className="text-muted-foreground">{event.description}</p>
+                  ) : null}
+                  <p className="text-[10px] text-slate-400">
+                    {new Date(event.createdAt).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        ) : null}
+      </div>
 
       {rescheduleOpen ? (
         <div className="mt-4 space-y-3 rounded-xl border bg-slate-50/80 p-3">

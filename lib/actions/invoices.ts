@@ -97,8 +97,8 @@ export async function markInvoiceReady(
     return err('Bu fatura durumu değiştirilemez')
   }
 
-  await prisma.clinicInvoice.update({
-    where: { id: invoice.id },
+  await prisma.clinicInvoice.updateMany({
+    where: { id: invoice.id, businessId: session.businessId },
     data: { status: 'READY', issuedAt: invoice.issuedAt ?? new Date() },
   })
 
@@ -121,8 +121,8 @@ export async function voidInvoice(raw: unknown): Promise<ActionResult<{ id: stri
     return err('Gönderilmiş fatura iptal edilemez — Maliye sürecini kullanın')
   }
 
-  await prisma.clinicInvoice.update({
-    where: { id: invoice.id },
+  await prisma.clinicInvoice.updateMany({
+    where: { id: invoice.id, businessId: session.businessId },
     data: { status: 'VOID' },
   })
 
@@ -170,8 +170,8 @@ export async function submitInvoiceToKktc(
   }
 
   if (!isKktcEFaturaConfigured()) {
-    await prisma.clinicInvoice.update({
-      where: { id: invoice.id },
+    await prisma.clinicInvoice.updateMany({
+      where: { id: invoice.id, businessId: session.businessId },
       data: {
         status: 'READY',
         lastError:
@@ -188,16 +188,16 @@ export async function submitInvoiceToKktc(
   })
 
   if (!result.ok) {
-    await prisma.clinicInvoice.update({
-      where: { id: invoice.id },
+    await prisma.clinicInvoice.updateMany({
+      where: { id: invoice.id, businessId: session.businessId },
       data: { status: 'FAILED', lastError: result.error },
     })
     revalidatePath('/dashboard/faturalar')
     return err(result.error)
   }
 
-  await prisma.clinicInvoice.update({
-    where: { id: invoice.id },
+  await prisma.clinicInvoice.updateMany({
+    where: { id: invoice.id, businessId: session.businessId },
     data: {
       status: 'SUBMITTED',
       provider: 'kktc_maliye',

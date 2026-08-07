@@ -86,7 +86,9 @@ export async function GET(request: NextRequest) {
       select: { id: true },
     })
     if (existing) {
-      await prisma.calendarConnection.delete({ where: { id: existing.id } })
+      await prisma.calendarConnection.deleteMany({
+        where: { id: existing.id, businessId: state.businessId },
+      })
     }
 
     const connection = await prisma.calendarConnection.create({

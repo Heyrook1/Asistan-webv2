@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils'
 
 type Chip = {
   key: string
-  labelKey: 'today' | 'rating' | 'near' | 'budget'
+  labelKey: 'today' | 'rating' | 'budget'
   param: string
   value: string
 }
@@ -31,7 +31,7 @@ type Chip = {
 const CHIPS: Chip[] = [
   { key: 'today', labelKey: 'today', param: 'availableToday', value: 'true' },
   { key: 'rating', labelKey: 'rating', param: 'minRating', value: '4.5' },
-  { key: 'near', labelKey: 'near', param: 'maxDistanceKm', value: '5' },
+  // maxDistanceKm (5 km) hidden until client location permission is wired (Faz 2).
   { key: 'budget', labelKey: 'budget', param: 'maxPrice', value: '1500' },
 ]
 
@@ -68,7 +68,6 @@ export function ClinicFilters() {
   const chipLabels = {
     today: t({ tr: 'Bugün müsait', en: 'Available today' }),
     rating: t({ tr: 'Puan 4.5+', en: 'Rating 4.5+' }),
-    near: t({ tr: '5 km içinde', en: 'Within 5 km' }),
     budget: t({ tr: '₺1500 altı', en: 'Under ₺1500' }),
   }
 
@@ -96,10 +95,7 @@ export function ClinicFilters() {
       next.set('minRating', saved.minRating)
       changed = true
     }
-    if (saved.maxDistanceKm) {
-      next.set('maxDistanceKm', saved.maxDistanceKm)
-      changed = true
-    }
+    // Do not restore maxDistanceKm — unsupported without location.
     if (saved.maxPrice) {
       next.set('maxPrice', saved.maxPrice)
       changed = true

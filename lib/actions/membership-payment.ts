@@ -99,8 +99,8 @@ export async function requestMembershipUpgrade(
       customerEmail: business.email || session.email,
     })
 
-    const updated = await prisma.membershipPayment.update({
-      where: { id: payment.id },
+    const updatedRows = await prisma.membershipPayment.updateMany({
+      where: { id: payment.id, businessId: business.id },
       data: {
         provider: intent.provider,
         providerRef: intent.providerRef,
@@ -108,6 +108,11 @@ export async function requestMembershipUpgrade(
         notes: intent.instructions,
       },
     })
+    if (updatedRows.count === 0) return err('Ödeme kaydı güncellenemedi')
+    const updated = await prisma.membershipPayment.findFirst({
+      where: { id: payment.id, businessId: business.id },
+    })
+    if (!updated) return err('Ödeme kaydı bulunamadı')
 
     revalidatePath('/dashboard/ayarlar')
     revalidatePath('/dashboard/super-admin')
@@ -130,8 +135,8 @@ export async function requestMembershipUpgrade(
       },
     })
   } catch (error) {
-    await prisma.membershipPayment.update({
-      where: { id: payment.id },
+    await prisma.membershipPayment.updateMany({
+      where: { id: payment.id, businessId: business.id },
       data: { status: 'FAILED', notes: error instanceof Error ? error.message : 'Intent failed' },
     })
     return err(error instanceof Error ? error.message : 'Ödeme talebi oluşturulamadı')
@@ -152,8 +157,8 @@ export async function cancelPendingMembershipPayment(
   })
   if (!payment) return err('Bekleyen ödeme bulunamadı')
 
-  await prisma.membershipPayment.update({
-    where: { id: payment.id },
+  await prisma.membershipPayment.updateMany({
+    where: { id: payment.id, businessId: session.businessId },
     data: { status: 'CANCELLED' },
   })
 

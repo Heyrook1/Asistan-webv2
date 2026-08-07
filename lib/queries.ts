@@ -63,7 +63,6 @@ export async function getDashboardStats(businessId: string) {
     monthlyAppointments,
     completedAppointments,
     cancelledAppointments,
-    upcomingAppointments,
   ] = await Promise.all([
     prisma.appointment.count({ where: { businessId, date: today, status: { in: ['CONFIRMED', 'COMPLETED'] } } }),
     prisma.appointment.count({ where: { businessId, status: 'SCHEDULED' } }),
@@ -78,16 +77,6 @@ export async function getDashboardStats(businessId: string) {
     }),
     prisma.appointment.count({ where: { businessId, status: 'COMPLETED' } }),
     prisma.appointment.count({ where: { businessId, status: { in: ['CANCELLED', 'NO_SHOW'] } } }),
-    prisma.appointment.findMany({
-      where: { businessId, date: { gte: today }, status: 'CONFIRMED' },
-      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-      take: 6,
-      include: {
-        patient: { select: { fullName: true } },
-        service: { select: { name: true, color: true } },
-        staff: { select: { fullName: true, color: true } },
-      },
-    }),
   ])
 
   const totalAppointments = completedAppointments + cancelledAppointments + pendingAppointments
@@ -103,7 +92,6 @@ export async function getDashboardStats(businessId: string) {
     monthlyRevenue,
     completedAppointments,
     cancellationRate: totalAppointments > 0 ? cancelledAppointments / totalAppointments : 0,
-    upcomingAppointments,
   }
 }
 
@@ -343,6 +331,7 @@ export async function getAppointmentsRange(
   return prisma.appointment.findMany({
     where,
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    take: 2500,
     include: {
       patient: { select: { id: true, fullName: true, phone: true } },
       service: { select: { id: true, name: true, color: true, durationMin: true } },

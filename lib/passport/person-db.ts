@@ -1,10 +1,17 @@
 import 'server-only'
 
+/**
+ * Person kapsamlı Prisma transaction — GUC `app.person_id` (SET LOCAL).
+ *
+ * Hasta pasaport RLS politikaları bu GUC’u okur. Klinik `app.business_id`
+ * ile karıştırma; bitişte GUC temizlenir.
+ */
+
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 /**
- * Transaction with Postgres GUC `app.person_id` for patient passport RLS policies.
+ * `app.person_id` set ederek transaction çalıştırır; finally’de temizler.
  */
 export async function withPersonDb<T>(
   personId: string,

@@ -190,7 +190,16 @@ export async function consumeRateLimit(params: {
     const state = getMemoryState()
     if (!state.hasLoggedRedisFailure) {
       state.hasLoggedRedisFailure = true
-      console.error('[rate-limit] Upstash error — falling back to memory for this process:', error)
+      console.error('[rate-limit] Upstash error:', error)
+    }
+    // Production: fail closed (deny) — memory fallback under-enforces across instances.
+    if (process.env.NODE_ENV === 'production') {
+      return computeResult({
+        count: limit + 1,
+        limit,
+        retryAfterMs: 30_000,
+        source: 'upstash',
+      })
     }
     return checkInMemory(key, limit, windowMs)
   }

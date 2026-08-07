@@ -15,6 +15,7 @@ export default async function BookDepositPage({
 }: {
   searchParams: Promise<{
     depositId?: string
+    t?: string
     pi?: string
     session_id?: string
     cancelled?: string
@@ -36,6 +37,7 @@ export default async function BookDepositPage({
 
   const view = await getPublicDepositView({
     depositId,
+    accessToken: params.t?.trim() || null,
     paymentIntentId: params.pi?.trim() || null,
     checkoutSessionId: params.session_id?.trim() || null,
   })

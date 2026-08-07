@@ -69,8 +69,8 @@ export async function updateIntakeForm(raw: unknown): Promise<ActionResult> {
         data: { isDefault: false },
       })
     }
-    await tx.intakeForm.update({
-      where: { id },
+    await tx.intakeForm.updateMany({
+      where: { id, businessId: session.businessId },
       data: {
         name: patch.name,
         description: patch.description === undefined ? undefined : patch.description ?? null,
@@ -97,8 +97,8 @@ export async function deleteIntakeForm(id: string): Promise<ActionResult> {
   })
   if (!owned) return err('Anket bulunamadı')
 
-  await prisma.intakeForm.update({
-    where: { id: parsed.data },
+  await prisma.intakeForm.updateMany({
+    where: { id: parsed.data, businessId: session.businessId },
     data: { deletedAt: new Date(), isActive: false, isDefault: false },
   })
   await prisma.service.updateMany({
@@ -138,8 +138,8 @@ export async function assignIntakeFormToService(raw: unknown): Promise<ActionRes
     if (!form) return err('Anket bulunamadı')
   }
 
-  await prisma.service.update({
-    where: { id: parsed.data.serviceId },
+  await prisma.service.updateMany({
+    where: { id: parsed.data.serviceId, businessId: session.businessId },
     data: { intakeFormId: parsed.data.intakeFormId },
   })
 

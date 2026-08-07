@@ -7,6 +7,7 @@ import { ConsentType, DataDeletionStatus } from '@prisma/client'
 import { writeAuditLog } from '@/lib/audit'
 import { prisma } from '@/lib/prisma'
 import { requireSuperAdminSession } from '@/lib/session'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import { ok, err, type ActionResult } from '@/lib/actions/result'
 
 const deletionCreateSchema = z.object({
@@ -44,10 +45,12 @@ export async function createDataDeletionRequest(input: unknown): Promise<ActionR
   const session = await requireSuperAdminSession()
 
   if (parsed.data.patientId) {
-    const patient = await prisma.patient.findFirst({
-      where: { id: parsed.data.patientId },
-      select: { id: true, businessId: true },
-    })
+    const patient = await runWithTenantBypassAsync('governance:patient-lookup', () =>
+      prisma.patient.findFirst({
+        where: { id: parsed.data.patientId },
+        select: { id: true, businessId: true },
+      })
+    )
     if (!patient) return err('Hasta bulunamadı')
 
     const request = await prisma.dataDeletionRequest.create({
@@ -110,41 +113,50 @@ export async function processDataDeletionRequest(input: unknown): Promise<Action
   if (!parsed.success) return err('İşlem geçersiz', parsed.error.issues)
 
   const session = await requireSuperAdminSession()
-  const existing = await prisma.dataDeletionRequest.findFirst({
-    where: { id: parsed.data.id },
-  })
+  const existing = await runWithTenantBypassAsync('governance:deletion-process', () =>
+    prisma.dataDeletionRequest.findFirst({
+      where: { id: parsed.data.id },
+    })
+  )
   if (!existing) return err('Silme talebi bulunamadı')
 
-  await prisma.dataDeletionRequest.update({
-    where: { id: existing.id },
-    data: {
-      status: parsed.data.status as DataDeletionStatus,
-      notes: parsed.data.notes ?? existing.notes,
-      processedAt: new Date(),
-      processedById: session.userId,
-    },
-  })
-
-  if (parsed.data.status === 'COMPLETED' && existing.patientId) {
-    await prisma.patient.updateMany({
+  await runWithTenantBypassAsync('governance:deletion-process', () =>
+    prisma.dataDeletionRequest.updateMany({
       where: {
-        id: existing.patientId,
+        id: existing.id,
         ...(existing.businessId ? { businessId: existing.businessId } : {}),
       },
       data: {
-        isArchived: true,
-        deletedAt: new Date(),
-        phone: 'SILINDI',
-        email: null,
-        identityNumber: null,
-        address: null,
-        emergencyContactName: null,
-        emergencyContactPhone: null,
-        patientStory: null,
-        summary: null,
-        riskNote: null,
+        status: parsed.data.status as DataDeletionStatus,
+        notes: parsed.data.notes ?? existing.notes,
+        processedAt: new Date(),
+        processedById: session.userId,
       },
     })
+  )
+
+  if (parsed.data.status === 'COMPLETED' && existing.patientId) {
+    await runWithTenantBypassAsync('governance:deletion-process', () =>
+      prisma.patient.updateMany({
+        where: {
+          id: existing.patientId!,
+          ...(existing.businessId ? { businessId: existing.businessId } : {}),
+        },
+        data: {
+          isArchived: true,
+          deletedAt: new Date(),
+          phone: 'SILINDI',
+          email: null,
+          identityNumber: null,
+          address: null,
+          emergencyContactName: null,
+          emergencyContactPhone: null,
+          patientStory: null,
+          summary: null,
+          riskNote: null,
+        },
+      })
+    )
   }
 
   await writeAuditLog({
@@ -219,23 +231,25 @@ export async function upsertComplianceDocument(input: unknown): Promise<ActionRe
 
   try {
     const doc = parsed.data.id
-      ? await prisma.complianceDocument.updateMany({
-          where: { id: parsed.data.id },
-          data: {
-            title: data.title,
-            category: data.category,
-            version: data.version,
-            status: data.status,
-            fileUrl: data.fileUrl,
-            notes: data.notes,
-            expiresAt: data.expiresAt,
-          },
-        }).then(async (result) => {
-          if (result.count === 0) return null
-          return prisma.complianceDocument.findFirst({
-            where: { id: parsed.data.id! },
+      ? await prisma.complianceDocument
+          .updateMany({
+            where: { id: parsed.data.id, businessId: session.businessId },
+            data: {
+              title: data.title,
+              category: data.category,
+              version: data.version,
+              status: data.status,
+              fileUrl: data.fileUrl,
+              notes: data.notes,
+              expiresAt: data.expiresAt,
+            },
           })
-        })
+          .then(async (result) => {
+            if (result.count === 0) return null
+            return prisma.complianceDocument.findFirst({
+              where: { id: parsed.data.id!, businessId: session.businessId },
+            })
+          })
       : await prisma.complianceDocument.create({ data })
 
     if (!doc) return err('Belge bulunamadı')

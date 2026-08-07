@@ -1,5 +1,13 @@
 'use server'
 
+/**
+ * Person kimlik eşleşme kuyruğu (çift kayıt birleştirme).
+ *
+ * Klinik `patient.edit` ile pending match listeler / accept|reject.
+ * Accept: Person merge; soft-delete yalnızca başka klinik Patient
+ * üyeliği kalmadığında — ecosystem Person passport’u bozmamak için.
+ */
+
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -24,7 +32,7 @@ export type PendingIdentityMatch = {
   clinicPatientCount: number
 }
 
-/** Pending PersonIdentityMatch rows that touch this clinic's patients. */
+/** Bu kliniğin Patient satırlarına dokunan bekleyen PersonIdentityMatch listesi. */
 export async function listPendingIdentityMatches(): Promise<PendingIdentityMatch[]> {
   const session = await requirePermission('patient.edit')
 
@@ -129,7 +137,8 @@ export async function decideIdentityMatch(raw: unknown): Promise<ActionResult> {
     return ok(undefined)
   }
 
-  // Accept merge: keep left, fold right into left for this clinic's patients.
+  // Accept merge: keep left, fold right into left for this clinic's patients only.
+  // Soft-delete right Person only when no other clinic still references it.
   await runWithTenantBypassAsync('identity:match-decide', async () => {
     await prisma.$transaction(async (tx) => {
       await tx.patient.updateMany({
@@ -139,10 +148,22 @@ export async function decideIdentityMatch(raw: unknown): Promise<ActionResult> {
         },
         data: { personId: match.leftPersonId },
       })
-      await tx.person.update({
-        where: { id: match.rightPersonId },
-        data: { deletedAt: new Date() },
+
+      const remainingElsewhere = await tx.patient.count({
+        where: {
+          personId: match.rightPersonId,
+          businessId: { not: session.businessId },
+          deletedAt: null,
+        },
       })
+
+      if (remainingElsewhere === 0) {
+        await tx.person.update({
+          where: { id: match.rightPersonId },
+          data: { deletedAt: new Date() },
+        })
+      }
+
       await tx.personIdentityMatch.update({
         where: { id: match.id },
         data: {
@@ -160,7 +181,7 @@ export async function decideIdentityMatch(raw: unknown): Promise<ActionResult> {
     action: 'identity.match.accept',
     entityType: 'PersonIdentityMatch',
     entityId: match.id,
-    summary: 'Kimlik eşleşmesi kabul edildi (Person birleştirildi)',
+    summary: 'Kimlik eşleşmesi kabul edildi (klinik Person birleştirildi)',
     metadata: { leftPersonId: match.leftPersonId, rightPersonId: match.rightPersonId },
   })
 
