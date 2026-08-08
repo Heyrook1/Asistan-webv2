@@ -1,5 +1,12 @@
 import { createHmac, randomBytes } from 'node:crypto'
 
+import {
+  isValidIdentityDocument,
+  normalizeIdentityDocument,
+} from '@/lib/identity/identity-document'
+
+export { isValidIdentityDocument, normalizeIdentityDocument }
+
 /** Digits-only; TR mobile 05XXXXXXXXX → +905XXXXXXXXX; already +E.164 kept. */
 export function normalizePhoneE164(raw: string | null | undefined): string | null {
   if (!raw) return null
@@ -55,11 +62,6 @@ export function hashIdentityDocument(raw: string | null | undefined, pepper: str
   if (!cleaned) return null
   return createHmac('sha256', pepper).update(`id:${cleaned}`).digest('hex')
 }
-
-export {
-  normalizeIdentityDocument,
-  isValidIdentityDocument,
-} from '@/lib/identity/identity-document'
 
 /** Opaque GPI-XXXXXXXXXX — not sequential. */
 export function generateGpiDisplay(): string {
