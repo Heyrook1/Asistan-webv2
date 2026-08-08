@@ -22,6 +22,8 @@ interface HealthStatus {
     database: CheckState
     catalog: CheckState
     identityPepper: CheckState
+    /** asistan_app → SET LOCAL ROLE asistan_identity (Person / GPI book path). */
+    identityRole: CheckState
     rateLimit: {
       backend: 'upstash' | 'memory'
       configured: boolean
@@ -90,10 +92,27 @@ export async function GET(
       ? 'unhealthy'
       : 'degraded'
 
+  let identityRole: CheckState = 'unhealthy'
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE asistan_identity`)
+      await tx.$queryRaw`SELECT 1 FROM "Person" LIMIT 1`
+      await tx.$executeRawUnsafe(`RESET ROLE`)
+    })
+    identityRole = 'healthy'
+  } catch (error) {
+    console.error('[health] identityRole check failed:', error)
+    Sentry.captureException(error, {
+      tags: { component: 'health-check', check: 'identityRole' },
+    })
+    identityRole = process.env.NODE_ENV === 'production' ? 'unhealthy' : 'degraded'
+  }
+
   const ok =
     database === 'healthy' &&
     catalog === 'healthy' &&
-    (identityPepper === 'healthy' || process.env.NODE_ENV !== 'production')
+    (identityPepper === 'healthy' || process.env.NODE_ENV !== 'production') &&
+    (identityRole === 'healthy' || process.env.NODE_ENV !== 'production')
 
   return NextResponse.json(
     {
@@ -103,6 +122,7 @@ export async function GET(
         database,
         catalog,
         identityPepper,
+        identityRole,
         rateLimit: {
           backend: rateLimitBackend,
           configured: rateLimitConfigured,

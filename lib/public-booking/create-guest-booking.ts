@@ -34,6 +34,7 @@ import {
 } from '@/lib/booking/create-slot-appointment'
 import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
 import { IdentityPepperMissingError } from '@/lib/identity/resolve'
+import { classifyBookingError } from '@/lib/public-booking/booking-error'
 
 function bookingMessage(status: AppointmentStatus): string {
   return status === AppointmentStatus.CONFIRMED
@@ -298,14 +299,15 @@ export async function createGuestPublicBooking(raw: unknown, idempotencyKeyRaw?:
       }
     } catch (error) {
       if (error instanceof IdentityPepperMissingError) {
+        const classified = classifyBookingError(error)
         return {
           ok: false as const,
-          error:
-            'Sunucu kimlik yapılandırması eksik (PERSON_IDENTITY_PEPPER). Yöneticiye bildirin.',
+          error: classified.userMessage,
+          reason: classified.reason,
         }
       }
       if (error instanceof SlotConflictError) {
-        return { ok: false as const, error: error.message }
+        return { ok: false as const, error: error.message, reason: 'SLOT_TAKEN' as const }
       }
       // Same idempotency key already claimed: transaction rolled back; replay winner.
       if (error instanceof IdempotencyConflictError && idempotencyKey) {
@@ -321,7 +323,17 @@ export async function createGuestPublicBooking(raw: unknown, idempotencyKeyRaw?:
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && attempt < maxAttempts) {
         continue
       }
-      throw error
+      const classified = classifyBookingError(error)
+      console.error('[public-book] booking failed', {
+        reason: classified.reason,
+        message: classified.logMessage,
+        attempt,
+      })
+      return {
+        ok: false as const,
+        error: classified.userMessage,
+        reason: classified.reason,
+      }
     }
   }
 

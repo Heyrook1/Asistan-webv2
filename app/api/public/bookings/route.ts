@@ -64,12 +64,34 @@ export async function POST(request: NextRequest) {
     // TOCTOU double-booking on concurrent same-key requests.
     const result = await createGuestPublicBooking(body, idempotencyKey)
     if (!result.ok) {
+      if ('reason' in result && result.reason === 'SLOT_TAKEN') {
+        return apiError(result.error, 409, 'SLOT_TAKEN')
+      }
+      if ('reason' in result && result.reason && result.reason !== 'UNKNOWN') {
+        const status =
+          result.reason === 'IDENTITY_PEPPER' || result.reason === 'RLS_OR_ROLE' ? 503 : 400
+        return NextResponse.json(
+          { ok: false, error: result.error, code: 'BOOKING_FAILED', reason: result.reason },
+          { status },
+        )
+      }
       const status =
         typeof result.error === 'string' && /doldu|çakış|saat/i.test(result.error) ? 409 : 400
       if (status === 409) {
         return apiError(result.error, 409, 'SLOT_TAKEN')
       }
-      return apiValidationError(result.error, 'issues' in result ? result.issues : undefined, 400)
+      if ('issues' in result && result.issues) {
+        return apiValidationError(result.error, result.issues, 400)
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          error: result.error,
+          code: 'BOOKING_FAILED',
+          reason: 'reason' in result ? result.reason : 'UNKNOWN',
+        },
+        { status: 500 },
+      )
     }
 
     const rawData = result.data as Record<string, unknown>
