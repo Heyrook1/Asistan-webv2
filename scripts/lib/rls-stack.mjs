@@ -31,9 +31,11 @@ export const RLS_MIGRATIONS = [
   '20260721000200_appointment_deposit.sql',
   '20260721000300_clinic_invoice_kktc.sql',
   '20260721000400_whatsapp_front_desk.sql',
+  '20260722000100_patient_channel_attempt.sql',
   '20260730000100_fix_guc_business_id_q3.sql',
   '20260807000100_notification_outbox.sql',
   '20260808000100_notification_outbox_rls.sql',
+  '20260808000200_patient_channel_attempt_rls.sql',
 ]
 
 export function resolveDatabaseUrl() {

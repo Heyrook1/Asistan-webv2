@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import {
   providerDeliveryRate,
   type ChannelAttemptResult,
@@ -17,8 +17,9 @@ export async function recordPatientChannelAttempts(input: {
   results: ChannelAttemptResult[]
 }) {
   if (input.results.length === 0) return
+  const db = catalogPrisma()
   try {
-    await prisma.patientChannelAttempt.createMany({
+    await db.patientChannelAttempt.createMany({
       data: input.results.map((r) => ({
         businessId: input.businessId,
         appointmentId: input.appointmentId ?? null,
@@ -48,9 +49,10 @@ export async function getBusinessChannelDeliveryStats(
   windowHours = 24
 ): Promise<BusinessChannelDeliveryStats> {
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000)
+  const db = catalogPrisma()
   let rows: Array<{ channel: string; status: string; provider: string | null }>
   try {
-    rows = await prisma.patientChannelAttempt.findMany({
+    rows = await db.patientChannelAttempt.findMany({
       where: { businessId, createdAt: { gte: since } },
       select: { channel: true, status: true, provider: true },
       take: 2000,

@@ -50,6 +50,7 @@ exception
 end $$;
 
 -- ── PatientChannelAttempt (same historical gap) ────────────────────────────
+-- Prefer 20260808000200_patient_channel_attempt_rls.sql (creates table + member policy).
 do $$
 begin
   if to_regclass('public."PatientChannelAttempt"') is null then
@@ -70,10 +71,11 @@ begin
     with check (false);
 
   drop policy if exists patient_channel_attempt_deny_authenticated on public."PatientChannelAttempt";
-  create policy patient_channel_attempt_deny_authenticated on public."PatientChannelAttempt"
-    for all to authenticated
-    using (false)
-    with check (false);
+
+  drop policy if exists patient_channel_attempt_member_select on public."PatientChannelAttempt";
+  create policy patient_channel_attempt_member_select on public."PatientChannelAttempt"
+    for select to authenticated
+    using (public.is_business_member("businessId"));
 
   if exists (select 1 from pg_roles where rolname = 'asistan_app') then
     drop policy if exists patient_channel_attempt_prisma_guc on public."PatientChannelAttempt";
