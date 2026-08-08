@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { useLiveAvailability } from '@/hooks/use-live-availability'
-import { readJsonResponse, userMessageFromUnknown } from '@/lib/http/read-json'
+import { extractAvailabilitySlots, readJsonResponse, userMessageFromUnknown } from '@/lib/http/read-json'
 import {
   addCalendarDays,
   calendarDateInTimeZone,
@@ -18,6 +18,31 @@ import {
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
 type Step = 1 | 2 | 3
+
+const NEXT_OPEN_SCAN_DAYS = 14
+
+async function fetchSlotsForDate(input: {
+  businessId: string
+  doctorId: string
+  serviceId: string
+  date: string
+  locationId?: string | null
+}): Promise<number> {
+  const params = new URLSearchParams({
+    businessId: input.businessId,
+    doctorId: input.doctorId,
+    serviceId: input.serviceId,
+    date: input.date,
+  })
+  if (input.locationId) params.set('locationId', input.locationId)
+  const res = await fetch(`/api/client/availability?${params.toString()}`, {
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
+  })
+  const { ok, data } = await readJsonResponse(res, { kind: 'availability' })
+  if (!ok) return 0
+  return extractAvailabilitySlots(data).slots.length
+}
 
 function todayIso() {
   return calendarDateInTimeZone()
@@ -129,6 +154,9 @@ export function PublicBookingWidget({
     enabled: Boolean(step >= 2 && !done),
   })
 
+  const [nextOpenDate, setNextOpenDate] = useState<string | null>(null)
+  const [findingNextOpen, setFindingNextOpen] = useState(false)
+
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -180,6 +208,68 @@ export function PublicBookingWidget({
   useEffect(() => {
     setStartTime(null)
   }, [date, doctorId, serviceId, locationId])
+
+  // When this day is empty, find the next day that actually has open slots.
+  useEffect(() => {
+    if (step !== 2) return
+    if (slotsLoading || slotsError) return
+    if (slots.length > 0) {
+      setNextOpenDate(null)
+      setFindingNextOpen(false)
+      return
+    }
+    if (!serviceId || !doctorId || !date) return
+
+    let cancelled = false
+    setFindingNextOpen(true)
+    setNextOpenDate(null)
+
+    void (async () => {
+      try {
+        for (let i = 1; i <= NEXT_OPEN_SCAN_DAYS; i += 1) {
+          if (cancelled) return
+          const candidate = addDaysIso(date, i)
+          const count = await fetchSlotsForDate({
+            businessId: clinic.id,
+            doctorId,
+            serviceId,
+            date: candidate,
+            locationId,
+          })
+          if (count > 0) {
+            if (!cancelled) {
+              setNextOpenDate(candidate)
+              setFindingNextOpen(false)
+            }
+            return
+          }
+        }
+        if (!cancelled) {
+          setNextOpenDate(null)
+          setFindingNextOpen(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setNextOpenDate(null)
+          setFindingNextOpen(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    step,
+    slotsLoading,
+    slotsError,
+    slots.length,
+    serviceId,
+    doctorId,
+    date,
+    locationId,
+    clinic.id,
+  ])
 
   function validateName(value: string) {
     const trimmed = value.trim()
@@ -706,20 +796,59 @@ export function PublicBookingWidget({
                 className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-center"
               >
                 <p className="text-sm font-semibold text-slate-900">
-                  {lang === 'en' ? 'No open slots this day' : 'Bu gün için açık slot yok'}
+                  {lang === 'en'
+                    ? `No open slots on ${dayChipLabel(date, lang)}`
+                    : `${dayChipLabel(date, lang)} için açık slot yok`}
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
-                  {lang === 'en' ? 'Try tomorrow or call the clinic.' : 'Yarını deneyin veya kliniği arayın.'}
+                  {findingNextOpen
+                    ? lang === 'en'
+                      ? 'Looking for the next open day…'
+                      : 'Sonraki müsait gün aranıyor…'
+                    : nextOpenDate
+                      ? lang === 'en'
+                        ? `Next opening: ${dayChipLabel(nextOpenDate, lang)}`
+                        : `Sonraki müsait: ${dayChipLabel(nextOpenDate, lang)}`
+                      : lang === 'en'
+                        ? 'Pick another day above, or call the clinic.'
+                        : 'Yukarıdan başka bir gün seçin veya kliniği arayın.'}
                 </p>
                 <div className="mt-3 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
-                  <Button
-                    type="button"
-                    className="h-11 min-h-11 text-white"
-                    style={{ backgroundColor: accent }}
-                    onClick={() => setDate(addDaysIso(date, 1))}
-                  >
-                    {lang === 'en' ? 'Try tomorrow' : 'Yarını dene'}
-                  </Button>
+                  {nextOpenDate ? (
+                    <Button
+                      type="button"
+                      className="h-11 min-h-11 text-white"
+                      style={{ backgroundColor: accent }}
+                      onClick={() => setDate(nextOpenDate)}
+                    >
+                      {lang === 'en'
+                        ? `Go to ${dayChipLabel(nextOpenDate, lang)}`
+                        : `${dayChipLabel(nextOpenDate, lang)} gününe git`}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      className="h-11 min-h-11 text-white"
+                      style={{ backgroundColor: accent }}
+                      disabled={findingNextOpen}
+                      onClick={() => {
+                        const idx = dayChips.indexOf(date)
+                        const fallback =
+                          idx >= 0 && idx < dayChips.length - 1
+                            ? dayChips[idx + 1]
+                            : addDaysIso(date, 1)
+                        setDate(fallback)
+                      }}
+                    >
+                      {findingNextOpen
+                        ? lang === 'en'
+                          ? 'Searching…'
+                          : 'Aranıyor…'
+                        : lang === 'en'
+                          ? 'Next day'
+                          : 'Sonraki gün'}
+                    </Button>
+                  )}
                   {clinic.phone ? (
                     <Button asChild variant="outline" className="h-11 min-h-11">
                       <a href={`tel:${clinic.phone.replace(/\s+/g, '')}`}>
