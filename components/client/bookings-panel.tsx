@@ -17,11 +17,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  extractAvailabilitySlots,
-  readJsonResponse,
-  userMessageFromUnknown,
-} from '@/lib/http/read-json'
+import { useLiveAvailability } from '@/hooks/use-live-availability'
+import { userMessageFromUnknown } from '@/lib/http/read-json'
 import {
   canCancelOrRescheduleByPolicy,
   DEFAULT_CANCEL_MIN_HOURS,
@@ -133,14 +130,37 @@ export function ClientBookingsPanel() {
   const [savingId, setSavingId] = useState<string | null>(null)
   const [rescheduleId, setRescheduleId] = useState<string | null>(null)
   const [rescheduleDate, setRescheduleDate] = useState('')
-  const [slots, setSlots] = useState<Slot[]>([])
-  const [slotsLoading, setSlotsLoading] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [reviewId, setReviewId] = useState<string | null>(null)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
 
   const [showPast, setShowPast] = useState(false)
+
+  const rescheduleRow = useMemo(
+    () => rows.find((row) => row.id === rescheduleId) ?? null,
+    [rows, rescheduleId],
+  )
+
+  const {
+    slots,
+    loading: slotsLoading,
+    refresh: refreshRescheduleSlots,
+  } = useLiveAvailability({
+    businessId: rescheduleRow?.businessId ?? '',
+    doctorId: rescheduleRow?.doctorId ?? null,
+    serviceId: rescheduleRow?.serviceId ?? null,
+    date: rescheduleDate || null,
+    locationId: rescheduleRow?.locationId ?? null,
+    enabled: Boolean(rescheduleId && rescheduleRow?.doctorId && rescheduleDate),
+  })
+
+  useEffect(() => {
+    if (!selectedSlot) return
+    if (!slots.some((slot) => slot.startTime === selectedSlot)) {
+      setSelectedSlot(null)
+    }
+  }, [slots, selectedSlot])
 
   const load = useCallback(async (opts?: { quiet?: boolean }) => {
     if (!opts?.quiet) setLoading(true)
@@ -234,7 +254,7 @@ export function ClientBookingsPanel() {
     }
   }
 
-  async function openReschedule(row: AppointmentRow) {
+  function openReschedule(row: AppointmentRow) {
     const policy = canCancelOrRescheduleByPolicy(row.date, row.startTime, CANCEL_MIN_HOURS)
     if (!policy.ok) {
       toast.error(
@@ -242,74 +262,18 @@ export function ClientBookingsPanel() {
       )
       return
     }
+    if (!row.doctorId) {
+      toast.error('Bu randevu için hekim bilgisi eksik')
+      return
+    }
     setRescheduleId(row.id)
     setRescheduleDate(row.date)
     setSelectedSlot(null)
-    setSlots([])
-    setSlotsLoading(true)
-    try {
-      if (!row.doctorId) {
-        toast.error('Bu randevu için hekim bilgisi eksik')
-        return
-      }
-      const params = new URLSearchParams({
-        doctorId: row.doctorId,
-        serviceId: row.serviceId,
-        businessId: row.businessId,
-        date: row.date,
-      })
-      if (row.locationId) params.set('locationId', row.locationId)
-      const { ok, data } = await readJsonResponse(await fetch(`/api/client/availability?${params}`), {
-        kind: 'availability',
-      })
-      const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
-      if (!ok) {
-        throw new Error(errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.')
-      }
-      setSlots(nextSlots)
-    } catch (error) {
-      toast.error(
-        userMessageFromUnknown(
-          error,
-          'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
-        ),
-      )
-    } finally {
-      setSlotsLoading(false)
-    }
   }
 
-  async function loadSlotsForDate(row: AppointmentRow, date: string) {
-    if (!row.doctorId) return
+  function changeRescheduleDate(date: string) {
     setRescheduleDate(date)
     setSelectedSlot(null)
-    setSlotsLoading(true)
-    try {
-      const params = new URLSearchParams({
-        doctorId: row.doctorId,
-        serviceId: row.serviceId,
-        businessId: row.businessId,
-        date,
-      })
-      if (row.locationId) params.set('locationId', row.locationId)
-      const { ok, data } = await readJsonResponse(await fetch(`/api/client/availability?${params}`), {
-        kind: 'availability',
-      })
-      const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
-      if (!ok) {
-        throw new Error(errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.')
-      }
-      setSlots(nextSlots)
-    } catch (error) {
-      toast.error(
-        userMessageFromUnknown(
-          error,
-          'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
-        ),
-      )
-    } finally {
-      setSlotsLoading(false)
-    }
   }
 
   async function submitReschedule(id: string) {
@@ -327,7 +291,10 @@ export function ClientBookingsPanel() {
       setRescheduleId(null)
       await load()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Yeniden planlama başarısız')
+      const msg = userMessageFromUnknown(error, 'Yeniden planlama başarısız')
+      toast.error(msg)
+      setSelectedSlot(null)
+      refreshRescheduleSlots()
     } finally {
       setSavingId(null)
     }
@@ -435,8 +402,8 @@ export function ClientBookingsPanel() {
                   slotsLoading={slotsLoading}
                   selectedSlot={selectedSlot}
                   onCancel={() => void cancelAppointment(row)}
-                  onOpenReschedule={() => void openReschedule(row)}
-                  onDateChange={(date) => void loadSlotsForDate(row, date)}
+                  onOpenReschedule={() => openReschedule(row)}
+                  onDateChange={(date) => changeRescheduleDate(date)}
                   onSelectSlot={setSelectedSlot}
                   onSubmitReschedule={() => void submitReschedule(row.id)}
                   onCloseReschedule={() => setRescheduleId(null)}

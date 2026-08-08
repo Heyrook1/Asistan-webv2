@@ -2,7 +2,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, MapPin, Phone, Star, ShieldCheck, Clock3 } from 'lucide-react'
 
+import { DoctorLiveSlotChips } from '@/components/client/doctor-live-slot-chips'
 import type { ClientClinicDetail } from '@/lib/client-marketplace/clinic-detail'
+import { formatNextSlotLabelStable } from '@/lib/datetime/calendar-label'
 import { formatCurrency } from '@/lib/format'
 import { getPublicBookPath } from '@/lib/public-booking/paths'
 import { cn } from '@/lib/utils'
@@ -176,18 +178,25 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
         ) : (
           <ul className="space-y-2">
             {clinic.doctors.map((doctor) => {
-              const bookHref = `${bookBase}?doctorId=${encodeURIComponent(doctor.id)}`
+              const firstServiceId = doctor.services[0]?.id
+              const bookHref = firstServiceId
+                ? `${bookBase}?doctorId=${encodeURIComponent(doctor.id)}&serviceId=${encodeURIComponent(firstServiceId)}`
+                : `${bookBase}?doctorId=${encodeURIComponent(doctor.id)}`
               const docRating =
                 doctor.reviews.averageRating != null
                   ? doctor.reviews.averageRating.toFixed(1)
                   : null
+              const firstSlot = doctor.nextSlots[0]
+              const firstSlotLabel = firstSlot
+                ? formatNextSlotLabelStable(`${firstSlot.date}T${firstSlot.startTime}:00`, 'tr')
+                : null
               return (
                 <li
                   key={doctor.id}
                   className="rounded-[1.1rem] bg-white p-3.5 ring-1 ring-slate-200/80"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="font-bold text-slate-900">{doctor.fullName}</p>
                       {doctor.specialty ? (
                         <p className="mt-0.5 text-[12.5px] text-slate-500">{doctor.specialty}</p>
@@ -198,9 +207,9 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                             ★ {docRating}
                           </span>
                         ) : null}
-                        {doctor.nextSlots[0] ? (
+                        {firstSlotLabel ? (
                           <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
-                            Bugün · {doctor.nextSlots[0].startTime}
+                            {firstSlotLabel}
                           </span>
                         ) : null}
                       </div>
@@ -208,6 +217,15 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                         <p className="mt-2 text-[12.5px] leading-relaxed text-slate-500">
                           {doctor.bio}
                         </p>
+                      ) : null}
+                      {firstServiceId ? (
+                        <DoctorLiveSlotChips
+                          businessId={clinic.id}
+                          doctorId={doctor.id}
+                          serviceId={firstServiceId}
+                          bookBase={bookBase}
+                          initialSlots={doctor.nextSlots}
+                        />
                       ) : null}
                     </div>
                     <Link

@@ -48,15 +48,20 @@ export async function GET(request: NextRequest) {
     }
 
     const slots = await getAvailableSlots(parsed.data)
+    const syncedAt = new Date().toISOString()
     return NextResponse.json(
       {
         ok: true as const,
-        data: { slots },
+        data: { slots, syncedAt },
         slots,
+        syncedAt,
       },
       {
         status: 200,
-        headers: { 'Cache-Control': 'no-store' },
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        },
       },
     )
   } catch (error) {

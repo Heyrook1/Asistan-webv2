@@ -32,6 +32,7 @@ import {
   runSlotAppointmentTransaction,
   SlotConflictError,
 } from '@/lib/booking/create-slot-appointment'
+import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
 
 function bookingMessage(status: AppointmentStatus): string {
   return status === AppointmentStatus.CONFIRMED
@@ -52,9 +53,12 @@ async function notifyClinic(input: {
   pendingApproval: boolean
 }) {
   const [assigned, business] = await Promise.all([
-    prisma.teamMember.findFirst({
-      where: { id: input.staffId, businessId: input.businessId },
-      select: { userId: true },
+    prisma.$transaction(async (tx) => {
+      await setTenantBusinessId(tx, input.businessId)
+      return tx.teamMember.findFirst({
+        where: { id: input.staffId, businessId: input.businessId },
+        select: { userId: true },
+      })
     }),
     prisma.business.findUnique({
       where: { id: input.businessId },
@@ -170,18 +174,23 @@ export async function createGuestPublicBooking(raw: unknown, idempotencyKeyRaw?:
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const booking = await createGuestBookingOnce(parsed.data, idempotencyKey)
-      await notifyClinic({
-        businessId: parsed.data.businessId,
-        appointmentId: booking.appointmentId,
-        patientId: booking.patientId,
-        patientName: parsed.data.fullName,
-        serviceName: booking.serviceName,
-        locationName: booking.locationName,
-        date: parsed.data.date,
-        startTime: parsed.data.startTime,
-        staffId: parsed.data.doctorId,
-        pendingApproval: booking.status === AppointmentStatus.SCHEDULED,
-      })
+      try {
+        await notifyClinic({
+          businessId: parsed.data.businessId,
+          appointmentId: booking.appointmentId,
+          patientId: booking.patientId,
+          patientName: parsed.data.fullName,
+          serviceName: booking.serviceName,
+          locationName: booking.locationName,
+          date: parsed.data.date,
+          startTime: parsed.data.startTime,
+          staffId: parsed.data.doctorId,
+          pendingApproval: booking.status === AppointmentStatus.SCHEDULED,
+        })
+      } catch (notifyError) {
+        // Appointment already committed — do not fail the guest response.
+        console.error('[public-book] clinic notify failed', notifyError)
+      }
 
       let intakeUrl: string | null = null
       let intakeFormName: string | null = null
@@ -227,18 +236,22 @@ export async function createGuestPublicBooking(raw: unknown, idempotencyKeyRaw?:
 
       if (booking.status === AppointmentStatus.CONFIRMED) {
         // Soft-fail: auto-confirm book still succeeds if SMS/WA webhook is down.
-        await notifyPatientChannels({
-          businessId: parsed.data.businessId,
-          appointmentId: booking.appointmentId,
-          patientId: booking.patientId,
-          patientName: parsed.data.fullName,
-          patientPhone: parsed.data.phone,
-          patientEmail: parsed.data.email,
-          serviceName: booking.serviceName,
-          startsAt: `${parsed.data.date}T${parsed.data.startTime}:00`,
-          clinicName: business?.name,
-          kind: 'confirm',
-        })
+        try {
+          await notifyPatientChannels({
+            businessId: parsed.data.businessId,
+            appointmentId: booking.appointmentId,
+            patientId: booking.patientId,
+            patientName: parsed.data.fullName,
+            patientPhone: parsed.data.phone,
+            patientEmail: parsed.data.email,
+            serviceName: booking.serviceName,
+            startsAt: `${parsed.data.date}T${parsed.data.startTime}:00`,
+            clinicName: business?.name,
+            kind: 'confirm',
+          })
+        } catch (patientNotifyError) {
+          console.error('[public-book] patient notify failed', patientNotifyError)
+        }
       }
 
       let deposit: Awaited<ReturnType<typeof createAppointmentDeposit>> = null

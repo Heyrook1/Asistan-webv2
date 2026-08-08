@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { getAvailableSlotsTx } from '@/lib/client-marketplace/availability'
 import type { CreateClientBookingInput } from '@/lib/client-marketplace/booking-schema'
 import { resolveOrCreateClinicPatient } from '@/lib/identity/clinic-patient'
+import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
 
 export class SlotConflictError extends Error {
   constructor() {
@@ -194,7 +195,11 @@ export async function runSlotAppointmentTransaction(
   input: CreateSlotAppointmentInput
 ): Promise<CreateSlotAppointmentResult> {
   return prisma.$transaction(
-    (tx) => createSlotAppointmentTx(tx, input),
+    async (tx) => {
+      // asistan_app RLS: without GUC, doctor/service/appointment reads are empty.
+      await setTenantBusinessId(tx, input.payload.businessId)
+      return createSlotAppointmentTx(tx, input)
+    },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       maxWait: 8_000,

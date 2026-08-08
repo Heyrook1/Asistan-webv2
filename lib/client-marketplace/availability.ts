@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import { withTenantDb } from '@/lib/security/tenant-db-context'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import type { AvailabilitySlot } from './types'
@@ -154,13 +155,24 @@ async function getAvailableSlotsWithDb(
 }
 
 /**
- * Public slot query — scoped via app.business_id GUC (asistan_app).
- * Prefer this over a second owner Prisma client (pooler / host fragile).
+ * Public slot query — try asistan_app + GUC first; fall back to catalog/owner
+ * if the tenant path throws (pooler / missing set_config / host drift).
+ * Never throws to the route — empty list is safer than a blank 500 body.
  */
 export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
-  return runWithTenantBypassAsync('marketplace:availability', () =>
-    withTenantDb(input.businessId, (tx) => getAvailableSlotsWithDb(tx, input)),
-  )
+  try {
+    return await runWithTenantBypassAsync('marketplace:availability', () =>
+      withTenantDb(input.businessId, (tx) => getAvailableSlotsWithDb(tx, input)),
+    )
+  } catch (tenantError) {
+    console.error('[availability] tenant path failed, trying catalogPrisma', tenantError)
+    try {
+      return await getAvailableSlotsWithDb(catalogPrisma(), input)
+    } catch (catalogError) {
+      console.error('[availability] catalogPrisma path failed', catalogError)
+      return []
+    }
+  }
 }
 
 export async function getAvailableSlotsTx(

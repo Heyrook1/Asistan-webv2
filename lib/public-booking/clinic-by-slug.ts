@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
 export type { PublicClinicBookingPayload }
@@ -11,10 +11,16 @@ function toNumber(value: unknown) {
   return Number.isNaN(parsed) ? null : parsed
 }
 
+/**
+ * Public book payload — must use owner/catalog client.
+ * `asistan_app` without `app.business_id` returns the Business row but empty
+ * services/doctors (RLS), so the widget never reaches slot selection.
+ */
 export async function getPublicClinicBySlug(slug: string): Promise<PublicClinicBookingPayload | null> {
   const normalized = slug.trim().toLowerCase()
   if (!normalized) return null
 
+  const prisma = catalogPrisma()
   const business = await prisma.business.findFirst({
     where: { slug: normalized, isActive: true },
     select: {

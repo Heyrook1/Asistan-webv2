@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
-import {
-  extractAvailabilitySlots,
-  readJsonResponse,
-  userMessageFromUnknown,
-} from '@/lib/http/read-json'
+import { useLiveAvailability } from '@/hooks/use-live-availability'
+import { readJsonResponse, userMessageFromUnknown } from '@/lib/http/read-json'
 import {
   addCalendarDays,
   calendarDateInTimeZone,
@@ -20,7 +17,6 @@ import {
 } from '@/lib/datetime/calendar-label'
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
-type Slot = { startTime: string; endTime: string }
 type Step = 1 | 2 | 3
 
 function todayIso() {
@@ -97,10 +93,6 @@ export function PublicBookingWidget({
       ? initialDate
       : todayIso(),
   )
-  const [slots, setSlots] = useState<Slot[]>([])
-  const [slotsLoading, setSlotsLoading] = useState(false)
-  const [slotsError, setSlotsError] = useState<string | null>(null)
-  const [slotsRetryToken, setSlotsRetryToken] = useState(0)
   const [startTime, setStartTime] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [done, setDone] = useState<{
@@ -121,6 +113,21 @@ export function PublicBookingWidget({
       instructions: string
     } | null
   } | null>(null)
+  const {
+    slots,
+    loading: slotsLoading,
+    error: slotsError,
+    syncedAt,
+    refresh: refreshSlots,
+  } = useLiveAvailability({
+    businessId: clinic.id,
+    doctorId,
+    serviceId,
+    date,
+    locationId,
+    // Keep syncing through contact step until booking completes.
+    enabled: Boolean(step >= 2 && !done),
+  })
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -161,57 +168,18 @@ export function PublicBookingWidget({
     setStartTime(null)
   }, [doctorId, doctorsForService, initialDoctorId])
 
+  // Drop selection if clinic agenda filled that slot while the patient was looking.
   useEffect(() => {
-    if (!serviceId || !doctorId || !date) {
-      setSlots([])
-      return
+    if (!startTime) return
+    if (!slots.some((slot) => slot.startTime === startTime)) {
+      setStartTime(null)
     }
+  }, [slots, startTime])
 
-    let cancelled = false
-    setSlotsLoading(true)
-    setSlotsError(null)
-    const params = new URLSearchParams({
-      businessId: clinic.id,
-      doctorId,
-      serviceId,
-      date,
-    })
-    if (locationId) params.set('locationId', locationId)
-
-    fetch(`/api/client/availability?${params.toString()}`)
-      .then(async (res) => {
-        const { ok, data } = await readJsonResponse(res, { kind: 'availability' })
-        const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
-        if (!ok) {
-          throw new Error(
-            errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
-          )
-        }
-        if (!cancelled) {
-          setSlots(nextSlots)
-          setStartTime(null)
-          setSlotsError(null)
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setSlots([])
-          const msg = userMessageFromUnknown(
-            error,
-            'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
-          )
-          setSlotsError(msg)
-          toast.error(msg)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setSlotsLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [clinic.id, date, doctorId, locationId, serviceId, slotsRetryToken])
+  // Hard selection changes clear the picked time.
+  useEffect(() => {
+    setStartTime(null)
+  }, [date, doctorId, serviceId, locationId])
 
   function validateName(value: string) {
     const trimmed = value.trim()
@@ -286,6 +254,10 @@ export function PublicBookingWidget({
           setSubmitError(msg)
           toast.error(msg)
           idempotencyKeyRef.current = newIdempotencyKey()
+          if (status === 409) {
+            setStartTime(null)
+            refreshSlots()
+          }
           return
         }
         setSubmitError(null)
@@ -693,6 +665,20 @@ export function PublicBookingWidget({
               />
             </div>
 
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-slate-500">
+                {lang === 'en'
+                  ? 'Open times from the clinic agenda'
+                  : 'Kliniğin ajandasındaki boş saatler'}
+              </p>
+              {syncedAt && !slotsLoading && !slotsError ? (
+                <p className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                  <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+                  {lang === 'en' ? 'Live' : 'Canlı'}
+                </p>
+              ) : null}
+            </div>
+
             {slotsLoading ? (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-busy="true" aria-label="Saatler yükleniyor">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -709,7 +695,7 @@ export function PublicBookingWidget({
                   type="button"
                   variant="outline"
                   className="mt-3 h-11 min-h-11"
-                  onClick={() => setSlotsRetryToken((n) => n + 1)}
+                  onClick={() => refreshSlots()}
                 >
                   Tekrar dene
                 </Button>

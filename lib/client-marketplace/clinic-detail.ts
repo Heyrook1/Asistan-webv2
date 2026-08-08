@@ -2,10 +2,11 @@ import 'server-only'
 
 import { catalogPrisma } from '@/lib/prisma-owner'
 import { getAvailableSlots } from '@/lib/client-marketplace/availability'
+import { addCalendarDays, calendarDateInTimeZone } from '@/lib/datetime/calendar-label'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  return calendarDateInTimeZone()
 }
 
 function toNumber(value: unknown) {
@@ -56,7 +57,7 @@ export type ClientClinicDetail = {
       durationMin: number
       price: number | null
     }>
-    nextSlots: Array<{ startTime: string; endTime: string }>
+    nextSlots: Array<{ date: string; startTime: string; endTime: string; serviceId: string }>
     reviews: { averageRating: number | null; reviewCount: number }
   }>
   recentReviews: Array<{
@@ -160,14 +161,31 @@ export async function getClientClinicDetail(id: string): Promise<ClientClinicDet
         const assigned = doctor.serviceAssignments.map((assignment) => assignment.service)
         const services = assigned.length > 0 ? assigned : business.services
         const firstService = services[0]
-        const slots = firstService
-          ? await getAvailableSlots({
+
+        let nextSlots: Array<{
+          date: string
+          startTime: string
+          endTime: string
+          serviceId: string
+        }> = []
+
+        if (firstService) {
+          for (let day = 0; day < 7 && nextSlots.length === 0; day += 1) {
+            const date = addCalendarDays(today, day)
+            const slots = await getAvailableSlots({
               businessId: business.id,
               doctorId: doctor.id,
               serviceId: firstService.id,
-              date: today,
+              date,
             })
-          : []
+            nextSlots = slots.slice(0, 6).map((slot) => ({
+              date,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              serviceId: firstService.id,
+            }))
+          }
+        }
 
         return {
           id: doctor.id,
@@ -181,7 +199,7 @@ export async function getClientClinicDetail(id: string): Promise<ClientClinicDet
             durationMin: service.durationMin,
             price: toNumber(service.price),
           })),
-          nextSlots: slots.slice(0, 6),
+          nextSlots,
           reviews: reviewByDoctorId.get(doctor.id) ?? {
             averageRating: null,
             reviewCount: 0,
