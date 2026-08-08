@@ -65,11 +65,24 @@ export async function GET(request: NextRequest) {
       },
     )
   } catch (error) {
+    // Never 500 the book UI — empty slots + retry is recoverable; hard 500 is not.
     console.error('[api/client/availability]', error)
-    return apiError(
-      'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
-      500,
-      'AVAILABILITY_UNAVAILABLE',
+    const syncedAt = new Date().toISOString()
+    return NextResponse.json(
+      {
+        ok: true as const,
+        data: { slots: [], syncedAt },
+        slots: [],
+        syncedAt,
+        degraded: true,
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      },
     )
   }
 }

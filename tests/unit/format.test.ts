@@ -32,11 +32,12 @@ describe('lib/format', () => {
   })
 
   describe('formatCurrency', () => {
-    it('formats TRY with no decimals when whole', () => {
+    it('formats TRY with stable TL suffix (hydration-safe)', () => {
       // tr-TR uses non-breaking spaces; assert key substrings
       const out = formatCurrency(1500)
       expect(out).toContain('1.500')
-      expect(out).toContain('₺')
+      expect(out).toContain('TL')
+      expect(out).not.toContain('₺')
     })
   })
 

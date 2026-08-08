@@ -14,13 +14,18 @@ export function calendarDateInTimeZone(
   now: Date = new Date(),
   timeZone: string = KKTC_TZ,
 ): string {
-  // en-CA → YYYY-MM-DD (stable across Node + Chromium)
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now)
+  try {
+    // en-CA → YYYY-MM-DD (stable across Node + Chromium)
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+  } catch {
+    // Some hosts lack full ICU TZ data — fall back to UTC calendar day.
+    return now.toISOString().slice(0, 10)
+  }
 }
 
 export function addCalendarDays(isoDate: string, days: number): string {

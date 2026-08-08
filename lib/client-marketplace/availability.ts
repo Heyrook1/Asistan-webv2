@@ -155,24 +155,23 @@ async function getAvailableSlotsWithDb(
 }
 
 /**
- * Public slot query — try asistan_app + GUC first; fall back to catalog/owner
- * if the tenant path throws (pooler / missing set_config / host drift).
- * Never throws to the route — empty list is safer than a blank 500 body.
+ * Public slot query — catalog/owner first (cross-tenant, no GUC).
+ * Tenant path is fallback only. Never throws — empty list on total failure.
  */
 export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
-  try {
-    return await runWithTenantBypassAsync('marketplace:availability', () =>
-      withTenantDb(input.businessId, (tx) => getAvailableSlotsWithDb(tx, input)),
-    )
-  } catch (tenantError) {
-    console.error('[availability] tenant path failed, trying catalogPrisma', tenantError)
+  return runWithTenantBypassAsync('marketplace:availability', async () => {
     try {
       return await getAvailableSlotsWithDb(catalogPrisma(), input)
     } catch (catalogError) {
-      console.error('[availability] catalogPrisma path failed', catalogError)
-      return []
+      console.error('[availability] catalogPrisma failed, trying tenant GUC', catalogError)
+      try {
+        return await withTenantDb(input.businessId, (tx) => getAvailableSlotsWithDb(tx, input))
+      } catch (tenantError) {
+        console.error('[availability] tenant path also failed', tenantError)
+        return []
+      }
     }
-  }
+  })
 }
 
 export async function getAvailableSlotsTx(

@@ -20,12 +20,14 @@ const dfDateTime = new Intl.DateTimeFormat('tr-TR', {
 })
 
 export function formatCurrency(amount: number, currency = 'TRY') {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency,
+  // Avoid ICU currency-symbol drift (₺ vs TL vs TRY) between Node SSR and browser — React #418.
+  const formatted = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount)
+  const code = currency.trim().toUpperCase()
+  if (code === 'TRY' || code === 'TL') return `${formatted} TL`
+  return `${formatted} ${code}`
 }
 
 export function formatDuration(minutes: number) {

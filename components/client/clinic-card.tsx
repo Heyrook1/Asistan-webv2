@@ -92,6 +92,7 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
 
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
             <span
+              suppressHydrationWarning
               className={cn(
                 'rounded-full px-2 py-0.5',
                 item.openNow ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600',
@@ -100,11 +101,16 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
               {item.openNow ? t({ tr: 'Açık', en: 'Open' }) : t({ tr: 'Kapalı', en: 'Closed' })}
             </span>
             {nextSlotLabel ? (
-              <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
+              <span
+                suppressHydrationWarning
+                className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]"
+              >
                 {nextSlotLabel}
               </span>
             ) : null}
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{priceLabel}</span>
+            <span suppressHydrationWarning className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+              {priceLabel}
+            </span>
           </div>
         </div>
       </div>
