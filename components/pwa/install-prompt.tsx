@@ -13,6 +13,20 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+/** One global capture — multiple InstallPrompt mounts must not each call preventDefault. */
+let sharedDeferred: BeforeInstallPromptEvent | null = null
+let globalBeforeInstallBound = false
+
+function bindGlobalBeforeInstall() {
+  if (typeof window === 'undefined' || globalBeforeInstallBound) return
+  globalBeforeInstallBound = true
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault()
+    sharedDeferred = event as BeforeInstallPromptEvent
+    window.dispatchEvent(new Event('asistan:pwa-deferred'))
+  })
+}
+
 function isIosSafari() {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent
@@ -61,19 +75,24 @@ export function InstallPrompt({
     if (window.localStorage.getItem(dismissKey) === '1') return
 
     let cancelled = false
+    bindGlobalBeforeInstall()
 
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault()
-      if (cancelled) return
-      setDeferred(event as BeforeInstallPromptEvent)
+    const adoptDeferred = () => {
+      if (cancelled || !sharedDeferred) return
+      setDeferred(sharedDeferred)
       setMode('chromium')
       setVisible(true)
     }
 
-    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+    if (sharedDeferred) adoptDeferred()
+    window.addEventListener('asistan:pwa-deferred', adoptDeferred)
 
     const timer = window.setTimeout(() => {
       if (cancelled) return
+      if (sharedDeferred) {
+        adoptDeferred()
+        return
+      }
       if (isIosSafari()) {
         setMode('ios')
         setVisible(true)
@@ -86,7 +105,7 @@ export function InstallPrompt({
     return () => {
       cancelled = true
       window.clearTimeout(timer)
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+      window.removeEventListener('asistan:pwa-deferred', adoptDeferred)
     }
   }, [delayMs, dismissKey])
 

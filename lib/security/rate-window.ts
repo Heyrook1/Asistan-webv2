@@ -14,7 +14,8 @@ export function parseWindowMs(window: string): number {
 
 export const RATE_LIMITS = {
   public: { limit: 10, window: '1 m' },
-  auth: { limit: 5, window: '15 m' },
+  /** Login/register/forgot — keep abuse-resistant but allow a few typos. */
+  auth: { limit: 20, window: '15 m' },
   api: { limit: 100, window: '1 m' },
   /** Soft poll endpoints (notifications/messages/client reads) */
   poll: { limit: 60, window: '1 m' },

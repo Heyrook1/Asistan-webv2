@@ -2,6 +2,8 @@ import 'server-only'
 
 import type { PatientFile, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { sessionPrisma } from '@/lib/prisma-owner'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
 import { createClient } from '@/lib/supabase/server'
 import {
   MESSAGE_MEDIA_BUCKET,
@@ -385,33 +387,38 @@ export async function getAppointmentForBoard(
 }
 
 export async function getNotificationsList(businessId: string, userId: string, take = 100) {
-  return prisma.notification.findMany({
-    where: {
-      businessId,
-      OR: [{ userId }, { userId: null }],
-      archivedAt: null,
-    },
-    orderBy: { createdAt: 'desc' },
-    take,
-    include: {
-      actor: { select: { id: true, fullName: true } },
-      actions: { orderBy: { createdAt: 'asc' } },
-    },
-  })
+  // asistan_app FORCE RLS — Notification reads need app.business_id GUC.
+  return tenantTransaction(businessId, (tx) =>
+    tx.notification.findMany({
+      where: {
+        businessId,
+        OR: [{ userId }, { userId: null }],
+        archivedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        actor: { select: { id: true, fullName: true } },
+        actions: { orderBy: { createdAt: 'asc' } },
+      },
+    }),
+  )
 }
 
 export async function getNotificationById(notificationId: string, businessId: string, userId: string) {
-  return prisma.notification.findFirst({
-    where: {
-      id: notificationId,
-      businessId,
-      OR: [{ userId }, { userId: null }],
-    },
-    include: {
-      actor: { select: { id: true, fullName: true } },
-      actions: { orderBy: { createdAt: 'asc' } },
-    },
-  })
+  return tenantTransaction(businessId, (tx) =>
+    tx.notification.findFirst({
+      where: {
+        id: notificationId,
+        businessId,
+        OR: [{ userId }, { userId: null }],
+      },
+      include: {
+        actor: { select: { id: true, fullName: true } },
+        actions: { orderBy: { createdAt: 'asc' } },
+      },
+    }),
+  )
 }
 
 /**
@@ -451,14 +458,16 @@ export function serializeNotification(
 }
 
 export async function getUnreadNotificationCount(businessId: string, userId: string) {
-  return prisma.notification.count({
-    where: {
-      businessId,
-      OR: [{ userId }, { userId: null }],
-      isRead: false,
-      archivedAt: null,
-    },
-  })
+  return tenantTransaction(businessId, (tx) =>
+    tx.notification.count({
+      where: {
+        businessId,
+        OR: [{ userId }, { userId: null }],
+        isRead: false,
+        archivedAt: null,
+      },
+    }),
+  )
 }
 
 export async function getAnalyticsSnapshot(

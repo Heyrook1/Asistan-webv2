@@ -11,7 +11,7 @@ import {
   getUnreadNotificationCount,
   serializeNotification,
 } from '@/lib/queries'
-import { prisma } from '@/lib/prisma'
+import { sessionPrisma } from '@/lib/prisma-owner'
 import {
   getMembershipUrgency,
   getVendorPlanName,
@@ -50,7 +50,8 @@ export default async function DashboardLayout({
       ? getUnreadMessageCount(session.businessId, session.userId)
       : Promise.resolve(0),
     getNotificationsList(session.businessId, session.userId, 10),
-    prisma.vendorAccount.findUnique({
+    // Owner/migrate client — VendorAccount is empty under asistan_app without GUC.
+    sessionPrisma().vendorAccount.findUnique({
       where: { businessId: session.businessId },
       select: {
         plan: true,
