@@ -8,6 +8,7 @@ import {
   getRateLimitBackendPreference,
   isUpstashRateLimitConfigured,
 } from '@/lib/rate-limit'
+import { isIdentityPepperConfigured } from '@/lib/identity/resolve'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -20,6 +21,7 @@ interface HealthStatus {
   checks: {
     database: CheckState
     catalog: CheckState
+    identityPepper: CheckState
     rateLimit: {
       backend: 'upstash' | 'memory'
       configured: boolean
@@ -82,7 +84,16 @@ export async function GET(
     })
   }
 
-  const ok = database === 'healthy' && catalog === 'healthy'
+  const identityPepper: CheckState = isIdentityPepperConfigured()
+    ? 'healthy'
+    : process.env.NODE_ENV === 'production'
+      ? 'unhealthy'
+      : 'degraded'
+
+  const ok =
+    database === 'healthy' &&
+    catalog === 'healthy' &&
+    (identityPepper === 'healthy' || process.env.NODE_ENV !== 'production')
 
   return NextResponse.json(
     {
@@ -91,6 +102,7 @@ export async function GET(
       checks: {
         database,
         catalog,
+        identityPepper,
         rateLimit: {
           backend: rateLimitBackend,
           configured: rateLimitConfigured,

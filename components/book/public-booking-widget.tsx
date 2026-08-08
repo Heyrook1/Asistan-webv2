@@ -71,10 +71,6 @@ function addDaysIso(iso: string, days: number) {
   return addCalendarDays(iso, days)
 }
 
-function dayChipLabel(iso: string, lang: 'tr' | 'en' | 'ru') {
-  return formatDayChipLabel(iso, lang)
-}
-
 function formatBookingWhen(date: string, time: string | null, lang: 'tr' | 'en' | 'ru') {
   return formatBookingWhenStable(date, time, lang)
 }
@@ -166,6 +162,19 @@ export function PublicBookingWidget({
 
   const [nextOpenDate, setNextOpenDate] = useState<string | null>(null)
   const [findingNextOpen, setFindingNextOpen] = useState(false)
+  // Defer Bugün/Yarın until mount — Node vs browser TZ caused React #418.
+  const [todayIso, setTodayIso] = useState<string | null>(null)
+  useEffect(() => {
+    setTodayIso(calendarDateInTimeZone())
+  }, [])
+
+  const chipLabel = (iso: string) => {
+    if (!todayIso) {
+      // Absolute weekday form only (never Bugün/Yarın) until client clock is ready.
+      return formatDayChipLabel(iso, lang, '1970-01-01', '1970-01-02')
+    }
+    return formatDayChipLabel(iso, lang, todayIso, addDaysIso(todayIso, 1))
+  }
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -785,7 +794,7 @@ export function PublicBookingWidget({
                       }`}
                       style={active ? { backgroundColor: accent, borderColor: accent } : undefined}
                     >
-                      {dayChipLabel(iso, lang)}
+                      {chipLabel(iso)}
                     </button>
                   )
                 })}
@@ -850,8 +859,8 @@ export function PublicBookingWidget({
               >
                 <p className="text-sm font-semibold text-slate-900">
                   {lang === 'en'
-                    ? `No open slots on ${dayChipLabel(date, lang)}`
-                    : `${dayChipLabel(date, lang)} için açık slot yok`}
+                    ? `No open slots on ${chipLabel(date)}`
+                    : `${chipLabel(date)} için açık slot yok`}
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
                   {findingNextOpen
@@ -860,8 +869,8 @@ export function PublicBookingWidget({
                       : 'Sonraki müsait gün aranıyor…'
                     : nextOpenDate
                       ? lang === 'en'
-                        ? `Next opening: ${dayChipLabel(nextOpenDate, lang)}`
-                        : `Sonraki müsait: ${dayChipLabel(nextOpenDate, lang)}`
+                        ? `Next opening: ${chipLabel(nextOpenDate)}`
+                        : `Sonraki müsait: ${chipLabel(nextOpenDate)}`
                       : lang === 'en'
                         ? 'Pick another day above, or call the clinic.'
                         : 'Yukarıdan başka bir gün seçin veya kliniği arayın.'}
@@ -875,8 +884,8 @@ export function PublicBookingWidget({
                       onClick={() => setDate(nextOpenDate)}
                     >
                       {lang === 'en'
-                        ? `Go to ${dayChipLabel(nextOpenDate, lang)}`
-                        : `${dayChipLabel(nextOpenDate, lang)} gününe git`}
+                        ? `Go to ${chipLabel(nextOpenDate)}`
+                        : `${chipLabel(nextOpenDate)} gününe git`}
                     </Button>
                   ) : (
                     <Button

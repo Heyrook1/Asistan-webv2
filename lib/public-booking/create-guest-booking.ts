@@ -33,6 +33,7 @@ import {
   SlotConflictError,
 } from '@/lib/booking/create-slot-appointment'
 import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
+import { IdentityPepperMissingError } from '@/lib/identity/resolve'
 
 function bookingMessage(status: AppointmentStatus): string {
   return status === AppointmentStatus.CONFIRMED
@@ -296,6 +297,13 @@ export async function createGuestPublicBooking(raw: unknown, idempotencyKeyRaw?:
         replay: false,
       }
     } catch (error) {
+      if (error instanceof IdentityPepperMissingError) {
+        return {
+          ok: false as const,
+          error:
+            'Sunucu kimlik yapılandırması eksik (PERSON_IDENTITY_PEPPER). Yöneticiye bildirin.',
+        }
+      }
       if (error instanceof SlotConflictError) {
         return { ok: false as const, error: error.message }
       }

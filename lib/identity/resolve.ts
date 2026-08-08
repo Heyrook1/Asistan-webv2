@@ -34,16 +34,28 @@ async function safeResetRole(tx: Prisma.TransactionClient) {
   }
 }
 
+export class IdentityPepperMissingError extends Error {
+  constructor() {
+    super('PERSON_IDENTITY_PEPPER (≥16 chars) is required in production')
+    this.name = 'IdentityPepperMissingError'
+  }
+}
+
 function identityPepper(): string {
   const pepper = process.env.PERSON_IDENTITY_PEPPER?.trim()
   if (pepper && pepper.length >= 16) return pepper
 
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('PERSON_IDENTITY_PEPPER (≥16 chars) is required in production')
+    throw new IdentityPepperMissingError()
   }
 
   // Dev/test only — never derive from service-role or DATABASE_URL (predictable).
   return 'asistan-dev-identity-pepper-local-only'
+}
+
+export function isIdentityPepperConfigured(): boolean {
+  const pepper = process.env.PERSON_IDENTITY_PEPPER?.trim()
+  return Boolean(pepper && pepper.length >= 16)
 }
 
 export type ResolvePersonInput = {
