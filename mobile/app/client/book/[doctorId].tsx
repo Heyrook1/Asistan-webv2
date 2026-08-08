@@ -339,11 +339,11 @@ export default function ClientBookDoctorScreen() {
               accessibilityLabel="Telefon"
             />
             <AppInput
-              label="Kimlik / pasaport no"
+              label="Kimlik / pasaport no (KKTC 10 hane)"
               value={identityNumber}
               onChangeText={setIdentityNumber}
               autoCapitalize="characters"
-              accessibilityLabel="Kimlik veya pasaport numarası"
+              accessibilityLabel="KKTC kimlik 10 hane, TC 11 hane veya pasaport"
             />
             <AppInput
               label="E-posta (opsiyonel)"

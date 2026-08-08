@@ -100,7 +100,7 @@ describe('client booking schema', () => {
       startTime: '10:30',
       fullName: 'Ayşe Yılmaz',
       phone: '+905551112233',
-      identityNumber: 'U12345678',
+      identityNumber: '1234567890',
     })
     expect(parsed.success).toBe(true)
   })
@@ -129,7 +129,7 @@ describe('client booking schema', () => {
         startTime: '10:30',
         fullName: 'Ayşe Yılmaz',
         phone: '+905551112233',
-        identityNumber: 'U12345678',
+        identityNumber: '1234567890',
       }).success
     ).toBe(false)
 
@@ -142,7 +142,7 @@ describe('client booking schema', () => {
         startTime: '25:00',
         fullName: 'A',
         phone: '123',
-        identityNumber: 'U12345678',
+        identityNumber: '1234567890',
       }).success
     ).toBe(false)
   })

@@ -313,8 +313,8 @@ export function PublicBookingWidget({
     if (!isValidIdentityDocument(value)) {
       setIdentityError(
         lang === 'en'
-          ? 'Enter a valid ID or passport number'
-          : 'Geçerli kimlik veya pasaport numarası girin',
+          ? 'Enter a valid KKTC ID (10 digits), TR ID (11 digits), or passport'
+          : 'Geçerli KKTC kimlik (10 hane), TC kimlik (11 hane) veya pasaport girin',
       )
       return false
     }
@@ -1043,7 +1043,7 @@ export function PublicBookingWidget({
                 }}
                 autoComplete="off"
                 inputMode="text"
-                placeholder={lang === 'en' ? 'e.g. 12345678901 or U1234567' : 'örn. 12345678901 veya U1234567'}
+                placeholder={lang === 'en' ? 'e.g. 1234567890' : 'örn. 1234567890'}
                 aria-invalid={identityError ? true : undefined}
                 aria-describedby={
                   identityError ? 'book-identity-error' : 'book-identity-hint'
@@ -1061,8 +1061,8 @@ export function PublicBookingWidget({
               ) : (
                 <p id="book-identity-hint" className="mt-1 text-xs text-slate-500">
                   {lang === 'en'
-                    ? 'Used to match your records securely. Stored as a one-way hash.'
-                    : 'Kayıt eşleştirmesi için zorunlu. Sistemde tek yönlü hash olarak saklanır.'}
+                    ? 'KKTC ID: 10 digits · TR ID: 11 digits · or passport. Stored as a one-way hash.'
+                    : 'KKTC kimlik: 10 hane · TC kimlik: 11 hane · veya pasaport. Tek yönlü hash olarak saklanır.'}
                 </p>
               )}
             </div>

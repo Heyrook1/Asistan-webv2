@@ -13,7 +13,7 @@ const identityNumberSchema = z
   .min(5)
   .max(40)
   .refine((value) => isValidIdentityDocument(value), {
-    message: 'Geçerli bir kimlik veya pasaport numarası girin',
+    message: 'KKTC kimlik 10 hane, TC kimlik 11 hane veya geçerli pasaport girin',
   })
   .transform((value) => normalizeIdentityDocument(value)!)
 
