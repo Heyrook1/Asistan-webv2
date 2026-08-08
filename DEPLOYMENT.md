@@ -56,6 +56,7 @@ Set on your host (systemd, Docker, PM2, hosting panel, etc.):
 | `UPSTASH_REDIS_REST_URL` | yes | Shared rate limits |
 | `UPSTASH_REDIS_REST_TOKEN` | yes | Shared rate limits |
 | `PERSON_IDENTITY_PEPPER` | yes (production) | ≥16 random chars — required for guest/client book identity hashing |
+| `DATABASE_URL_MIGRATE` or `DIRECT_URL` | yes when `DATABASE_URL` is `asistan_app` | Owner/identity connection for Person/GPI + catalog; guest book uses this when `SET LOCAL ROLE asistan_identity` is unavailable. `/api/health` → `identityRole` must be healthy. |
 | `ASISTAN_TENANT_GUARD` | recommended | `enforce` in production |
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | Browser error tracking |
 | `SENTRY_DSN` | optional | Server/Edge (falls back to public DSN) |

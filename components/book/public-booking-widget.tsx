@@ -49,10 +49,6 @@ async function fetchSlotsForDate(input: {
   return extractAvailabilitySlots(data).slots.length
 }
 
-function getTodayIso() {
-  return calendarDateInTimeZone()
-}
-
 function formatPrice(price: number | null, currency: string) {
   if (price == null) return null
   try {
@@ -116,11 +112,10 @@ export function PublicBookingWidget({
       ? initialLocationId
       : null,
   )
-  const [date, setDate] = useState(
-    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) && initialDate >= getTodayIso()
-      ? initialDate
-      : getTodayIso(),
-  )
+  // Stable SSR date — never call getTodayIso() during render (Node vs browser TZ → #418).
+  const validInitialDate =
+    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) ? initialDate : null
+  const [date, setDate] = useState<string>(validInitialDate ?? '')
   const [startTime, setStartTime] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [done, setDone] = useState<{
@@ -157,16 +152,24 @@ export function PublicBookingWidget({
     locationId,
     lang: lang === 'en' ? 'en' : 'tr',
     // Keep syncing through contact step until booking completes.
-    enabled: Boolean(step >= 2 && !done),
+    enabled: Boolean(step >= 2 && !done && date),
   })
 
   const [nextOpenDate, setNextOpenDate] = useState<string | null>(null)
   const [findingNextOpen, setFindingNextOpen] = useState(false)
-  // Defer Bugün/Yarın until mount — Node vs browser TZ caused React #418.
+  // Defer calendar chips + today until mount — Node vs browser TZ caused React #418.
   const [clientTodayIso, setClientTodayIso] = useState<string | null>(null)
+  const [dayChips, setDayChips] = useState<string[]>([])
   useEffect(() => {
-    setClientTodayIso(calendarDateInTimeZone())
-  }, [])
+    const today = calendarDateInTimeZone()
+    setClientTodayIso(today)
+    setDayChips(Array.from({ length: DAY_CHIP_COUNT }, (_, i) => addDaysIso(today, i)))
+    setDate((prev) => {
+      if (prev && prev >= today) return prev
+      if (validInitialDate && validInitialDate >= today) return validInitialDate
+      return today
+    })
+  }, [validInitialDate])
 
   const chipLabel = (iso: string) => {
     if (!clientTodayIso) {
@@ -190,11 +193,6 @@ export function PublicBookingWidget({
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [identityError, setIdentityError] = useState<string | null>(null)
   const idempotencyKeyRef = useRef(newIdempotencyKey())
-
-  const dayChips = useMemo(
-    () => Array.from({ length: DAY_CHIP_COUNT }, (_, i) => addDaysIso(clientTodayIso ?? getTodayIso(), i)),
-    [clientTodayIso],
-  )
 
   // Product chrome always uses Asistan Rezervasyon blue — clinic.primaryColor
   // was painting teal CTAs next to the blue product label (renk uyuşmazlığı).
@@ -805,8 +803,8 @@ export function PublicBookingWidget({
               <Input
                 id="book-date"
                 type="date"
-                min={clientTodayIso ?? getTodayIso()}
-                value={date}
+                min={clientTodayIso ?? undefined}
+                value={date || clientTodayIso || ''}
                 onChange={(e) => setDate(e.target.value)}
                 className="h-11 min-h-11 text-base md:text-sm"
               />

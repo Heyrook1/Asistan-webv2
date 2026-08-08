@@ -52,3 +52,16 @@ export function sessionPrisma(): PrismaClient {
 export function catalogPrisma(): PrismaClient {
   return getOwnerClient()
 }
+
+/**
+ * Person / GPI writes when runtime DATABASE_URL is asistan_app and
+ * `SET LOCAL ROLE asistan_identity` is unavailable (pooler / missing GRANT).
+ * Same owner/migrate URL as catalog — bypasses Person deny_app RLS.
+ */
+export function identityPrisma(): PrismaClient {
+  return getOwnerClient()
+}
+
+export function isIdentityPrismaDistinct(): boolean {
+  return isOwnerPrismaDistinct()
+}

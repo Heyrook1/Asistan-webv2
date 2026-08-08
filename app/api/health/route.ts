@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { catalogPrisma } from '@/lib/prisma-owner'
+import { catalogPrisma, identityPrisma, isIdentityPrismaDistinct } from '@/lib/prisma-owner'
 import * as Sentry from '@sentry/nextjs'
 import {
   checkRateLimit,
@@ -94,12 +94,18 @@ export async function GET(
 
   let identityRole: CheckState = 'unhealthy'
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`SET LOCAL ROLE asistan_identity`)
-      await tx.$queryRaw`SELECT 1 FROM "Person" LIMIT 1`
-      await tx.$executeRawUnsafe(`RESET ROLE`)
-    })
-    identityRole = 'healthy'
+    if (isIdentityPrismaDistinct()) {
+      // Book path uses owner/migrate client for Person (no SET ROLE).
+      await identityPrisma().$queryRaw`SELECT 1 FROM "Person" LIMIT 1`
+      identityRole = 'healthy'
+    } else {
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE asistan_identity`)
+        await tx.$queryRaw`SELECT 1 FROM "Person" LIMIT 1`
+        await tx.$executeRawUnsafe(`RESET ROLE`)
+      })
+      identityRole = 'healthy'
+    }
   } catch (error) {
     console.error('[health] identityRole check failed:', error)
     Sentry.captureException(error, {
