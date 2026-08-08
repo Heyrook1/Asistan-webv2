@@ -11,7 +11,8 @@ import {
   getWeekdayFromDateString,
 } from './time'
 import {
-  computeAvailableSlots,
+  computeAvailableSlotsResult,
+  type AvailabilityEmptyReason,
   type AvailabilityRuleRow,
   type BusyInterval,
 } from './availability-compute'
@@ -25,6 +26,11 @@ export type GetAvailableSlotsInput = {
   businessId: string
   locationId?: string | null
   excludeAppointmentId?: string
+}
+
+export type AvailabilityQueryResult = {
+  slots: AvailabilitySlot[]
+  emptyReason: AvailabilityEmptyReason
 }
 
 async function isDoctorAssignedToService(
@@ -63,7 +69,7 @@ function appointmentDateOnly(isoDate: string): Date {
 async function getAvailableSlotsWithDb(
   db: DbClient,
   input: GetAvailableSlotsInput
-): Promise<AvailabilitySlot[]> {
+): Promise<AvailabilityQueryResult> {
   const [business, service, doctor] = await Promise.all([
     db.business.findFirst({
       where: { id: input.businessId, isActive: true },
@@ -84,14 +90,18 @@ async function getAvailableSlotsWithDb(
     }),
   ])
 
-  if (!business || !service || !doctor || !doctor.isBookable) return []
+  if (!business || !service || !doctor || !doctor.isBookable) {
+    return { slots: [], emptyReason: 'NOT_BOOKABLE' }
+  }
 
   const allowedForService = await isDoctorAssignedToService(db, {
     businessId: input.businessId,
     doctorId: input.doctorId,
     serviceId: input.serviceId,
   })
-  if (!allowedForService) return []
+  if (!allowedForService) {
+    return { slots: [], emptyReason: 'NOT_BOOKABLE' }
+  }
 
   const weekday = getWeekdayFromDateString(input.date)
   const allRules = await db.teamMemberAvailability.findMany({
@@ -109,7 +119,9 @@ async function getAvailableSlotsWithDb(
     },
     orderBy: [{ startTime: 'asc' }],
   })
-  if (allRules.length === 0) return []
+  if (allRules.length === 0) {
+    return { slots: [], emptyReason: 'NO_RULES' }
+  }
 
   const day = appointmentDateOnly(input.date)
   const [appointments, blocks] = await Promise.all([
@@ -142,7 +154,7 @@ async function getAvailableSlotsWithDb(
     now = getCurrentDateAndTimeForTimezone('Europe/Istanbul')
   }
 
-  return computeAvailableSlots({
+  return computeAvailableSlotsResult({
     durationMin: service.durationMin,
     rules: allRules as AvailabilityRuleRow[],
     appointments: appointments as BusyInterval[],
@@ -154,31 +166,75 @@ async function getAvailableSlotsWithDb(
   })
 }
 
+function preferConfigReason(
+  primary: AvailabilityQueryResult | null,
+  secondary: AvailabilityQueryResult
+): AvailabilityQueryResult {
+  if (secondary.slots.length > 0) return secondary
+  if (!primary) return secondary
+  // Prefer concrete schedule reasons over NOT_BOOKABLE from a possibly RLS-empty catalog read.
+  if (
+    primary.emptyReason === 'NOT_BOOKABLE' &&
+    secondary.emptyReason !== 'NOT_BOOKABLE' &&
+    secondary.emptyReason !== 'INFRA'
+  ) {
+    return secondary
+  }
+  if (primary.slots.length === 0 && secondary.emptyReason === 'NOT_BOOKABLE') {
+    return primary.emptyReason !== 'INFRA' ? primary : secondary
+  }
+  return secondary
+}
+
 /**
- * Public slot query — catalog/owner first (cross-tenant, no GUC).
- * Tenant path is fallback only. Never throws — empty list on total failure.
+ * Public slot query with emptyReason — catalog/owner first, then tenant GUC.
+ * Never throws — INFRA on total failure.
  */
-export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
-  return runWithTenantBypassAsync('marketplace:availability', async () => {
-    try {
-      return await getAvailableSlotsWithDb(catalogPrisma(), input)
-    } catch (catalogError) {
-      console.error('[availability] catalogPrisma failed, trying tenant GUC', catalogError)
+export async function getAvailableSlotsDetailed(
+  input: GetAvailableSlotsInput
+): Promise<AvailabilityQueryResult> {
+  try {
+    return await runWithTenantBypassAsync('marketplace:availability', async () => {
+      let catalogResult: AvailabilityQueryResult | null = null
       try {
-        return await withTenantDb(input.businessId, (tx) => getAvailableSlotsWithDb(tx, input))
+        catalogResult = await getAvailableSlotsWithDb(catalogPrisma(), input)
+      } catch (catalogError) {
+        console.error('[availability] catalogPrisma failed, trying tenant GUC', catalogError)
+      }
+
+      if (catalogResult && catalogResult.slots.length > 0) return catalogResult
+
+      try {
+        const tenantResult = await withTenantDb(input.businessId, (tx) =>
+          getAvailableSlotsWithDb(tx, input)
+        )
+        return preferConfigReason(catalogResult, tenantResult)
       } catch (tenantError) {
         console.error('[availability] tenant path also failed', tenantError)
-        return []
+        return catalogResult ?? { slots: [], emptyReason: 'INFRA' }
       }
-    }
-  })
+    })
+  } catch (fatal) {
+    console.error('[availability] fatal', fatal)
+    return { slots: [], emptyReason: 'INFRA' }
+  }
+}
+
+/**
+ * Public slot query — catalog/owner first (cross-tenant, no GUC).
+ * If catalog returns empty (RLS-empty owner role) or throws, try tenant GUC.
+ * Never throws — empty list on total failure.
+ */
+export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
+  return (await getAvailableSlotsDetailed(input)).slots
 }
 
 export async function getAvailableSlotsTx(
   tx: Prisma.TransactionClient,
   input: GetAvailableSlotsInput
 ): Promise<AvailabilitySlot[]> {
-  return getAvailableSlotsWithDb(tx, input)
+  return (await getAvailableSlotsWithDb(tx, input)).slots
 }
 
-export { computeAvailableSlots, deDupeSlots } from './availability-compute'
+export { computeAvailableSlots, computeAvailableSlotsResult, deDupeSlots } from './availability-compute'
+export type { AvailabilityEmptyReason }

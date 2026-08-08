@@ -21,6 +21,20 @@ export type BusyInterval = {
   endTime: string
 }
 
+/** Honest empty-day vs infra — never confuse “fully booked” with “API broken”. */
+export type AvailabilityEmptyReason =
+  | 'OK'
+  | 'NO_RULES'
+  | 'CLOSED'
+  | 'FULL'
+  | 'NOT_BOOKABLE'
+  | 'INFRA'
+
+export type AvailabilityComputeResult = {
+  slots: AvailabilitySlot[]
+  emptyReason: AvailabilityEmptyReason
+}
+
 export function deDupeSlots(slots: AvailabilitySlot[]): AvailabilitySlot[] {
   const map = new Map<string, AvailabilitySlot>()
   for (const slot of slots) {
@@ -39,7 +53,7 @@ export function selectActiveRules(
   return locationRules.length > 0 ? locationRules : globalRules
 }
 
-export function computeAvailableSlots(input: {
+export function computeAvailableSlotsResult(input: {
   durationMin: number
   rules: AvailabilityRuleRow[]
   appointments: BusyInterval[]
@@ -48,13 +62,23 @@ export function computeAvailableSlots(input: {
   nowDate: string
   nowTime: string
   locationId?: string | null
-}): AvailabilitySlot[] {
-  if (input.date < input.nowDate) return []
+}): AvailabilityComputeResult {
+  if (input.date < input.nowDate) {
+    return { slots: [], emptyReason: 'CLOSED' }
+  }
+
+  if (input.rules.length === 0) {
+    return { slots: [], emptyReason: 'NO_RULES' }
+  }
 
   const activeRules = selectActiveRules(input.rules, input.locationId)
-  if (activeRules.length === 0) return []
+  if (activeRules.length === 0) {
+    // Rules exist but none apply to this location / weekday window.
+    return { slots: [], emptyReason: 'CLOSED' }
+  }
 
-  const candidateSlots: AvailabilitySlot[] = []
+  const openSlots: AvailabilitySlot[] = []
+  let rawFutureCandidates = 0
 
   for (const rule of activeRules) {
     const step = Math.max(5, Number(rule.slotIntervalMin) || 15)
@@ -79,6 +103,8 @@ export function computeAvailableSlots(input: {
         continue
       }
 
+      rawFutureCandidates += 1
+
       const collidesAppointment = input.appointments.some((item) =>
         rangesOverlap(startTime, endTime, item.startTime, item.endTime)
       )
@@ -89,9 +115,25 @@ export function computeAvailableSlots(input: {
       )
       if (collidesBlock) continue
 
-      candidateSlots.push({ startTime, endTime })
+      openSlots.push({ startTime, endTime })
     }
   }
 
-  return deDupeSlots(candidateSlots)
+  const slots = deDupeSlots(openSlots)
+  if (slots.length > 0) return { slots, emptyReason: 'OK' }
+  if (rawFutureCandidates > 0) return { slots: [], emptyReason: 'FULL' }
+  return { slots: [], emptyReason: 'CLOSED' }
+}
+
+export function computeAvailableSlots(input: {
+  durationMin: number
+  rules: AvailabilityRuleRow[]
+  appointments: BusyInterval[]
+  blocks: BusyInterval[]
+  date: string
+  nowDate: string
+  nowTime: string
+  locationId?: string | null
+}): AvailabilitySlot[] {
+  return computeAvailableSlotsResult(input).slots
 }

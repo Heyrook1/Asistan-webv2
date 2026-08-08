@@ -47,11 +47,42 @@ async function main() {
   checks.push(
     upstashUrl && upstashToken
       ? ok('Rate limit backend (Upstash)', 'shared Redis preferred for multi-instance')
-      : fail(
-          'Rate limit backend (Upstash)',
-          'missing UPSTASH_REDIS_REST_URL/TOKEN — public APIs fall back to per-process memory'
+      : ok(
+          'Rate limit backend (memory)',
+          'WARN: UPSTASH unset — single-node EC2 memory limiter OK; set Upstash before multi-instance'
         )
   )
+
+  const appUrl = process.env.APP_URL?.trim()
+  if (appUrl) {
+    try {
+      const healthRes = await fetch(`${appUrl.replace(/\/$/, '')}/api/health`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      })
+      const healthJson = (await healthRes.json()) as {
+        ok?: boolean
+        checks?: { catalog?: string; database?: string }
+      }
+      const catalogOk = healthJson.checks?.catalog === 'healthy'
+      const dbOk = healthJson.checks?.database === 'healthy'
+      checks.push(
+        healthRes.ok && healthJson.ok && catalogOk && dbOk
+          ? ok('Live health catalog', `${appUrl} database+catalog healthy`)
+          : fail(
+              'Live health catalog',
+              `APP_URL health failed status=${healthRes.status} db=${healthJson.checks?.database} catalog=${healthJson.checks?.catalog}`
+            )
+      )
+    } catch (error) {
+      checks.push(
+        fail(
+          'Live health catalog',
+          error instanceof Error ? error.message : 'APP_URL /api/health unreachable'
+        )
+      )
+    }
+  }
 
   const requiredRlsTables = listRequiredRlsTableNames()
 

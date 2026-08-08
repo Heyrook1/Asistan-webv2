@@ -108,10 +108,12 @@ export function PublicBookingWidget({
   const [step, setStep] = useState<Step>(1)
   const [serviceId, setServiceId] = useState<string | null>(validInitialService)
   const [doctorId, setDoctorId] = useState<string | null>(initialDoctorId)
+  // Prefer explicit location only — auto-picking locations[0] hides global
+  // availability rules when rules exist only for another locationId.
   const [locationId, setLocationId] = useState<string | null>(
     initialLocationId && clinic.locations.some((l) => l.id === initialLocationId)
       ? initialLocationId
-      : clinic.locations[0]?.id ?? null,
+      : null,
   )
   const [date, setDate] = useState(
     initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) && initialDate >= todayIso()
@@ -142,6 +144,8 @@ export function PublicBookingWidget({
     slots,
     loading: slotsLoading,
     error: slotsError,
+    degraded: slotsDegraded,
+    emptyReason: slotsEmptyReason,
     syncedAt,
     refresh: refreshSlots,
   } = useLiveAvailability({
@@ -150,6 +154,7 @@ export function PublicBookingWidget({
     serviceId,
     date,
     locationId,
+    lang: lang === 'en' ? 'en' : 'tr',
     // Keep syncing through contact step until booking completes.
     enabled: Boolean(step >= 2 && !done),
   })
@@ -209,10 +214,14 @@ export function PublicBookingWidget({
     setStartTime(null)
   }, [date, doctorId, serviceId, locationId])
 
-  // When this day is empty, find the next day that actually has open slots.
+  // When this day is empty (config, not infra), find the next day with open slots.
   useEffect(() => {
     if (step !== 2) return
-    if (slotsLoading || slotsError) return
+    if (slotsLoading || slotsError || slotsDegraded || slotsEmptyReason === 'INFRA') {
+      setNextOpenDate(null)
+      setFindingNextOpen(false)
+      return
+    }
     if (slots.length > 0) {
       setNextOpenDate(null)
       setFindingNextOpen(false)
@@ -263,6 +272,8 @@ export function PublicBookingWidget({
     step,
     slotsLoading,
     slotsError,
+    slotsDegraded,
+    slotsEmptyReason,
     slots.length,
     serviceId,
     doctorId,
@@ -775,19 +786,24 @@ export function PublicBookingWidget({
                   <div key={i} className="h-11 min-h-11 animate-pulse rounded-xl bg-slate-100" />
                 ))}
               </div>
-            ) : slotsError ? (
+            ) : slotsError || slotsDegraded ? (
               <div
                 role="alert"
-                className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-5 text-center"
+                className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-5 text-center"
               >
-                <p className="text-sm font-semibold text-red-900">{slotsError}</p>
+                <p className="text-sm font-semibold text-amber-950">
+                  {slotsError ||
+                    (lang === 'en'
+                      ? 'We cannot show open times right now. Please refresh and try again.'
+                      : 'Sistem geçici olarak müsait saatleri gösteremiyor. Lütfen yenileyin.')}
+                </p>
                 <Button
                   type="button"
                   variant="outline"
                   className="mt-3 h-11 min-h-11"
                   onClick={() => refreshSlots()}
                 >
-                  Tekrar dene
+                  {lang === 'en' ? 'Refresh' : 'Yenile'}
                 </Button>
               </div>
             ) : slots.length === 0 ? (

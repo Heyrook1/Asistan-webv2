@@ -171,16 +171,10 @@ export async function consumeRateLimit(params: {
   }
 
   if (!redisConfigured) {
-    // Fail closed in production: a shared limiter is a security control, and the
-    // in-process memory fallback silently under-enforces across instances. Rather
-    // than pretend to rate limit, treat the missing Upstash config as a hard error.
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(
-        '[rate-limit] Upstash Redis is required in production but is not configured. ' +
-          'Set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN. Refusing to serve requests ' +
-          'with an ineffective in-memory limiter.'
-      )
-    }
+    // Single-node EC2 (systemd) is the current production shape — memory limiting
+    // still protects that host. Throwing here emptied every public route (health 500,
+    // availability degraded:true / slots:[]) whenever Upstash env was unset.
+    // Multi-instance deploys should set UPSTASH_REDIS_REST_URL + TOKEN.
     return checkInMemory(key, limit, windowMs)
   }
 

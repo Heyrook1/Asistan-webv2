@@ -75,30 +75,49 @@ export async function readJsonResponse<T = unknown>(
 export function extractAvailabilitySlots(data: unknown): {
   slots: Array<{ startTime: string; endTime: string }>
   errorMessage: string | null
+  degraded: boolean
+  emptyReason: string | null
 } {
   if (!data || typeof data !== 'object') {
-    return { slots: [], errorMessage: AVAILABILITY_MSG }
+    return { slots: [], errorMessage: AVAILABILITY_MSG, degraded: true, emptyReason: 'INFRA' }
   }
   const obj = data as Record<string, unknown>
 
   if (typeof obj.error === 'string' && obj.error.trim()) {
     // Prefer API's user-facing error when present (already Turkish in our routes).
-    return { slots: [], errorMessage: obj.error }
-  }
-
-  if (Array.isArray(obj.slots)) {
-    return { slots: obj.slots as Array<{ startTime: string; endTime: string }>, errorMessage: null }
-  }
-
-  const nested = obj.data
-  if (nested && typeof nested === 'object' && Array.isArray((nested as { slots?: unknown }).slots)) {
     return {
-      slots: (nested as { slots: Array<{ startTime: string; endTime: string }> }).slots,
-      errorMessage: null,
+      slots: [],
+      errorMessage: obj.error,
+      degraded: true,
+      emptyReason: 'INFRA',
     }
   }
 
-  return { slots: [], errorMessage: null }
+  const nested =
+    obj.data && typeof obj.data === 'object' ? (obj.data as Record<string, unknown>) : null
+  const degraded = obj.degraded === true || nested?.degraded === true
+  const emptyReasonRaw = obj.emptyReason ?? nested?.emptyReason
+  const emptyReason = typeof emptyReasonRaw === 'string' ? emptyReasonRaw : null
+
+  if (Array.isArray(obj.slots)) {
+    return {
+      slots: obj.slots as Array<{ startTime: string; endTime: string }>,
+      errorMessage: null,
+      degraded,
+      emptyReason,
+    }
+  }
+
+  if (nested && Array.isArray(nested.slots)) {
+    return {
+      slots: nested.slots as Array<{ startTime: string; endTime: string }>,
+      errorMessage: null,
+      degraded,
+      emptyReason,
+    }
+  }
+
+  return { slots: [], errorMessage: null, degraded, emptyReason }
 }
 
 export function userMessageFromUnknown(error: unknown, fallback: string): string {

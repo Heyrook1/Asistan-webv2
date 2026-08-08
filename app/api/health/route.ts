@@ -1,64 +1,104 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import * as Sentry from '@sentry/nextjs'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import {
+  checkRateLimit,
+  RATE_LIMITS,
+  getRateLimitBackendPreference,
+  isUpstashRateLimitConfigured,
+} from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+type CheckState = 'healthy' | 'degraded' | 'unhealthy'
 
 interface HealthStatus {
   ok: boolean
   timestamp: string
   checks: {
-    database: 'healthy' | 'degraded' | 'unhealthy'
+    database: CheckState
+    catalog: CheckState
+    rateLimit: {
+      backend: 'upstash' | 'memory'
+      configured: boolean
+      ok: boolean
+    }
   }
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<HealthStatus | { error: string }>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<HealthStatus | { error: string }>> {
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
     'unknown'
 
   // Public probe — keep cheap but rate-limited (recon / DB hammer).
-  const allowed = await checkRateLimit(
-    `health:${ip}`,
-    Math.min(RATE_LIMITS.api.limit, 30),
-    RATE_LIMITS.api.window
-  )
+  let allowed = true
+  try {
+    allowed = await checkRateLimit(
+      `health:${ip}`,
+      Math.min(RATE_LIMITS.api.limit, 30),
+      RATE_LIMITS.api.window
+    )
+  } catch (rateLimitError) {
+    console.error('[health] rate-limit skipped', rateLimitError)
+  }
   if (!allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
   const timestamp = new Date().toISOString()
+  const rateLimitBackend = getRateLimitBackendPreference()
+  const rateLimitConfigured = isUpstashRateLimitConfigured()
+
+  let database: CheckState = 'unhealthy'
+  let catalog: CheckState = 'unhealthy'
 
   try {
     await prisma.$queryRaw`SELECT 1`
-
-    return NextResponse.json(
-      {
-        ok: true,
-        timestamp,
-        checks: {
-          database: 'healthy',
-        },
-      },
-      { status: 200 }
-    )
+    database = 'healthy'
   } catch (error) {
     console.error('[health] Database check failed:', error)
     Sentry.captureException(error, {
-      tags: { component: 'health-check' },
+      tags: { component: 'health-check', check: 'database' },
     })
+  }
 
-    return NextResponse.json(
-      {
-        ok: false,
-        timestamp,
-        checks: {
-          database: 'unhealthy',
+  try {
+    // Owner/catalog client — booking discovery depends on this path under RLS.
+    await catalogPrisma().business.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    })
+    catalog = 'healthy'
+  } catch (error) {
+    console.error('[health] Catalog check failed:', error)
+    Sentry.captureException(error, {
+      tags: { component: 'health-check', check: 'catalog' },
+    })
+  }
+
+  const ok = database === 'healthy' && catalog === 'healthy'
+
+  return NextResponse.json(
+    {
+      ok,
+      timestamp,
+      checks: {
+        database,
+        catalog,
+        rateLimit: {
+          backend: rateLimitBackend,
+          configured: rateLimitConfigured,
+          // Memory is OK for single-node EC2; Upstash preferred when scaled.
+          ok: true,
         },
       },
-      { status: 503 }
-    )
-  }
+    },
+    { status: ok ? 200 : 503 }
+  )
 }

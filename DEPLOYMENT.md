@@ -110,11 +110,15 @@ Vercel Cron is **not** used. Call HTTP endpoints from your scheduler with `CRON_
 |-----|----------|----------|
 | Appointment reminders | hourly `:00` | `GET /api/cron/appointment-reminders` |
 | Google Calendar sync | hourly `:15` | `GET /api/cron/google-calendar-sync` |
+| Notification outbox | every 10m | `GET /api/cron/notification-outbox` |
+| Booking availability canary | every 10m | `GET /api/cron/booking-canary` |
 
 ```bash
 # crontab -e (replace APP_URL and CRON_SECRET)
 0 * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://APP_URL/api/cron/appointment-reminders"
 15 * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://APP_URL/api/cron/google-calendar-sync"
+*/10 * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://APP_URL/api/cron/notification-outbox"
+*/10 * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://APP_URL/api/cron/booking-canary"
 ```
 
 GitHub Actions scheduled workflow is fine too — see `.github/workflows/cron.example.yml`.
@@ -133,15 +137,21 @@ sudo systemctl restart asistan   # or your process manager
 
 ```bash
 curl -fsS https://your-domain.com/api/health
-# {"ok":true,"timestamp":"..."}
+# {"ok":true,"timestamp":"...","checks":{"database":"healthy","catalog":"healthy","rateLimit":{...}}}
+
+# Live booking canary (infra vs clinic config)
+curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://your-domain.com/api/cron/booking-canary"
+# Local/CI: pnpm smoke:booking-canary
+# Remote: APP_URL=https://your-domain.com CRON_SECRET=... pnpm smoke:booking-canary
 ```
 
 ## Step 6: Monitoring
 
-- **Sentry** — errors and performance
+- **Sentry** — errors and performance; booking canary INFRA → error events (`component:booking-canary`)
 - **Supabase** — DB metrics, backups, slow queries
 - **Host logs** — `journalctl -u asistan -f` or your platform logs
-- **Upstash** — rate-limit dashboard
+- **Booking canary crontab** — every 10m; HTTP 503 = infrastructure failure (empty slots for all clinics class)
+- **Upstash** — rate-limit dashboard (optional on single-node; required when scaling)
 
 ## Rollback
 
@@ -151,7 +161,9 @@ curl -fsS https://your-domain.com/api/health
 ## Production checklist
 
 - [ ] `pnpm production:rollout` passes (except env you intentionally skip in staging)
-- [ ] `CRON_SECRET` set; both cron URLs return 200 with Bearer token
+- [ ] `CRON_SECRET` set; reminders, outbox, and booking-canary return 200 with Bearer token
+- [ ] `pnpm smoke:booking-canary` PASS (or remote `APP_URL=… pnpm smoke:booking-canary`)
+- [ ] `/api/health` reports `database` + `catalog` healthy
 - [ ] Upstash env set (`check:production` rate-limit check passes)
 - [ ] `patient-files` bucket private; storage constraints validated
 - [ ] HTTPS + reverse proxy configured

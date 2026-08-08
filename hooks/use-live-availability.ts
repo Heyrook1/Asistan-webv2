@@ -11,6 +11,11 @@ export type LiveAvailabilitySlot = { startTime: string; endTime: string }
 
 const DEFAULT_POLL_MS = 15_000
 
+const INFRA_MSG_TR =
+  'Sistem geçici olarak müsait saatleri gösteremiyor. Lütfen yenileyin.'
+const INFRA_MSG_EN =
+  'We cannot show open times right now. Please refresh and try again.'
+
 /**
  * Live clinic agenda slots — refetches on change, tab focus, and a quiet poll.
  * Source of truth: GET /api/client/availability (working hours + busy + blocks).
@@ -24,6 +29,7 @@ export function useLiveAvailability(input: {
   /** When false, no fetch/poll (e.g. wizard not on time step). */
   enabled?: boolean
   pollMs?: number
+  lang?: 'tr' | 'en'
 }) {
   const {
     businessId,
@@ -33,11 +39,14 @@ export function useLiveAvailability(input: {
     locationId = null,
     enabled = true,
     pollMs = DEFAULT_POLL_MS,
+    lang = 'tr',
   } = input
 
   const [slots, setSlots] = useState<LiveAvailabilitySlot[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [degraded, setDegraded] = useState(false)
+  const [emptyReason, setEmptyReason] = useState<string | null>(null)
   const [syncedAt, setSyncedAt] = useState<string | null>(null)
   const [retryToken, setRetryToken] = useState(0)
   const requestSeq = useRef(0)
@@ -48,6 +57,8 @@ export function useLiveAvailability(input: {
     if (!enabled || !businessId || !doctorId || !serviceId || !date) {
       setSlots([])
       setError(null)
+      setDegraded(false)
+      setEmptyReason(null)
       setLoading(false)
       setSyncedAt(null)
       return
@@ -78,7 +89,12 @@ export function useLiveAvailability(input: {
           headers: { Accept: 'application/json' },
         })
         const { ok, data } = await readJsonResponse(res, { kind: 'availability' })
-        const { slots: nextSlots, errorMessage } = extractAvailabilitySlots(data)
+        const {
+          slots: nextSlots,
+          errorMessage,
+          degraded: nextDegraded,
+          emptyReason: nextReason,
+        } = extractAvailabilitySlots(data)
         if (!ok) {
           throw new Error(
             errorMessage || 'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
@@ -87,8 +103,17 @@ export function useLiveAvailability(input: {
         if (cancelled || seq !== requestSeq.current) return
 
         const body = data as { syncedAt?: unknown }
+        const infra = nextDegraded || nextReason === 'INFRA'
         setSlots(nextSlots)
-        setError(null)
+        setDegraded(infra)
+        setEmptyReason(nextReason)
+        setError(
+          infra
+            ? lang === 'en'
+              ? INFRA_MSG_EN
+              : INFRA_MSG_TR
+            : null,
+        )
         setSyncedAt(
           typeof body?.syncedAt === 'string' ? body.syncedAt : new Date().toISOString(),
         )
@@ -96,10 +121,12 @@ export function useLiveAvailability(input: {
         if (cancelled || seq !== requestSeq.current) return
         if (mode === 'hard') {
           setSlots([])
+          setDegraded(true)
+          setEmptyReason('INFRA')
           setError(
             userMessageFromUnknown(
               err,
-              'Uygun saatler şu anda alınamıyor. Lütfen tekrar deneyin.',
+              lang === 'en' ? INFRA_MSG_EN : INFRA_MSG_TR,
             ),
           )
         }
@@ -142,7 +169,8 @@ export function useLiveAvailability(input: {
     enabled,
     pollMs,
     retryToken,
+    lang,
   ])
 
-  return { slots, loading, error, syncedAt, refresh }
+  return { slots, loading, error, degraded, emptyReason, syncedAt, refresh }
 }

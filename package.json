@@ -26,6 +26,7 @@
     "check:schema-drift": "tsx scripts/check-schema-drift.ts",
     "smoke:asistan-app-rls": "tsx scripts/smoke-asistan-app-rls.ts",
     "smoke:cross-tenant": "tsx scripts/smoke-cross-tenant.ts",
+    "smoke:booking-canary": "tsx --require ./scripts/shim-server-only.cjs scripts/smoke-booking-canary.ts",
     "check:bundle-budget": "tsx scripts/check-bundle-budget.ts",
     "check:lighthouse": "tsx scripts/run-lighthouse-ci.ts",
     "db:asistan-app:switch": "node scripts/apply-asistan-app-role-switch.mjs",

@@ -10,7 +10,7 @@ on:
   schedule:
     - cron: '0 * * * *'    # appointment reminders — top of each hour
     - cron: '15 * * * *'   # google calendar sync — :15 past each hour
-    - cron: '*/10 * * * *' # notification outbox drain — every 10 minutes
+    - cron: '*/10 * * * *' # notification outbox + booking canary — every 10 minutes
   workflow_dispatch:
 
 jobs:
@@ -40,3 +40,12 @@ jobs:
         run: |
           curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "${{ secrets.APP_URL }}/api/cron/notification-outbox"
+
+  booking-canary:
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe live booking availability (clinic rotation)
+        run: |
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/booking-canary"
