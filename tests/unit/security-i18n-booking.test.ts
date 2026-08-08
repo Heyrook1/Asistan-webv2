@@ -91,7 +91,7 @@ describe('SYSTEM_ADMIN_EMAILS', () => {
 })
 
 describe('client booking schema', () => {
-  it('accepts a valid booking payload with identity', () => {
+  it('accepts KKTC identity', () => {
     const parsed = createClientBookingSchema.safeParse({
       businessId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
@@ -100,9 +100,27 @@ describe('client booking schema', () => {
       startTime: '10:30',
       fullName: 'Ayşe Yılmaz',
       phone: '+905551112233',
+      identityDocumentType: 'KKTC',
       identityNumber: '1234567890',
     })
     expect(parsed.success).toBe(true)
+  })
+
+  it('accepts tourist passport (numeric or alphanumeric)', () => {
+    expect(
+      createClientBookingSchema.safeParse({
+        businessId: '11111111-1111-4111-8111-111111111111',
+        doctorId: '22222222-2222-4222-8222-222222222222',
+        serviceId: '33333333-3333-4333-8333-333333333333',
+        date: '2026-07-20',
+        startTime: '10:30',
+        fullName: 'John Smith',
+        phone: '+447700900123',
+        identityDocumentType: 'PASSPORT',
+        identityNumber: '512345678',
+        nationality: 'GB',
+      }).success,
+    ).toBe(true)
   })
 
   it('rejects missing identity number', () => {
@@ -129,6 +147,7 @@ describe('client booking schema', () => {
         startTime: '10:30',
         fullName: 'Ayşe Yılmaz',
         phone: '+905551112233',
+        identityDocumentType: 'KKTC',
         identityNumber: '1234567890',
       }).success
     ).toBe(false)
@@ -142,6 +161,7 @@ describe('client booking schema', () => {
         startTime: '25:00',
         fullName: 'A',
         phone: '123',
+        identityDocumentType: 'KKTC',
         identityNumber: '1234567890',
       }).success
     ).toBe(false)

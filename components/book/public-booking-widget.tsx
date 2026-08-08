@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
-import { isValidIdentityDocument } from '@/lib/identity/identity-document'
+import {
+  IDENTITY_DOCUMENT_TYPE_LABELS,
+  isValidIdentityDocument,
+  type IdentityDocumentType,
+} from '@/lib/identity/identity-document'
 import { useLiveAvailability } from '@/hooks/use-live-availability'
 import { extractAvailabilitySlots, readJsonResponse, userMessageFromUnknown } from '@/lib/http/read-json'
 import {
@@ -165,7 +169,11 @@ export function PublicBookingWidget({
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [identityDocumentType, setIdentityDocumentType] = useState<IdentityDocumentType>(
+    lang === 'en' ? 'PASSPORT' : 'KKTC',
+  )
   const [identityNumber, setIdentityNumber] = useState('')
+  const [nationality, setNationality] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -309,12 +317,20 @@ export function PublicBookingWidget({
     return true
   }
 
-  function validateIdentity(value: string) {
-    if (!isValidIdentityDocument(value)) {
+  function validateIdentity(value: string, docType: IdentityDocumentType = identityDocumentType) {
+    if (!isValidIdentityDocument(value, docType)) {
       setIdentityError(
-        lang === 'en'
-          ? 'Enter a valid KKTC ID (10 digits), TR ID (11 digits), or passport'
-          : 'Geçerli KKTC kimlik (10 hane), TC kimlik (11 hane) veya pasaport girin',
+        docType === 'PASSPORT'
+          ? lang === 'en'
+            ? 'Enter your passport number (6–20 characters)'
+            : 'Pasaport numaranızı girin (6–20 karakter)'
+          : docType === 'TC'
+            ? lang === 'en'
+              ? 'Enter a valid TR national ID (11 digits)'
+              : 'Geçerli TC kimlik girin (11 hane)'
+            : lang === 'en'
+              ? 'Enter a valid KKTC ID (10 digits)'
+              : 'Geçerli KKTC kimlik girin (10 hane)',
       )
       return false
     }
@@ -331,7 +347,7 @@ export function PublicBookingWidget({
     }
     const nameOk = validateName(fullName)
     const phoneOk = validatePhone(phone)
-    const identityOk = validateIdentity(identityNumber)
+    const identityOk = validateIdentity(identityNumber, identityDocumentType)
     if (!nameOk || !phoneOk || !identityOk) return
     setSubmitError(null)
     startTransition(async () => {
@@ -351,7 +367,10 @@ export function PublicBookingWidget({
             startTime,
             fullName,
             phone,
+            identityDocumentType,
             identityNumber,
+            nationality:
+              identityDocumentType === 'PASSPORT' ? nationality.trim() || null : null,
             email: email.trim() || null,
             note: note.trim() || null,
           }),
@@ -1025,11 +1044,62 @@ export function PublicBookingWidget({
               )}
             </div>
             <div>
+              <p className="mb-1.5 text-xs font-medium text-slate-500" id="book-doc-type-label">
+                {lang === 'en' ? 'Document type *' : 'Belge tipi *'}
+              </p>
+              <div
+                role="radiogroup"
+                aria-labelledby="book-doc-type-label"
+                className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+              >
+                {(['KKTC', 'TC', 'PASSPORT'] as const).map((type) => {
+                  const selected = identityDocumentType === type
+                  const label =
+                    IDENTITY_DOCUMENT_TYPE_LABELS[lang === 'en' ? 'en' : 'tr'][type]
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => {
+                        setIdentityDocumentType(type)
+                        setIdentityError(null)
+                        setIdentityNumber('')
+                      }}
+                      className={`min-h-11 rounded-xl border px-3 py-2 text-left text-sm font-medium transition ${
+                        selected
+                          ? 'border-sky-500 bg-sky-50 text-sky-950'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                {lang === 'en'
+                  ? 'Visitors & tourists: choose Passport.'
+                  : 'Turistler / yabancılar: Pasaport seçin.'}
+              </p>
+            </div>
+            <div>
               <label
                 className="mb-1.5 block text-xs font-medium text-slate-500"
                 htmlFor="book-identity"
               >
-                {lang === 'en' ? 'ID / passport number *' : 'Kimlik / pasaport no *'}
+                {identityDocumentType === 'PASSPORT'
+                  ? lang === 'en'
+                    ? 'Passport number *'
+                    : 'Pasaport no *'
+                  : identityDocumentType === 'TC'
+                    ? lang === 'en'
+                      ? 'TR national ID *'
+                      : 'TC kimlik no *'
+                    : lang === 'en'
+                      ? 'KKTC ID number *'
+                      : 'KKTC kimlik no *'}
               </label>
               <Input
                 id="book-identity"
@@ -1039,11 +1109,21 @@ export function PublicBookingWidget({
                   if (identityError) setIdentityError(null)
                 }}
                 onBlur={() => {
-                  if (identityNumber.trim()) validateIdentity(identityNumber)
+                  if (identityNumber.trim()) {
+                    validateIdentity(identityNumber, identityDocumentType)
+                  }
                 }}
                 autoComplete="off"
-                inputMode="text"
-                placeholder={lang === 'en' ? 'e.g. 1234567890' : 'örn. 1234567890'}
+                inputMode={identityDocumentType === 'PASSPORT' ? 'text' : 'numeric'}
+                placeholder={
+                  identityDocumentType === 'PASSPORT'
+                    ? lang === 'en'
+                      ? 'As in your passport'
+                      : 'Pasaportunuzdaki numara'
+                    : identityDocumentType === 'TC'
+                      ? '11 hane'
+                      : '10 hane'
+                }
                 aria-invalid={identityError ? true : undefined}
                 aria-describedby={
                   identityError ? 'book-identity-error' : 'book-identity-hint'
@@ -1061,11 +1141,29 @@ export function PublicBookingWidget({
               ) : (
                 <p id="book-identity-hint" className="mt-1 text-xs text-slate-500">
                   {lang === 'en'
-                    ? 'KKTC ID: 10 digits · TR ID: 11 digits · or passport. Stored as a one-way hash.'
-                    : 'KKTC kimlik: 10 hane · TC kimlik: 11 hane · veya pasaport. Tek yönlü hash olarak saklanır.'}
+                    ? 'Stored as a one-way hash for matching — not shown publicly.'
+                    : 'Eşleştirme için tek yönlü hash olarak saklanır — herkese açık gösterilmez.'}
                 </p>
               )}
             </div>
+            {identityDocumentType === 'PASSPORT' ? (
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-medium text-slate-500"
+                  htmlFor="book-nationality"
+                >
+                  {lang === 'en' ? 'Nationality (optional)' : 'Uyruk (opsiyonel)'}
+                </label>
+                <Input
+                  id="book-nationality"
+                  value={nationality}
+                  onChange={(e) => setNationality(e.target.value)}
+                  autoComplete="country"
+                  placeholder={lang === 'en' ? 'e.g. GB, DE, RU' : 'örn. GB, DE, RU'}
+                  className="h-11 min-h-11 text-base md:text-sm"
+                />
+              </div>
+            ) : null}
             <div>
               <label className="mb-1.5 block text-xs font-medium text-slate-500" htmlFor="book-email">
                 E-posta

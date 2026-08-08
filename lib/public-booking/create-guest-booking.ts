@@ -129,6 +129,17 @@ async function notifyClinic(input: {
   })
 }
 
+function buildGuestBookingNotes(payload: CreateClientBookingInput): string {
+  const docLabel =
+    payload.identityDocumentType === 'PASSPORT'
+      ? `Pasaport${payload.nationality ? `/${payload.nationality}` : ''}`
+      : payload.identityDocumentType === 'TC'
+        ? 'TC kimlik'
+        : 'KKTC kimlik'
+  const prefix = `[Genel link · ${docLabel}]`
+  return payload.note?.trim() ? `${prefix} ${payload.note.trim()}` : prefix
+}
+
 async function createGuestBookingOnce(
   payload: CreateClientBookingInput,
   idempotencyKey: string | null
@@ -138,7 +149,7 @@ async function createGuestBookingOnce(
     payload,
     clientUserId: null,
     actorUserId: null,
-    notes: payload.note ? `[Genel link] ${payload.note}` : '[Genel link]',
+    notes: buildGuestBookingNotes(payload),
     timelineTitle: 'Genel randevu linkinden randevu oluşturuldu',
     requireLocationIfIdProvided: false,
     onAfterAppointment: idempotencyKey

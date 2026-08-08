@@ -73,7 +73,11 @@ export default function ClientBookDoctorScreen() {
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [identityDocumentType, setIdentityDocumentType] = useState<'KKTC' | 'TC' | 'PASSPORT'>(
+    'PASSPORT',
+  )
   const [identityNumber, setIdentityNumber] = useState('')
+  const [nationality, setNationality] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
 
@@ -135,7 +139,11 @@ export default function ClientBookDoctorScreen() {
   const canContinueStep1 = Boolean(selectedServiceId)
   const canContinueStep2 = Boolean(selectedStart)
   const canSubmit = Boolean(
-    fullName.trim() && phone.trim() && identityNumber.trim().length >= 5 && selectedServiceId && selectedStart,
+    fullName.trim() &&
+      phone.trim() &&
+      identityNumber.trim().length >= 6 &&
+      selectedServiceId &&
+      selectedStart,
   )
 
   async function submitBooking() {
@@ -143,7 +151,7 @@ export default function ClientBookDoctorScreen() {
       Alert.alert('Eksik bilgi', 'Lütfen hizmet ve saat seçin.')
       return
     }
-    if (!fullName.trim() || !phone.trim() || identityNumber.trim().length < 5) {
+    if (!fullName.trim() || !phone.trim() || identityNumber.trim().length < 6) {
       Alert.alert('Eksik bilgi', 'Ad soyad, telefon ve kimlik / pasaport no zorunludur.')
       return
     }
@@ -162,7 +170,10 @@ export default function ClientBookDoctorScreen() {
         startTime: selectedStart,
         fullName: fullName.trim(),
         phone: phone.trim(),
+        identityDocumentType,
         identityNumber: identityNumber.trim(),
+        nationality:
+          identityDocumentType === 'PASSPORT' ? nationality.trim() || null : null,
         email: email.trim() || null,
         note: note.trim() || null,
       })
@@ -338,13 +349,50 @@ export default function ClientBookDoctorScreen() {
               keyboardType="phone-pad"
               accessibilityLabel="Telefon"
             />
+            <AppText variant="caption" color={theme.colors.textMuted}>
+              Belge tipi
+            </AppText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+              {(
+                [
+                  ['KKTC', 'KKTC 10 hane'],
+                  ['TC', 'TC 11 hane'],
+                  ['PASSPORT', 'Pasaport (turist)'],
+                ] as const
+              ).map(([type, label]) => (
+                <AppButton
+                  key={type}
+                  label={label}
+                  variant={identityDocumentType === type ? 'primary' : 'ghost'}
+                  onPress={() => {
+                    setIdentityDocumentType(type)
+                    setIdentityNumber('')
+                  }}
+                />
+              ))}
+            </View>
             <AppInput
-              label="Kimlik / pasaport no (KKTC 10 hane)"
+              label={
+                identityDocumentType === 'PASSPORT'
+                  ? 'Pasaport no'
+                  : identityDocumentType === 'TC'
+                    ? 'TC kimlik no'
+                    : 'KKTC kimlik no'
+              }
               value={identityNumber}
               onChangeText={setIdentityNumber}
               autoCapitalize="characters"
-              accessibilityLabel="KKTC kimlik 10 hane, TC 11 hane veya pasaport"
+              accessibilityLabel="Kimlik veya pasaport numarası"
             />
+            {identityDocumentType === 'PASSPORT' ? (
+              <AppInput
+                label="Uyruk (opsiyonel, örn. GB)"
+                value={nationality}
+                onChangeText={setNationality}
+                autoCapitalize="characters"
+                accessibilityLabel="Uyruk"
+              />
+            ) : null}
             <AppInput
               label="E-posta (opsiyonel)"
               value={email}

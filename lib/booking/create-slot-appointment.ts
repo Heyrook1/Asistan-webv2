@@ -172,7 +172,12 @@ export async function createSlotAppointmentTx(
       description: `${service.name} • ${payload.date} ${payload.startTime}`,
       actorName: payload.fullName,
       actorId: input.actorUserId,
-      metadata: { appointmentId: appointment.id, source: 'client_book' },
+      metadata: {
+        appointmentId: appointment.id,
+        source: 'client_book',
+        identityDocumentType: payload.identityDocumentType,
+        ...(payload.nationality ? { nationality: payload.nationality } : {}),
+      },
     },
   })
 
