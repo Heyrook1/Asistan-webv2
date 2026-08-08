@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { Clock3 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
 import { useLiveAvailability } from '@/hooks/use-live-availability'
 import { addCalendarDays, calendarDateInTimeZone, formatNextSlotLabelStable } from '@/lib/datetime/calendar-label'
 import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
 
 type Props = {
   businessId: string
@@ -18,7 +19,7 @@ type Props = {
 
 /**
  * Live empty slots for clinic detail — same agenda source as /book.
- * Walks up to 7 days until open times appear.
+ * Hydration-safe: SSR shows seed times only; live poll starts after mount.
  */
 export function DoctorLiveSlotChips({
   businessId,
@@ -27,8 +28,12 @@ export function DoctorLiveSlotChips({
   bookBase,
   initialSlots = [],
 }: Props) {
-  const today = calendarDateInTimeZone()
+  const [mounted, setMounted] = useState(false)
   const [dayOffset, setDayOffset] = useState(0)
+
+  useEffect(() => setMounted(true), [])
+
+  const today = calendarDateInTimeZone()
   const date = addCalendarDays(today, dayOffset)
 
   const { slots, loading, syncedAt } = useLiveAvailability({
@@ -36,29 +41,41 @@ export function DoctorLiveSlotChips({
     doctorId,
     serviceId,
     date,
-    enabled: true,
+    enabled: mounted,
     pollMs: 20_000,
   })
 
   useEffect(() => {
+    if (!mounted) return
     if (loading) return
     if (slots.length > 0) return
     if (dayOffset >= 6) return
     setDayOffset((n) => n + 1)
-  }, [loading, slots.length, dayOffset])
+  }, [mounted, loading, slots.length, dayOffset])
 
+  const seedSlots = initialSlots.slice(0, 6)
   const liveSlots = slots.slice(0, 6).map((slot) => ({
     date,
     startTime: slot.startTime,
     endTime: slot.endTime,
   }))
-  const displaySlots = liveSlots.length > 0 ? liveSlots : dayOffset === 0 ? initialSlots.slice(0, 6) : []
-  const first = displaySlots[0]
-  const firstLabel = first
-    ? formatNextSlotLabelStable(`${first.date}T${first.startTime}:00`, 'tr')
-    : null
+  const displaySlots = !mounted
+    ? seedSlots
+    : liveSlots.length > 0
+      ? liveSlots
+      : dayOffset === 0
+        ? seedSlots
+        : []
 
-  if (!loading && displaySlots.length === 0 && dayOffset >= 6) {
+  const first = displaySlots[0]
+  const firstLabel =
+    mounted && first
+      ? formatNextSlotLabelStable(`${first.date}T${first.startTime}:00`, 'tr')
+      : first
+        ? first.startTime
+        : null
+
+  if (mounted && !loading && displaySlots.length === 0 && dayOffset >= 6) {
     return (
       <p className="mt-2 text-[12px] text-slate-500">Yakın tarihte açık slot yok</p>
     )
@@ -70,16 +87,18 @@ export function DoctorLiveSlotChips({
         <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
           <Clock3 className="size-3" aria-hidden />
           Boş saatler
-          {firstLabel ? <span className="normal-case tracking-normal text-slate-500">· {firstLabel}</span> : null}
+          {firstLabel ? (
+            <span className="normal-case tracking-normal text-slate-500">· {firstLabel}</span>
+          ) : null}
         </p>
-        {syncedAt ? (
+        {mounted && syncedAt ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
             <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
             Canlı
           </span>
         ) : null}
       </div>
-      {loading && displaySlots.length === 0 ? (
+      {mounted && loading && displaySlots.length === 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-9 w-[4.25rem] animate-pulse rounded-full bg-slate-100" />

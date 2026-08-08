@@ -4,7 +4,6 @@ import { ArrowRight, MapPin, Phone, Star, ShieldCheck, Clock3 } from 'lucide-rea
 
 import { DoctorLiveSlotChips } from '@/components/client/doctor-live-slot-chips'
 import type { ClientClinicDetail } from '@/lib/client-marketplace/clinic-detail'
-import { formatNextSlotLabelStable } from '@/lib/datetime/calendar-label'
 import { formatCurrency } from '@/lib/format'
 import { getPublicBookPath } from '@/lib/public-booking/paths'
 import { cn } from '@/lib/utils'
@@ -187,9 +186,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                   ? doctor.reviews.averageRating.toFixed(1)
                   : null
               const firstSlot = doctor.nextSlots[0]
-              const firstSlotLabel = firstSlot
-                ? formatNextSlotLabelStable(`${firstSlot.date}T${firstSlot.startTime}:00`, 'tr')
-                : null
+              const firstSlotLabel = firstSlot ? firstSlot.startTime : null
               return (
                 <li
                   key={doctor.id}

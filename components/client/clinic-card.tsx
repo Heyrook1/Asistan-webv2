@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { MapPin, Star, ArrowRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import type { ClientDiscoveryItem } from '@/lib/client-marketplace/types'
 import { formatNextSlotLabelStable } from '@/lib/datetime/calendar-label'
@@ -16,8 +17,17 @@ function formatDistanceKm(km: number | null) {
   return `${value} km`
 }
 
+function rawSlotTime(nextAvailableAt: string | null): string | null {
+  if (!nextAvailableAt) return null
+  const match = /T(\d{2}:\d{2})/.exec(nextAvailableAt)
+  return match?.[1] ?? null
+}
+
 export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
   const { t, language } = useLanguage()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const detailHref = `/client/clinics/${item.businessId}`
   const params = new URLSearchParams()
   if (item.doctorId) params.set('doctorId', item.doctorId)
@@ -33,10 +43,10 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
     item.minPrice != null
       ? formatCurrency(item.minPrice)
       : t({ tr: 'Fiyat sorulur', en: 'Ask clinic' })
-  const nextSlotLabel = formatNextSlotLabelStable(
-    item.nextAvailableAt,
-    language === 'en' ? 'en' : 'tr',
-  )
+  // Relative "Bugün" only after mount — Node vs browser TZ/ICU caused React #418.
+  const nextSlotLabel = mounted
+    ? formatNextSlotLabelStable(item.nextAvailableAt, language === 'en' ? 'en' : 'tr')
+    : rawSlotTime(item.nextAvailableAt)
 
   return (
     <article
@@ -92,7 +102,6 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
 
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
             <span
-              suppressHydrationWarning
               className={cn(
                 'rounded-full px-2 py-0.5',
                 item.openNow ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600',
@@ -101,16 +110,11 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
               {item.openNow ? t({ tr: 'Açık', en: 'Open' }) : t({ tr: 'Kapalı', en: 'Closed' })}
             </span>
             {nextSlotLabel ? (
-              <span
-                suppressHydrationWarning
-                className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]"
-              >
+              <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
                 {nextSlotLabel}
               </span>
             ) : null}
-            <span suppressHydrationWarning className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-              {priceLabel}
-            </span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{priceLabel}</span>
           </div>
         </div>
       </div>
@@ -124,10 +128,10 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
         </Link>
         <Link
           href={bookHref}
-          className="rz-press flex h-11 items-center justify-center gap-1.5 border-l border-slate-100 text-[13px] font-bold text-[#0071E3] transition hover:bg-[#0071E3]/5"
+          className="rz-press flex h-11 items-center justify-center gap-1.5 bg-[#0071E3]/8 text-[13px] font-bold text-[#0071E3] transition hover:bg-[#0071E3]/14"
         >
           {t({ tr: 'Randevu Al', en: 'Book' })}
-          <ArrowRight className="size-4" aria-hidden />
+          <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       </div>
     </article>
