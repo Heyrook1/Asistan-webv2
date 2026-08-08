@@ -23,7 +23,13 @@ const migrationPath = path.join(
   'migrations',
   '20260807000100_notification_outbox.sql',
 )
+const rlsPath = path.join(
+  'supabase',
+  'migrations',
+  '20260808000100_notification_outbox_rls.sql',
+)
 const sql = fs.readFileSync(migrationPath, 'utf8')
+const rlsSql = fs.readFileSync(rlsPath, 'utf8')
 const client = createPgClient(url)
 
 async function run() {
@@ -31,6 +37,8 @@ async function run() {
   await client.connect()
   console.log(`Applying ${migrationPath}…`)
   await client.query(sql)
+  console.log(`Applying ${rlsPath}…`)
+  await client.query(rlsSql)
 
   const table = await client.query(`
     select to_regclass('public."NotificationOutbox"') as reg
@@ -40,14 +48,24 @@ async function run() {
     from pg_class
     where relname = 'NotificationOutbox'
   `)
+  const policies = await client.query(`
+    select policyname from pg_policies
+    where schemaname = 'public' and tablename = 'NotificationOutbox'
+    order by policyname
+  `)
 
   console.log('NotificationOutbox:', table.rows[0]?.reg)
   console.log('RLS enabled:', rls.rows[0]?.relrowsecurity ?? 'MISSING')
+  console.log(
+    'Policies:',
+    policies.rows.map((r) => r.policyname).join(', ') || '(none)',
+  )
 
   if (!table.rows[0]?.reg) throw new Error('NotificationOutbox missing')
   if (!rls.rows[0]?.relrowsecurity) throw new Error('NotificationOutbox RLS not enabled')
+  if (policies.rows.length === 0) throw new Error('NotificationOutbox has no policies')
 
-  console.log('OK: notification outbox migration applied')
+  console.log('OK: notification outbox + RLS applied')
 }
 
 run()

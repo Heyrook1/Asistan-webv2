@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
 import {
   sendAppointmentReminder,
   type ReminderChannel,
@@ -28,8 +28,9 @@ type OutboxDelegate = {
   update: (args: { where: { id: string }; data: Record<string, unknown> }) => Promise<unknown>
 }
 
+/** Owner/catalog — cron drains cross-tenant; asistan_app needs GUC per row. */
 function outboxDelegate(): OutboxDelegate | null {
-  const client = prisma as unknown as { notificationOutbox?: OutboxDelegate }
+  const client = catalogPrisma() as unknown as { notificationOutbox?: OutboxDelegate }
   return client.notificationOutbox ?? null
 }
 
