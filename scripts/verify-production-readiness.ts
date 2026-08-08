@@ -32,6 +32,16 @@ function fail(name: string, detail?: string): Check {
 async function main() {
   const checks: Check[] = []
 
+  const pepper = process.env.PERSON_IDENTITY_PEPPER?.trim()
+  checks.push(
+    pepper && pepper.length >= 16
+      ? ok('PERSON_IDENTITY_PEPPER', 'identity document hashing ready')
+      : ok(
+          'PERSON_IDENTITY_PEPPER',
+          'WARN: unset — guest book (phone-only) OK; national-ID hashing blocked until set (≥16 chars)'
+        )
+  )
+
   const cronSecret = process.env.CRON_SECRET?.trim()
   checks.push(
     cronSecret && cronSecret.length >= 16

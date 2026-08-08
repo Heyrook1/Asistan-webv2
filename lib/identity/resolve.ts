@@ -54,6 +54,11 @@ export type ResolvePersonInput = {
   birthDate?: Date | string | null
 }
 
+/** Exported for unit tests — guest book must not require pepper without national ID. */
+export function buildIdentitySignals(input: ResolvePersonInput): IdentitySignals {
+  return toSignals(input)
+}
+
 function toSignals(input: ResolvePersonInput): IdentitySignals {
   const birth =
     input.birthDate instanceof Date
@@ -62,10 +67,16 @@ function toSignals(input: ResolvePersonInput): IdentitySignals {
         ? input.birthDate.slice(0, 10)
         : null
 
+  // Guest book / phone-only resolve must not require PERSON_IDENTITY_PEPPER.
+  // Pepper is only needed when hashing a national ID / passport.
+  const identityHash = input.identityNumber?.trim()
+    ? hashIdentityDocument(input.identityNumber, identityPepper())
+    : null
+
   return {
     phoneE164: normalizePhoneE164(input.phone),
     emailNorm: normalizeEmail(input.email),
-    identityHash: hashIdentityDocument(input.identityNumber, identityPepper()),
+    identityHash,
     fullNameCanon: canonicalizeFullName(input.fullName),
     birthDateIso: birth,
   }

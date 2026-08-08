@@ -20,11 +20,16 @@ export const runtime = 'nodejs'
  */
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon'
-  const allowed = await checkRateLimit(
-    `public-book:${ip}`,
-    Math.min(RATE_LIMITS.public.limit, 8),
-    RATE_LIMITS.public.window,
-  )
+  let allowed = true
+  try {
+    allowed = await checkRateLimit(
+      `public-book:${ip}`,
+      Math.min(RATE_LIMITS.public.limit, 8),
+      RATE_LIMITS.public.window,
+    )
+  } catch (rateLimitError) {
+    console.error('[api/public/bookings] rate-limit skipped', rateLimitError)
+  }
   if (!allowed) {
     return apiError('Çok fazla randevu denemesi. Biraz sonra tekrar deneyin.', 429)
   }
@@ -72,6 +77,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, ...data, idempotentReplay: result.replay })
   } catch (error) {
+    console.error('[api/public/bookings]', error)
     Sentry.captureException(error)
     return apiError(
       'Randevu oluşturulamadı. Lütfen tekrar deneyin.',
