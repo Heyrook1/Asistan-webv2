@@ -35,10 +35,10 @@ async function main() {
   const pepper = process.env.PERSON_IDENTITY_PEPPER?.trim()
   checks.push(
     pepper && pepper.length >= 16
-      ? ok('PERSON_IDENTITY_PEPPER', 'identity document hashing ready')
-      : ok(
+      ? ok('PERSON_IDENTITY_PEPPER', 'guest book identity hashing ready')
+      : fail(
           'PERSON_IDENTITY_PEPPER',
-          'WARN: unset — guest book (phone-only) OK; national-ID hashing blocked until set (≥16 chars)'
+          'required (≥16 chars) — public/client booking hashes kimlik/pasaport; missing pepper → BOOKING_FAILED'
         )
   )
 

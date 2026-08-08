@@ -55,7 +55,7 @@ Set on your host (systemd, Docker, PM2, hosting panel, etc.):
 | `WHATSAPP_INBOUND_TOKENS` | optional | Static `slug:token,…` map; wrong slug → 403 |
 | `UPSTASH_REDIS_REST_URL` | yes | Shared rate limits |
 | `UPSTASH_REDIS_REST_TOKEN` | yes | Shared rate limits |
-| `PERSON_IDENTITY_PEPPER` | yes | ≥16 chars in production |
+| `PERSON_IDENTITY_PEPPER` | yes (production) | ≥16 random chars — required for guest/client book identity hashing |
 | `ASISTAN_TENANT_GUARD` | recommended | `enforce` in production |
 | `NEXT_PUBLIC_SENTRY_DSN` | optional | Browser error tracking |
 | `SENTRY_DSN` | optional | Server/Edge (falls back to public DSN) |
@@ -161,6 +161,7 @@ curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://your-domain.com/api/c
 ## Production checklist
 
 - [ ] `pnpm production:rollout` passes (except env you intentionally skip in staging)
+- [ ] `PERSON_IDENTITY_PEPPER` ≥16 set on host (guest book kimlik zorunlu)
 - [ ] `CRON_SECRET` set; reminders, outbox, and booking-canary return 200 with Bearer token
 - [ ] `pnpm smoke:booking-canary` PASS (or remote `APP_URL=… pnpm smoke:booking-canary`)
 - [ ] `/api/health` reports `database` + `catalog` healthy

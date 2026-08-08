@@ -51,10 +51,15 @@ export function canonicalizeFullName(raw: string): string {
 
 export function hashIdentityDocument(raw: string | null | undefined, pepper: string): string | null {
   if (!raw) return null
-  const cleaned = raw.replace(/\s+/g, '').toUpperCase()
-  if (cleaned.length < 5) return null
+  const cleaned = normalizeIdentityDocument(raw)
+  if (!cleaned) return null
   return createHmac('sha256', pepper).update(`id:${cleaned}`).digest('hex')
 }
+
+export {
+  normalizeIdentityDocument,
+  isValidIdentityDocument,
+} from '@/lib/identity/identity-document'
 
 /** Opaque GPI-XXXXXXXXXX — not sequential. */
 export function generateGpiDisplay(): string {

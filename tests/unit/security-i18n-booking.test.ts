@@ -91,7 +91,7 @@ describe('SYSTEM_ADMIN_EMAILS', () => {
 })
 
 describe('client booking schema', () => {
-  it('accepts a valid booking payload', () => {
+  it('accepts a valid booking payload with identity', () => {
     const parsed = createClientBookingSchema.safeParse({
       businessId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
@@ -100,8 +100,23 @@ describe('client booking schema', () => {
       startTime: '10:30',
       fullName: 'Ayşe Yılmaz',
       phone: '+905551112233',
+      identityNumber: 'U12345678',
     })
     expect(parsed.success).toBe(true)
+  })
+
+  it('rejects missing identity number', () => {
+    expect(
+      createClientBookingSchema.safeParse({
+        businessId: '11111111-1111-4111-8111-111111111111',
+        doctorId: '22222222-2222-4222-8222-222222222222',
+        serviceId: '33333333-3333-4333-8333-333333333333',
+        date: '2026-07-20',
+        startTime: '10:30',
+        fullName: 'Ayşe Yılmaz',
+        phone: '+905551112233',
+      }).success
+    ).toBe(false)
   })
 
   it('rejects invalid date/time and short name', () => {
@@ -114,6 +129,7 @@ describe('client booking schema', () => {
         startTime: '10:30',
         fullName: 'Ayşe Yılmaz',
         phone: '+905551112233',
+        identityNumber: 'U12345678',
       }).success
     ).toBe(false)
 
@@ -126,6 +142,7 @@ describe('client booking schema', () => {
         startTime: '25:00',
         fullName: 'A',
         phone: '123',
+        identityNumber: 'U12345678',
       }).success
     ).toBe(false)
   })

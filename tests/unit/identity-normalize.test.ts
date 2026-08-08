@@ -25,9 +25,9 @@ describe('identity normalize', () => {
   })
 
   it('hashes identity with pepper stably', () => {
-    const a = hashIdentityDocument('12345678901', 'pepper-test-value')
-    const b = hashIdentityDocument('12345678901', 'pepper-test-value')
-    const c = hashIdentityDocument('12345678901', 'other-pepper')
+    const a = hashIdentityDocument('U12345678', 'pepper-test-value')
+    const b = hashIdentityDocument('U12345678', 'pepper-test-value')
+    const c = hashIdentityDocument('U12345678', 'other-pepper')
     expect(a).toBe(b)
     expect(a).not.toBe(c)
     expect(a).toHaveLength(64)

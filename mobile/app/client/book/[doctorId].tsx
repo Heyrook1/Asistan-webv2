@@ -73,6 +73,7 @@ export default function ClientBookDoctorScreen() {
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [identityNumber, setIdentityNumber] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
 
@@ -133,15 +134,17 @@ export default function ClientBookDoctorScreen() {
   )
   const canContinueStep1 = Boolean(selectedServiceId)
   const canContinueStep2 = Boolean(selectedStart)
-  const canSubmit = Boolean(fullName.trim() && phone.trim() && selectedServiceId && selectedStart)
+  const canSubmit = Boolean(
+    fullName.trim() && phone.trim() && identityNumber.trim().length >= 5 && selectedServiceId && selectedStart,
+  )
 
   async function submitBooking() {
     if (!doctor || !selectedServiceId || !selectedStart) {
       Alert.alert('Eksik bilgi', 'Lütfen hizmet ve saat seçin.')
       return
     }
-    if (!fullName.trim() || !phone.trim()) {
-      Alert.alert('Eksik bilgi', 'Ad soyad ve telefon zorunludur.')
+    if (!fullName.trim() || !phone.trim() || identityNumber.trim().length < 5) {
+      Alert.alert('Eksik bilgi', 'Ad soyad, telefon ve kimlik / pasaport no zorunludur.')
       return
     }
 
@@ -159,6 +162,7 @@ export default function ClientBookDoctorScreen() {
         startTime: selectedStart,
         fullName: fullName.trim(),
         phone: phone.trim(),
+        identityNumber: identityNumber.trim(),
         email: email.trim() || null,
         note: note.trim() || null,
       })
@@ -333,6 +337,13 @@ export default function ClientBookDoctorScreen() {
               onChangeText={setPhone}
               keyboardType="phone-pad"
               accessibilityLabel="Telefon"
+            />
+            <AppInput
+              label="Kimlik / pasaport no"
+              value={identityNumber}
+              onChangeText={setIdentityNumber}
+              autoCapitalize="characters"
+              accessibilityLabel="Kimlik veya pasaport numarası"
             />
             <AppInput
               label="E-posta (opsiyonel)"

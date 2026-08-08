@@ -12,6 +12,8 @@ export type ClinicPatientInput = {
   businessId: string
   fullName: string
   phone: string
+  /** Required on public/client book — links Person via identityHash. */
+  identityNumber: string
   email?: string | null
   address?: string | null
   city?: string | null
@@ -54,6 +56,7 @@ export async function resolveOrCreateClinicPatient(
     fullName: input.fullName,
     phone: input.phone,
     email,
+    identityNumber: input.identityNumber,
   })
 
   const byPerson = await tx.patient.findFirst({
@@ -88,6 +91,7 @@ export async function resolveOrCreateClinicPatient(
         fullName: input.fullName,
         phone: phoneStored,
         email,
+        identityNumber: input.identityNumber,
         address: input.address ?? undefined,
         city: input.city ?? undefined,
         personId,
@@ -105,6 +109,7 @@ export async function resolveOrCreateClinicPatient(
       fullName: input.fullName,
       phone: phoneStored,
       email,
+      identityNumber: input.identityNumber,
       address: input.address ?? null,
       city: input.city ?? null,
     },

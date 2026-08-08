@@ -135,6 +135,7 @@ export async function createSlotAppointmentTx(
     fullName: payload.fullName,
     phone: payload.phone,
     email: payload.email,
+    identityNumber: payload.identityNumber,
     address: payload.address,
     city: payload.city,
   })

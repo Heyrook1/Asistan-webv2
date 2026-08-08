@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { isValidIdentityDocument } from '@/lib/identity/identity-document'
 import { useLiveAvailability } from '@/hooks/use-live-availability'
 import { extractAvailabilitySlots, readJsonResponse, userMessageFromUnknown } from '@/lib/http/read-json'
 import {
@@ -164,11 +165,13 @@ export function PublicBookingWidget({
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [identityNumber, setIdentityNumber] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [identityError, setIdentityError] = useState<string | null>(null)
   const idempotencyKeyRef = useRef(newIdempotencyKey())
 
   const dayChips = useMemo(
@@ -306,6 +309,19 @@ export function PublicBookingWidget({
     return true
   }
 
+  function validateIdentity(value: string) {
+    if (!isValidIdentityDocument(value)) {
+      setIdentityError(
+        lang === 'en'
+          ? 'Enter a valid ID or passport number'
+          : 'Geçerli kimlik veya pasaport numarası girin',
+      )
+      return false
+    }
+    setIdentityError(null)
+    return true
+  }
+
   function submit() {
     if (!serviceId || !doctorId || !startTime) {
       const msg = 'Hizmet, doktor ve saat seçin'
@@ -315,7 +331,8 @@ export function PublicBookingWidget({
     }
     const nameOk = validateName(fullName)
     const phoneOk = validatePhone(phone)
-    if (!nameOk || !phoneOk) return
+    const identityOk = validateIdentity(identityNumber)
+    if (!nameOk || !phoneOk || !identityOk) return
     setSubmitError(null)
     startTransition(async () => {
       try {
@@ -334,6 +351,7 @@ export function PublicBookingWidget({
             startTime,
             fullName,
             phone,
+            identityNumber,
             email: email.trim() || null,
             note: note.trim() || null,
           }),
@@ -1003,6 +1021,48 @@ export function PublicBookingWidget({
                   {lang === 'en'
                     ? 'We may send confirmation by SMS / WhatsApp.'
                     : 'Onay SMS / WhatsApp ile gelebilir.'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label
+                className="mb-1.5 block text-xs font-medium text-slate-500"
+                htmlFor="book-identity"
+              >
+                {lang === 'en' ? 'ID / passport number *' : 'Kimlik / pasaport no *'}
+              </label>
+              <Input
+                id="book-identity"
+                value={identityNumber}
+                onChange={(e) => {
+                  setIdentityNumber(e.target.value)
+                  if (identityError) setIdentityError(null)
+                }}
+                onBlur={() => {
+                  if (identityNumber.trim()) validateIdentity(identityNumber)
+                }}
+                autoComplete="off"
+                inputMode="text"
+                placeholder={lang === 'en' ? 'e.g. 12345678901 or U1234567' : 'örn. 12345678901 veya U1234567'}
+                aria-invalid={identityError ? true : undefined}
+                aria-describedby={
+                  identityError ? 'book-identity-error' : 'book-identity-hint'
+                }
+                className="h-11 min-h-11 text-base md:text-sm"
+              />
+              {identityError ? (
+                <p
+                  id="book-identity-error"
+                  role="alert"
+                  className="mt-1 text-xs font-medium text-red-600"
+                >
+                  {identityError}
+                </p>
+              ) : (
+                <p id="book-identity-hint" className="mt-1 text-xs text-slate-500">
+                  {lang === 'en'
+                    ? 'Used to match your records securely. Stored as a one-way hash.'
+                    : 'Kayıt eşleştirmesi için zorunlu. Sistemde tek yönlü hash olarak saklanır.'}
                 </p>
               )}
             </div>
