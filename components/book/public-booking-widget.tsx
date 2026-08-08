@@ -49,7 +49,7 @@ async function fetchSlotsForDate(input: {
   return extractAvailabilitySlots(data).slots.length
 }
 
-function todayIso() {
+function getTodayIso() {
   return calendarDateInTimeZone()
 }
 
@@ -117,9 +117,9 @@ export function PublicBookingWidget({
       : null,
   )
   const [date, setDate] = useState(
-    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) && initialDate >= todayIso()
+    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) && initialDate >= getTodayIso()
       ? initialDate
-      : todayIso(),
+      : getTodayIso(),
   )
   const [startTime, setStartTime] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -163,17 +163,17 @@ export function PublicBookingWidget({
   const [nextOpenDate, setNextOpenDate] = useState<string | null>(null)
   const [findingNextOpen, setFindingNextOpen] = useState(false)
   // Defer Bugün/Yarın until mount — Node vs browser TZ caused React #418.
-  const [todayIso, setTodayIso] = useState<string | null>(null)
+  const [clientTodayIso, setClientTodayIso] = useState<string | null>(null)
   useEffect(() => {
-    setTodayIso(calendarDateInTimeZone())
+    setClientTodayIso(calendarDateInTimeZone())
   }, [])
 
   const chipLabel = (iso: string) => {
-    if (!todayIso) {
+    if (!clientTodayIso) {
       // Absolute weekday form only (never Bugün/Yarın) until client clock is ready.
       return formatDayChipLabel(iso, lang, '1970-01-01', '1970-01-02')
     }
-    return formatDayChipLabel(iso, lang, todayIso, addDaysIso(todayIso, 1))
+    return formatDayChipLabel(iso, lang, clientTodayIso, addDaysIso(clientTodayIso, 1))
   }
 
   const [fullName, setFullName] = useState('')
@@ -192,8 +192,8 @@ export function PublicBookingWidget({
   const idempotencyKeyRef = useRef(newIdempotencyKey())
 
   const dayChips = useMemo(
-    () => Array.from({ length: DAY_CHIP_COUNT }, (_, i) => addDaysIso(todayIso(), i)),
-    [],
+    () => Array.from({ length: DAY_CHIP_COUNT }, (_, i) => addDaysIso(clientTodayIso ?? getTodayIso(), i)),
+    [clientTodayIso],
   )
 
   // Product chrome always uses Asistan Rezervasyon blue — clinic.primaryColor
@@ -805,7 +805,7 @@ export function PublicBookingWidget({
               <Input
                 id="book-date"
                 type="date"
-                min={todayIso()}
+                min={clientTodayIso ?? getTodayIso()}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="h-11 min-h-11 text-base md:text-sm"
