@@ -4,7 +4,7 @@
 // Offline: precache shell assets only. Never cache /_next/* (avoids stale
 // JS vs fresh SSR hydration mismatches under Turbopack / deploys).
 
-const CACHE_VERSION = 'asistan-shell-v3'
+const CACHE_VERSION = 'asistan-shell-v4'
 const PRECACHE = ['/offline.html', '/images/icon-192.png', '/images/icon-512.png', '/images/apple-touch-icon.png']
 
 self.addEventListener('install', (event) => {

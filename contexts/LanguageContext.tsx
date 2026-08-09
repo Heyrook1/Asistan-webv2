@@ -12,25 +12,28 @@ interface LanguageContextProps {
   t: <T>(translations: { tr: T; en: T }) => T
 }
 
-/**
- * Context must be a process-wide singleton. Dynamic import chunks + HMR can
- * otherwise load a second createContext() instance → Provider ≠ consumer →
- * useLanguage falls back to TR while SSR rendered EN → React #418.
- */
-function getLanguageContext() {
-  const g = globalThis as typeof globalThis & {
-    __asistanLanguageContext?: React.Context<LanguageContextProps | undefined>
-  }
-  if (!g.__asistanLanguageContext) {
-    g.__asistanLanguageContext = createContext<LanguageContextProps | undefined>(undefined)
-  }
-  return g.__asistanLanguageContext
+type LangBridge = {
+  context: React.Context<LanguageContextProps | undefined>
+  /** Last SSR/client Provider initialLanguage — used if context instance splits. */
+  initialLanguage: Language
+  language: Language
 }
 
-const LanguageContext = getLanguageContext()
+function getLangBridge(): LangBridge {
+  const g = globalThis as typeof globalThis & { __asistanLangBridge?: LangBridge }
+  if (!g.__asistanLangBridge) {
+    g.__asistanLangBridge = {
+      context: createContext<LanguageContextProps | undefined>(undefined),
+      initialLanguage: 'tr',
+      language: 'tr',
+    }
+  }
+  return g.__asistanLangBridge
+}
 
 const COOKIE_NAME = 'asistan-lang'
 const LOCAL_STORAGE_KEY = 'asistan-lang'
+const LanguageContext = getLangBridge().context
 
 export function LanguageProvider({
   children,
@@ -40,7 +43,13 @@ export function LanguageProvider({
   /** From server cookie so SSR matches first client paint. */
   initialLanguage?: Language
 }) {
+  const bridge = getLangBridge()
+  bridge.initialLanguage = initialLanguage
+
   const [language, setLanguageState] = useState<Language>(initialLanguage)
+  // Until mount sync finishes, always expose initialLanguage so hydrate matches SSR
+  // even if a stale effect or split context tries to read ahead.
+  const [hydrated, setHydrated] = useState(false)
 
   const getCookie = (name: string): string | null => {
     if (typeof document === 'undefined') return null
@@ -63,10 +72,10 @@ export function LanguageProvider({
   }
 
   useEffect(() => {
-    // Prefer cookie (already used for SSR). Only fall back to localStorage if cookie missing.
     const cookieLang = getCookie(COOKIE_NAME)
     if (cookieLang === 'tr' || cookieLang === 'en') {
       setLanguageState(cookieLang)
+      setHydrated(true)
       return
     }
 
@@ -74,18 +83,23 @@ export function LanguageProvider({
     if (localLang === 'tr' || localLang === 'en') {
       setLanguageState(localLang)
       setCookie(COOKIE_NAME, localLang)
+      setHydrated(true)
       return
     }
 
     setLanguageState('tr')
     localStorage.setItem(LOCAL_STORAGE_KEY, 'tr')
     setCookie(COOKIE_NAME, 'tr')
+    setHydrated(true)
   }, [])
+
+  const activeLanguage = hydrated ? language : initialLanguage
+  bridge.language = activeLanguage
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    document.documentElement.lang = language
-  }, [language])
+    document.documentElement.lang = activeLanguage
+  }, [activeLanguage])
 
   const setLanguage = (newLang: Language) => {
     setLanguageState(newLang)
@@ -94,24 +108,26 @@ export function LanguageProvider({
   }
 
   const t = <T,>(translations: { tr: T; en: T }): T => {
-    return translations[language]
+    return translations[activeLanguage]
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language: activeLanguage, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   )
 }
 
 export function useLanguage() {
+  const bridge = getLangBridge()
   const context = useContext(LanguageContext)
   if (context === undefined) {
-    // Should be rare after singleton context — keep soft fallback for isolated tests.
+    // Split-chunk fallback: match Provider's SSR initialLanguage (never hardcode TR).
+    const lang = bridge.initialLanguage
     return {
-      language: 'tr' as Language,
+      language: lang,
       setLanguage: (_lang: Language) => undefined,
-      t: <T,>(translations: { tr: T; en: T }): T => translations.tr,
+      t: <T,>(translations: { tr: T; en: T }): T => translations[lang],
     }
   }
   return context

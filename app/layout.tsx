@@ -1,8 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-
-import { Toaster } from '@/components/ui/sonner'
+import dynamic from 'next/dynamic'
 
 import './globals.css'
+
+/** Client-only — Sonner must not participate in SSR hydration. */
+const Toaster = dynamic(
+  () => import('@/components/ui/sonner').then((mod) => mod.Toaster),
+  { ssr: false },
+)
 
 import { SITE_URL } from '@/lib/seo'
 
