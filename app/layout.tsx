@@ -1,13 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import dynamic from 'next/dynamic'
 
 import './globals.css'
-
-/** Client-only — Sonner must not participate in SSR hydration. */
-const Toaster = dynamic(
-  () => import('@/components/ui/sonner').then((mod) => mod.Toaster),
-  { ssr: false },
-)
 
 import { SITE_URL } from '@/lib/seo'
 
@@ -92,6 +85,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { SkipToContent } from '@/components/skip-to-content'
 import { RegisterServiceWorker } from '@/components/pwa/register-sw'
+import { ClientToaster } from '@/components/ui/client-toaster'
 import { cookies } from 'next/headers'
 import { normalizeAuthLanguage } from '@/lib/auth-routes'
 
@@ -119,7 +113,7 @@ export default async function RootLayout({
               {children}
             </div>
           </LanguageProvider>
-          <Toaster position="top-right" richColors duration={4000} />
+          <ClientToaster position="top-right" richColors duration={4000} />
           <RegisterServiceWorker />
           {/* Vercel Web Analytics: Vercel Dashboard > Analytics > Enable to re-activate */}
         </ErrorBoundary>
