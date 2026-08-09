@@ -22,12 +22,14 @@ import type { ClientDiscoveryItem } from '@/lib/client-marketplace/types'
 import { getClinicTrialPath } from '@/lib/entry-routes'
 import { cn } from '@/lib/utils'
 
+/** Branş chips use `specialty=` (alias-expanded in discovery) — not free-text query. */
 const CATEGORIES = [
-  { label: { tr: 'Diş', en: 'Dental' }, query: 'diş', icon: Smile },
-  { label: { tr: 'Dermatoloji', en: 'Derm' }, query: 'dermatoloji', icon: Leaf },
-  { label: { tr: 'Fizyo', en: 'Physio' }, query: 'fizyo', icon: Heart },
-  { label: { tr: 'Estetik', en: 'Aesthetic' }, query: 'estetik', icon: ShieldCheck },
-  { label: { tr: 'Genel', en: 'General' }, query: 'genel', icon: Stethoscope },
+  { label: { tr: 'Genel', en: 'General' }, specialty: 'genel', icon: Stethoscope },
+  { label: { tr: 'Dermatoloji', en: 'Derm' }, specialty: 'dermatoloji', icon: Leaf },
+  { label: { tr: 'Kardiyoloji', en: 'Cardio' }, specialty: 'kardiyoloji', icon: Heart },
+  { label: { tr: 'Diş', en: 'Dental' }, specialty: 'diş', icon: Smile },
+  { label: { tr: 'Fizyo', en: 'Physio' }, specialty: 'fizyo', icon: Building2 },
+  { label: { tr: 'Estetik', en: 'Aesthetic' }, specialty: 'estetik', icon: ShieldCheck },
 ] as const
 
 function featuredByClinic(items: ClientDiscoveryItem[] | null | undefined) {
@@ -52,9 +54,9 @@ export function RezervasyonHomeHub({
   const clinics = featuredByClinic(featured).slice(0, 6)
   const brand = productName('booking', language)
 
-  function goSearch(query?: string) {
+  function goSearch(specialty?: string) {
     const params = new URLSearchParams()
-    if (query?.trim()) params.set('query', query.trim())
+    if (specialty?.trim()) params.set('specialty', specialty.trim())
     const qs = params.toString()
     router.push(qs ? `/client/clinics?${qs}` : '/client/clinics')
   }
@@ -144,9 +146,9 @@ export function RezervasyonHomeHub({
             const Icon = cat.icon
             return (
               <button
-                key={cat.query}
+                key={cat.specialty}
                 type="button"
-                onClick={() => goSearch(cat.query)}
+                onClick={() => goSearch(cat.specialty)}
                 className="rz-press inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-white px-3.5 text-[12.5px] font-semibold text-slate-700 ring-1 ring-slate-200/90"
               >
                 <Icon className="size-3.5 text-[#0071E3]" strokeWidth={1.9} aria-hidden />

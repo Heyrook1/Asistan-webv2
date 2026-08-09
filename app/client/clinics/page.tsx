@@ -57,17 +57,24 @@ export default async function ClientClinicsPage({
   const params = await searchParams
   const { clinics, error } = await loadClinics(params)
   const query = parseString(params.query)?.trim()
+  const specialty = parseString(params.specialty)?.trim()
+  const heading = specialty
+    ? specialty.charAt(0).toLocaleUpperCase('tr-TR') + specialty.slice(1)
+    : query
+      ? `“${query}”`
+      : 'Uzman veya klinik ara'
+  const hasIntent = Boolean(query || specialty)
 
   return (
     <main className="space-y-4">
       <header className="space-y-1">
         <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight text-slate-900">
-          {query ? `“${query}”` : 'Uzman veya klinik ara'}
+          {heading}
         </h1>
         <p className="text-[13px] leading-relaxed text-slate-500">
           {error
             ? 'Arama geçici olarak kullanılamıyor'
-            : query
+            : hasIntent
               ? `${clinics.length} sonuç · puan ve gerçek müsaitlik`
               : `${clinics.length} klinik · gerçek müsaitlikle karşılaştırın`}
         </p>
@@ -102,19 +109,23 @@ export default async function ClientClinicsPage({
           </div>
         ) : clinics.length === 0 ? (
           <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-slate-200/80">
-            <p className="text-sm font-bold text-slate-900">Eşleşen klinik yok</p>
+            <p className="text-sm font-bold text-slate-900">
+              {specialty ? 'Bu branşta henüz klinik yok' : 'Eşleşen klinik yok'}
+            </p>
             <p className="mt-2 text-sm text-slate-500">
-              {query
-                ? 'Farklı bir kelime deneyin veya filtreleri temizleyin.'
-                : 'Filtreleri gevşetin veya daha sonra tekrar bakın.'}
+              {specialty
+                ? 'Diğer branşlara bakın veya tüm klinikleri listeleyin — içerik engellenmiyor, katalog henüz boş.'
+                : query
+                  ? 'Farklı bir kelime deneyin veya filtreleri temizleyin.'
+                  : 'Filtreleri gevşetin (özellikle “Bugün müsait”) veya daha sonra tekrar bakın.'}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {query ? (
+              {hasIntent ? (
                 <Link
                   href="/client/clinics"
                   className="inline-flex h-10 items-center rounded-full bg-slate-100 px-4 text-sm font-semibold text-slate-700"
                 >
-                  Aramayı temizle
+                  Tüm klinikleri göster
                 </Link>
               ) : null}
               <Link

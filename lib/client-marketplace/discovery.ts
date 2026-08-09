@@ -8,6 +8,7 @@ import type {
   ClientDiscoveryItem,
   ClientDiscoverySort,
 } from './types'
+import { matchesSpecialtyTerms, specialtySearchTerms } from './specialty-aliases'
 import { getCurrentDateAndTimeForTimezone, getWeekdayFromDateString } from './time'
 
 function toNumber(value: unknown) {
@@ -61,13 +62,19 @@ export async function searchMarketplace(input: {
     const filters = input.filters ?? {}
     const sort = input.sort ?? 'nearest'
 
+    const specialtyTerms = specialtySearchTerms(filters.specialty)
+
     const doctors = await prisma.teamMember.findMany({
       where: {
         role: 'DOKTOR',
         isActive: true,
         isBookable: true,
-        ...(filters.specialty
-          ? { specialty: { contains: filters.specialty, mode: 'insensitive' } }
+        ...(specialtyTerms.length > 0
+          ? {
+              OR: specialtyTerms.map((term) => ({
+                specialty: { contains: term, mode: 'insensitive' as const },
+              })),
+            }
           : {}),
         business: {
           isActive: true,
@@ -187,10 +194,17 @@ export async function searchMarketplace(input: {
 
       if (filters.query) {
         const q = filters.query.toLowerCase()
+        const queryTerms = specialtySearchTerms(filters.query)
         const inDoctor = doctor.fullName.toLowerCase().includes(q)
         const inClinic = doctor.business.name.toLowerCase().includes(q)
-        const inSpecialty = (doctor.specialty ?? '').toLowerCase().includes(q)
-        const inService = services.some((service) => service.name.toLowerCase().includes(q))
+        const inSpecialty =
+          (doctor.specialty ?? '').toLowerCase().includes(q) ||
+          matchesSpecialtyTerms(doctor.specialty, queryTerms)
+        const inService = services.some(
+          (service) =>
+            service.name.toLowerCase().includes(q) ||
+            matchesSpecialtyTerms(service.name, queryTerms),
+        )
         if (!inDoctor && !inClinic && !inSpecialty && !inService) continue
       }
 

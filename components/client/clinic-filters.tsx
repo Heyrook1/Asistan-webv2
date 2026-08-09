@@ -79,6 +79,11 @@ export function ClinicFilters() {
       persistFromParams(searchParams)
       return
     }
+    // Branş / free-text search from home — do not re-apply saved "Bugün müsait" etc.
+    // (those chips often empty the KKTC catalog and feel like content is blocked).
+    if (searchParams.get('query') || searchParams.get('specialty')) {
+      return
+    }
     const saved = readUiPreference<ClientDiscoveryPref>(UI_PREF_KEYS.clientDiscovery)
     if (!saved) return
     const next = new URLSearchParams(searchParams.toString())
@@ -87,10 +92,7 @@ export function ClinicFilters() {
       next.set('sort', saved.sort)
       changed = true
     }
-    if (saved.availableToday) {
-      next.set('availableToday', 'true')
-      changed = true
-    }
+    // Never auto-restore availableToday — slots are sparse; empties every branş.
     if (saved.minRating) {
       next.set('minRating', saved.minRating)
       changed = true
