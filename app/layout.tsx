@@ -99,8 +99,14 @@ export default async function RootLayout({
   const lang = normalizeAuthLanguage(cookieStore.get('asistan-lang')?.value)
 
   return (
-    <html lang={lang} translate="no" data-scroll-behavior="smooth" className="bg-background text-foreground">
-      <body className="font-sans antialiased">
+    <html
+      lang={lang}
+      translate="no"
+      data-scroll-behavior="smooth"
+      className="bg-background text-foreground"
+      suppressHydrationWarning
+    >
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <SkipToContent />
         <ErrorBoundary>
           <LanguageProvider initialLanguage={lang}>

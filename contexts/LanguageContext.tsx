@@ -12,7 +12,22 @@ interface LanguageContextProps {
   t: <T>(translations: { tr: T; en: T }) => T
 }
 
-const LanguageContext = createContext<LanguageContextProps | undefined>(undefined)
+/**
+ * Context must be a process-wide singleton. Dynamic import chunks + HMR can
+ * otherwise load a second createContext() instance → Provider ≠ consumer →
+ * useLanguage falls back to TR while SSR rendered EN → React #418.
+ */
+function getLanguageContext() {
+  const g = globalThis as typeof globalThis & {
+    __asistanLanguageContext?: React.Context<LanguageContextProps | undefined>
+  }
+  if (!g.__asistanLanguageContext) {
+    g.__asistanLanguageContext = createContext<LanguageContextProps | undefined>(undefined)
+  }
+  return g.__asistanLanguageContext
+}
+
+const LanguageContext = getLanguageContext()
 
 const COOKIE_NAME = 'asistan-lang'
 const LOCAL_STORAGE_KEY = 'asistan-lang'
@@ -27,7 +42,6 @@ export function LanguageProvider({
 }) {
   const [language, setLanguageState] = useState<Language>(initialLanguage)
 
-  // Get cookie helper
   const getCookie = (name: string): string | null => {
     if (typeof document === 'undefined') return null
     const nameEQ = name + '='
@@ -40,7 +54,6 @@ export function LanguageProvider({
     return null
   }
 
-  // Set cookie helper
   const setCookie = (name: string, value: string, days = 365) => {
     if (typeof document === 'undefined') return
     const date = new Date()
@@ -94,8 +107,7 @@ export function LanguageProvider({
 export function useLanguage() {
   const context = useContext(LanguageContext)
   if (context === undefined) {
-    // Turbopack HMR can duplicate this module so Provider ≠ consumer context.
-    // Prefer TR fallback over crashing the patient shell.
+    // Should be rare after singleton context — keep soft fallback for isolated tests.
     return {
       language: 'tr' as Language,
       setLanguage: (_lang: Language) => undefined,

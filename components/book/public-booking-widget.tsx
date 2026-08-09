@@ -155,7 +155,8 @@ export function PublicBookingWidget({
 
   const [nextOpenDate, setNextOpenDate] = useState<string | null>(null)
   const [findingNextOpen, setFindingNextOpen] = useState(false)
-  // Defer calendar chips + today until mount — Node vs browser TZ caused React #418.
+  // Defer interactive UI until mount — eliminates Node/browser text drift (React #418).
+  const [clientReady, setClientReady] = useState(false)
   const [clientTodayIso, setClientTodayIso] = useState<string | null>(null)
   const [dayChips, setDayChips] = useState<string[]>([])
   useEffect(() => {
@@ -167,6 +168,7 @@ export function PublicBookingWidget({
       if (validInitialDate && validInitialDate >= today) return validInitialDate
       return today
     })
+    setClientReady(true)
   }, [validInitialDate])
 
   const chipLabel = (iso: string) => {
@@ -546,6 +548,35 @@ export function PublicBookingWidget({
             ) : null}
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (!clientReady) {
+    return (
+      <div className={embed ? 'p-3 sm:p-4' : 'mx-auto w-full max-w-xl px-4 py-8 sm:px-6'}>
+        {!embed ? (
+          <header className="mb-6 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">
+              Asistan Rezervasyon
+            </p>
+            <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">
+              {clinic.name}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {lang === 'en' ? 'Preparing booking…' : 'Randevu formu hazırlanıyor…'}
+            </p>
+          </header>
+        ) : (
+          <p className="mb-4 text-sm font-semibold text-slate-900">{clinic.name}</p>
+        )}
+        <div
+          className="h-56 animate-pulse rounded-3xl bg-slate-100"
+          aria-hidden
+        />
+        <span className="sr-only">
+          {lang === 'en' ? 'Loading booking form' : 'Randevu formu yükleniyor'}
+        </span>
       </div>
     )
   }
