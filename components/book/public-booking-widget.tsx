@@ -20,6 +20,7 @@ import {
   formatBookingWhenStable,
   formatDayChipLabel,
 } from '@/lib/datetime/calendar-label'
+import { formatCurrency } from '@/lib/format'
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
 type Step = 1 | 2 | 3
@@ -49,13 +50,10 @@ async function fetchSlotsForDate(input: {
   return extractAvailabilitySlots(data).slots.length
 }
 
+/** Hydration-safe — never use Intl currency (Node vs browser separators → React #418). */
 function formatPrice(price: number | null, currency: string) {
   if (price == null) return null
-  try {
-    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(price)
-  } catch {
-    return `${price} ${currency}`
-  }
+  return formatCurrency(price, currency)
 }
 
 function newIdempotencyKey() {

@@ -31,17 +31,20 @@ export function DoctorLiveSlotChips({
   const [mounted, setMounted] = useState(false)
   const [dayOffset, setDayOffset] = useState(0)
 
-  useEffect(() => setMounted(true), [])
+  const [todayIso, setTodayIso] = useState<string | null>(null)
+  useEffect(() => {
+    setTodayIso(calendarDateInTimeZone())
+    setMounted(true)
+  }, [])
 
-  const today = calendarDateInTimeZone()
-  const date = addCalendarDays(today, dayOffset)
+  const date = todayIso ? addCalendarDays(todayIso, dayOffset) : ''
 
   const { slots, loading, syncedAt } = useLiveAvailability({
     businessId,
     doctorId,
     serviceId,
     date,
-    enabled: mounted,
+    enabled: mounted && Boolean(date),
     pollMs: 20_000,
   })
 
