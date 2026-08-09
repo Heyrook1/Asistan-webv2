@@ -67,13 +67,18 @@ const STEPS = [
 
 export function PatientJourneySection() {
   const { t, language } = useLanguage()
-  const reduceMotion = useReducedMotion()
+  const reduceMotionPref = useReducedMotion()
   const trackRef = useRef<HTMLDivElement>(null)
   const inView = useInView(trackRef, { once: true, margin: '-12% 0px' })
-  const [active, setActive] = useState(reduceMotion ? STEPS.length - 1 : -1)
+  // Always start at -1 so SSR and first client paint both show "00" (React #418).
+  const [active, setActive] = useState(-1)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  // Treat null/undefined as false until mount — never seed visible text from prefers-reduced-motion.
+  const reduceMotion = mounted && reduceMotionPref === true
 
   useEffect(() => {
-    if (!inView) return
+    if (!mounted || !inView) return
     if (reduceMotion) {
       setActive(STEPS.length - 1)
       return
@@ -89,7 +94,7 @@ export function PatientJourneySection() {
       )
     }
     return () => timers.forEach((id) => window.clearTimeout(id))
-  }, [inView, reduceMotion])
+  }, [mounted, inView, reduceMotion])
 
   const progress = active < 0 ? 0 : (active / (STEPS.length - 1)) * 100
 

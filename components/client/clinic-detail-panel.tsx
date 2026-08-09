@@ -39,7 +39,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
               />
             ) : (
               <span className="flex size-full items-center justify-center text-3xl font-bold text-white">
-                {clinic.name.slice(0, 1).toUpperCase()}
+                {clinic.name.slice(0, 1).toLocaleUpperCase('tr-TR')}
               </span>
             )}
           </div>

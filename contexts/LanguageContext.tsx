@@ -12,11 +12,9 @@ interface LanguageContextProps {
   t: <T>(translations: { tr: T; en: T }) => T
 }
 
+/** Singleton context only — never store request language on globalThis (nested providers raced). */
 type LangBridge = {
   context: React.Context<LanguageContextProps | undefined>
-  /** Last SSR/client Provider initialLanguage — used if context instance splits. */
-  initialLanguage: Language
-  language: Language
 }
 
 function getLangBridge(): LangBridge {
@@ -24,8 +22,6 @@ function getLangBridge(): LangBridge {
   if (!g.__asistanLangBridge) {
     g.__asistanLangBridge = {
       context: createContext<LanguageContextProps | undefined>(undefined),
-      initialLanguage: 'tr',
-      language: 'tr',
     }
   }
   return g.__asistanLangBridge
@@ -35,6 +31,10 @@ const COOKIE_NAME = 'asistan-lang'
 const LOCAL_STORAGE_KEY = 'asistan-lang'
 const LanguageContext = getLangBridge().context
 
+function pickTranslation<T>(translations: { tr: T; en: T }, lang: Language): T {
+  return translations[lang] ?? translations.tr
+}
+
 export function LanguageProvider({
   children,
   initialLanguage = 'tr',
@@ -43,12 +43,8 @@ export function LanguageProvider({
   /** From server cookie so SSR matches first client paint. */
   initialLanguage?: Language
 }) {
-  const bridge = getLangBridge()
-  bridge.initialLanguage = initialLanguage
-
   const [language, setLanguageState] = useState<Language>(initialLanguage)
-  // Until mount sync finishes, always expose initialLanguage so hydrate matches SSR
-  // even if a stale effect or split context tries to read ahead.
+  // Until mount sync finishes, always expose initialLanguage so hydrate matches SSR.
   const [hydrated, setHydrated] = useState(false)
 
   const getCookie = (name: string): string | null => {
@@ -94,7 +90,6 @@ export function LanguageProvider({
   }, [])
 
   const activeLanguage = hydrated ? language : initialLanguage
-  bridge.language = activeLanguage
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -108,7 +103,7 @@ export function LanguageProvider({
   }
 
   const t = <T,>(translations: { tr: T; en: T }): T => {
-    return translations[activeLanguage]
+    return pickTranslation(translations, activeLanguage)
   }
 
   return (
@@ -119,15 +114,13 @@ export function LanguageProvider({
 }
 
 export function useLanguage() {
-  const bridge = getLangBridge()
   const context = useContext(LanguageContext)
   if (context === undefined) {
-    // Split-chunk fallback: match Provider's SSR initialLanguage (never hardcode TR).
-    const lang = bridge.initialLanguage
+    // Split-chunk fallback: stable TR (never read mutable global request lang).
     return {
-      language: lang,
+      language: 'tr' as Language,
       setLanguage: (_lang: Language) => undefined,
-      t: <T,>(translations: { tr: T; en: T }): T => translations[lang],
+      t: <T,>(translations: { tr: T; en: T }): T => pickTranslation(translations, 'tr'),
     }
   }
   return context

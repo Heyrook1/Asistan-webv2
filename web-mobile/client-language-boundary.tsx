@@ -1,14 +1,18 @@
 'use client'
 
-import { LanguageProvider, type Language } from '@/contexts/LanguageContext'
+import type { Language } from '@/contexts/LanguageContext'
 
-/** Keeps /client islands on the same LanguageContext instance as their consumers. */
+/**
+ * Pass-through — root layout already mounts LanguageProvider.
+ * Nested providers shared a mutable globalThis bridge and caused React #418.
+ */
 export function ClientLanguageBoundary({
   children,
-  initialLanguage = 'tr',
+  initialLanguage: _initialLanguage = 'tr',
 }: {
   children: React.ReactNode
+  /** Kept for call-site compatibility; unused (root cookie wins). */
   initialLanguage?: Language
 }) {
-  return <LanguageProvider initialLanguage={initialLanguage}>{children}</LanguageProvider>
+  return <>{children}</>
 }

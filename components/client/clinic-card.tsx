@@ -65,7 +65,7 @@ export function ClinicCard({ item }: { item: ClientDiscoveryItem }) {
             <img src={item.businessLogoUrl} alt="" className="size-full object-cover" />
           ) : (
             <span className="flex size-full items-center justify-center text-2xl font-bold text-white">
-              {item.businessName.slice(0, 1).toUpperCase()}
+              {item.businessName.slice(0, 1).toLocaleUpperCase('tr-TR')}
             </span>
           )}
         </Link>

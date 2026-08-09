@@ -594,7 +594,7 @@ export function PublicBookingWidget({
                   className="flex size-12 items-center justify-center rounded-2xl text-lg font-bold text-white"
                   style={{ backgroundColor: accent }}
                 >
-                  {clinic.name.slice(0, 1)}
+                  {clinic.name.slice(0, 1).toLocaleUpperCase('tr-TR')}
                 </div>
               )}
               <div>
