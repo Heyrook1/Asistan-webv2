@@ -12,7 +12,7 @@
     "mobile:web:full": "node scripts/dev-mobile-web.mjs",
     "mobile:android": "npm --prefix mobile run android",
     "mobile:ios": "npm --prefix mobile run ios",
-    "build": "next build",
+    "build": "node scripts/prisma-generate.mjs && next build",
     "postinstall": "node scripts/prisma-generate.mjs",
     "start": "next start",
     "lint": "eslint .",
