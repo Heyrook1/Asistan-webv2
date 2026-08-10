@@ -437,8 +437,14 @@ export function AppointmentsBoard({
         appointments={appointments}
         canManage={canManage}
         pending={pending}
-        onConfirm={(appointment) => setConfirmTarget(appointment)}
-        onCancel={(appointment) => setCancelTarget(appointment)}
+        onConfirm={(appointment) => {
+          const full = appointments.find((row) => row.id === appointment.id) ?? null
+          setConfirmTarget(full)
+        }}
+        onCancel={(appointment) => {
+          const full = appointments.find((row) => row.id === appointment.id) ?? null
+          setCancelTarget(full)
+        }}
         onCreate={canManage ? () => setCreateOpen(true) : undefined}
       />
 
