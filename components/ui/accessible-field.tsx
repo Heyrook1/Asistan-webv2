@@ -19,7 +19,7 @@ function elementSlot(element: React.ReactElement): string | undefined {
   return (element.props as { 'data-slot'?: string })['data-slot']
 }
 
-function componentDisplayName(type: React.ElementType): string {
+function componentDisplayName(type: React.ReactElement['type']): string {
   if (typeof type === 'string') return type
   if (typeof type === 'function') {
     const fn = type as { displayName?: string; name?: string }
