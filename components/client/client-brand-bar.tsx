@@ -14,7 +14,7 @@ export function ClientBrandBar() {
   return (
     <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border bg-card/80 px-3 py-2.5 shadow-sm backdrop-blur md:px-4">
       <Link href="/" className="inline-flex min-w-0 items-center gap-2" aria-label="Asistan ana sayfa">
-        <AsistanLogo variant="dark" size="sm" />
+        <AsistanLogo lockup="mark" variant="dark" size="sm" />
         <span className="hidden truncate text-xs font-medium text-muted-foreground sm:inline">
           {t({
             tr: 'Klinik paneli + hasta randevusu',

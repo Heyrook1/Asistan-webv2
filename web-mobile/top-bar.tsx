@@ -73,7 +73,7 @@ export function RezervasyonTopBar() {
           aria-label={productName('booking', language)}
         >
           <span className="flex size-11 items-center justify-center rounded-[1.1rem] bg-white ring-1 ring-slate-900/5 transition group-active:scale-[0.98]">
-            <AsistanLogo variant="dark" size="sm" />
+            <AsistanLogo lockup="mark" variant="dark" size="sm" />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">

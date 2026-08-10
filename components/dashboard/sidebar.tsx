@@ -173,7 +173,7 @@ export function DashboardSidebar({
 
         <div className="relative flex h-[72px] shrink-0 flex-col justify-center border-b border-sidebar-border px-5">
           <Link href="/dashboard" aria-label="Asistan Health paneli" className="inline-flex flex-col items-start gap-0.5">
-            <AsistanLogo variant="light" size="lg" priority />
+            <AsistanLogo lockup="mark" variant="light" size="lg" priority />
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
               Asistan Health
             </span>

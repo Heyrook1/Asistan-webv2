@@ -6,39 +6,68 @@ interface AsistanLogoProps {
   showText?: boolean
   /** Kept for backwards compatibility. */
   showTagline?: boolean
-  /** Kept for backwards compatibility — mark is the same on light/dark shells. */
+  /** Kept for backwards compatibility — lockup uses the same asset on light/dark shells. */
   variant?: 'light' | 'dark'
   size?: 'sm' | 'md' | 'lg'
   priority?: boolean
+  /**
+   * `wordmark` = mark + “asistan” (marketing / auth).
+   * `mark` = icon only (client + dashboard shells).
+   */
+  lockup?: 'wordmark' | 'mark'
 }
 
-const HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
+const MARK_HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
   sm: 28,
   md: 36,
   lg: 56,
 }
 
-/** App mark (A + motion) — 1:1 squircle. */
+/** Full lockup aspect ≈ 978×239 */
+const WORDMARK_HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, { w: number; h: number }> = {
+  sm: { w: 128, h: 31 },
+  md: { w: 168, h: 41 },
+  lg: { w: 236, h: 58 },
+}
+
 const MARK_SRC = '/images/asistan-icon.png'
+const WORDMARK_SRC = '/images/asistan-full-logo.png'
 
 export function AsistanLogo({
   className = '',
   size = 'md',
   priority = false,
+  lockup = 'wordmark',
 }: AsistanLogoProps) {
-  const side = HEIGHTS[size]
+  if (lockup === 'mark') {
+    const side = MARK_HEIGHTS[size]
+    return (
+      <Image
+        src={MARK_SRC}
+        alt="Asistan"
+        width={side}
+        height={side}
+        priority={priority}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        className={`block h-auto w-auto select-none object-contain ${className}`}
+        style={{ width: side, height: side }}
+      />
+    )
+  }
 
+  const { w, h } = WORDMARK_HEIGHTS[size]
   return (
     <Image
-      src={MARK_SRC}
+      src={WORDMARK_SRC}
       alt="Asistan"
-      width={side}
-      height={side}
+      width={w}
+      height={h}
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block select-none object-contain ${className}`}
-      style={{ width: side, height: side }}
+      className={`block h-auto w-auto select-none object-contain object-left ${className}`}
+      style={{ width: w, height: h }}
     />
   )
 }
@@ -61,7 +90,7 @@ export function AsistanIcon({
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block select-none object-contain ${className}`}
+      className={`block h-auto w-auto select-none object-contain ${className}`}
     />
   )
 }

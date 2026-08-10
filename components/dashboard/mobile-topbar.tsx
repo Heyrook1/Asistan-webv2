@@ -59,7 +59,7 @@ export function MobileTopbar({
   return (
     <header className="sticky top-0 z-30 flex h-15 items-center gap-2 border-b border-border/60 bg-white/85 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 lg:hidden">
       <Link href="/dashboard" className="inline-flex min-w-0 flex-col items-start" aria-label="Asistan Health paneli">
-        <AsistanLogo variant="dark" size="sm" priority />
+        <AsistanLogo lockup="mark" variant="dark" size="sm" priority />
         <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-brand-blue/65">
           Asistan Health
         </span>
