@@ -109,6 +109,7 @@ export function PatientJourneySection() {
           src="/images/rezervasyon-clinic-hero.jpg"
           alt=""
           fill
+          unoptimized
           sizes="100vw"
           className="object-cover object-center opacity-[0.1]"
         />
