@@ -35,7 +35,7 @@ export function HomePricingSummary() {
             tr: 'Liste fiyatı. Önce deneme.',
             en: 'List price. Trial first.',
           })}
-          subtitle={t({
+          description={t({
             tr: '€149–€499 erken erişim katalogudur — imzalı ROI/kanıt yoksa satış baskısı yok. Yıllık peşin ve vergi/kur: /fiyatlandirma.',
             en: '€149–€499 is early-access catalog — no pressure sell without proof. Annual prepaid + tax/FX on /fiyatlandirma.',
           })}
