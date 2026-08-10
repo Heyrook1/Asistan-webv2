@@ -14,8 +14,8 @@ export function HomeCTA() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ y: 12 }}
+      animate={{ y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
       className="mt-8 flex w-full max-w-lg flex-col items-center gap-3 sm:items-start"
     >

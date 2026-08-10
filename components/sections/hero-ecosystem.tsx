@@ -52,6 +52,7 @@ export function HeroEcosystem() {
           alt=""
           fill
           priority
+          unoptimized
           sizes="100vw"
           className="object-cover object-[center_35%] opacity-[0.34] sm:opacity-[0.42]"
         />
@@ -115,8 +116,8 @@ export function HeroEcosystem() {
           <motion.div
             style={{ y: dashY }}
             className="relative z-10"
-            initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={reduceMotion ? false : { y: 24 }}
+            animate={{ y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             <ClinicDashboardMock lang={language === 'en' ? 'en' : 'tr'} className="w-full" />
@@ -125,8 +126,8 @@ export function HeroEcosystem() {
           <motion.div
             style={{ y: phoneY, rotate: phoneRotate }}
             className="absolute -bottom-2 right-0 z-20 w-[42%] min-w-[132px] max-w-[190px] sm:right-3 sm:min-w-[148px] md:right-6"
-            initial={reduceMotion ? false : { opacity: 0, y: 36, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={reduceMotion ? false : { y: 36, scale: 0.94 }}
+            animate={{ y: 0, scale: 1 }}
             transition={{ duration: 0.75, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
           >
             <BookingPhoneMock lang={language === 'en' ? 'en' : 'tr'} />

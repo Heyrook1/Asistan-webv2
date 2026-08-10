@@ -181,13 +181,13 @@ export function PatientJourneySection() {
                     <motion.li
                       key={step.en}
                       className="relative w-[min(200px,72vw)] shrink-0 xl:w-auto"
-                      initial={reduceMotion ? false : { opacity: 0, x: 28, filter: 'blur(4px)' }}
+                      initial={reduceMotion ? false : { opacity: 0.35, x: 20 }}
                       animate={
                         reached
-                          ? { opacity: 1, x: 0, filter: 'blur(0px)' }
+                          ? { opacity: 1, x: 0 }
                           : reduceMotion
-                            ? { opacity: 1, x: 0, filter: 'blur(0px)' }
-                            : { opacity: 0.25, x: 16, filter: 'blur(2px)' }
+                            ? { opacity: 1, x: 0 }
+                            : { opacity: 0.35, x: 12 }
                       }
                       transition={{ duration: 0.45, ease: appleEase }}
                     >

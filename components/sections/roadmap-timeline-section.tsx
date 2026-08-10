@@ -96,8 +96,8 @@ export function RoadmapTimelineSection() {
           {phases.map((item, index) => (
             <motion.li
               key={item.phase}
-              initial={reduceMotion ? false : { opacity: 0, x: -12 }}
-              whileInView={reduceMotion ? undefined : { opacity: 1, x: 0 }}
+              initial={reduceMotion ? false : { x: -12 }}
+              whileInView={reduceMotion ? undefined : { x: 0 }}
               viewport={{ once: true, margin: '-5%' }}
               transition={{ delay: index * 0.05, duration: 0.4 }}
               className="relative flex gap-4 pl-0"

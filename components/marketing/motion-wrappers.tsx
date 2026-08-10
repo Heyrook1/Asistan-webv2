@@ -179,7 +179,8 @@ export function FadeUp({ children, className = '', delay = 0, duration = 0.6, yO
       className={className}
       delay={delay}
       duration={duration}
-      initial={{ opacity: 0, y: yOffset }}
+      // Never opacity:0 — live hydrate misses left sector cards blank.
+      initial={{ opacity: 1, y: yOffset }}
       inView={isInView}
       triggerRef={ref}
     >
@@ -195,7 +196,7 @@ export function FadeLeft({ children, className = '', delay = 0, duration = 0.6 }
       className={className}
       delay={delay}
       duration={duration}
-      initial={{ opacity: 0, x: 40 }}
+      initial={{ opacity: 1, x: 40 }}
       inView={isInView}
       triggerRef={ref}
     >
@@ -211,7 +212,7 @@ export function ScaleIn({ children, className = '', delay = 0, duration = 0.5 }:
       className={className}
       delay={delay}
       duration={duration}
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 1, scale: 0.96 }}
       inView={isInView}
       triggerRef={ref}
     >
