@@ -4,12 +4,9 @@ import {
   ArrowRight,
   BadgeCheck,
   ClipboardList,
-  Database,
   FileLock2,
-  LockKeyhole,
   Scale,
   ShieldCheck,
-  Trash2,
 } from 'lucide-react'
 
 import { MarketingPageShell } from '@/components/marketing/page-shell'
@@ -17,44 +14,23 @@ import { FadeUp, ScaleIn } from '@/components/marketing/motion-wrappers'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  TRUST_CONTROL_POSTURE_LABEL,
+  getPublicTrustControlMatrix,
+  type TrustControlPosture,
+} from '@/lib/brand/trust-control-matrix'
+import {
   getPublicTrustStats,
   PUBLIC_TRUST_STATS_MIN_COMPLETED,
   shouldPublishPublicTrustStats,
 } from '@/lib/trust/public'
 import { withCanonical } from '@/lib/seo'
+import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = withCanonical('/guven', {
   title: 'Güven Merkezi',
   description:
-    'Asistan Health güven mimarisi: KVKK, rol bazlı erişim, denetim izi, veri silme hakkı ve doğrulanabilir operasyon kontrolleri.',
+    'Asistan Health güven kontrolleri: işletme ayrımı, rol erişimi, oturum koruması. Kanıtı olmayan iddialar planlanan kontrol olarak etiketlenir.',
 })
-
-const pillars = [
-  {
-    icon: ShieldCheck,
-    title: 'KVKK odaklı tasarım',
-    detail:
-      'Hasta ve klinik verisi işletme bazında ayrılır. Rol bazlı izinler yalnızca gerekli kayıtlara erişim verir.',
-  },
-  {
-    icon: LockKeyhole,
-    title: 'Kimlik ve oturum güvenliği',
-    detail:
-      'Kimlik doğrulama Supabase Auth üzerinden yürütülür. Dashboard erişimi sunucu tarafı oturum kontrolü ile korunur.',
-  },
-  {
-    icon: Database,
-    title: 'Denetlenebilir işlemler',
-    detail:
-      'Hassas aksiyonlar (hasta, randevu, yetki, ayar değişiklikleri) denetim günlüğüne yazılır. Platform yönetişimi Super Admin panelinde izlenir.',
-  },
-  {
-    icon: Trash2,
-    title: 'Silme ve unutulma hakkı',
-    detail:
-      'KVKK silme talepleri yönetişim kuyruğunda işlenir. Tamamlanan taleplerde kişisel alanlar anonimleştirilir.',
-  },
-]
 
 const proofItems = [
   {
@@ -73,19 +49,26 @@ const proofItems = [
     icon: Scale,
     title: 'Uyumluluk belgeleri',
     detail:
-      'Aydınlatma metni ve politika versiyonları yönetişim paneline kaydedilebilir; değişiklikler denetim izine düşer.',
+      'Aydınlatma metni ve politika versiyonları yönetişim paneline kaydedilebilir; değişiklikler denetim izine düşebilir.',
   },
   {
     icon: FileLock2,
     title: 'Şeffaf sınırlar',
     detail:
-      'Sahte metrik, uydurma testimonial veya doğrulanmamış “sertifika” rozeti kullanmayız. Kanıt yoksa iddia etmeyiz.',
+      'Sahte metrik, uydurma testimonial veya doğrulanmamış “sertifika” rozeti kullanmayız. Kanıt yoksa iddia etmeyiz; planlanan kontrolleri açıkça etiketleriz.',
   },
 ]
+
+function postureBadgeClass(posture: TrustControlPosture) {
+  if (posture === 'active') return 'bg-emerald-500/10 text-emerald-800 ring-emerald-500/20'
+  if (posture === 'partial') return 'bg-amber-500/10 text-amber-900 ring-amber-500/20'
+  return 'bg-slate-200/80 text-slate-700 ring-slate-300/60'
+}
 
 export default async function TrustCenterPage() {
   const stats = await getPublicTrustStats()
   const publishStats = shouldPublishPublicTrustStats(stats)
+  const matrix = getPublicTrustControlMatrix()
 
   const statCards = [
     { label: 'Aktif klinik', value: stats.activeClinics },
@@ -110,8 +93,9 @@ export default async function TrustCenterPage() {
               Güven, rozet değil; doğrulanabilir kontrol.
             </h1>
             <p className="mt-5 text-base leading-8 text-slate-600 md:text-lg">
-              Bu sayfa güvenlik mimarisi, KVKK kontrolleri ve üründe gördüğünüz doğrulama sinyallerini
-              anlatır. Canlı platform sayıları yalnızca yeterli randevu örneği birikince yayınlanır.
+              Her public iddia kod kontrolü, otomatik test ve son doğrulama tarihine bağlanır. Kanıt kapısı
+              kapalıysa kontrol <strong className="font-semibold text-brand-navy">planlanan</strong> olarak
+              etiketlenir — kesin dil kullanılmaz.
             </p>
           </FadeUp>
         </div>
@@ -140,8 +124,8 @@ export default async function TrustCenterPage() {
               <article className="rounded-2xl border border-brand-blue/10 bg-[#F7FAFC] px-6 py-5 text-sm leading-7 text-slate-600">
                 <p className="font-semibold text-brand-navy">Canlı platform metrikleri henüz yayında değil</p>
                 <p className="mt-2">
-                  Erken aşamada sıfır veya tek haneli sayıları vitrine koymuyoruz. Önce ürün kontrolleri
-                  (KVKK, rol erişimi, denetim izi, hekim doğrulama) devrede; toplam{' '}
+                  Erken aşamada sıfır veya tek haneli sayıları vitrine koymuyoruz. Önce kanıtlı kontroller
+                  (işletme ayrımı, rol erişimi, oturum) devrede; toplam{' '}
                   {PUBLIC_TRUST_STATS_MIN_COMPLETED}+ tamamlanan randevu birikince özet istatistikler burada
                   açılır.
                 </p>
@@ -154,18 +138,72 @@ export default async function TrustCenterPage() {
       <section className="bg-dashboard-surface py-20">
         <div className="marketing-container">
           <FadeUp className="mb-10 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue">Kontrol katmanları</p>
-            <h2 className="mt-3 text-3xl font-black text-brand-navy">Ne koruyoruz, nasıl kanıtlıyoruz?</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue">Kontrol matrisi</p>
+            <h2 className="mt-3 text-3xl font-black text-brand-navy">Public iddia → kod → test</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Aşağıdaki satırlar ürün güven iddialarının kanıt kapısıdır. Owner ve son doğrulama tarihi
+              güncel tutulur.
+            </p>
           </FadeUp>
-          <div className="grid gap-4 md:grid-cols-2">
-            {pillars.map((item, index) => (
-              <ScaleIn key={item.title} delay={0.05 * index}>
+
+          <div className="overflow-x-auto rounded-2xl border border-black/5 bg-white shadow-sm">
+            <table className="w-full min-w-[860px] text-left text-sm">
+              <thead className="border-b border-slate-100 bg-[#F7FAFC] text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Public iddia</th>
+                  <th className="px-4 py-3">Kod kontrolü</th>
+                  <th className="px-4 py-3">Otomatik test</th>
+                  <th className="px-4 py-3">Son doğrulama</th>
+                  <th className="px-4 py-3">Owner</th>
+                  <th className="px-4 py-3">Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.map((row) => (
+                  <tr key={row.id} className="border-b border-slate-100 last:border-0">
+                    <td className="px-4 py-3.5 font-semibold text-brand-navy">{row.publicClaim}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{row.codeControl}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{row.automatedTest}</td>
+                    <td className="px-4 py-3.5 tabular-nums text-slate-600">{row.lastVerified}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{row.owner}</td>
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={cn(
+                          'inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ring-1',
+                          postureBadgeClass(row.posture),
+                        )}
+                      >
+                        {TRUST_CONTROL_POSTURE_LABEL[row.posture].tr}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {matrix.map((item, index) => (
+              <ScaleIn key={item.id} delay={0.04 * index}>
                 <article className="marketing-surface h-full rounded-2xl p-5">
-                  <div className="mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-blue">
-                    <item.icon className="size-5" aria-hidden="true" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex size-11 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-blue">
+                      <ShieldCheck className="size-5" aria-hidden="true" />
+                    </div>
+                    <span
+                      className={cn(
+                        'inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ring-1',
+                        postureBadgeClass(item.posture),
+                      )}
+                    >
+                      {item.postureLabel}
+                    </span>
                   </div>
-                  <h3 className="text-lg font-extrabold text-brand-navy">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">{item.detail}</p>
+                  <h3 className="mt-4 text-lg font-extrabold text-brand-navy">{item.publicClaim}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{item.publicDetail}</p>
+                  <p className="mt-3 text-[11px] text-slate-400">
+                    Owner: {item.owner} · doğrulama {item.lastVerified}
+                  </p>
                 </article>
               </ScaleIn>
             ))}
@@ -210,10 +248,18 @@ export default async function TrustCenterPage() {
                   <ArrowRight className="ml-2 size-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="rounded-xl border-white/25 bg-transparent text-white hover:bg-white/10">
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-xl border-white/25 bg-transparent text-white hover:bg-white/10"
+              >
                 <Link href="/terms">Kullanım koşulları</Link>
               </Button>
-              <Button asChild variant="outline" className="rounded-xl border-white/25 bg-transparent text-white hover:bg-white/10">
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-xl border-white/25 bg-transparent text-white hover:bg-white/10"
+              >
                 <Link href="/contact">Güvenlik sorusu sor</Link>
               </Button>
             </div>
@@ -224,7 +270,7 @@ export default async function TrustCenterPage() {
               <ul className="mt-3 list-disc space-y-2 pl-5">
                 <li>Uydurma müşteri logosu veya sahte vaka çalışması</li>
                 <li>Doğrulanmamış “ISO / sertifika” iddiası</li>
-                <li>Gerçek randevuya bağlı olmayan “doğrulanmış yorum” rozeti</li>
+                <li>Kanıtsız kesin “kişisel alanlar anonimleştirilir” dili</li>
                 <li>Ölçülmemiş yüzde iyileşme vaatleri</li>
               </ul>
             </div>

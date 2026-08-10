@@ -35,9 +35,15 @@ export const APPROVED_CLAIMS: BrandClaim[] = [
   },
   {
     id: 'audit-log',
-    tr: 'Denetim günlüğü',
-    en: 'Audit log',
+    tr: 'Denetim günlüğü (ürün içi)',
+    en: 'In-product audit log',
     surfaces: ['pricing', 'ads', 'social'],
+  },
+  {
+    id: 'erasure-planned',
+    tr: 'Silme / anonimleştirme (planlanan kontrol)',
+    en: 'Erasure / anonymization (planned control)',
+    surfaces: ['social'],
   },
   {
     id: 'early-access',
