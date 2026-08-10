@@ -32,8 +32,12 @@ export function MesajlarDeprecatedPanel() {
         </CardContent>
       </Card>
       <p className="px-1 text-sm text-muted-foreground">
-        Hasta SMS/WhatsApp bildirimleri için Ayarlar ve operasyon ekibine webhook bağlama adımlarını sorun.
-        Detay: <code className="text-xs">docs/patient-outbound-channels.md</code>
+        Hasta SMS / WhatsApp bildirimleri için{' '}
+        <Link href="/dashboard/ayarlar?tab=entegrasyonlar" className="font-medium text-brand-teal underline-offset-2 hover:underline">
+          Ayarlar → Entegrasyonlar
+        </Link>
+        {' '}
+        ekranından kanal durumunu görün; bağlanmamışsa destek ekibine yazın.
       </p>
     </div>
   )

@@ -27,6 +27,7 @@ export function CalendarBoard({
   staff,
   locations,
   canCreate,
+  canManage = canCreate,
   bookingSlug,
   defaultStaffId,
   pendingCount = 0,
@@ -40,6 +41,7 @@ export function CalendarBoard({
   staff: { id: string; name: string; color: string }[]
   locations: { id: string; label: string }[]
   canCreate: boolean
+  canManage?: boolean
   bookingSlug: string
   defaultStaffId?: string
   pendingCount?: number
@@ -170,6 +172,7 @@ export function CalendarBoard({
         eventsByDate={eventsByDate}
         events={eventsByDate.get(toISODate(cursor)) ?? []}
         canCreate={canCreate}
+        canManage={canManage}
         onCreate={(date, startTime) => setCreate({ open: true, date, startTime })}
       />
 
@@ -184,19 +187,21 @@ export function CalendarBoard({
         onStatusFilterChange={setStatusFilter}
       />
 
-      <Card className="hidden lg:block">
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           {view === 'month' ? (
             <MonthGrid
               cursor={cursor}
               days={days}
               eventsByDate={eventsByDate}
+              canManage={canManage}
               onSlotClick={(date) => canCreate && setCreate({ open: true, date })}
             />
           ) : (
             <DayWeekGrid
               days={days}
               eventsByDate={eventsByDate}
+              canManage={canManage}
               onSlotClick={(date, time) => canCreate && setCreate({ open: true, date, startTime: time })}
             />
           )}

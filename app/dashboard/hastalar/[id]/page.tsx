@@ -10,11 +10,15 @@ import { getPatientDetail } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { TabsContent } from '@/components/ui/tabs'
+import { PatientChartTabs } from '@/components/dashboard/patient-chart-tabs'
+import { MobilePatientChart } from '@/components/dashboard/mobile-patient-chart'
 import {
-  ageFromBirthDate, formatPhone, formatDate, formatTime, formatDateTime,
+  ageFromBirthDate, formatPhone, formatDate, formatTime, formatDateTime, formatCurrency,
   APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS, TREATMENT_STATUS_LABELS, FILE_CATEGORY_LABELS,
+  labelAllergySeverity,
 } from '@/lib/format'
+import { labelInvoiceStatus } from '@/lib/ui-labels'
 import { PatientActionButtons } from './action-buttons'
 import { PatientMetaEditor } from './meta-editor'
 import { TreatmentPlanBoard } from './treatment-plan'
@@ -23,6 +27,7 @@ import { listPatientPrescriptions } from '@/lib/actions/prescriptions'
 import { PatientPrescriptionsPanel } from '@/components/dashboard/patient-prescriptions-panel'
 import { IntakeResponsePanel } from '@/components/intake/intake-response-panel'
 import { parseIntakeFields } from '@/lib/intake/schema'
+import { listClinicAssignableStaff } from '@/lib/team/clinic-staff'
 import { HealthTimeline } from '@/components/health-timeline/health-timeline'
 import { PatientNoteBody, SoapNoteBadge } from '@/components/dashboard/patient-note-body'
 import { buildClinicHealthTimeline } from '@/lib/health-timeline'
@@ -34,7 +39,7 @@ export default async function PatientDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ action?: string }>
+  searchParams: Promise<{ action?: string; tab?: string }>
 }) {
   const { id } = await params
   const sp = await searchParams
@@ -44,6 +49,7 @@ export default async function PatientDetailPage({
   const canViewFiles = can(session, 'file.view')
   const canManageAppointments = can(session, 'appointment.manage')
   const initialAction = sp.action === 'note' || sp.action === 'file' ? sp.action : undefined
+  const initialTab = sp.tab
   const patient = await getPatientDetail(session.businessId, id, {
     includeMedicalNotes: canViewMedicalNotes,
     includeFiles: canViewFiles,
@@ -53,77 +59,103 @@ export default async function PatientDetailPage({
 
   const age = ageFromBirthDate(patient.birthDate)
 
-  const [services, staff, locations, prescriptions, intakeResponses, intakeInvites, doctors] = await Promise.all([
-    prisma.service.findMany({
-      where: { businessId: session.businessId, isActive: true },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, durationMin: true },
-    }),
-    prisma.teamMember.findMany({
-      where: { businessId: session.businessId, isActive: true },
-      orderBy: { fullName: 'asc' },
-      select: { id: true, fullName: true },
-    }),
-    prisma.location.findMany({
-      where: { businessId: session.businessId, isActive: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true },
-    }),
-    listPatientPrescriptions(id),
-    canViewMedicalNotes
-      ? prisma.intakeResponse.findMany({
-          where: { businessId: session.businessId, patientId: id },
-          orderBy: { submittedAt: 'desc' },
-          include: {
-            form: { select: { name: true } },
-            appointment: {
-              select: {
-                id: true,
-                date: true,
-                startTime: true,
-                service: { select: { name: true } },
+  const clinicTimeZone =
+    (
+      await prisma.business.findUnique({
+        where: { id: session.businessId },
+        select: { timezone: true },
+      })
+    )?.timezone ?? 'Asia/Nicosia'
+
+  const canViewInvoices =
+    session.isOwner || can(session, 'appointment.manage') || can(session, 'analytics.revenue.view')
+
+  const [services, staff, locations, prescriptions, intakeResponses, intakeInvites, doctors, patientInvoices] =
+    await Promise.all([
+      prisma.service.findMany({
+        where: { businessId: session.businessId, isActive: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, durationMin: true },
+      }),
+      listClinicAssignableStaff(session.businessId),
+      prisma.location.findMany({
+        where: { businessId: session.businessId, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        select: { id: true, name: true },
+      }),
+      listPatientPrescriptions(id),
+      canViewMedicalNotes
+        ? prisma.intakeResponse.findMany({
+            where: { businessId: session.businessId, patientId: id },
+            orderBy: { submittedAt: 'desc' },
+            include: {
+              form: { select: { name: true } },
+              appointment: {
+                select: {
+                  id: true,
+                  date: true,
+                  startTime: true,
+                  service: { select: { name: true } },
+                },
               },
             },
-          },
-          take: 50,
-        })
-      : Promise.resolve([]),
-    canViewMedicalNotes || canManageAppointments
-      ? prisma.intakeInvite.findMany({
-          where: {
-            businessId: session.businessId,
-            patientId: id,
-            status: 'PENDING',
-          },
-          orderBy: { expiresAt: 'asc' },
-          include: {
-            form: { select: { name: true } },
-            appointment: {
-              select: {
-                date: true,
-                startTime: true,
-                service: { select: { name: true } },
+            take: 50,
+          })
+        : Promise.resolve([]),
+      canViewMedicalNotes || canManageAppointments
+        ? prisma.intakeInvite.findMany({
+            where: {
+              businessId: session.businessId,
+              patientId: id,
+              status: 'PENDING',
+            },
+            orderBy: { expiresAt: 'asc' },
+            include: {
+              form: { select: { name: true } },
+              appointment: {
+                select: {
+                  date: true,
+                  startTime: true,
+                  service: { select: { name: true } },
+                },
               },
             },
-          },
-          take: 20,
-        })
-      : Promise.resolve([]),
-    prisma.teamMember.findMany({
-      where: { businessId: session.businessId, isActive: true, role: 'DOKTOR' },
-      orderBy: { fullName: 'asc' },
-      select: {
-        id: true,
-        fullName: true,
-        specialty: true,
-        prescriptionTitle: true,
-        kktcIdentityNo: true,
-        medicalLicenseNo: true,
-        diplomaNo: true,
-        phone: true,
-      },
-    }),
-  ])
+            take: 20,
+          })
+        : Promise.resolve([]),
+      prisma.teamMember.findMany({
+        where: { businessId: session.businessId, isActive: true, role: 'DOKTOR' },
+        orderBy: { fullName: 'asc' },
+        select: {
+          id: true,
+          fullName: true,
+          specialty: true,
+          prescriptionTitle: true,
+          kktcIdentityNo: true,
+          medicalLicenseNo: true,
+          diplomaNo: true,
+          phone: true,
+        },
+      }),
+      canViewInvoices
+        ? prisma.clinicInvoice.findMany({
+            where: { businessId: session.businessId, patientId: id },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+            select: {
+              id: true,
+              number: true,
+              status: true,
+              total: true,
+              currency: true,
+              issuedAt: true,
+              createdAt: true,
+            },
+          })
+        : Promise.resolve([]),
+    ])
+
+  const showFinans = canViewInvoices && patientInvoices.length > 0
 
   const initials = patient.fullName
     .split(' ')
@@ -134,7 +166,6 @@ export default async function PatientDetailPage({
 
   const lastAppointment = patient.appointments.find((a) => a.status === 'COMPLETED') ?? patient.appointments[0]
   const allergyNames = patient.allergies.slice(0, 3).map((a) => a.name).join(', ')
-  const activeMedications = patient.medications.filter((m) => m.active)
 
   const healthTimelineItems = buildClinicHealthTimeline({
     appointments: patient.appointments,
@@ -145,6 +176,7 @@ export default async function PatientDetailPage({
     notes: patient.notes,
     files: patient.files,
     timeline: patient.timeline,
+    timeZone: clinicTimeZone,
     prescriptions: canViewMedicalNotes
       ? prescriptions.map((rx) => ({
           id: rx.id,
@@ -183,8 +215,17 @@ export default async function PatientDetailPage({
         <p className="text-sm text-muted-foreground">Özet önce; detaylar sekmelerde.</p>
       </div>
 
-      {/* Header card — primary identity + critical signals only */}
-      <Card>
+      <MobilePatientChart
+        fullName={patient.fullName}
+        patientNumber={patient.patientNumber}
+        isArchived={patient.isArchived}
+        ageLabel={age != null ? `${age} yaş` : null}
+        phone={patient.phone}
+        allergySummary={allergyNames || null}
+      />
+
+      {/* Header card — desktop / tablet */}
+      <Card className="hidden md:block">
         <CardContent className="p-4 lg:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -261,64 +302,48 @@ export default async function PatientDetailPage({
                 )}
               </div>
             </div>
-
-            {canEdit && (
-              <div className="shrink-0">
-                <PatientActionButtons
-                  patientId={patient.id}
-                  businessId={session.businessId}
-                  isArchived={patient.isArchived}
-                  services={services}
-                  staff={staff}
-                  doctors={doctors}
-                  locations={locations}
-                  patientLabel={`${patient.fullName} (#${patient.patientNumber})`}
-                  defaultStaffId={session.staffMemberId ?? undefined}
-                  initialAction={initialAction}
-                />
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="genel" className="space-y-3 lg:space-y-4">
-        <div className="-mx-4 sticky top-14 z-10 bg-dashboard-bg/95 px-4 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0 md:backdrop-blur-none lg:top-[68px]">
-          <Card className="overflow-hidden">
-            <CardContent className="p-1.5 md:p-2">
-              <div className="overflow-x-auto no-scrollbar md:overflow-visible">
-                <TabsList className="inline-flex h-auto w-max items-stretch gap-1 bg-transparent p-0 md:flex md:w-auto md:flex-wrap md:gap-1 md:p-1">
-                  <TabsTrigger value="genel" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Özet</TabsTrigger>
-                  <TabsTrigger value="zaman" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">
-                    Sağlık Zaman Çizelgesi ({healthTimelineItems.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="randevular" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Randevular ({patient.appointments.length})</TabsTrigger>
-                  {canViewMedicalNotes && (
-                    <TabsTrigger value="not" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Notlar ({patient.notes.length})</TabsTrigger>
-                  )}
-                  {(canViewMedicalNotes || canManageAppointments) && (
-                    <TabsTrigger value="anket" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">
-                      Anketler ({intakeResponses.length + intakeInvites.length})
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger value="ilac" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">İlaçlar ({patient.medications.length})</TabsTrigger>
-                  <TabsTrigger value="alerji" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Alerjiler ({patient.allergies.length})</TabsTrigger>
-                  <TabsTrigger value="tedavi" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Tedaviler ({patient.treatments.length})</TabsTrigger>
-                  <TabsTrigger value="tahlil" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Tahliller ({patient.labResults.length})</TabsTrigger>
-                  {canViewFiles && (
-                    <TabsTrigger value="dosya" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Dosyalar ({patient.files.length})</TabsTrigger>
-                  )}
-                  <TabsTrigger value="recete" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Reçeteler ({prescriptions.length})</TabsTrigger>
-                  {canViewMedicalNotes && (
-                    <TabsTrigger value="hikaye" className="h-10 shrink-0 px-3 text-[13px] md:h-9 md:text-sm">Hikaye</TabsTrigger>
-                  )}
-                </TabsList>
-              </div>
-            </CardContent>
-          </Card>
+      {canEdit ? (
+        <div className="flex justify-end">
+          <PatientActionButtons
+            patientId={patient.id}
+            businessId={session.businessId}
+            isArchived={patient.isArchived}
+            services={services}
+            staff={staff}
+            doctors={doctors}
+            locations={locations}
+            patientLabel={`${patient.fullName} (#${patient.patientNumber})`}
+            defaultStaffId={session.staffMemberId ?? undefined}
+            initialAction={initialAction}
+          />
         </div>
+      ) : null}
 
-        {/* ÖZET — primary only */}
+      <PatientChartTabs
+        initialTab={initialTab}
+        canViewMedicalNotes={canViewMedicalNotes}
+        canViewFiles={canViewFiles}
+        canManageAppointments={canManageAppointments}
+        showFinans={showFinans}
+        counts={{
+          timeline: healthTimelineItems.length,
+          appointments: patient.appointments.length,
+          medications: patient.medications.length,
+          prescriptions: prescriptions.length,
+          labs: patient.labResults.length,
+          files: patient.files.length,
+          notes: patient.notes.length,
+          intake: intakeResponses.length + intakeInvites.length,
+          allergies: patient.allergies.length,
+          treatments: patient.treatments.length,
+          invoices: patientInvoices.length,
+        }}
+      >
+        {/* GENEL — özet + tedavi planı + hızlı bakış */}
         <TabsContent value="genel">
           <div className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
@@ -361,18 +386,17 @@ export default async function PatientDetailPage({
             <Card>
               <CardContent className="p-4">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Detay sekmeleri
+                  Hızlı bakış
                 </p>
                 <div className="flex flex-wrap gap-2 text-sm">
-                  <QuickJump label={`Zaman çizelgesi (${healthTimelineItems.length})`} />
-                  <QuickJump label={`İlaçlar (${activeMedications.length} aktif)`} />
-                  <QuickJump label={`Tahliller (${patient.labResults.length})`} />
-                  <QuickJump label={`Dosyalar (${patient.files.length})`} />
-                  <QuickJump label={`Reçeteler (${prescriptions.length})`} />
+                  <QuickJump label={`Klinik kayıtlar (${prescriptions.length + patient.medications.length + patient.allergies.length})`} />
+                  <QuickJump label={`Belgeler (${patient.labResults.length + (canViewFiles ? patient.files.length : 0)})`} />
+                  <QuickJump label={`Geçmiş (${healthTimelineItems.length})`} />
                   <QuickJump label={`Randevular (${patient.appointments.length})`} />
+                  {showFinans ? <QuickJump label={`Faturalar (${patientInvoices.length})`} /> : null}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Boylamsal kayıt için Sağlık Zaman Çizelgesi sekmesine geçin. Özet yalnızca kritik klinik özeti gösterir.
+                  Detaylar Klinik, Belgeler ve Geçmiş sekmelerinde. Genel yalnızca kritik özeti gösterir.
                 </p>
               </CardContent>
             </Card>
@@ -381,175 +405,189 @@ export default async function PatientDetailPage({
           </div>
         </TabsContent>
 
-        <TabsContent value="zaman">
-          <Card>
-            <CardContent className="p-5">
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-brand-ink">Sağlık Zaman Çizelgesi</h3>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Randevu, tahlil, ilaç, alerji, tedavi, not ve dosyalar gün bazında birleşir. Düzenleme için ilgili
-                  sekmeleri kullanın.
-                </p>
-              </div>
-              <HealthTimeline items={healthTimelineItems} variant="clinic" locale="tr" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* KLINIK GEÇMIŞI */}
-        <TabsContent value="randevular">
-          <Card>
-            <CardContent className="p-5">
-              {patient.appointments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Henüz randevu yok.</p>
-              ) : (
-                <ul className="divide-y">
-                  {patient.appointments.map((a) => (
-                    <li key={a.id} className="py-3 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-brand-ink">{a.service.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(a.date)} • {formatTime(a.startTime)}-{formatTime(a.endTime)}{a.staff ? ` • ${a.staff.fullName}` : ''}
-                        </p>
-                        {a.notes && <p className="mt-1 text-xs text-muted-foreground">{a.notes}</p>}
-                      </div>
-                      <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] ${APPOINTMENT_STATUS_COLORS[a.status]}`}>
-                        {APPOINTMENT_STATUS_LABELS[a.status]}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* İLAÇLAR */}
-        <TabsContent value="ilac">
-          <Card>
-            <CardContent className="p-5">
-              {patient.medications.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Kayıtlı ilaç yok.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {patient.medications.map((m) => (
-                    <li key={m.id} className="rounded-xl border bg-white p-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-brand-ink">{m.name}</p>
-                        <Badge variant="outline" className={m.active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}>
-                          {m.active ? 'Aktif' : 'Pasif'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{[m.dosage, m.frequency].filter(Boolean).join(' • ') || 'Detay yok'}</p>
-                      {(m.startDate || m.endDate) && (
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          {m.startDate ? formatDate(m.startDate) : '—'} → {m.endDate ? formatDate(m.endDate) : 'devam ediyor'}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ALERJILER */}
-        <TabsContent value="alerji">
-          <Card>
-            <CardContent className="p-5">
-              {patient.allergies.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Kayıtlı alerji yok.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {patient.allergies.map((a) => (
-                    <li key={a.id} className="rounded-xl border bg-white p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-brand-ink">{a.name}</p>
-                        <Badge
-                          variant="outline"
-                          className={
-                            a.severity === 'SIDDETLI'
-                              ? 'bg-rose-50 text-rose-700 border-rose-200'
-                              : a.severity === 'ORTA'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }
-                        >
-                          {a.severity === 'SIDDETLI' ? 'Şiddetli' : a.severity === 'ORTA' ? 'Orta' : 'Hafif'}
-                        </Badge>
-                      </div>
-                      {a.reaction && <p className="mt-1 text-xs text-muted-foreground">Reaksiyon: {a.reaction}</p>}
-                      {a.notes && <p className="mt-1 text-xs whitespace-pre-line">{a.notes}</p>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TEDAVILER */}
-        <TabsContent value="tedavi">
-          <Card>
-            <CardContent className="p-5">
-              {patient.treatments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Kayıtlı tedavi yok.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {patient.treatments.map((t) => (
-                    <li key={t.id} className="rounded-xl border bg-white p-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-brand-ink">{t.title}</p>
-                        <Badge variant="outline">{TREATMENT_STATUS_LABELS[t.status]}</Badge>
-                      </div>
-                      {t.doctorName && <p className="text-xs text-muted-foreground">Hekim: {t.doctorName}</p>}
-                      {t.description && <p className="text-xs mt-1">{t.description}</p>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAHLILLER */}
-        <TabsContent value="tahlil">
-          <Card>
-            <CardContent className="p-5">
-              {patient.labResults.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Kayıtlı tahlil yok.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {patient.labResults.map((l) => (
-                    <li key={l.id} className="rounded-xl border bg-white p-3">
-                      <p className="text-sm font-semibold text-brand-ink">{l.title}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(l.resultDate)}{l.labName ? ` • ${l.labName}` : ''}</p>
-                      {l.description && <p className="text-xs mt-1 whitespace-pre-line">{l.description}</p>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* GÖRÜNTÜLER */}
-        {canViewMedicalNotes && (
-          <>
-            <TabsContent value="recete">
+        {/* KLİNİK — reçete, ilaç, alerji, tedavi, not, anket, hikaye */}
+        <TabsContent value="klinik">
+          <div className="space-y-4">
+            {canViewMedicalNotes && (
               <Card>
                 <CardContent className="p-5">
+                  <h3 className="mb-3 text-sm font-semibold text-brand-ink">Reçeteler</h3>
                   <PatientPrescriptionsPanel patientId={patient.id} prescriptions={prescriptions} />
                 </CardContent>
               </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="hikaye">
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">İlaçlar</h3>
+                {patient.medications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Kayıtlı ilaç yok.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {patient.medications.map((m) => (
+                      <li key={m.id} className="rounded-xl border bg-white p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-brand-ink">{m.name}</p>
+                          <Badge
+                            variant="outline"
+                            className={m.active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ''}
+                          >
+                            {m.active ? 'Aktif' : 'Pasif'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {[m.dosage, m.frequency].filter(Boolean).join(' • ') || 'Detay yok'}
+                        </p>
+                        {(m.startDate || m.endDate) && (
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            {m.startDate ? formatDate(m.startDate) : '—'} →{' '}
+                            {m.endDate ? formatDate(m.endDate) : 'devam ediyor'}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">Alerjiler</h3>
+                {patient.allergies.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Kayıtlı alerji yok.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {patient.allergies.map((a) => (
+                      <li key={a.id} className="rounded-xl border bg-white p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-brand-ink">{a.name}</p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              a.severity === 'SIDDETLI'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : a.severity === 'ORTA'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }
+                          >
+                            {labelAllergySeverity(a.severity)}
+                          </Badge>
+                        </div>
+                        {a.reaction && (
+                          <p className="mt-1 text-xs text-muted-foreground">Reaksiyon: {a.reaction}</p>
+                        )}
+                        {a.notes && <p className="mt-1 text-xs whitespace-pre-line">{a.notes}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">Tedaviler</h3>
+                {patient.treatments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Kayıtlı tedavi yok.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {patient.treatments.map((t) => (
+                      <li key={t.id} className="rounded-xl border bg-white p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-brand-ink">{t.title}</p>
+                          <Badge variant="outline">{TREATMENT_STATUS_LABELS[t.status]}</Badge>
+                        </div>
+                        {t.doctorName && <p className="text-xs text-muted-foreground">Hekim: {t.doctorName}</p>}
+                        {t.description && <p className="text-xs mt-1">{t.description}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            {canViewMedicalNotes && (
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="mb-3 text-sm font-semibold text-brand-ink">Klinik notlar</h3>
+                  {patient.notes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Bu hasta için not yok.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {patient.notes.map((n) => (
+                        <li key={n.id} className="rounded-xl border bg-white p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
+                              <SoapNoteBadge note={n.note} />
+                            </div>
+                            {n.isPinned && (
+                              <Badge className="bg-amber-100 text-amber-800 border-0">Sabit</Badge>
+                            )}
+                          </div>
+                          <PatientNoteBody note={n.note} />
+                          <p className="mt-2 text-[10px] text-muted-foreground">
+                            {formatDateTime(n.createdAt)} • {n.creator?.fullName ?? n.createdBy}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {(canViewMedicalNotes || canManageAppointments) && (
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="mb-3 text-sm font-semibold text-brand-ink">Anketler</h3>
+                  <IntakeResponsePanel
+                    canManageAppointments={canManageAppointments}
+                    responses={
+                      canViewMedicalNotes
+                        ? intakeResponses.map((row) => ({
+                            id: row.id,
+                            submittedAt: row.submittedAt.toISOString(),
+                            formName: row.form.name,
+                            answers: (row.answers && typeof row.answers === 'object'
+                              ? row.answers
+                              : {}) as Record<string, string | boolean | null>,
+                            fields: parseIntakeFields(row.formSnapshot),
+                            appointment: row.appointment
+                              ? {
+                                  id: row.appointment.id,
+                                  date: row.appointment.date.toISOString().slice(0, 10),
+                                  startTime: row.appointment.startTime,
+                                  serviceName: row.appointment.service.name,
+                                }
+                              : null,
+                          }))
+                        : []
+                    }
+                    pendingInvites={intakeInvites.map((invite) => ({
+                      id: invite.id,
+                      appointmentId: invite.appointmentId,
+                      status: invite.status,
+                      formName: invite.form.name,
+                      expiresAt: invite.expiresAt.toISOString(),
+                      appointment: {
+                        date: invite.appointment.date.toISOString().slice(0, 10),
+                        startTime: invite.appointment.startTime,
+                        serviceName: invite.appointment.service.name,
+                      },
+                    }))}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {canViewMedicalNotes && (
               <Card>
                 <CardContent className="p-5 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                   <div>
-                    <h3 className="mb-2 text-sm font-semibold text-brand-ink">Anamnez ve Hasta Hikayesi</h3>
+                    <h3 className="mb-2 text-sm font-semibold text-brand-ink">Anamnez ve hasta hikayesi</h3>
                     {patient.patientStory ? (
                       <p className="whitespace-pre-line text-sm leading-6 text-brand-ink">{patient.patientStory}</p>
                     ) : (
@@ -559,110 +597,167 @@ export default async function PatientDetailPage({
                   <div className="rounded-2xl border border-dashed border-border bg-dashboard-surface p-4">
                     <h3 className="text-sm font-semibold text-brand-ink">Boylamsal kayıt</h3>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      Randevu, tahlil, ilaç ve diğer klinik olaylar artık{' '}
-                      <span className="font-semibold text-brand-ink">Sağlık Zaman Çizelgesi</span> sekmesinde gün
-                      bazında birleşiyor ({healthTimelineItems.length} kayıt).
+                      Randevu, tahlil, ilaç ve diğer klinik olaylar{' '}
+                      <span className="font-semibold text-brand-ink">Geçmiş</span> sekmesinde gün bazında birleşiyor (
+                      {healthTimelineItems.length} kayıt).
                     </p>
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </>
-        )}
-
-        {/* DOSYALAR */}
-        {canViewFiles && (
-        <TabsContent value="dosya">
-          <Card>
-            <CardContent className="p-5">
-              {patient.files.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Yüklü dosya yok.</p>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {patient.files.map((f) => (
-                    <a key={f.id} href={f.fileUrl} target="_blank" rel="noreferrer" className="block rounded-xl border bg-white p-3 hover:border-brand-teal/40">
-                      <p className="text-sm font-medium text-brand-ink truncate">{f.fileName}</p>
-                      <p className="text-[11px] text-muted-foreground">{FILE_CATEGORY_LABELS[f.category] ?? f.category} • {f.fileType}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(f.uploadedAt)}</p>
-                    </a>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </div>
         </TabsContent>
-        )}
 
-        {/* NOTLAR */}
-        {canViewMedicalNotes && (
-        <TabsContent value="not">
-          <Card>
-            <CardContent className="p-5">
-              {patient.notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Bu hasta için not yok.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {patient.notes.map((n) => (
-                    <li key={n.id} className="rounded-xl border bg-white p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-brand-ink">{n.title}</p>
-                          <SoapNoteBadge note={n.note} />
-                        </div>
-                        {n.isPinned && <Badge className="bg-amber-100 text-amber-800 border-0">Sabit</Badge>}
+        {/* FİNANS — hastaya bağlı faturalar */}
+        {showFinans ? (
+          <TabsContent value="finans">
+            <Card>
+              <CardContent className="p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-brand-ink">Faturalar</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Bu hastaya bağlı klinik faturalar.</p>
+                  </div>
+                  <Link
+                    href="/dashboard/faturalar"
+                    className="text-xs font-semibold text-brand-teal hover:underline"
+                  >
+                    Tüm faturalar →
+                  </Link>
+                </div>
+                <ul className="divide-y">
+                  {patientInvoices.map((inv) => (
+                    <li key={inv.id} className="flex items-center justify-between gap-3 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-brand-ink">
+                          {inv.number ?? `Taslak · ${inv.id.slice(0, 8)}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(inv.issuedAt ?? inv.createdAt)}
+                        </p>
                       </div>
-                      <PatientNoteBody note={n.note} />
-                      <p className="mt-2 text-[10px] text-muted-foreground">{formatDateTime(n.createdAt)} • {n.creator?.fullName ?? n.createdBy}</p>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-brand-ink">
+                          {formatCurrency(Number(inv.total), inv.currency)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">{labelInvoiceStatus(inv.status)}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        )}
-
-        {(canViewMedicalNotes || canManageAppointments) && (
-          <TabsContent value="anket">
-            <IntakeResponsePanel
-              canManageAppointments={canManageAppointments}
-              responses={
-                canViewMedicalNotes
-                  ? intakeResponses.map((row) => ({
-                      id: row.id,
-                      submittedAt: row.submittedAt.toISOString(),
-                      formName: row.form.name,
-                      answers: (row.answers && typeof row.answers === 'object'
-                        ? row.answers
-                        : {}) as Record<string, string | boolean | null>,
-                      fields: parseIntakeFields(row.formSnapshot),
-                      appointment: row.appointment
-                        ? {
-                            id: row.appointment.id,
-                            date: row.appointment.date.toISOString().slice(0, 10),
-                            startTime: row.appointment.startTime,
-                            serviceName: row.appointment.service.name,
-                          }
-                        : null,
-                    }))
-                  : []
-              }
-              pendingInvites={intakeInvites.map((invite) => ({
-                id: invite.id,
-                appointmentId: invite.appointmentId,
-                status: invite.status,
-                formName: invite.form.name,
-                expiresAt: invite.expiresAt.toISOString(),
-                appointment: {
-                  date: invite.appointment.date.toISOString().slice(0, 10),
-                  startTime: invite.appointment.startTime,
-                  serviceName: invite.appointment.service.name,
-                },
-              }))}
-            />
+              </CardContent>
+            </Card>
           </TabsContent>
-        )}
-      </Tabs>
+        ) : null}
+
+        {/* BELGELER — tahlil + dosya */}
+        <TabsContent value="belgeler">
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">Tahliller</h3>
+                {patient.labResults.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Kayıtlı tahlil yok.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {patient.labResults.map((l) => (
+                      <li key={l.id} className="rounded-xl border bg-white p-3">
+                        <p className="text-sm font-semibold text-brand-ink">{l.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(l.resultDate)}
+                          {l.labName ? ` • ${l.labName}` : ''}
+                        </p>
+                        {l.description && <p className="text-xs mt-1 whitespace-pre-line">{l.description}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+            {canViewFiles && (
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="mb-3 text-sm font-semibold text-brand-ink">Dosyalar</h3>
+                  {patient.files.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Yüklü dosya yok.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {patient.files.map((f) => (
+                        <a
+                          key={f.id}
+                          href={f.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-xl border bg-white p-3 hover:border-brand-teal/40"
+                        >
+                          <p className="text-sm font-medium text-brand-ink truncate">{f.fileName}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {FILE_CATEGORY_LABELS[f.category] ?? f.category} • {f.fileType}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {formatDateTime(f.uploadedAt)}
+                          </p>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* GEÇMİŞ — zaman çizelgesi + randevular */}
+        <TabsContent value="gecmis">
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-5">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-brand-ink">Klinik zaman çizelgesi</h3>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Randevu, tahlil, ilaç, alerji, tedavi, not ve dosyalar gün bazında birleşir.
+                  </p>
+                </div>
+                <HealthTimeline
+                  items={healthTimelineItems}
+                  variant="clinic"
+                  locale="tr"
+                  timeZone={clinicTimeZone}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="mb-3 text-sm font-semibold text-brand-ink">Randevular</h3>
+                {patient.appointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Henüz randevu yok.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {patient.appointments.map((a) => (
+                      <li key={a.id} className="py-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-brand-ink">{a.service.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(a.date)} • {formatTime(a.startTime)}-{formatTime(a.endTime)}
+                            {a.staff ? ` • ${a.staff.fullName}` : ''}
+                          </p>
+                          {a.notes && <p className="mt-1 text-xs text-muted-foreground">{a.notes}</p>}
+                        </div>
+                        <span
+                          className={`inline-block rounded-full border px-2 py-0.5 text-[10px] ${APPOINTMENT_STATUS_COLORS[a.status]}`}
+                        >
+                          {APPOINTMENT_STATUS_LABELS[a.status]}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </PatientChartTabs>
     </div>
   )
 }

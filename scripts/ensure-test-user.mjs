@@ -48,15 +48,15 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const CONFIG = {
-  email: 'Demo@asistan.online',
+  email: 'demo.owner@example.com',
   password: 'Demo123',
-  fullName: 'Demo Kullanici',
+  fullName: 'Demo Kullanici (TEST)',
   clinic: {
     slug: 'asistan-demo-klinigi',
-    name: 'Asistan Demo Klinigi',
-    phone: '+90 212 555 0100',
-    address: 'Bagdat Cad. No:120 Kadikoy',
-    city: 'Istanbul',
+    name: 'Asistan Demo Klinigi (TEST)',
+    phone: '+90 555 010 0000',
+    address: 'TEST adres — Bedrettin Demirel Cad. No:120 Lefkosa',
+    city: 'Lefkosa',
   },
 }
 
@@ -215,7 +215,7 @@ async function ensureVendorAccount(businessId) {
       accessStartAt: new Date(),
       accessEndAt,
       packageDurationDays: 365,
-      notes: 'Test user Demo@asistan.online',
+      notes: 'Test user demo.owner@example.com',
     },
   })
 }

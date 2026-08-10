@@ -16,7 +16,7 @@ import { prescriptionUiCopy } from '@/lib/prescriptions/ui-copy'
 
 export async function getPrescriptionDraft(patientId: string) {
   const parsed = entityIdSchema.safeParse(patientId)
-  if (!parsed.success) return err('GeÃ§ersiz hasta kimliÄŸi', parsed.error.issues)
+  if (!parsed.success) return err('Geçersiz hasta kimli?i', parsed.error.issues)
   const session = await requirePermission('patient.view')
   const draft = await buildPrescriptionDraft({
     businessId: session.businessId,
@@ -24,13 +24,13 @@ export async function getPrescriptionDraft(patientId: string) {
     preferredDoctorId: null,
     sessionStaffMemberId: session.staffMemberId,
   })
-  if (!draft) return err('Hasta bulunamadi')
+  if (!draft) return err('Hasta bulunamad?')
   return ok(draft)
 }
 
 export async function createPrescription(rawInput: unknown): Promise<ActionResult<{ id: string; protocolNo: string }>> {
   const parsed = createPrescriptionInput.safeParse(rawInput)
-  if (!parsed.success) return err('Form hatali', parsed.error.issues)
+  if (!parsed.success) return err('Form hatal?', parsed.error.issues)
 
   const session = await requirePermission('patient.edit')
   const data = parsed.data
@@ -39,12 +39,12 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
     where: { id: data.patientId, businessId: session.businessId },
     include: { allergies: { select: { name: true } } },
   })
-  if (!patient) return err('Hasta bulunamadi')
+  if (!patient) return err('Hasta bulunamad?')
 
   const doctor = await prisma.teamMember.findFirst({
     where: { id: data.doctorId, businessId: session.businessId, isActive: true, role: 'DOKTOR' },
   })
-  if (!doctor) return err('Doktor bulunamadi')
+  if (!doctor) return err('Doktor bulunamad?')
 
   if (!data.patientIdentityNumber) {
     return err(prescriptionUiCopy.patientIdentityRequired)
@@ -135,9 +135,10 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
         patientId: data.patientId,
         type: TimelineEventType.PATIENT_UPDATED,
         title: prescriptionUiCopy.timelineTitle,
-        description: `${protocolNo} â€¢ ${data.diagnosis}`,
+        description: `${protocolNo} ? ${data.diagnosis}`,
         actorName: session.fullName,
         actorId: session.userId,
+        metadata: { prescriptionId: prescription.id },
       },
     })
 
@@ -150,16 +151,16 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
 
 export async function updateDoctorPrescriptionProfile(rawInput: unknown): Promise<ActionResult> {
   const parsed = doctorPrescriptionProfileInput.safeParse(rawInput)
-  if (!parsed.success) return err('Form hatali', parsed.error.issues)
+  if (!parsed.success) return err('Form hatal?', parsed.error.issues)
 
   const session = await requireSession()
   const targetId = parsed.data.teamMemberId ?? session.staffMemberId
-  if (!targetId) return err('Doktor profili bulunamadi')
+  if (!targetId) return err('Doktor profili bulunamad?')
 
   const member = await prisma.teamMember.findFirst({
     where: { id: targetId, businessId: session.businessId },
   })
-  if (!member) return err('Ekip uyesi bulunamadi')
+  if (!member) return err('Ekip üyesi bulunamad?')
 
   const isSelf = member.id === session.staffMemberId
   if (!isSelf && !session.permissions.includes('team.manage')) {

@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { requirePagePermission, can } from '@/lib/session'
+import { requirePagePermission, canViewFinance } from '@/lib/session'
 import {
   getAnalyticsBreakdowns,
   getAnalyticsSnapshot,
@@ -29,7 +29,7 @@ export default async function AnalitikPage({
 
   const params = await searchParams
   const months = parseAnalyticsMonthRange(params.months)
-  const canViewRevenue = can(session, 'analytics.revenue.view')
+  const canViewRevenue = canViewFinance(session)
   const advanced = isFeatureEnabled('advancedAnalytics')
 
   const [stats, snapshot, breakdowns, financeLedger, funnel, utilization] = await Promise.all([

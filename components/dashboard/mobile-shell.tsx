@@ -4,29 +4,15 @@ import { useEffect, useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  BarChart3,
-  Bell,
-  ClipboardList,
-  Briefcase,
-  CalendarDays,
   CalendarPlus,
-  HelpCircle,
-  Home,
   Loader2,
   LogOut,
   Menu,
-  MessageCircle,
   Plus,
   Search,
-  Settings,
-  Shield,
-  Sparkles,
   StickyNote,
   Upload,
-  UserCog,
   UserPlus,
-  Users,
-  FileText,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -35,86 +21,20 @@ import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
-import { ROLE_LABELS, canViewAppointmentSchedule, appointmentScheduleNavLabels } from '@/lib/rbac'
+import {
+  DASHBOARD_NAV_ITEMS,
+  filterDashboardNavItems,
+  groupDashboardNavItems,
+  isDashboardNavActive,
+  mobilePrimaryNavItems,
+} from '@/lib/dashboard/nav'
+import { ROLE_LABELS, can as sessionCan, appointmentScheduleNavLabels } from '@/lib/rbac'
 import type { SessionContext, Permission } from '@/lib/rbac'
 import {
   searchGlobalPalette,
   type GlobalPatientSearchHit,
 } from '@/lib/actions/global-search'
 import { cn } from '@/lib/utils'
-
-type PrimaryNav = {
-  name: string
-  href: string
-  icon: typeof Home
-  permission?: Permission
-  anyOfPermissions?: Permission[]
-  match?: (path: string) => boolean
-  badge?: 'notifications' | 'messages' | 'pendingAppointments'
-}
-
-type SecondaryNav = PrimaryNav & {
-  superAdminOnly?: boolean
-}
-
-const PRIMARY_NAV: PrimaryNav[] = [
-  { name: 'Ana Sayfa', href: '/dashboard', icon: Home, match: (p) => p === '/dashboard' },
-  {
-    name: 'Ajanda',
-    href: '/dashboard/ajanda',
-    icon: CalendarDays,
-    anyOfPermissions: ['appointment.manage', 'appointment.view', 'appointment.own.view'],
-    badge: 'pendingAppointments',
-    match: (p) =>
-      p === '/dashboard/ajanda' ||
-      p.startsWith('/dashboard/ajanda/') ||
-      p === '/dashboard/randevular' ||
-      p.startsWith('/dashboard/randevular/') ||
-      p === '/dashboard/takvim' ||
-      p.startsWith('/dashboard/takvim/'),
-  },
-  { name: 'Hastalar', href: '/dashboard/hastalar', icon: Users, permission: 'patient.view' },
-  {
-    name: 'Kimlik',
-    href: '/dashboard/kimlik-eslesmeleri',
-    icon: Sparkles,
-    permission: 'patient.edit',
-  },
-]
-
-const ANALITIK_SECONDARY_NAV: SecondaryNav = {
-  name: 'Analitik',
-  href: '/dashboard/analitik',
-  icon: BarChart3,
-  permission: 'analytics.view',
-}
-
-const SECONDARY_NAV: SecondaryNav[] = [
-  { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
-  { name: 'Hizmetler', href: '/dashboard/hizmetler', icon: Briefcase, permission: 'service.manage' },
-  { name: 'Anketler', href: '/dashboard/anketler', icon: ClipboardList, permission: 'service.manage' },
-  {
-    name: 'Faturalar',
-    href: '/dashboard/faturalar',
-    icon: FileText,
-    anyOfPermissions: ['appointment.manage', 'analytics.revenue.view'],
-  },
-  { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
-  { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
-  { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Shield, superAdminOnly: true },
-  { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
-]
-
-function buildSecondaryNav(clinicAnalyticsEnabled: boolean): SecondaryNav[] {
-  if (!clinicAnalyticsEnabled) return SECONDARY_NAV
-  const yonetisimIdx = SECONDARY_NAV.findIndex((item) => item.href === '/dashboard/yonetisim')
-  if (yonetisimIdx < 0) return [...SECONDARY_NAV, ANALITIK_SECONDARY_NAV]
-  return [
-    ...SECONDARY_NAV.slice(0, yonetisimIdx),
-    ANALITIK_SECONDARY_NAV,
-    ...SECONDARY_NAV.slice(yonetisimIdx),
-  ]
-}
 
 export function MobileShell({
   session,
@@ -144,41 +64,28 @@ export function MobileShell({
   const [pickerPending, startPickerSearch] = useTransition()
   const scheduleLabels = appointmentScheduleNavLabels(session)
 
-  const can = (perm?: Permission) => !perm || session.permissions.includes(perm)
-  const canAny = (perms?: Permission[]) =>
-    !perms?.length || perms.some((permission) => session.permissions.includes(permission))
+  const can = (perm?: Permission) => !perm || sessionCan(session, perm)
 
-  const primaryItems = PRIMARY_NAV.filter((item) => {
-    if (item.href === '/dashboard/ajanda') {
-      return canViewAppointmentSchedule(session)
-    }
-    if (item.anyOfPermissions) return canAny(item.anyOfPermissions)
-    return can(item.permission)
+  const visibleNav = filterDashboardNavItems(DASHBOARD_NAV_ITEMS, {
+    session,
+    showSuperAdmin,
+    teamMessagingEnabled,
+    clinicAnalyticsEnabled,
   })
-  const secondaryItems = buildSecondaryNav(clinicAnalyticsEnabled).filter((i) => {
-    if (i.href === '/dashboard/mesajlar' && !teamMessagingEnabled) return false
-    if (i.superAdminOnly && !showSuperAdmin) return false
-    return can(i.permission)
-  })
-  if (showSuperAdmin) {
-    secondaryItems.splice(secondaryItems.length - 1, 0, {
-      name: 'Super Admin',
-      href: '/dashboard/super-admin',
-      icon: Shield,
-    })
-  }
+  const primaryItems = mobilePrimaryNavItems(visibleNav)
+  const menuSections = groupDashboardNavItems(
+    visibleNav.filter((item) => !item.mobilePrimary),
+  )
 
-  function primaryLabel(item: PrimaryNav) {
-    if (item.href === '/dashboard/ajanda') return scheduleLabels.agendaShort
-    // Compact label so 5 equal tabs fit narrow phones without horizontal overflow.
-    if (item.href === '/dashboard') return 'Ana'
+  function primaryLabel(item: (typeof primaryItems)[number]) {
+    if (item.id === 'agenda') return scheduleLabels.agendaShort
+    if (item.id === 'overview') return 'Ana'
     return item.name
   }
 
-  const isSecondaryActive = secondaryItems.some((item) => {
-    const path = item.href.split('?')[0]
-    return pathname === path || pathname.startsWith(`${path}/`)
-  })
+  const isSecondaryActive = menuSections.some((section) =>
+    section.items.some((item) => isDashboardNavActive(pathname, item.href)),
+  )
   const menuBadgeCount = unreadCount + (teamMessagingEnabled ? unreadMessages : 0)
 
   async function handleLogout() {
@@ -222,7 +129,7 @@ export function MobileShell({
         const result = await searchGlobalPalette(q)
         setPickerResults(result.patients)
       })
-    }, 220)
+    }, 300)
     return () => window.clearTimeout(timer)
   }, [patientPicker, pickerQuery])
 
@@ -253,14 +160,12 @@ export function MobileShell({
               item.badge === 'pendingAppointments' && pendingAppointments > 0
                 ? '/dashboard/ajanda?mode=liste&status=SCHEDULED'
                 : item.href
-            const active = item.match
-              ? item.match(pathname)
-              : pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const active = isDashboardNavActive(pathname, item.href)
             const label = primaryLabel(item)
-            const a11yLabel = item.href === '/dashboard' ? 'Ana Sayfa' : label
+            const a11yLabel = item.id === 'overview' ? 'Ana Sayfa' : label
             return (
               <Link
-                key={item.href}
+                key={item.id}
                 href={href}
                 title={a11yLabel}
                 aria-label={a11yLabel}
@@ -466,56 +371,52 @@ export function MobileShell({
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-3">
-              <ul className="space-y-1">
-                {secondaryItems.map((item) => {
-                  const path = item.href.split('?')[0]
-                  const active = pathname === path || pathname.startsWith(`${path}/`)
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setMenuOpen(false)}
-                        className={cn(
-                          'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
-                          active ? 'bg-brand-blue/15 text-white' : 'text-white/70 hover:bg-white/5',
-                        )}
-                      >
-                        <item.icon className={cn('h-5 w-5 shrink-0', active ? 'text-brand-blue' : 'text-white/55')} />
-                        <span className="flex-1">{item.name}</span>
-                        {item.badge === 'notifications' && unreadCount > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                          </span>
-                        )}
-                        {item.badge === 'messages' && unreadMessages > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
-                            {unreadMessages > 9 ? '9+' : unreadMessages}
-                          </span>
-                        )}
-                        {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-none text-amber-950">
-                            {pendingAppointments > 9 ? '9+' : pendingAppointments}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+              <div className="space-y-4">
+                {menuSections.map((section) => (
+                  <div key={section.group}>
+                    <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+                      {section.label}
+                    </p>
+                    <ul className="space-y-1">
+                      {section.items.map((item) => {
+                        const active = isDashboardNavActive(pathname, item.href)
+                        const label = item.id === 'agenda' ? scheduleLabels.agenda : item.name
+                        return (
+                          <li key={item.id}>
+                            <Link
+                              href={item.href}
+                              onClick={() => setMenuOpen(false)}
+                              className={cn(
+                                'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
+                                active ? 'bg-brand-blue/15 text-white' : 'text-white/70 hover:bg-white/5',
+                              )}
+                            >
+                              <item.icon
+                                className={cn('h-5 w-5 shrink-0', active ? 'text-brand-blue' : 'text-white/55')}
+                              />
+                              <span className="flex-1">{label}</span>
+                              {item.badge === 'notifications' && unreadCount > 0 && (
+                                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
+                                  {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                              )}
+                              {item.badge === 'messages' && unreadMessages > 0 && (
+                                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
+                                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                                </span>
+                              )}
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
 
               <div className="my-4 h-px bg-white/10" />
 
               <ul className="space-y-1">
-                <li>
-                  <Link
-                    href="/dashboard/yardim"
-                    onClick={() => setMenuOpen(false)}
-                    className="tap-target flex w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-white/70 hover:bg-white/5"
-                  >
-                    <HelpCircle className="h-5 w-5 text-white/55" />
-                    <span className="flex-1 text-left">Yardım Merkezi</span>
-                  </Link>
-                </li>
                 <li>
                   <button
                     type="button"

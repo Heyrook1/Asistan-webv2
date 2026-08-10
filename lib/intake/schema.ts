@@ -54,7 +54,7 @@ export function validateIntakeAnswers(fields: IntakeFieldDef[], answers: Record<
       errors[field.id] = 'Geçerli telefon girin'
     }
     if (field.type === 'DATE' && !/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-      errors[field.id] = 'Tarih yyyy-mm-dd olmalı'
+      errors[field.id] = 'Tarihi GG.AA.YYYY düzeninde girin'
     }
 
     normalized[field.id] = text

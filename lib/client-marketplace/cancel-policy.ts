@@ -3,6 +3,12 @@
  * Business alanı yoksa env / varsayılan kullanılır — uydurma “her zaman iptal” yok.
  */
 
+import {
+  DEFAULT_CLINIC_TIMEZONE,
+  resolveClinicTimezone,
+  wallClockToUtc,
+} from '@/lib/datetime/clinic-zone'
+
 export const DEFAULT_CANCEL_MIN_HOURS = 4
 
 export function getCancelMinHoursBefore(): number {
@@ -13,14 +19,22 @@ export function getCancelMinHoursBefore(): number {
   return n
 }
 
-/** Appointment local date (YYYY-MM-DD) + HH:mm → Date in clinic-ish local (Europe/Istanbul offset approx via Date parse). */
-export function appointmentStartsAt(dateIso: string, startTime: string): Date {
-  const time = startTime.length === 5 ? `${startTime}:00` : startTime
-  return new Date(`${dateIso}T${time}`)
+/** Appointment calendar date + wall-clock HH:mm in clinic TZ → UTC instant. */
+export function appointmentStartsAt(
+  dateIso: string,
+  startTime: string,
+  timeZone: string = DEFAULT_CLINIC_TIMEZONE,
+): Date {
+  return wallClockToUtc(dateIso.slice(0, 10), startTime, resolveClinicTimezone(timeZone))
 }
 
-export function hoursUntilAppointment(dateIso: string, startTime: string, now = new Date()): number {
-  const starts = appointmentStartsAt(dateIso, startTime)
+export function hoursUntilAppointment(
+  dateIso: string,
+  startTime: string,
+  now = new Date(),
+  timeZone: string = DEFAULT_CLINIC_TIMEZONE,
+): number {
+  const starts = appointmentStartsAt(dateIso, startTime, timeZone)
   return (starts.getTime() - now.getTime()) / (1000 * 60 * 60)
 }
 
@@ -29,8 +43,9 @@ export function canCancelOrRescheduleByPolicy(
   startTime: string,
   minHours = getCancelMinHoursBefore(),
   now = new Date(),
+  timeZone: string = DEFAULT_CLINIC_TIMEZONE,
 ): { ok: true } | { ok: false; hoursLeft: number; minHours: number } {
-  const hoursLeft = hoursUntilAppointment(dateIso, startTime, now)
+  const hoursLeft = hoursUntilAppointment(dateIso, startTime, now, timeZone)
   if (hoursLeft < minHours) {
     return { ok: false, hoursLeft, minHours }
   }

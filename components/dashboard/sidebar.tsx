@@ -1,112 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import {
-  ClipboardList,
-  BarChart3,
-  Bell,
-  Briefcase,
-  CalendarDays,
-  HelpCircle,
-  LayoutDashboard,
-  LogOut,
-  MessageCircle,
-  Scale,
-  Settings,
-  Shield,
-  Sparkles,
-  ScrollText,
-  UserCog,
-  Users,
-  FileText,
-} from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { LogOut, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ROLE_LABELS, canViewAppointmentSchedule, appointmentScheduleNavLabels } from '@/lib/rbac'
-import type { Permission, SessionContext } from '@/lib/rbac'
+import {
+  DASHBOARD_NAV_ITEMS,
+  filterDashboardNavItems,
+  groupDashboardNavItems,
+  isDashboardNavActive,
+  type DashboardNavItem,
+} from '@/lib/dashboard/nav'
+import { ROLE_LABELS, appointmentScheduleNavLabels } from '@/lib/rbac'
+import type { SessionContext } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-type NavItem = {
-  name: string
-  href: string
-  icon: typeof LayoutDashboard
-  permission?: Permission
-  /** Show if the session has any of these permissions (OR). */
-  anyOfPermissions?: Permission[]
-  adminOnly?: boolean
-  superAdminOnly?: boolean
-  badge?: 'notifications' | 'messages' | 'pendingAppointments'
-}
-
-/** Analitik nav — honest ops overview (on by default). Hidden when clinicAnalytics is off. */
-const ANALITIK_NAV_ITEM: NavItem = {
-  name: 'Analitik',
-  href: '/dashboard/analitik',
-  icon: BarChart3,
-  permission: 'analytics.view',
-}
-
-const BASE_NAV_ITEMS: NavItem[] = [
-  { name: 'Genel Bakış', href: '/dashboard', icon: LayoutDashboard },
-  {
-    name: 'Ajanda',
-    href: '/dashboard/ajanda',
-    icon: CalendarDays,
-    anyOfPermissions: ['appointment.manage', 'appointment.view', 'appointment.own.view'],
-    badge: 'pendingAppointments',
-  },
-  { name: 'Hastalar', href: '/dashboard/hastalar', icon: Users, permission: 'patient.view' },
-  {
-    name: 'Kimlik eşleşmeleri',
-    href: '/dashboard/kimlik-eslesmeleri',
-    icon: Sparkles,
-    permission: 'patient.edit',
-  },
-  { name: 'Hizmetler', href: '/dashboard/hizmetler', icon: Briefcase, permission: 'service.manage' },
-  { name: 'Anketler', href: '/dashboard/anketler', icon: ClipboardList, permission: 'service.manage' },
-  {
-    name: 'Faturalar',
-    href: '/dashboard/faturalar',
-    icon: FileText,
-    anyOfPermissions: ['appointment.manage', 'analytics.revenue.view'],
-  },
-  { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
-  { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
-  { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
-  { name: 'Denetim', href: '/dashboard/denetim', icon: ScrollText, permission: 'audit.view' },
-  { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Scale, superAdminOnly: true },
-  { name: 'Super Admin', href: '/dashboard/super-admin', icon: Shield, superAdminOnly: true },
-  { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
-]
-
-function buildNavItems(clinicAnalyticsEnabled: boolean): NavItem[] {
-  if (!clinicAnalyticsEnabled) return BASE_NAV_ITEMS
-  const denetimIdx = BASE_NAV_ITEMS.findIndex((item) => item.href === '/dashboard/denetim')
-  if (denetimIdx < 0) return [...BASE_NAV_ITEMS, ANALITIK_NAV_ITEM]
-  return [
-    ...BASE_NAV_ITEMS.slice(0, denetimIdx),
-    ANALITIK_NAV_ITEM,
-    ...BASE_NAV_ITEMS.slice(denetimIdx),
-  ]
-}
-
-function isNavActive(pathname: string, href: string) {
-  const path = href.split('?')[0]
-  if (path === '/dashboard/ajanda') {
-    return (
-      pathname === '/dashboard/ajanda' ||
-      pathname.startsWith('/dashboard/ajanda/') ||
-      pathname === '/dashboard/randevular' ||
-      pathname.startsWith('/dashboard/randevular/') ||
-      pathname === '/dashboard/takvim' ||
-      pathname.startsWith('/dashboard/takvim/')
-    )
-  }
-  return pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
+function navLabel(item: DashboardNavItem, agendaLabel: string) {
+  if (item.id === 'agenda') return agendaLabel
+  return item.name
 }
 
 export function DashboardSidebar({
@@ -129,33 +44,20 @@ export function DashboardSidebar({
   clinicAnalyticsEnabled?: boolean
 }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const scheduleLabels = appointmentScheduleNavLabels(session)
+  const search = searchParams.toString()
 
-  const visibleItems = buildNavItems(clinicAnalyticsEnabled).filter((item) => {
-    if (item.href === '/dashboard/mesajlar' && !teamMessagingEnabled) return false
-    if (item.adminOnly && !showPlatformAdmin) return false
-    if (item.superAdminOnly && !showSuperAdmin) return false
-    if (item.anyOfPermissions?.length) {
-      if (item.href === '/dashboard/ajanda' || item.href.startsWith('/dashboard/ajanda?')) {
-        return canViewAppointmentSchedule(session)
-      }
-      return item.anyOfPermissions.some((permission) => session.permissions.includes(permission))
-    }
-    return !item.permission || session.permissions.includes(item.permission)
-  })
-
-  function navLabel(item: NavItem) {
-    if (
-      item.href === '/dashboard/ajanda' ||
-      item.href.startsWith('/dashboard/ajanda?') ||
-      item.href === '/dashboard/randevular' ||
-      item.href === '/dashboard/takvim'
-    ) {
-      return scheduleLabels.agenda
-    }
-    return item.name
-  }
+  const sections = groupDashboardNavItems(
+    filterDashboardNavItems(DASHBOARD_NAV_ITEMS, {
+      session,
+      showPlatformAdmin,
+      showSuperAdmin,
+      teamMessagingEnabled,
+      clinicAnalyticsEnabled,
+    }),
+  )
 
   async function handleLogout() {
     const supabase = createClient()
@@ -180,49 +82,65 @@ export function DashboardSidebar({
           </Link>
         </div>
 
-        <ScrollArea className="relative flex-1 py-4">
-          <nav className="space-y-1 px-3">
-            {visibleItems.map((item) => {
-              const href =
-                item.badge === 'pendingAppointments' && pendingAppointments > 0
-                  ? '/dashboard/ajanda?mode=liste&status=SCHEDULED'
-                  : item.href
-              const active = isNavActive(pathname, item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  className={cn(
-                    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                    active
-                      ? 'bg-gradient-to-r from-brand-blue/20 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(0,113,227,0.35)]'
-                      : 'text-white/60 hover:bg-white/[0.05] hover:text-white/95',
-                  )}
-                >
-                  {active && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand-blue" />}
-                  <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-blue' : 'group-hover:text-white/90')} />
-                  <span className="flex-1 truncate">{navLabel(item)}</span>
-                  {item.badge === 'notifications' && unreadNotifications > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
-                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                    </span>
-                  )}
-                  {item.badge === 'messages' && unreadMessages > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
-                      {unreadMessages > 9 ? '9+' : unreadMessages}
-                    </span>
-                  )}
-                  {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
-                    <span
-                      className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-none text-amber-950"
-                      title="Onay bekleyen randevu"
-                    >
-                      {pendingAppointments > 9 ? '9+' : pendingAppointments}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
+        <ScrollArea className="relative flex-1 py-3">
+          <nav className="space-y-4 px-3" aria-label="Klinik menü">
+            {sections.map((section) => (
+              <div key={section.group}>
+                <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+                  {section.label}
+                </p>
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const href =
+                      item.badge === 'pendingAppointments' && pendingAppointments > 0
+                        ? '/dashboard/ajanda?mode=liste&status=SCHEDULED'
+                        : item.href
+                    const active = isDashboardNavActive(pathname, item.href, search)
+                    return (
+                      <Link
+                        key={item.id}
+                        href={href}
+                        className={cn(
+                          'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200',
+                          active
+                            ? 'bg-gradient-to-r from-brand-blue/20 to-transparent text-white shadow-[inset_0_0_0_1px_rgba(0,113,227,0.35)]'
+                            : 'text-white/60 hover:bg-white/[0.05] hover:text-white/95',
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand-blue" />
+                        )}
+                        <item.icon
+                          className={cn(
+                            'h-[18px] w-[18px] shrink-0',
+                            active ? 'text-brand-blue' : 'group-hover:text-white/90',
+                          )}
+                        />
+                        <span className="flex-1 truncate">{navLabel(item, scheduleLabels.agenda)}</span>
+                        {item.badge === 'notifications' && unreadNotifications > 0 && (
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
+                            {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                          </span>
+                        )}
+                        {item.badge === 'messages' && unreadMessages > 0 && (
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
+                            {unreadMessages > 9 ? '9+' : unreadMessages}
+                          </span>
+                        )}
+                        {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
+                          <span
+                            className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-none text-amber-950"
+                            title="Onay bekleyen randevu"
+                          >
+                            {pendingAppointments > 9 ? '9+' : pendingAppointments}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </ScrollArea>
 
@@ -231,7 +149,8 @@ export function DashboardSidebar({
             className="relative overflow-hidden rounded-2xl border p-4"
             style={{
               borderColor: 'var(--sidebar-card-border)',
-              background: 'linear-gradient(155deg, var(--sidebar-card) 0%, var(--sidebar-card-mid) 60%, var(--sidebar-card-end) 100%)',
+              background:
+                'linear-gradient(155deg, var(--sidebar-card) 0%, var(--sidebar-card-mid) 60%, var(--sidebar-card-end) 100%)',
             }}
           >
             <div className="absolute -right-4 -top-4 opacity-90">
@@ -249,14 +168,6 @@ export function DashboardSidebar({
             </Link>
           </div>
 
-          <Link
-            href="/dashboard/yardim"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition-all duration-200 hover:bg-white/[0.05] hover:text-white/90"
-          >
-            <HelpCircle className="h-[18px] w-[18px] shrink-0" />
-            <span className="flex-1 text-left">Yardım Merkezi</span>
-          </Link>
-
           <button
             type="button"
             onClick={handleLogout}
@@ -270,4 +181,3 @@ export function DashboardSidebar({
     </aside>
   )
 }
-

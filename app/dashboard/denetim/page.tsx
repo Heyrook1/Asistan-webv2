@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { requirePagePermission } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { formatDateTime } from '@/lib/format'
+import { labelAuditSeverity } from '@/lib/ui-labels'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,7 +82,7 @@ export default async function DenetimPage() {
                               : 'border-0 bg-slate-100 text-slate-700'
                         }
                       >
-                        {log.severity}
+                        {labelAuditSeverity(log.severity)}
                       </Badge>
                     </div>
                     <p className="text-sm font-medium text-brand-ink">

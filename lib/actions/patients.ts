@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { writeAuditLog } from '@/lib/audit'
 import { requirePermission, requireSession } from '@/lib/session'
 import { tenantTransaction } from '@/lib/security/tenant-db-context'
+import { clinicStaffAssignmentError } from '@/lib/security/platform-roles'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
 import { resolveOrCreatePerson } from '@/lib/identity/resolve'
@@ -874,6 +875,19 @@ export async function updatePatientMeta(input: unknown): Promise<ActionResult> {
     select: { id: true },
   })
   if (!owned) return err('Hasta bulunamadı')
+
+  if (parsed.data.assignedDoctorId) {
+    const doctor = await prisma.teamMember.findFirst({
+      where: { id: parsed.data.assignedDoctorId },
+      select: { id: true, businessId: true, isActive: true, role: true },
+    })
+    const doctorError = clinicStaffAssignmentError({
+      staff: doctor,
+      expectedBusinessId: session.businessId,
+    })
+    if (doctorError) return err(doctorError)
+    if (doctor?.role !== 'DOKTOR') return err('Atanan kişi doktor olmalıdır')
+  }
 
   const updated = await prisma.patient.updateMany({
     where: { id: parsed.data.patientId, businessId: session.businessId },

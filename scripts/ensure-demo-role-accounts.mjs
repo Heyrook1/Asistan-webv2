@@ -2,6 +2,10 @@
  * Create/update demo Supabase Auth + Prisma accounts for every clinic TeamRole
  * (including SUPER_ADMIN), attached to the demo clinic.
  *
+ * SUPER_ADMIN TeamMember rows exist so the demo account can open the clinic
+ * dashboard + /dashboard/super-admin; they are excluded from appointment/staff
+ * comboboxes via clinicAssignableStaffWhere (platform role is not clinic staff).
+ *
  *   node scripts/ensure-demo-role-accounts.mjs --i-know-this-bypasses-rls
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY (+ URL) and a Postgres URL that can write User/TeamMember
@@ -59,9 +63,9 @@ const DEMO_PASSWORD = 'AsistanDemo2026!'
 
 const CLINIC = {
   slug: 'asistan-demo-klinigi',
-  name: 'Asistan Demo Klinigi',
-  phone: '+90 392 555 0100',
-  address: 'Bedrettin Demirel Cad. No:120 Lefkosa',
+  name: 'Asistan Demo Klinigi (TEST)',
+  phone: '+90 555 010 0000',
+  address: 'TEST adres — Bedrettin Demirel Cad. No:120 Lefkosa',
   city: 'Lefkosa',
 }
 
@@ -134,37 +138,37 @@ const ROLE_PERMISSIONS = {
 const ACCOUNTS = [
   {
     role: TeamRole.SUPER_ADMIN,
-    email: 'superadmin@asistan.demo',
-    fullName: 'Demo Super Admin',
+    email: 'demo.superadmin@example.com',
+    fullName: 'Demo Super Admin (TEST)',
     color: '#7C3AED',
     bookable: false,
   },
   {
     role: TeamRole.ISLETME_SAHIBI,
-    email: 'owner@asistan.demo',
-    fullName: 'Demo Isletme Sahibi',
+    email: 'demo.role.owner@example.com',
+    fullName: 'Demo Isletme Sahibi (TEST)',
     color: '#12C8AD',
     isOwner: true,
     bookable: false,
   },
   {
     role: TeamRole.DOKTOR,
-    email: 'doktor@asistan.demo',
-    fullName: 'Demo Doktor',
+    email: 'demo.role.doctor@example.com',
+    fullName: 'Demo Doktor (TEST)',
     color: '#16A9E8',
     bookable: true,
   },
   {
     role: TeamRole.SEKRETER,
-    email: 'sekreter@asistan.demo',
-    fullName: 'Demo Sekreter',
+    email: 'demo.role.desk@example.com',
+    fullName: 'Demo Sekreter (TEST)',
     color: '#F59E0B',
     bookable: false,
   },
   {
     role: TeamRole.PERSONEL,
-    email: 'personel@asistan.demo',
-    fullName: 'Demo Personel',
+    email: 'demo.role.staff@example.com',
+    fullName: 'Demo Personel (TEST)',
     color: '#64748B',
     bookable: false,
   },
@@ -269,7 +273,7 @@ async function ensureBusiness(ownerUserId) {
       data: {
         ownerUserId,
         name: CLINIC.name,
-        email: 'owner@asistan.demo',
+        email: 'demo.role.owner@example.com',
         phone: CLINIC.phone,
         address: CLINIC.address,
         city: CLINIC.city,
@@ -284,7 +288,7 @@ async function ensureBusiness(ownerUserId) {
       name: CLINIC.name,
       slug: CLINIC.slug,
       ownerUserId,
-      email: 'owner@asistan.demo',
+      email: 'demo.role.owner@example.com',
       phone: CLINIC.phone,
       address: CLINIC.address,
       city: CLINIC.city,
@@ -407,7 +411,7 @@ async function main() {
   console.log('Login: /tr/giris or /auth/login')
   console.log('Super Admin UI: /dashboard/super-admin (role=SUPER_ADMIN)')
   console.log(
-    'Optional (platform allowlist in production): SYSTEM_ADMIN_EMAILS=superadmin@asistan.demo',
+    'Optional (platform allowlist in production): SYSTEM_ADMIN_EMAILS=demo.superadmin@example.com',
   )
   console.log('')
 }

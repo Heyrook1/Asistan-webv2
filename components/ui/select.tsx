@@ -11,6 +11,7 @@ function Select({
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />
 }
+Select.displayName = 'Select'
 
 function SelectGroup({
   ...props
@@ -49,6 +50,7 @@ function SelectTrigger({
     </SelectPrimitive.Trigger>
   )
 }
+SelectTrigger.displayName = 'SelectTrigger'
 
 function SelectContent({
   className,

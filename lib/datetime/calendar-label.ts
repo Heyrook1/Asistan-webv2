@@ -1,9 +1,9 @@
 /**
  * Hydration-safe calendar labels — avoid Node vs browser ICU `toLocale*` drift (React #418).
- * Calendar “today” uses Europe/Nicosia (KKTC).
+ * Calendar “today” uses Asia/Nicosia (KKTC); Europe/Nicosia is an IANA alias.
  */
 
-export const KKTC_TZ = 'Europe/Nicosia'
+export const KKTC_TZ = 'Asia/Nicosia'
 
 const TR_WEEKDAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'] as const
 const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'] as const

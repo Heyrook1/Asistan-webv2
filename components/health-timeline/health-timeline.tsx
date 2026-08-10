@@ -52,6 +52,8 @@ type HealthTimelineProps = {
   items: HealthTimelineItem[]
   variant: 'clinic' | 'patient'
   locale?: 'tr' | 'en'
+  /** Business.timezone — day grouping + fallback clock format (default Asia/Nicosia). */
+  timeZone?: string
   emptyTitle?: string
   emptyDescription?: string
   emptyActionHref?: string
@@ -63,6 +65,7 @@ export function HealthTimeline({
   items,
   variant,
   locale = 'tr',
+  timeZone = 'Asia/Nicosia',
   emptyTitle,
   emptyDescription,
   emptyActionHref,
@@ -70,6 +73,7 @@ export function HealthTimeline({
   className,
 }: HealthTimelineProps) {
   const [filter, setFilter] = useState<HealthTimelineKind | 'all'>('all')
+  const zone = timeZone.trim() || 'Asia/Nicosia'
 
   const availableKinds = useMemo(() => {
     const present = new Set(items.map((item) => item.kind))
@@ -81,7 +85,7 @@ export function HealthTimeline({
     [items, filter]
   )
 
-  const groups = useMemo(() => groupHealthTimelineByDay(filtered), [filtered])
+  const groups = useMemo(() => groupHealthTimelineByDay(filtered, zone), [filtered, zone])
 
   const defaultEmptyTitle =
     locale === 'en' ? 'No timeline events yet' : 'Henüz zaman çizelgesi kaydı yok'
@@ -164,7 +168,13 @@ export function HealthTimeline({
 
               <ul className="space-y-2 pl-10">
                 {group.items.map((item) => (
-                  <TimelineRow key={item.id} item={item} variant={variant} locale={locale} />
+                  <TimelineRow
+                    key={item.id}
+                    item={item}
+                    variant={variant}
+                    locale={locale}
+                    timeZone={zone}
+                  />
                 ))}
               </ul>
             </li>
@@ -204,20 +214,26 @@ function TimelineRow({
   item,
   variant,
   locale,
+  timeZone,
 }: {
   item: HealthTimelineItem
   variant: 'clinic' | 'patient'
   locale: 'tr' | 'en'
+  timeZone: string
 }) {
   const Icon = KIND_ICON[item.kind]
   const occurred = new Date(item.occurredAt)
-  const timeLabel = Number.isNaN(occurred.getTime())
-    ? null
-    : occurred.toLocaleTimeString(locale === 'en' ? 'en-GB' : 'tr-TR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
+  // Prefer stored wall-clock (appointment HH:mm) — never re-parse host locale.
+  const timeLabel = item.clockTime
+    ? item.clockTime
+    : Number.isNaN(occurred.getTime())
+      ? null
+      : occurred.toLocaleTimeString(locale === 'en' ? 'en-GB' : 'tr-TR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone,
+        })
   const statusLabel =
     item.status && item.kind === 'visit'
       ? APPOINTMENT_STATUS_LABELS[item.status] ?? item.status

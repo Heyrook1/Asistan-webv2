@@ -11,24 +11,17 @@ export type DashboardAnnouncement = {
 
 /**
  * In-product announcements for clinic dashboard.
- * Add/remove entries here (or later move to CMS/DB).
+ * Prefer short-lived notices; layout shows at most one undismissed item.
  */
 export const DASHBOARD_ANNOUNCEMENTS: DashboardAnnouncement[] = [
   {
-    id: '2026-07-export',
-    title: 'Hasta ve finans dışa aktarma',
-    body: 'Hastalar ve Analitik sayfalarından CSV / PDF dışa aktarımı kullanabilirsiniz.',
-    href: '/dashboard/yardim',
-    hrefLabel: 'Yardım Merkezi',
-    severity: 'info',
-  },
-  {
-    id: '2026-07-dunning',
+    id: '2026-08-abonelik',
     title: 'Abonelik yenileme',
     body: 'Paket süreniz yaklaşıyorsa Ayarlar → Abonelik üzerinden elden yenileme talebi oluşturabilirsiniz.',
     href: '/dashboard/ayarlar?tab=abonelik',
     hrefLabel: 'Abonelik',
     severity: 'info',
+    endsAt: '2026-12-31',
   },
 ]
 
@@ -39,4 +32,13 @@ export function getActiveAnnouncements(now = new Date()): DashboardAnnouncement[
     if (Number.isNaN(end.getTime())) return true
     return end.getTime() >= now.getTime()
   })
+}
+
+/** UI shows one strip at a time (newest / first active wins). */
+export function pickAnnouncementSlot(
+  items: DashboardAnnouncement[],
+  dismissedIds: ReadonlySet<string> | readonly string[] = [],
+): DashboardAnnouncement | null {
+  const dismissed = dismissedIds instanceof Set ? dismissedIds : new Set(dismissedIds)
+  return items.find((item) => !dismissed.has(item.id)) ?? null
 }

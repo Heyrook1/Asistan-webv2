@@ -135,7 +135,7 @@ async function createClientBookingOnce(input: {
           appointmentId: ctx.appointmentId,
           type: notificationType,
           title: notificationTitle,
-          message: `${input.payload.date} ${input.payload.startTime} randevunuz olusturuldu.`,
+          message: `${input.payload.date} ${input.payload.startTime} randevunuz oluşturuldu.`,
           link: `/client/bookings?id=${ctx.appointmentId}`,
           metadata: {
             appointmentId: ctx.appointmentId,

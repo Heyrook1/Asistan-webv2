@@ -1,20 +1,21 @@
 'use client'
 
 import { Fragment } from 'react'
-import Link from 'next/link'
-import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_DOT, formatTime } from '@/lib/format'
 import type { CalendarEvent } from './calendar-types'
 import { HOUR_END, HOUR_START, WEEK_DAY_LABELS } from './calendar-types'
 import { hourSlotAriaLabel, toISODate } from './calendar-date-utils'
+import { CalendarEventChip } from './calendar-event-chip'
 
 export function DayWeekGrid({
   days,
   eventsByDate,
   onSlotClick,
+  canManage = false,
 }: {
   days: Date[]
   eventsByDate: Map<string, CalendarEvent[]>
   onSlotClick: (date: string, time: string) => void
+  canManage?: boolean
 }) {
   const today = toISODate(new Date())
   const isSingleDay = days.length === 1
@@ -64,21 +65,9 @@ export function DayWeekGrid({
                   className="relative min-h-[60px] border-b border-r p-1 text-left hover:bg-dashboard-surface"
                 >
                   {hourEvents.map((ev) => (
-                    <Link
-                      key={ev.id}
-                      href={`/dashboard/hastalar/${ev.patientId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="block rounded-md px-2 py-1 text-[11px] mb-1"
-                      style={{
-                        background: `${ev.serviceColor}26`,
-                        borderLeft: `3px solid ${APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor}`,
-                      }}
-                    >
-                      <p className="font-medium text-brand-ink truncate">{ev.patientName}</p>
-                      <p className="text-muted-foreground truncate">
-                        {formatTime(ev.startTime)} - {formatTime(ev.endTime)} • {APPOINTMENT_STATUS_LABELS[ev.status]}
-                      </p>
-                    </Link>
+                    <div key={ev.id} className="mb-1" onClick={(e) => e.stopPropagation()}>
+                      <CalendarEventChip event={ev} canManage={canManage} compact />
+                    </div>
                   ))}
                 </button>
               )

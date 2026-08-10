@@ -9,6 +9,7 @@ import {
 } from '@/lib/calendar/config'
 import { signOAuthState } from '@/lib/calendar/crypto'
 import { buildGoogleAuthUrl } from '@/lib/calendar/google-oauth'
+import { clinicAssignableStaffWhere } from '@/lib/security/platform-roles'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -32,9 +33,8 @@ export async function GET(request: NextRequest) {
 
   const staff = await prisma.teamMember.findFirst({
     where: {
+      ...clinicAssignableStaffWhere(session.businessId),
       id: staffId,
-      businessId: session.businessId,
-      isActive: true,
       isBookable: true,
     },
     select: { id: true },

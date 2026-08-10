@@ -16,7 +16,7 @@ const SEND_MESSAGE_RATE_LIMIT = { action: 'messages:send', limit: 45, windowMs: 
 
 function rateLimitedResult(retryAfterMs: number): ActionResult<never> {
   const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000))
-  return err(`Cok fazla istek gonderdiniz. Lutfen ${retryAfterSeconds} saniye sonra tekrar deneyin.`)
+  return err(`Çok fazla istek gönderdiniz. Lütfen ${retryAfterSeconds} saniye sonra tekrar deneyin.`)
 }
 
 function assertMessagingEnabled(): ActionResult<never> | null {

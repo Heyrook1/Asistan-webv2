@@ -11,6 +11,7 @@ export const SERVER_ACTION_NO_INPUT = new Set([
 export const SERVER_ACTION_FILES = [
   'lib/actions/appointments.ts',
   'lib/actions/business.ts',
+  'lib/actions/locations.ts',
   'lib/actions/global-search.ts',
   'lib/actions/governance.ts',
   'lib/actions/intake-forms.ts',

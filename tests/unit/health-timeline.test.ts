@@ -69,6 +69,32 @@ describe('health timeline builders', () => {
     expect(items.find((i) => i.kind === 'visit')?.title).toBe('Kontrol')
   })
 
+  it('shows soft-archive breadcrumb but skips normal appointment lifecycle events', () => {
+    const items = buildClinicHealthTimeline({
+      appointments: [],
+      timeline: [
+        {
+          id: 't-created',
+          type: 'APPOINTMENT_CREATED',
+          title: 'Randevu oluşturuldu',
+          createdAt: '2026-01-10T12:00:00.000Z',
+          metadata: { appointmentId: 'a-gone' },
+        },
+        {
+          id: 't-archived',
+          type: 'APPOINTMENT_CANCELLED',
+          title: 'Randevu ajandadan kaldırıldı',
+          description: 'Ajanda ve sayaçlardan düşürüldü; denetim kaydı için arşivlendi.',
+          createdAt: '2026-01-11T12:00:00.000Z',
+          metadata: { appointmentId: 'a-gone', archived: true },
+        },
+      ],
+    })
+
+    expect(items.map((i) => i.id)).toEqual(['activity:t-archived'])
+    expect(items[0]?.subtitle).toMatch(/arşivlendi/)
+  })
+
   it('respects note/file permission filters', () => {
     const items = buildClinicHealthTimeline({
       includeNotes: false,
@@ -154,5 +180,43 @@ describe('health timeline builders', () => {
     expect(buildClinicHealthTimeline({})).toEqual([])
     expect(buildPatientVisitTimeline([])).toEqual([])
     expect(groupHealthTimelineByDay([])).toEqual([])
+  })
+
+  it('dedupes prescription entity vs mirror timeline event (P1-08)', () => {
+    const items = buildClinicHealthTimeline({
+      prescriptions: [
+        {
+          id: 'rx1',
+          protocolNo: 'RX-2026-00001',
+          diagnosis: 'Tip 2 diyabet — rutin kontrol',
+          issuedAt: '2026-03-01T10:00:00.000Z',
+        },
+      ],
+      timeline: [
+        {
+          id: 't-rx',
+          type: 'PATIENT_UPDATED',
+          title: 'Klinik reçete oluşturuldu',
+          description: 'RX-2026-00001 • Tip 2 diyabet — rutin kontrol',
+          createdAt: '2026-03-01T10:00:00.000Z',
+          metadata: { prescriptionId: 'rx1' },
+        },
+        {
+          id: 't-legacy',
+          type: 'PATIENT_UPDATED',
+          title: 'E-recete olusturuldu',
+          description: 'RX-2026-00001 • foo',
+          createdAt: '2026-03-01T10:01:00.000Z',
+        },
+      ],
+    })
+
+    const rxItems = items.filter(
+      (i) => i.id.startsWith('prescription:') || i.id.startsWith('activity:'),
+    )
+    expect(rxItems).toHaveLength(1)
+    expect(rxItems[0]?.id).toBe('prescription:rx1')
+    expect(rxItems[0]?.title).toContain('Klinik reçete')
+    expect(rxItems[0]?.subtitle).toBe('Tip 2 diyabet — rutin kontrol')
   })
 })

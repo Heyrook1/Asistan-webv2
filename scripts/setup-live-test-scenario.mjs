@@ -55,25 +55,25 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 const CONFIG = {
   clinic: {
     slug: 'asistan-demo-klinigi',
-    name: 'Asistan Demo Klinigi',
-    email: 'demo@asistan.health',
-    phone: '+90 392 555 0100',
-    address: 'Bedrettin Demirel Cad. No:120 Lefkoşa',
+    name: 'Asistan Demo Klinigi (TEST)',
+    email: 'demo.owner@example.com',
+    phone: '+90 555 010 0000',
+    address: 'TEST adres — Bedrettin Demirel Cad. No:120 Lefkoşa',
     city: 'Lefkoşa',
     locationLat: '35.185600',
     locationLng: '33.382300',
     timezone: 'Europe/Nicosia',
   },
   owner: {
-    fullName: 'Dr. Ayse Yilmaz',
-    email: 'demo@asistan.health',
+    fullName: 'Dr. Ayse Yilmaz (TEST)',
+    email: 'demo.owner@example.com',
     password: 'Demo12345!',
   },
   client: {
-    fullName: 'Test Hasta',
-    email: 'hasta.test@asistan.health',
+    fullName: 'Test Hasta (TEST)',
+    email: 'hasta.test@example.com',
     password: 'Hasta12345!',
-    phone: '+90 555 900 0001',
+    phone: '+90 555 010 0091',
     city: 'Lefkoşa',
   },
 }
@@ -113,10 +113,10 @@ const DOCTOR_PERMISSIONS = [
 
 const doctorsSeed = [
   {
-    fullName: 'Dr. Mehmet Demir',
-    email: 'mehmet@asistan.health',
+    fullName: 'Dr. Mehmet Demir (TEST)',
+    email: 'demo.doctor.mehmet@example.com',
     specialty: 'Ic Hastaliklari',
-    bio: 'Ic hastaliklari, kronik hastalik takibi ve koruyucu hekimlik alanlarinda calisir.',
+    bio: 'Ic hastaliklari, kronik hastalik takibi ve koruyucu hekimlik alanlarinda calisir. (TEST)',
     password: 'DocDemo123!',
     services: ['Genel Muayene', 'Online Konsultasyon'],
     availability: [
@@ -129,10 +129,10 @@ const doctorsSeed = [
     ],
   },
   {
-    fullName: 'Dr. Elif Karaca',
-    email: 'elif.karaca@asistan.health',
+    fullName: 'Dr. Elif Karaca (TEST)',
+    email: 'demo.doctor.elif@example.com',
     specialty: 'Kardiyoloji',
-    bio: 'Ritim bozukluklari, hipertansiyon ve koroner risk yonetimi uzerine calisir.',
+    bio: 'Ritim bozukluklari, hipertansiyon ve koroner risk yonetimi uzerine calisir. (TEST)',
     password: 'Cardio123!',
     services: ['Kardiyoloji Muayene', 'EKG ve Kardiyak Degerlendirme'],
     availability: [
@@ -143,10 +143,10 @@ const doctorsSeed = [
     ],
   },
   {
-    fullName: 'Dr. Murat Ozkan',
-    email: 'murat.ozkan@asistan.health',
+    fullName: 'Dr. Murat Ozkan (TEST)',
+    email: 'demo.doctor.murat@example.com',
     specialty: 'Dermatoloji',
-    bio: 'Akne, egzama, leke tedavileri ve dermatoskopik degerlendirme alanlarinda hizmet verir.',
+    bio: 'Akne, egzama, leke tedavileri ve dermatoskopik degerlendirme alanlarinda hizmet verir. (TEST)',
     password: 'Derma123!',
     services: ['Dermatoloji Muayene', 'Cilt Lekesi Degerlendirme'],
     availability: [
@@ -156,10 +156,10 @@ const doctorsSeed = [
     ],
   },
   {
-    fullName: 'Dr. Selin Arslan',
-    email: 'selin.arslan@asistan.health',
+    fullName: 'Dr. Selin Arslan (TEST)',
+    email: 'demo.doctor.selin@example.com',
     specialty: 'Endokrinoloji',
-    bio: 'Tiroid, insulin direnci ve metabolik sendrom takibinde hasta odakli calisir.',
+    bio: 'Tiroid, insulin direnci ve metabolik sendrom takibinde hasta odakli calisir. (TEST)',
     password: 'Endo123!',
     services: ['Endokrinoloji Muayene', 'Tiroid Takip Kontrolu'],
     availability: [
@@ -186,17 +186,17 @@ const servicesSeed = [
 
 const locationsSeed = [
   {
-    name: 'Lefkoşa Merkez',
-    address: 'Bedrettin Demirel Cad. No:120 Lefkoşa',
+    name: 'Lefkoşa Merkez (TEST)',
+    address: 'TEST adres — Bedrettin Demirel Cad. No:120 Lefkoşa',
     city: 'Lefkoşa',
-    phone: '+90 392 700 0001',
+    phone: '+90 555 010 0011',
     sortOrder: 0,
   },
   {
-    name: 'Girne Şube',
-    address: 'Karaoğlanoğlu Cad. No:45 Girne',
+    name: 'Girne Şube (TEST)',
+    address: 'TEST adres — Karaoğlanoğlu Cad. No:45 Girne',
     city: 'Girne',
-    phone: '+90 392 700 0002',
+    phone: '+90 555 010 0012',
     sortOrder: 1,
   },
 ]

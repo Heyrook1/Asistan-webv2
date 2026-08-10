@@ -20,6 +20,7 @@ import {
 import {
   addAllergy, addLabResult, addMedication, addPatientFile, addPatientNote, addTreatment, archivePatient,
 } from '@/lib/actions/patients'
+import { ALLERGY_SEVERITY_LABELS } from '@/lib/ui-labels'
 import { uploadPatientFile } from '@/lib/storage'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
 import { PrescriptionFormDrawer } from '@/components/dashboard/prescription-form-drawer'
@@ -374,9 +375,9 @@ export function PatientActionButtons({
                 <Select defaultValue="ORTA" onValueChange={(v) => (allergyRef.current.severity = v as 'HAFIF' | 'ORTA' | 'SIDDETLI')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="HAFIF">Hafif</SelectItem>
-                    <SelectItem value="ORTA">Orta</SelectItem>
-                    <SelectItem value="SIDDETLI">Şiddetli</SelectItem>
+                    <SelectItem value="HAFIF">{ALLERGY_SEVERITY_LABELS.HAFIF}</SelectItem>
+                    <SelectItem value="ORTA">{ALLERGY_SEVERITY_LABELS.ORTA}</SelectItem>
+                    <SelectItem value="SIDDETLI">{ALLERGY_SEVERITY_LABELS.SIDDETLI}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>

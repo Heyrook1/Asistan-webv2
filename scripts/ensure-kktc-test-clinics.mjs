@@ -103,20 +103,20 @@ const CLINICS = [
   {
     // slug = ASCII URL key; name = Turkish display (Kliniği)
     slug: 'lefkosa-asistan-test',
-    name: 'Lefkoşa Asistan Test Kliniği',
+    name: 'Lefkoşa Asistan Test Kliniği (TEST)',
     city: 'Lefkoşa',
-    address: 'Bedrettin Demirel Cad. No:12 Lefkoşa',
-    phone: '+90 392 555 0101',
+    address: 'TEST adres — Bedrettin Demirel Cad. No:12 Lefkoşa',
+    phone: '+90 555 010 0101',
     lat: '35.185600',
     lng: '33.382300',
     owner: {
-      fullName: 'Dr. Ayşe Lefkoşa',
-      email: 'lefkosa.owner@asistan.health',
+      fullName: 'Dr. Ayşe Lefkoşa (TEST)',
+      email: 'lefkosa.owner@example.com',
       password: 'TestKlinik123!',
     },
     doctor: {
-      fullName: 'Dr. Mehmet Lefkoşa',
-      email: 'lefkosa.doktor@asistan.health',
+      fullName: 'Dr. Mehmet Lefkoşa (TEST)',
+      email: 'lefkosa.doktor@example.com',
       password: 'TestDoktor123!',
       specialty: 'Aile Hekimliği',
     },
@@ -127,20 +127,20 @@ const CLINICS = [
   },
   {
     slug: 'girne-asistan-test',
-    name: 'Girne Asistan Test Kliniği',
+    name: 'Girne Asistan Test Kliniği (TEST)',
     city: 'Girne',
-    address: 'Karaoğlanoğlu Cad. No:8 Girne',
-    phone: '+90 392 555 0202',
+    address: 'TEST adres — Karaoğlanoğlu Cad. No:8 Girne',
+    phone: '+90 555 010 0202',
     lat: '35.341700',
     lng: '33.316700',
     owner: {
-      fullName: 'Dr. Elif Girne',
-      email: 'girne.owner@asistan.health',
+      fullName: 'Dr. Elif Girne (TEST)',
+      email: 'girne.owner@example.com',
       password: 'TestKlinik123!',
     },
     doctor: {
-      fullName: 'Dr. Can Girne',
-      email: 'girne.doktor@asistan.health',
+      fullName: 'Dr. Can Girne (TEST)',
+      email: 'girne.doktor@example.com',
       password: 'TestDoktor123!',
       specialty: 'Dermatoloji',
     },
@@ -151,20 +151,20 @@ const CLINICS = [
   },
   {
     slug: 'magusa-asistan-test',
-    name: 'Gazimağusa Asistan Test Kliniği',
+    name: 'Gazimağusa Asistan Test Kliniği (TEST)',
     city: 'Gazimağusa',
-    address: 'Salamis Yolu No:22 Gazimağusa',
-    phone: '+90 392 555 0303',
+    address: 'TEST adres — Salamis Yolu No:22 Gazimağusa',
+    phone: '+90 555 010 0303',
     lat: '35.126400',
     lng: '33.937800',
     owner: {
-      fullName: 'Dr. Murat Mağusa',
-      email: 'magusa.owner@asistan.health',
+      fullName: 'Dr. Murat Mağusa (TEST)',
+      email: 'magusa.owner@example.com',
       password: 'TestKlinik123!',
     },
     doctor: {
-      fullName: 'Dr. Selin Mağusa',
-      email: 'magusa.doktor@asistan.health',
+      fullName: 'Dr. Selin Mağusa (TEST)',
+      email: 'magusa.doktor@example.com',
       password: 'TestDoktor123!',
       specialty: 'Kardiyoloji',
     },
@@ -473,7 +473,8 @@ async function relocateLegacyDemoClinics() {
     const isKnownDemo =
       biz.slug === 'asistan-demo-klinigi' ||
       biz.email?.endsWith('@asistan.health') ||
-      biz.email?.endsWith('@asistan.online')
+      biz.email?.endsWith('@asistan.online') ||
+      biz.email?.endsWith('@example.com')
 
     if (!isKnownDemo) continue
 
@@ -522,7 +523,7 @@ async function relocateLegacyDemoClinics() {
         data: {
           businessId: biz.id,
           fullName: 'Dr. Test Hekim',
-          email: `doktor+${biz.slug}@asistan.health`,
+          email: `doktor+${biz.slug}@example.com`,
           role: TeamRole.DOKTOR,
           specialty: 'Genel',
           isActive: true,
@@ -592,7 +593,7 @@ async function main() {
   for (const row of results) {
     console.log(`  ${row.city.padEnd(12)} ${row.ownerEmail}  → /book/${row.slug}`)
   }
-  console.log('\nHasta hesabı (önceden varsa): hasta.test@asistan.health / Hasta12345!')
+  console.log('\nHasta hesabı (önceden varsa): hasta.test@example.com / Hasta12345!')
 }
 
 main()

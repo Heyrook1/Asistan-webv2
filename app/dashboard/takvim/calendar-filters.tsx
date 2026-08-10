@@ -24,7 +24,7 @@ export function CalendarFilters({
   onStatusFilterChange: (value: string) => void
 }) {
   return (
-    <Card className="hidden lg:block">
+    <Card className="hidden md:block">
       <CardContent className="grid gap-2 p-3 md:grid-cols-3">
         <div>
           <label htmlFor="calendar-staff-filter" className="sr-only">

@@ -19,6 +19,7 @@ import { NotificationBell } from '@/components/dashboard/notification-bell'
 import { createClient } from '@/lib/supabase/client'
 import type { SessionContext } from '@/lib/rbac'
 import type { NotificationListItem } from '@/lib/notifications/types'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import type { DashboardMembership } from '@/components/dashboard/membership-expiry-banner'
 
 export function MobileTopbar({
@@ -37,6 +38,7 @@ export function MobileTopbar({
   teamMessagingEnabled?: boolean
 }) {
   const router = useRouter()
+  const canManageSettings = canManageClinicSettings(session)
   const initials = session.fullName
     .split(' ')
     .map((n) => n[0])
@@ -119,7 +121,7 @@ export function MobileTopbar({
                 Profilim
               </Link>
             </DropdownMenuItem>
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=isletme" className="flex items-center gap-2.5">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -127,7 +129,7 @@ export function MobileTopbar({
                 </Link>
               </DropdownMenuItem>
             )}
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=abonelik" className="flex items-center gap-2.5">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />

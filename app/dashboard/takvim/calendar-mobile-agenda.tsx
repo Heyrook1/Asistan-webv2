@@ -1,13 +1,12 @@
 'use client'
 
 import { useRef } from 'react'
-import Link from 'next/link'
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_DOT, formatTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from './calendar-types'
 import { FULL_WEEK_DAY_LABELS, HOUR_END, HOUR_START, WEEK_DAY_LABELS } from './calendar-types'
 import { addDays, hourSlotAriaLabel, startOfWeek, toISODate } from './calendar-date-utils'
+import { CalendarEventChip } from './calendar-event-chip'
 
 export function MobileAgenda({
   cursor,
@@ -16,6 +15,7 @@ export function MobileAgenda({
   eventsByDate,
   events,
   canCreate,
+  canManage = false,
   onCreate,
 }: {
   cursor: Date
@@ -24,6 +24,7 @@ export function MobileAgenda({
   eventsByDate?: Map<string, CalendarEvent[]>
   events: CalendarEvent[]
   canCreate: boolean
+  canManage?: boolean
   onCreate: (date: string, startTime?: string) => void
 }) {
   const touch = useRef<{ x: number; y: number } | null>(null)
@@ -76,7 +77,7 @@ export function MobileAgenda({
   const hourSlots = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
 
   return (
-    <div className="lg:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className="md:hidden" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="sticky top-14 z-20 -mx-4 flex items-center justify-between gap-2 border-b border-border/40 bg-dashboard-bg/95 px-4 py-2 backdrop-blur">
         <button
           type="button"
@@ -229,35 +230,7 @@ export function MobileAgenda({
                   ) : (
                     <span className="block space-y-2 py-1">
                       {hourEvents.map((ev) => (
-                        <Link
-                          key={ev.id}
-                          href={`/dashboard/hastalar/${ev.patientId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="block rounded-xl border bg-white px-3 py-2.5 text-[13px] active:bg-slate-50"
-                          style={{
-                            borderLeftColor: APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor,
-                            borderLeftWidth: 3,
-                          }}
-                        >
-                          <span className="block font-semibold text-brand-ink">{ev.patientName}</span>
-                          <span className="mt-0.5 block text-[12px] text-muted-foreground">
-                            {ev.serviceName}{ev.staffName ? ` • ${ev.staffName}` : ''}
-                          </span>
-                          <span className="mt-1 inline-flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span className="font-semibold text-brand-ink">
-                              {formatTime(ev.startTime)} - {formatTime(ev.endTime)}
-                            </span>
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                              style={{
-                                background: `${APPOINTMENT_STATUS_DOT[ev.status] ?? ev.serviceColor}22`,
-                                color: APPOINTMENT_STATUS_DOT[ev.status] ?? 'var(--brand-ink)',
-                              }}
-                            >
-                              {APPOINTMENT_STATUS_LABELS[ev.status]}
-                            </span>
-                          </span>
-                        </Link>
+                        <CalendarEventChip key={ev.id} event={ev} canManage={canManage} />
                       ))}
                     </span>
                   )}

@@ -36,6 +36,7 @@ import { can, ROLE_LABELS, type SessionContext } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/client'
 import type { NotificationListItem } from '@/lib/notifications/types'
 import { getMembershipUrgency } from '@/lib/vendor-membership'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import { cn } from '@/lib/utils'
 import type { DashboardMembership } from '@/components/dashboard/membership-expiry-banner'
 
@@ -92,8 +93,10 @@ export function DashboardHeader({
     window.dispatchEvent(new Event(DASHBOARD_COMMAND_OPEN_EVENT))
   }
 
+  const canManageSettings = canManageClinicSettings(session)
+
   const membershipChip = membership ? (
-    session.isOwner ? (
+    canManageSettings ? (
       <Link
         href="/dashboard/ayarlar?tab=abonelik"
         className={cn(
@@ -228,7 +231,7 @@ export function DashboardHeader({
                 Profilim
               </Link>
             </DropdownMenuItem>
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=isletme" className="flex cursor-pointer items-center gap-2.5">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -236,7 +239,7 @@ export function DashboardHeader({
                 </Link>
               </DropdownMenuItem>
             )}
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=abonelik" className="flex cursor-pointer items-center gap-2.5">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />

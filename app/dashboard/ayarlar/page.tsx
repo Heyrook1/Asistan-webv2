@@ -17,12 +17,13 @@ import {
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { getPatientOutboundChannelConfig } from '@/lib/notifications/channels'
 import { getBusinessChannelDeliveryStats } from '@/lib/notifications/channel-delivery-store'
+import { clinicAssignableStaffWhere } from '@/lib/security/platform-roles'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AyarlarPage() {
   const session = await requireSession()
-  const [business, doctorProfile, vendorAccount, teamMembers, calendarConnections, pendingPaymentRow] =
+  const [business, doctorProfile, vendorAccount, teamMembers, calendarConnections, pendingPaymentRow, locations] =
     await Promise.all([
     prisma.business.findUnique({ where: { id: session.businessId } }),
     session.staffMemberId
@@ -49,7 +50,7 @@ export default async function AyarlarPage() {
       },
     }),
     prisma.teamMember.findMany({
-      where: { businessId: session.businessId, isActive: true },
+      where: clinicAssignableStaffWhere(session.businessId),
       select: { id: true, fullName: true, role: true, isBookable: true },
       orderBy: [{ fullName: 'asc' }],
       take: 200,
@@ -70,6 +71,19 @@ export default async function AyarlarPage() {
     prisma.membershipPayment.findFirst({
       where: { businessId: session.businessId, status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
+    }),
+    prisma.location.findMany({
+      where: { businessId: session.businessId },
+      orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        city: true,
+        phone: true,
+        isActive: true,
+      },
+      take: 100,
     }),
   ])
   if (!business) return null
@@ -125,6 +139,7 @@ export default async function AyarlarPage() {
           selfServeEnabled={selfServeEnabled}
           patientChannels={patientChannels}
           patientChannelDelivery={patientChannelDelivery}
+          locations={locations}
           calendar={{
             enabled: calendarEnabled,
             configured: calendarConfigured,

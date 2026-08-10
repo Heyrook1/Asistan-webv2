@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import { ok, err, type ActionResult } from '@/lib/actions/result'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { entityIdSchema } from '@/lib/actions/validation'
@@ -49,7 +50,7 @@ export async function requestMembershipUpgrade(
   if (!parsed.success) return err('Geçersiz paket seçimi', parsed.error.issues)
 
   const session = await requireSession()
-  if (!session.isOwner) return err('Yalnızca işletme sahibi paket yükseltebilir')
+  if (!canManageClinicSettings(session)) return err('Yalnızca işletme yöneticisi paket yükseltebilir')
 
   const price = getVendorPlanPrice(parsed.data.planCode, parsed.data.billingPeriod)
   if (!price) return err('Bu plan için fiyat tanımlı değil')
@@ -149,7 +150,7 @@ export async function cancelPendingMembershipPayment(
   const parsed = entityIdSchema.safeParse(paymentId)
   if (!parsed.success) return err('Geçersiz ödeme kimliği', parsed.error.issues)
   const session = await requireSession()
-  if (!session.isOwner) return err('Yetkisiz')
+  if (!canManageClinicSettings(session)) return err('Yetkisiz')
 
   const payment = await prisma.membershipPayment.findFirst({
     where: { id: parsed.data, businessId: session.businessId, status: 'PENDING' },

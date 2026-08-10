@@ -8,6 +8,7 @@ import {
   type VendorMembershipStatusValue,
 } from '@/lib/vendor-membership'
 import { SuperAdminBoard } from './super-admin-board'
+import { SuperAdminIntegrationsOpsPanel } from '@/components/dashboard/super-admin-integrations-ops-panel'
 import type { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -378,7 +379,9 @@ export default async function SuperAdminPage() {
   }).length
 
   return (
-    <SuperAdminBoard
+    <div className="space-y-6">
+      <SuperAdminIntegrationsOpsPanel />
+      <SuperAdminBoard
       schemaReady={vendorSchemaReady}
       currentUserId={session.userId}
       metrics={[
@@ -468,5 +471,6 @@ export default async function SuperAdminPage() {
         createdAt: item.createdAt.toLocaleString('tr-TR'),
       }))}
     />
+    </div>
   )
 }

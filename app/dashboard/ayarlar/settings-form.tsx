@@ -28,6 +28,16 @@ import {
   PatientOutboundChannelsPanel,
   type PatientOutboundChannelFlags,
 } from '@/components/dashboard/patient-outbound-channels-panel'
+import {
+  LocationsSettingsPanel,
+  type LocationSettingsRow,
+} from '@/components/dashboard/locations-settings-panel'
+import {
+  canManageClinicSettings,
+  isSettingsTab,
+  resolveSettingsTab,
+  type SettingsTab,
+} from '@/lib/settings/tabs'
 
 type BusinessForm = {
   name: string
@@ -55,20 +65,6 @@ type BusinessForm = {
   whatsappAgentEnabled: boolean
 }
 
-const SETTINGS_TABS = ['hesap', 'isletme', 'randevu', 'fatura', 'marka', 'entegrasyonlar', 'abonelik'] as const
-type SettingsTab = (typeof SETTINGS_TABS)[number]
-const OWNER_SETTINGS_TABS: SettingsTab[] = ['isletme', 'randevu', 'fatura', 'marka', 'abonelik']
-
-function isSettingsTab(value: string | null | undefined): value is SettingsTab {
-  return Boolean(value && SETTINGS_TABS.includes(value as SettingsTab))
-}
-
-function resolveSettingsTab(value: string | null | undefined, isOwner: boolean): SettingsTab {
-  if (!isSettingsTab(value)) return 'hesap'
-  if (!isOwner && OWNER_SETTINGS_TABS.includes(value)) return 'hesap'
-  return value
-}
-
 export function SettingsForm({
   session,
   initial,
@@ -79,6 +75,7 @@ export function SettingsForm({
   bookingSlug,
   patientChannels,
   patientChannelDelivery = null,
+  locations = [],
 }: {
   session: SessionContext
   initial: BusinessForm
@@ -95,12 +92,13 @@ export function SettingsForm({
   bookingSlug: string
   patientChannels: PatientOutboundChannelFlags
   patientChannelDelivery?: import('@/lib/notifications/channel-delivery-store').BusinessChannelDeliveryStats | null
+  locations?: LocationSettingsRow[]
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [form, setForm] = useState<BusinessForm>(initial)
   const [pending, startTransition] = useTransition()
-  const canManageBusiness = session.isOwner
+  const canManageBusiness = canManageClinicSettings(session)
 
   const [tab, setTab] = useState<SettingsTab>(() =>
     resolveSettingsTab(searchParams.get('tab'), canManageBusiness),
@@ -119,14 +117,21 @@ export function SettingsForm({
       }
       return
     }
+    // No tab in URL: keep preference only when URL did not ask for a tab.
     const saved = readUiPreference<string>(UI_PREF_KEYS.settingsTab)
-    setTab(resolveSettingsTab(saved, canManageBusiness))
+    const next = resolveSettingsTab(saved, canManageBusiness)
+    setTab(next)
+    const params = new URLSearchParams(searchParams.toString())
+    if (params.get('tab') !== next) {
+      params.set('tab', next)
+      router.replace(`/dashboard/ayarlar?${params.toString()}`, { scroll: false })
+    }
   }, [canManageBusiness, router, searchParams])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!session.isOwner) {
-      toast.error('Bu ayarları yalnızca işletme sahibi düzenleyebilir')
+    if (!canManageBusiness) {
+      toast.error('Bu ayarları yalnızca işletme yöneticisi düzenleyebilir')
       return
     }
     startTransition(async () => {
@@ -217,31 +222,42 @@ export function SettingsForm({
 
         <TabsContent value="isletme">
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="space-y-4 p-5">
               <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
                 <Field label="İşletme Adı *">
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={!session.isOwner} />
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={!canManageBusiness} />
                 </Field>
                 <Field label="Telefon">
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={!session.isOwner} />
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={!canManageBusiness} />
                 </Field>
                 <Field label="E-posta">
-                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={!session.isOwner} />
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={!canManageBusiness} />
                 </Field>
                 <Field label="Şehir">
-                  <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} disabled={!session.isOwner} />
+                  <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} disabled={!canManageBusiness} />
                 </Field>
                 <div className="sm:col-span-2">
                   <Field label="Adres">
-                    <Textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} rows={2} disabled={!session.isOwner} />
+                    <Textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} rows={2} disabled={!canManageBusiness} />
                   </Field>
                 </div>
                 <div className="sm:col-span-2 flex justify-end">
-                  <Button type="submit" disabled={pending || !session.isOwner} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
+                  <Button type="submit" disabled={pending || !canManageBusiness} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
                     {pending ? 'Kaydediliyor...' : 'Kaydet'}
                   </Button>
                 </div>
               </form>
+
+              <LocationsSettingsPanel
+                locations={locations}
+                canManage={canManageBusiness}
+                businessDefaults={{
+                  name: form.name,
+                  address: form.address,
+                  city: form.city,
+                  phone: form.phone,
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -264,7 +280,7 @@ export function SettingsForm({
                     onCheckedChange={(checked) =>
                       setForm({ ...form, autoConfirmClientAppointments: checked })
                     }
-                    disabled={!session.isOwner}
+                    disabled={!canManageBusiness}
                     aria-label="Otomatik randevu onayı"
                   />
                 </div>
@@ -287,7 +303,7 @@ export function SettingsForm({
                     onCheckedChange={(checked) =>
                       setForm({ ...form, requireGuestIdentity: checked })
                     }
-                    disabled={!session.isOwner}
+                    disabled={!canManageBusiness}
                     aria-label="Genel linkte kimlik zorunluluğu"
                   />
                 </div>
@@ -305,7 +321,7 @@ export function SettingsForm({
                   <Switch
                     checked={form.depositEnabled}
                     onCheckedChange={(checked) => setForm({ ...form, depositEnabled: checked })}
-                    disabled={!session.isOwner}
+                    disabled={!canManageBusiness}
                     aria-label="Depozito zorunluluğu"
                   />
                 </div>
@@ -317,7 +333,7 @@ export function SettingsForm({
                       step="1"
                       value={form.depositAmount}
                       onChange={(e) => setForm({ ...form, depositAmount: e.target.value })}
-                      disabled={!session.isOwner}
+                      disabled={!canManageBusiness}
                       inputMode="decimal"
                     />
                   </Field>
@@ -336,7 +352,7 @@ export function SettingsForm({
                   <Switch
                     checked={form.noShowFeeEnabled}
                     onCheckedChange={(checked) => setForm({ ...form, noShowFeeEnabled: checked })}
-                    disabled={!session.isOwner}
+                    disabled={!canManageBusiness}
                     aria-label="Gelinmedi ücreti politikası"
                   />
                 </div>
@@ -349,7 +365,7 @@ export function SettingsForm({
                         step="1"
                         value={form.noShowFeeAmount}
                         onChange={(e) => setForm({ ...form, noShowFeeAmount: e.target.value })}
-                        disabled={!session.isOwner}
+                        disabled={!canManageBusiness}
                         inputMode="decimal"
                       />
                     </Field>
@@ -358,7 +374,7 @@ export function SettingsForm({
                         rows={2}
                         value={form.noShowFeeNote}
                         onChange={(e) => setForm({ ...form, noShowFeeNote: e.target.value })}
-                        disabled={!session.isOwner}
+                        disabled={!canManageBusiness}
                         placeholder="Örn. Gelinmezse depozito iade edilmez / ücret klinik politikasına göre alınır."
                       />
                     </Field>
@@ -369,10 +385,10 @@ export function SettingsForm({
               <div className="flex justify-end">
                 <Button
                   type="button"
-                  disabled={pending || !session.isOwner}
+                  disabled={pending || !canManageBusiness}
                   className="bg-brand-teal hover:bg-brand-teal-hover text-white"
                   onClick={() => {
-                    if (!session.isOwner) {
+                    if (!canManageBusiness) {
                       toast.error('Bu ayarları yalnızca işletme sahibi düzenleyebilir')
                       return
                     }
@@ -411,8 +427,9 @@ export function SettingsForm({
           <Card>
             <CardContent className="space-y-4 p-5">
               <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4 text-xs leading-5 text-muted-foreground">
-                KKTC Maliye e-Fatura taslakları için vergi profili. TR GİB e-SMM / e-Fatura entegrasyonu yoktur.
-                API gönderimi yalnızca sunucu env (`KKTC_EFATURA_*`) ile açılır.
+                KKTC Maliye e-Fatura taslakları için vergi profili. Türkiye GİB e-SMM / e-Fatura gönderimi yoktur.
+                Maliye’ye elektronik gönderim Asistan destek ekibi tarafından açılır; açık değilse belgeleri
+                yazdırabilirsiniz.
               </div>
               <div className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-slate-50/70 p-4">
                 <div>
@@ -424,7 +441,7 @@ export function SettingsForm({
                 <Switch
                   checked={form.invoiceEnabled}
                   onCheckedChange={(checked) => setForm({ ...form, invoiceEnabled: checked })}
-                  disabled={!session.isOwner}
+                  disabled={!canManageBusiness}
                   aria-label="Fatura özelliğini aç"
                 />
               </div>
@@ -435,7 +452,7 @@ export function SettingsForm({
                       value={form.invoiceTitle}
                       onChange={(e) => setForm({ ...form, invoiceTitle: e.target.value })}
                       placeholder={form.name || 'İşletme ünvanı'}
-                      disabled={!session.isOwner}
+                      disabled={!canManageBusiness}
                     />
                   </Field>
                   <Field label="Vergi no (VKN)">
@@ -443,14 +460,14 @@ export function SettingsForm({
                       value={form.taxVkn}
                       onChange={(e) => setForm({ ...form, taxVkn: e.target.value })}
                       placeholder="KKTC vergi kimlik no"
-                      disabled={!session.isOwner}
+                      disabled={!canManageBusiness}
                     />
                   </Field>
                   <Field label="Vergi dairesi">
                     <Input
                       value={form.taxOffice}
                       onChange={(e) => setForm({ ...form, taxOffice: e.target.value })}
-                      disabled={!session.isOwner}
+                      disabled={!canManageBusiness}
                     />
                   </Field>
                   <div className="sm:col-span-2">
@@ -459,7 +476,7 @@ export function SettingsForm({
                         value={form.invoiceAddress}
                         onChange={(e) => setForm({ ...form, invoiceAddress: e.target.value })}
                         rows={2}
-                        disabled={!session.isOwner}
+                        disabled={!canManageBusiness}
                       />
                     </Field>
                   </div>
@@ -468,10 +485,10 @@ export function SettingsForm({
               <div className="flex justify-end">
                 <Button
                   type="button"
-                  disabled={pending || !session.isOwner}
+                  disabled={pending || !canManageBusiness}
                   className="bg-brand-teal hover:bg-brand-teal-hover text-white"
                   onClick={() => {
-                    if (!session.isOwner) {
+                    if (!canManageBusiness) {
                       toast.error('Bu ayarları yalnızca işletme sahibi düzenleyebilir')
                       return
                     }
@@ -509,19 +526,19 @@ export function SettingsForm({
                     value={form.logoUrl}
                     onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
                     placeholder="https://..."
-                    disabled={!session.isOwner}
+                    disabled={!canManageBusiness}
                   />
                 </Field>
                 <Field label="Marka Rengi">
-                  <Input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} disabled={!session.isOwner} />
+                  <Input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} disabled={!canManageBusiness} />
                 </Field>
                 <div className="sm:col-span-2">
                   <Field label="Açıklama">
-                    <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} disabled={!session.isOwner} />
+                    <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} disabled={!canManageBusiness} />
                   </Field>
                 </div>
                 <Field label="Para Birimi">
-                  <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v as BusinessForm['currency'] })} disabled={!session.isOwner}>
+                  <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v as BusinessForm['currency'] })} disabled={!canManageBusiness}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="TRY">TRY</SelectItem>
@@ -531,7 +548,7 @@ export function SettingsForm({
                   </Select>
                 </Field>
                 <Field label="Zaman Dilimi">
-                  <Select value={form.timezone} onValueChange={(v) => setForm({ ...form, timezone: v })} disabled={!session.isOwner}>
+                  <Select value={form.timezone} onValueChange={(v) => setForm({ ...form, timezone: v })} disabled={!canManageBusiness}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Europe/Istanbul">Europe/Istanbul</SelectItem>
@@ -542,7 +559,7 @@ export function SettingsForm({
                   </Select>
                 </Field>
                 <div className="sm:col-span-2 flex justify-end">
-                  <Button type="submit" disabled={pending || !session.isOwner} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
+                  <Button type="submit" disabled={pending || !canManageBusiness} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
                     {pending ? 'Kaydediliyor...' : 'Kaydet'}
                   </Button>
                 </div>
@@ -567,12 +584,18 @@ export function SettingsForm({
                   <div>
                     <p className="text-sm font-semibold text-brand-ink">WhatsApp randevu asistanı</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Kural tabanlı ön büro: gelen mesaj → mevcut slot motoru → genel link booking.
-                      “Yapay zeka” iddiası değildir. Webhook:{' '}
-                      <code className="text-[11px]">POST /api/webhooks/whatsapp?slug=…</code>
-                      {' '}
-                      (Meta HMAC veya klinik-bağlı token; ham global bearer yetmez).
+                      Gelen WhatsApp mesajlarından müsait slot önerisi ve genel randevu linki sunar.
+                      Yapay zeka iddiası değildir. Çalışması için WhatsApp bildirim kanalının bağlı
+                      olması gerekir.
                     </p>
+                    {!patientChannels.whatsapp ? (
+                      <p className="mt-2 text-xs text-amber-900">
+                        WhatsApp kanalı bağlı değil.{' '}
+                        <a href="/contact" className="font-medium underline underline-offset-2">
+                          WhatsApp&apos;ı bağla
+                        </a>
+                      </p>
+                    ) : null}
                   </div>
                   <Switch
                     checked={form.whatsappAgentEnabled}
@@ -616,7 +639,7 @@ export function SettingsForm({
             membership={membership}
             pendingPayment={pendingPayment}
             selfServeEnabled={selfServeEnabled}
-            isOwner={session.isOwner}
+            isOwner={canManageBusiness}
           />
         </TabsContent>
       </Tabs>

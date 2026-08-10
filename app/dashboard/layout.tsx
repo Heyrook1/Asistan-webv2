@@ -18,6 +18,7 @@ import {
   normalizeVendorPlanCode,
 } from '@/lib/vendor-membership'
 import { canViewAppointmentSchedule } from '@/lib/rbac'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import { MembershipExpiryBanner } from '@/components/dashboard/membership-expiry-banner'
 import { AnnouncementBanner } from '@/components/dashboard/announcement-banner'
 import { SupportModeBanner } from '@/components/dashboard/support-mode-banner'
@@ -131,7 +132,10 @@ export default async function DashboardLayout({
             </div>
           ) : null}
           {showExpiryBanner ? (
-            <MembershipExpiryBanner membership={membership} isOwner={session.isOwner} />
+            <MembershipExpiryBanner
+              membership={membership}
+              canManage={canManageClinicSettings(session)}
+            />
           ) : null}
           {children}
         </main>

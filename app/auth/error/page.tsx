@@ -4,13 +4,7 @@ import { AlertTriangle } from 'lucide-react'
 import { AuthShell } from '@/components/marketing/auth-shell'
 import { Button } from '@/components/ui/button'
 
-export default async function AuthErrorPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>
-}) {
-  const params = await searchParams
-
+export default async function AuthErrorPage() {
   return (
     <AuthShell
       badge="Kimlik doğrulama"
@@ -28,9 +22,8 @@ export default async function AuthErrorPage({
         </div>
         <h2 className="text-2xl font-black text-brand-navy">Oturum açılamadı</h2>
         <p className="mt-2 text-sm leading-7 text-slate-500">
-          {params?.error
-            ? `Hata kodu: ${params.error}`
-            : 'Belirlenemeyen bir doğrulama hatası oluştu.'}
+          Bağlantı süresi dolmuş veya oturum geçersiz olabilir. Giriş veya şifre sıfırlamayı yeniden
+          deneyin; sorun sürerse destek ile iletişime geçin.
         </p>
 
         <div className="mt-6 grid gap-2">
@@ -39,6 +32,9 @@ export default async function AuthErrorPage({
           </Button>
           <Button asChild variant="outline" className="h-11 w-full rounded-lg border-brand-blue/20">
             <Link href="/auth/forgot-password">Şifre sıfırlama</Link>
+          </Button>
+          <Button asChild variant="ghost" className="h-11 w-full rounded-lg">
+            <Link href="/contact">Destek ile iletişime geç</Link>
           </Button>
         </div>
       </div>

@@ -49,6 +49,11 @@ export function PermissionDrawer({
                   <Badge className="mt-2 border-0 bg-brand-teal/10 text-brand-teal">
                     {ROLE_LABELS[member.role]}
                   </Badge>
+                  {member.role === 'ISLETME_SAHIBI' ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      İşletme sahibi ciro (finans) yetkisi üründe sabittir; bu rolden kaldırılamaz.
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>

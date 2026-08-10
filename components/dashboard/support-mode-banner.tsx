@@ -20,7 +20,7 @@ export function SupportModeBanner({ businessName }: { businessName: string }) {
       <div className="flex items-start gap-2">
         <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <div>
-          <p className="text-sm font-semibold">Support mode</p>
+          <p className="text-sm font-semibold">Destek modu</p>
           <p className="text-xs leading-relaxed opacity-90">
             Şu an <strong>{businessName}</strong> klinik panelini destek için görüntülüyorsunuz. Yazma
             işlemleri gerçek veriye yansır — dikkatli olun.
@@ -40,7 +40,7 @@ export function SupportModeBanner({ businessName }: { businessName: string }) {
               toast.error(result.error)
               return
             }
-            toast.success('Support mode kapatıldı')
+            toast.success('Destek modu kapatıldı')
             router.push('/dashboard/sistem-admin')
             router.refresh()
           })

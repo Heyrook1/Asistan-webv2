@@ -42,6 +42,19 @@ export type BusinessChannelDeliveryStats = {
   notConfigured: number
   rate: number | null
   meetsOpsGate: boolean | null
+  lastSentAt: string | null
+  lastErrorAt: string | null
+  byChannel: Record<
+    ReminderChannel,
+    { sent: number; errors: number; notConfigured: number; lastAt: string | null }
+  >
+}
+
+const EMPTY_CHANNEL = {
+  sent: 0,
+  errors: 0,
+  notConfigured: 0,
+  lastAt: null as string | null,
 }
 
 export async function getBusinessChannelDeliveryStats(
@@ -50,11 +63,11 @@ export async function getBusinessChannelDeliveryStats(
 ): Promise<BusinessChannelDeliveryStats> {
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000)
   const db = catalogPrisma()
-  let rows: Array<{ channel: string; status: string; provider: string | null }>
+  let rows: Array<{ channel: string; status: string; provider: string | null; createdAt: Date }>
   try {
     rows = await db.patientChannelAttempt.findMany({
       where: { businessId, createdAt: { gte: since } },
-      select: { channel: true, status: true, provider: true },
+      select: { channel: true, status: true, provider: true, createdAt: true },
       take: 2000,
       orderBy: { createdAt: 'desc' },
     })
@@ -68,6 +81,9 @@ export async function getBusinessChannelDeliveryStats(
       notConfigured: 0,
       rate: null,
       meetsOpsGate: null,
+      lastSentAt: null,
+      lastErrorAt: null,
+      byChannel: { sms: { ...EMPTY_CHANNEL }, whatsapp: { ...EMPTY_CHANNEL }, email: { ...EMPTY_CHANNEL } },
     }
   }
 
@@ -78,6 +94,29 @@ export async function getBusinessChannelDeliveryStats(
     provider: r.provider ?? r.channel,
   }))
 
+  const byChannel: BusinessChannelDeliveryStats['byChannel'] = {
+    sms: { ...EMPTY_CHANNEL },
+    whatsapp: { ...EMPTY_CHANNEL },
+    email: { ...EMPTY_CHANNEL },
+  }
+  let lastSentAt: string | null = null
+  let lastErrorAt: string | null = null
+  for (const row of rows) {
+    const ch = row.channel as ReminderChannel
+    if (!(ch in byChannel)) continue
+    const bucket = byChannel[ch]
+    if (!bucket.lastAt) bucket.lastAt = row.createdAt.toISOString()
+    if (row.status === 'sent') {
+      bucket.sent += 1
+      if (!lastSentAt) lastSentAt = row.createdAt.toISOString()
+    } else if (row.status === 'error') {
+      bucket.errors += 1
+      if (!lastErrorAt) lastErrorAt = row.createdAt.toISOString()
+    } else if (row.status === 'not_configured') {
+      bucket.notConfigured += 1
+    }
+  }
+
   const rate = providerDeliveryRate(results)
   return {
     windowHours,
@@ -87,5 +126,8 @@ export async function getBusinessChannelDeliveryStats(
     notConfigured: results.filter((r) => r.status === 'not_configured').length,
     rate,
     meetsOpsGate: rate == null ? null : rate >= OPS_GATE,
+    lastSentAt,
+    lastErrorAt,
+    byChannel,
   }
 }

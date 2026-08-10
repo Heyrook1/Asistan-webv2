@@ -234,7 +234,8 @@ export function RoleOpsHome({
         </CardContent>
       </Card>
 
-      <RemindersCard initialReminders={reminders} />
+      {/* Doctor/secretary: focus list only (bugün / onay kuyruğu). Staff may keep personal reminders. */}
+      {focus === 'staff' ? <RemindersCard initialReminders={reminders} /> : null}
 
       <UpcomingAppointmentsTable
         upcomingAppointments={appointments}

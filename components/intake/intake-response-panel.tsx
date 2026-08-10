@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { createOrRefreshIntakeLink } from '@/lib/actions/intake-forms'
 import { formatDateTime } from '@/lib/format'
+import { labelIntakeInviteStatus } from '@/lib/ui-labels'
 import type { IntakeFieldDef } from '@/lib/intake/schema'
 
 export type PatientIntakeRow = {
@@ -83,7 +84,7 @@ export function IntakeResponsePanel({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-brand-ink">{invite.formName}</p>
-                    <Badge variant="outline">{invite.status}</Badge>
+                    <Badge variant="outline">{labelIntakeInviteStatus(invite.status)}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {invite.appointment.serviceName} · {invite.appointment.date} {invite.appointment.startTime} ·

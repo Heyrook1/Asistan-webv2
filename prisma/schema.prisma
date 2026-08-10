@@ -283,7 +283,7 @@ model Business {
   logoUrl      String?
   primaryColor String   @default("#12C8AD")
   currency     String   @default("TRY")
-  timezone     String   @default("Europe/Istanbul")
+  timezone     String   @default("Asia/Nicosia")
   autoConfirmClientAppointments Boolean @default(false)
   /// When true, public /book requires KKTC/TC/passport. Default false (P0.6 minimization).
   requireGuestIdentity Boolean @default(false)
@@ -665,6 +665,27 @@ model PersonIdentityMatch {
 
   @@index([leftPersonId, rightPersonId])
   @@index([score])
+}
+
+/// Clinic-scoped merge ledger — supports undo of patient re-point after accept.
+model PersonIdentityMergeLedger {
+  id               String    @id @default(uuid())
+  businessId       String
+  matchId          String
+  leftPersonId     String
+  rightPersonId    String
+  score            Decimal   @db.Decimal(4, 3)
+  patientIdsMoved  String[]
+  summary          Json?
+  acceptedBy       String
+  acceptedAt       DateTime  @default(now())
+  undoneAt         DateTime?
+  undoneBy         String?
+  createdAt        DateTime  @default(now())
+
+  @@index([businessId, acceptedAt])
+  @@index([matchId])
+  @@index([undoneAt])
 }
 
 // ────────────────────────────────────────────────────────────────────────────

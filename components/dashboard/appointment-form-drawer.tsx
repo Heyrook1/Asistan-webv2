@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CalendarPlus, Loader2 } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { createAppointment } from '@/lib/actions/appointments'
+import { LOCATION_SETUP_HREF } from '@/lib/locations/constants'
 import { AccessibleField } from '@/components/ui/accessible-field'
 import {
   nextHalfHourTime,
@@ -109,7 +111,11 @@ export function AppointmentFormDrawer({
     event.preventDefault()
 
     const nextErrors: Record<string, string> = {}
-    if (locations.length > 1 && !form.locationId) nextErrors.locationId = 'Randevu için bir şube seçin.'
+    if (locations.length === 0) {
+      nextErrors.locationId = 'Önce Ayarlar’dan bir şube ekleyin.'
+    } else if (locations.length > 1 && !form.locationId) {
+      nextErrors.locationId = 'Randevu için bir şube seçin.'
+    }
     if (!form.patientId) nextErrors.patientId = 'Randevu oluşturmak için hasta seçin.'
     if (!form.serviceId) nextErrors.serviceId = 'Randevu süresini belirlemek için hizmet seçin.'
     if (!form.date) nextErrors.date = 'Randevu tarihini girin.'
@@ -159,6 +165,7 @@ export function AppointmentFormDrawer({
 
   const noPatients = patients.length === 0
   const noServices = services.length === 0
+  const noLocations = locations.length === 0
   const multipleLocations = locations.length > 1
 
   return (
@@ -171,7 +178,7 @@ export function AppointmentFormDrawer({
               Yeni Randevu
             </SheetTitle>
             <SheetDescription className="text-white/60">
-              Hasta, sube ve saat bilgilerini girin.
+              Hasta, şube ve saat bilgilerini girin.
             </SheetDescription>
           </SheetHeader>
 
@@ -186,9 +193,20 @@ export function AppointmentFormDrawer({
                 Henüz hizmet yok. Önce Hizmetler sayfasından bir hizmet ekleyin.
               </div>
             )}
-            {locations.length === 0 && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800" role="status">
-                Henüz şube kaydı yok. Bu randevu ile varsayılan şube oluşturulacak.
+            {noLocations && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+                <p className="font-semibold">Şube kaydı gerekli</p>
+                <p className="mt-1 text-[13px] leading-5">
+                  Randevu, şube oluşturmaz. Önce Ayarlar’da şube adı ve adresini kaydedin; ardından
+                  buradan randevu alın.
+                </p>
+                <Link
+                  href={LOCATION_SETUP_HREF}
+                  className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-brand-teal underline-offset-2 hover:underline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Şube kurulumuna git →
+                </Link>
               </div>
             )}
             {locations.length > 0 && (
@@ -322,7 +340,7 @@ export function AppointmentFormDrawer({
               <Button
                 type="submit"
                 size="lg"
-                disabled={pending || noPatients || noServices}
+                disabled={pending || noPatients || noServices || noLocations}
                 className="h-11 flex-[2] bg-brand-teal text-white hover:bg-brand-teal-hover md:flex-none"
               >
                 {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}

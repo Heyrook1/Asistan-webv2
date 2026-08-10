@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, Loader2, Plus, Trash2, UserPlus, CheckCircle
 import { toast } from 'sonner'
 import { createPatient } from '@/lib/actions/patients'
 import { cn } from '@/lib/utils'
+import { ALLERGY_SEVERITY_LABELS } from '@/lib/ui-labels'
 
 const STEPS = [
   { id: 'temel', label: 'Temel Bilgiler', description: 'Kimlik ve İletişim' },
@@ -351,9 +352,9 @@ export function PatientFormDrawer({
                         <Select value={item.severity} onValueChange={(v) => set({ ...item, severity: v as AllergyDraft['severity'] })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="HAFIF">Hafif</SelectItem>
-                            <SelectItem value="ORTA">Orta</SelectItem>
-                            <SelectItem value="SIDDETLI">Şiddetli</SelectItem>
+                            <SelectItem value="HAFIF">{ALLERGY_SEVERITY_LABELS.HAFIF}</SelectItem>
+                            <SelectItem value="ORTA">{ALLERGY_SEVERITY_LABELS.ORTA}</SelectItem>
+                            <SelectItem value="SIDDETLI">{ALLERGY_SEVERITY_LABELS.SIDDETLI}</SelectItem>
                           </SelectContent>
                         </Select>
                       </Field>

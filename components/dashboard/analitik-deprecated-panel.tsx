@@ -32,7 +32,7 @@ export function AnalitikDeprecatedPanel() {
         </CardContent>
       </Card>
       <p className="px-1 text-sm text-muted-foreground">
-        Açmak için: <code className="text-xs">ASISTAN_FLAG_CLINIC_ANALYTICS=true</code> (veya env satırını kaldırın)
+        Operasyon raporunu yeniden açmak için Asistan destek ekibine yazın.
       </p>
     </div>
   )

@@ -17,6 +17,7 @@ export type AuditAction =
   | 'appointment.create'
   | 'appointment.update'
   | 'appointment.cancel'
+  | 'appointment.archive'
   | 'appointment.reschedule'
   | 'team.member.update'
   | 'team.permission.update'

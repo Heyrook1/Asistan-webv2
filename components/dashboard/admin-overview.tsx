@@ -54,6 +54,11 @@ type Modal = 'appointment' | 'patient' | 'service' | 'share' | null
 const DASHBOARD_REFRESH_INTERVAL_MS = 120_000
 const QUICK_START_TOUR_KEY_PREFIX = 'asistan.quick-start-tour.v1.dismissed.'
 
+/**
+ * Owner / işletme sahibi home only.
+ * Secretary, doctor, and staff render {@link RoleOpsHome} from `app/dashboard/page.tsx`
+ * so stats, fill-gap, setup, mini-calendar, and priority cards never mount for those roles.
+ */
 export function AdminOverview({
   businessName,
   stats,
@@ -67,6 +72,7 @@ export function AdminOverview({
   canCreateAppointment,
   canManageService,
   canViewAnalytics,
+  canViewFinance,
   defaultStaffId,
   teamMessagingEnabled = false,
   clinicAnalyticsEnabled = false,
@@ -84,6 +90,8 @@ export function AdminOverview({
   canCreateAppointment: boolean
   canManageService: boolean
   canViewAnalytics: boolean
+  /** Same source as Analitik — never show ₺0 as a stand-in for missing finance permission. */
+  canViewFinance: boolean
   defaultStaffId?: string
   teamMessagingEnabled?: boolean
   clinicAnalyticsEnabled?: boolean
@@ -260,7 +268,7 @@ export function AdminOverview({
         </CardContent>
       </Card>
 
-      <StatsGrid stats={stats} canViewAnalytics={canViewAnalytics} />
+      <StatsGrid stats={stats} canViewFinance={canViewFinance} />
       {fillGap && (
         <FillGapPanel
           headline={fillGap.headline}

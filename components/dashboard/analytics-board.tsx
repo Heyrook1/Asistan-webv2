@@ -252,9 +252,9 @@ export function AnalyticsBoard({
           {!canViewRevenue ? (
             <AnalyticsEmpty
               title="Ciro yetkisi yok"
-              description="Ciro verilerini görüntüleme yetkiniz yok. İşletme sahibi veya yetkili bir rolden erişin."
-              actionHref="/dashboard/takim"
-              actionLabel="Takım yetkileri"
+              description="Ciro verilerini görüntüleme yetkiniz yok. Bu ekran yetkisizlikte ₺0 göstermez — finans erişimi için işletme sahibine başvurun."
+              actionHref="/dashboard/yetkisiz?need=analytics.revenue.view"
+              actionLabel="Yetki açıklaması"
             />
           ) : totalRevenue === 0 ? (
             <AnalyticsEmpty

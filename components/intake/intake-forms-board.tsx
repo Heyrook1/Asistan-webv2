@@ -9,6 +9,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/dashboard/empty-state'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { deleteIntakeForm } from '@/lib/actions/intake-forms'
 
 export type IntakeFormListItem = {
@@ -32,13 +42,16 @@ export function IntakeFormsBoard({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const sorted = useMemo(
     () => [...forms].sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.name.localeCompare(b.name, 'tr')),
     [forms]
   )
 
-  function remove(id: string) {
-    if (!confirm('Bu anketi silmek istiyor musunuz?')) return
+  function confirmRemove() {
+    if (!deleteId) return
+    const id = deleteId
+    setDeleteId(null)
     setBusyId(id)
     startTransition(async () => {
       const result = await deleteIntakeForm(id)
@@ -107,7 +120,7 @@ export function IntakeFormsBoard({
                       variant="ghost"
                       size="sm"
                       disabled={pending && busyId === form.id}
-                      onClick={() => remove(form.id)}
+                      onClick={() => setDeleteId(form.id)}
                     >
                       <Trash2 className="mr-1 size-3.5" />
                       Sil
@@ -119,6 +132,21 @@ export function IntakeFormsBoard({
           ))}
         </div>
       )}
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bu anketi silmek istiyor musunuz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anket kalıcı olarak kaldırılır. Bağlı hizmet atamaları da etkilenir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hayır, geri dön</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Evet, sil</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

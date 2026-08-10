@@ -175,7 +175,7 @@ export async function submitInvoiceToKktc(
       data: {
         status: 'READY',
         lastError:
-          'API yok — yazdırılabilir READY. KKTC_EFATURA_* env ile Maliye gönderimi açılır.',
+          'Maliye bağlantısı yapılandırılmamış — belge yazdırılabilir durumda. Gönderim için Asistan destek ekibine yazın.',
       },
     })
     revalidatePath('/dashboard/faturalar')

@@ -16,7 +16,7 @@ export type TrustControlRow = {
   codeControl: string
   /** Automated test / smoke */
   automatedTest: string
-  /** Last verification date (ISO calendar day, Europe/Nicosia ops) */
+  /** Last verification date (ISO calendar day, Asia/Nicosia ops) */
   lastVerified: string
   owner: 'Security' | 'Backend' | 'Platform' | 'Privacy'
   posture: TrustControlPosture

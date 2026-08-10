@@ -63,13 +63,13 @@ export function CalendarIntegrationPanel({
     const status = searchParams.get('calendar')
     if (!status) return
     const messages: Record<string, string> = {
-      connected: 'Google Calendar bağlandı; meşgul dilimler içe aktarıldı.',
-      denied: 'Google yetkilendirmesi iptal edildi.',
-      invalid: 'Geçersiz OAuth dönüşü.',
-      missing_refresh: 'Google yenileme jetonu alınamadı. Tekrar bağlayın (consent).',
+      connected: 'Google Takvim bağlandı; meşgul dilimler içe aktarıldı.',
+      denied: 'Google izni iptal edildi.',
+      invalid: 'Google bağlantısı tamamlanamadı. Tekrar deneyin.',
+      missing_refresh: 'Google bağlantısı tamamlanamadı. İzin ekranından tekrar bağlayın.',
       staff_missing: 'Personel bulunamadı.',
       disabled: 'Takvim senkronu şu an kapalı.',
-      error: 'Google Calendar bağlantısı başarısız.',
+      error: 'Google Takvim bağlantısı başarısız.',
     }
     const message = messages[status]
     if (message) {
@@ -99,7 +99,7 @@ export function CalendarIntegrationPanel({
           toast.error(json.error || 'İşlem başarısız')
           return
         }
-        if (action === 'disconnect') toast.success('Google Calendar bağlantısı kaldırıldı')
+        if (action === 'disconnect') toast.success('Google Takvim bağlantısı kaldırıldı')
         else toast.success(`Senkron tamamlandı (${json.importedBlocks ?? 0} meşgul dilim)`)
         router.refresh()
       } catch {
@@ -113,15 +113,23 @@ export function CalendarIntegrationPanel({
   if (!configured) {
     return (
       <Card>
-        <CardContent className="space-y-3 p-5">
-          <p className="text-sm font-semibold text-brand-ink">Takvim entegrasyonları</p>
-          <p className="text-sm text-muted-foreground">
-            Google Calendar meşgul-dilim senkronu için sunucu ortamına{' '}
-            <code className="text-xs">GOOGLE_CALENDAR_CLIENT_ID</code>,{' '}
-            <code className="text-xs">GOOGLE_CALENDAR_CLIENT_SECRET</code> ve{' '}
-            <code className="text-xs">CALENDAR_TOKEN_ENCRYPTION_KEY</code> ekleyin. Outlook yazma
-            desteklenmiyor; önce yalnızca Google FreeBusy (busy blocks).
-          </p>
+        <CardContent className="space-y-4 p-5">
+          <div className="flex items-start gap-3">
+            <CalendarDays className="mt-0.5 size-5 text-brand-teal" />
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-brand-ink">Google Takvim</p>
+                <Badge variant="outline">Bağlı değil</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Google Takvim meşgul-dilim senkronu bu klinikte henüz etkin değil. Bağlantıyı Asistan
+                destek ekibi açar; ardından personel hesabınızı buradan bağlayabilirsiniz.
+              </p>
+              <Button asChild size="sm" className="bg-brand-teal text-white hover:bg-brand-teal-hover">
+                <a href="/contact">Google Takvim&apos;i bağla</a>
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     )
@@ -130,11 +138,17 @@ export function CalendarIntegrationPanel({
   if (!enabled) {
     return (
       <Card>
-        <CardContent className="space-y-3 p-5">
-          <p className="text-sm font-semibold text-brand-ink">Takvim entegrasyonları</p>
+        <CardContent className="space-y-4 p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-brand-ink">Google Takvim</p>
+            <Badge className="border-0 bg-amber-100 text-amber-900 hover:bg-amber-100">Hata</Badge>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Özellik bayrağı kapalı (<code className="text-xs">ASISTAN_FLAG_CALENDAR_SYNC=0</code>).
+            Takvim senkronu geçici olarak kapalı. Tekrar açılması için destek ekibine yazın.
           </p>
+          <Button asChild size="sm" variant="outline">
+            <a href="/contact">Destek ile iletişime geç</a>
+          </Button>
         </CardContent>
       </Card>
     )
@@ -147,11 +161,11 @@ export function CalendarIntegrationPanel({
           <div className="flex items-start gap-3">
             <CalendarDays className="mt-0.5 size-5 text-brand-teal" />
             <div>
-              <p className="text-sm font-semibold text-brand-ink">Google Calendar — meşgul dilimler</p>
+              <p className="text-sm font-semibold text-brand-ink">Google Takvim — meşgul dilimler</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 Klinik randevusuna yazılmaz. Google&apos;daki meşgul saatler Asistan müsaitlik
-                bloklarına aktarılır; hasta slotları ve panel çakışma kontrolü bunları dikkate
-                alır. Randevu geri yazma (write-back) sonraki aşama.
+                bloklarına aktarılır; hasta müsait saatleri ve panel çakışma kontrolü bunları dikkate
+                alır. Randevuyu Google takvimine geri yazma sonraki aşamada gelecek.
               </p>
             </div>
           </div>
@@ -176,7 +190,11 @@ export function CalendarIntegrationPanel({
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{member.role}</Badge>
                     {connection ? (
-                      <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Bağlı</Badge>
+                      connection.lastError ? (
+                        <Badge className="border-0 bg-red-100 text-red-800 hover:bg-red-100">Hata</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Bağlı</Badge>
+                      )
                     ) : (
                       <Badge variant="outline">Bağlı değil</Badge>
                     )}
@@ -225,7 +243,7 @@ export function CalendarIntegrationPanel({
                       className="bg-brand-teal text-white hover:bg-brand-teal-hover"
                       onClick={() => connect(member.id)}
                     >
-                      Google&apos;ı bağla
+                      Google Takvim&apos;i bağla
                     </Button>
                   )}
                 </div>
@@ -239,8 +257,8 @@ export function CalendarIntegrationPanel({
         <CardContent className="space-y-2 p-5">
           <p className="text-sm font-semibold text-brand-ink">Outlook</p>
           <p className="text-xs text-muted-foreground">
-            Microsoft Graph busy-block senkronu planlandı; Google production MVP tamamlandıktan
-            sonra aynı bağlantı modeline eklenecek.
+            Outlook meşgul-dilim senkronu yakında; Google Takvim bağlantısı hazır olduğunda aynı
+            ekrandan eklenecek.
           </p>
           <Badge variant="outline">Yakında</Badge>
         </CardContent>

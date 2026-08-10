@@ -27,9 +27,24 @@ import {
   type Permission,
   type SessionContext,
   can,
+  canAny,
+  canViewFinance,
+  FINANCE_VIEW_PERMISSION,
 } from '@/lib/rbac'
 
-export { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS, can, parseSystemAdminEmails }
+export {
+  PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+  ROLE_LABELS,
+  can,
+  canAny,
+  canAccessTeam,
+  canViewFinance,
+  FINANCE_VIEW_PERMISSION,
+  TEAM_ACCESS_PERMISSIONS,
+  isPrivilegedClinicAdmin,
+  parseSystemAdminEmails,
+}
 export type { Permission, SessionContext }
 
 type SessionBlockReason = 'package_expired' | null
@@ -352,8 +367,10 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
   if (blockedReason) return { session: null, blockedReason }
 
   const explicit = (currentMembership?.permissions ?? []) as Permission[]
+  // ISLETME_SAHIBI / owner / super-admin always get the live capability matrix.
+  // Stale TeamMember.permissions JSON must not strip newly added keys (e.g. team.view).
   const permissions =
-    resolvedIsOwner || role === TeamRole.SUPER_ADMIN
+    resolvedIsOwner || role === TeamRole.SUPER_ADMIN || role === TeamRole.ISLETME_SAHIBI
       ? [...PERMISSIONS]
       : explicit.length > 0
         ? explicit
@@ -403,17 +420,21 @@ export async function requireSession(): Promise<SessionContext> {
 
 export async function requirePermission(permission: Permission): Promise<SessionContext> {
   const session = await requireSession()
-  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
-  if (!session.permissions.includes(permission)) {
+  if (!can(session, permission)) {
     throw new Error('Bu işlem için yetkiniz yok')
   }
   return session
 }
 
+function forbiddenRedirect(need: string) {
+  redirect(`/dashboard/yetkisiz?need=${encodeURIComponent(need)}`)
+}
+
 export async function requirePagePermission(permission: Permission): Promise<SessionContext> {
   const session = await requireSession()
-  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
-  if (!session.permissions.includes(permission)) redirect('/dashboard')
+  if (!can(session, permission)) {
+    forbiddenRedirect(permission)
+  }
   return session
 }
 
@@ -421,8 +442,9 @@ export async function requirePageAnyPermission(
   ...permissions: Permission[]
 ): Promise<SessionContext> {
   const session = await requireSession()
-  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
-  if (!permissions.some((p) => session.permissions.includes(p))) redirect('/dashboard')
+  if (!canAny(session, permissions)) {
+    forbiddenRedirect(permissions.join(','))
+  }
   return session
 }
 

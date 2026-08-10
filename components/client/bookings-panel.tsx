@@ -17,6 +17,16 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useLiveAvailability } from '@/hooks/use-live-availability'
 import { userMessageFromUnknown } from '@/lib/http/read-json'
 import {
@@ -136,6 +146,7 @@ export function ClientBookingsPanel() {
   const [comment, setComment] = useState('')
 
   const [showPast, setShowPast] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<AppointmentRow | null>(null)
 
   const rescheduleRow = useMemo(
     () => rows.find((row) => row.id === rescheduleId) ?? null,
@@ -234,10 +245,13 @@ export function ClientBookingsPanel() {
       )
       return
     }
-    const confirmed = window.confirm(
-      `Bu randevuyu iptal etmek istiyor musunuz?\n\n${row.clinic.name} — ${row.date} ${row.startTime}\n\nİptal, randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce yapılmalıdır.`
-    )
-    if (!confirmed) return
+    setCancelTarget(row)
+  }
+
+  async function confirmCancelAppointment() {
+    const row = cancelTarget
+    if (!row) return
+    setCancelTarget(null)
 
     setSavingId(row.id)
     try {
@@ -459,6 +473,25 @@ export function ClientBookingsPanel() {
           </section>
         </>
       )}
+
+      <AlertDialog open={cancelTarget !== null} onOpenChange={(open) => !open && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bu randevuyu iptal etmek istiyor musunuz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {cancelTarget
+                ? `${cancelTarget.clinic.name} — ${cancelTarget.date} ${cancelTarget.startTime}. İptal, randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce yapılmalıdır.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hayır, geri dön</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmCancelAppointment()}>
+              Evet, iptal et
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

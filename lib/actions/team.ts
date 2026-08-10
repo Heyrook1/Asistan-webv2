@@ -15,16 +15,17 @@ import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
 import { getVendorPlanName, getVendorPlanUserLimit } from '@/lib/vendor-membership'
 import { platformRoleAssignmentError } from '@/lib/security/platform-roles'
+import { assertRemainingFinanceAdmin } from '@/lib/team/finance-guard'
 
 const memberSchema = z.object({
   fullName: z.string().trim().min(2, 'Ad soyad en az 2 karakter').max(120),
-  email: z.string().trim().email('Gecersiz e-posta'),
+  email: z.string().trim().email('Geçersiz e-posta'),
   phone: z.preprocess(
     (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
     z.string().min(7).max(40).optional()
   ),
   role: z.enum(['SUPER_ADMIN', 'ISLETME_SAHIBI', 'DOKTOR', 'SEKRETER', 'PERSONEL']),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Gecersiz renk').default('#16A9E8'),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Geçersiz renk').default('#16A9E8'),
   permissions: z.array(z.enum([...PERMISSIONS])).optional(),
   sendInvite: z.boolean().optional().default(true),
   password: z.preprocess(
@@ -146,7 +147,7 @@ async function inviteAuthUser(input: {
 
 export async function createTeamMember(input: unknown): Promise<ActionResult<{ id: string; invitationSent: boolean }>> {
   const parsed = memberSchema.safeParse(input)
-  if (!parsed.success) return err('Form hatali', parsed.error.issues)
+  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requirePermission('team.create')
   // SUPER_ADMIN is a platform-level role and can never be assigned via tenant team actions.
   const platformRoleError = platformRoleAssignmentError(parsed.data.role)
@@ -154,7 +155,7 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
     return err(platformRoleError)
   }
   if (!session.isOwner && parsed.data.role === 'ISLETME_SAHIBI') {
-    return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
+    return err('Bu rol yalnızca işletme sahibi tarafından atanabilir.')
   }
 
   const role = parsed.data.role as TeamRole
@@ -170,7 +171,7 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
       select: { id: true },
     })
     if (existingMember) {
-      return err('Bu e-posta ile kayitli bir ekip uyesi zaten var.')
+      return err('Bu e-posta ile kayıtlı bir ekip üyesi zaten var.')
     }
 
     try {
@@ -191,10 +192,10 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
 
       if (userLimit !== null && activeMemberCount >= userLimit) {
         if (vendorAccount?.isDemo || userLimit === 1) {
-          return err('Bu hesap en fazla 1 aktif kullaniciya izin verir. Yeni kullanici icin paket yukseltin.')
+          return err('Bu hesap en fazla 1 aktif kullanıcıya izin verir. Yeni kullanıcı için paket yükseltin.')
         }
         return err(
-          `${getVendorPlanName(vendorAccount?.plan)} paketi en fazla ${userLimit} aktif kullaniciya izin verir.`
+          `${getVendorPlanName(vendorAccount?.plan)} paketi en fazla ${userLimit} aktif kullanıcıya izin verir.`
         )
       }
     } catch (limitError) {
@@ -218,7 +219,7 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
         const message = error instanceof Error ? error.message.toLowerCase() : ''
         if (parsed.data.password && message.includes('invalid api key')) {
           return err(
-            'Yönetici tarafından şifre belirlemek için geçerli Supabase admin anahtarı gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY değerini düzeltin.'
+            'Şifre belirleme şu an kullanılamıyor. Sunucu yapılandırması eksik — destek ile iletişime geçin.'
           )
         }
         if (!message.includes('invalid api key')) throw error
@@ -310,9 +311,9 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
     return ok({ id: created.id, invitationSent: authUser?.invitationSent ?? false })
   } catch (e) {
     if (e instanceof Error && e.message === 'SUPABASE_SERVICE_ROLE_KEY is not configured') {
-      return err('Ekip uyesi girisi olusturmak icin SUPABASE_SERVICE_ROLE_KEY ayarlanmali.')
+      return err('Ekip üyesi girişi oluşturulamadı. Sunucu yapılandırması eksik — destek ile iletişime geçin.')
     }
-    return err(e instanceof Error ? e.message : 'Ekip uyesi olusturulamadi.')
+    return err(e instanceof Error ? e.message : 'Ekip üyesi oluşturulamadı.')
   }
 }
 
@@ -320,20 +321,20 @@ const updateSchema = memberSchema.omit({ password: true, sendInvite: true }).par
 
 export async function updateTeamMember(input: unknown): Promise<ActionResult> {
   const parsed = updateSchema.safeParse(input)
-  if (!parsed.success) return err('Form hatali', parsed.error.issues)
+  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
   const session = await requireSession()
   const { id, ...patch } = parsed.data
   const owned = await prisma.teamMember.findFirst({ where: { id, businessId: session.businessId } })
-  if (!owned) return err('Uye bulunamadi')
+  if (!owned) return err('Üye bulunamadı')
   if (patch.role && patch.role !== owned.role && !can(session, 'team.role.edit')) {
-    return err('Rol duzenleme yetkiniz yok')
+    return err('Rol düzenleme yetkiniz yok')
   }
   if (patch.permissions && !can(session, 'team.permission.edit')) {
-    return err('Yetki duzenleme yetkiniz yok')
+    return err('Yetki düzenleme yetkiniz yok')
   }
   const profileChanged = patch.fullName !== undefined || patch.email !== undefined || patch.phone !== undefined || patch.color !== undefined
   if (profileChanged && !can(session, 'team.manage')) {
-    return err('Ekip uyesi duzenleme yetkiniz yok')
+    return err('Ekip üyesi düzenleme yetkiniz yok')
   }
   // SUPER_ADMIN is a platform-level role and can never be assigned via tenant team actions.
   const platformRoleError = platformRoleAssignmentError(patch.role)
@@ -341,8 +342,20 @@ export async function updateTeamMember(input: unknown): Promise<ActionResult> {
     return err(platformRoleError)
   }
   if (!session.isOwner && patch.role === 'ISLETME_SAHIBI') {
-    return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
+    return err('Bu rol yalnızca işletme sahibi tarafından atanabilir.')
   }
+
+  const nextRole = (patch.role ?? owned.role) as TeamRole
+  const nextPermissions = (patch.permissions ?? (owned.permissions as string[])) as string[]
+  const financeGuard = await assertRemainingFinanceAdmin({
+    businessId: session.businessId,
+    memberId: id,
+    nextRole,
+    nextPermissions,
+    nextIsActive: owned.isActive,
+  })
+  if (!financeGuard.ok) return err(financeGuard.error)
+
   await prisma.teamMember.update({
     where: { id },
     data: {
@@ -406,7 +419,7 @@ const rolePermissionsSchema = z.object({
 
 export async function updateRolePermissions(input: unknown): Promise<ActionResult<{ updated: number }>> {
   const parsed = rolePermissionsSchema.safeParse(input)
-  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
+  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.permission.edit')
   const result = await prisma.teamMember.updateMany({
     where: {
@@ -437,7 +450,7 @@ const toggleSchema = z.object({ id: z.string().uuid(), isActive: z.boolean() })
 
 export async function setTeamMemberActive(input: unknown): Promise<ActionResult> {
   const parsed = toggleSchema.safeParse(input)
-  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
+  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.manage')
 
   if (parsed.data.isActive) {
@@ -445,7 +458,7 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
       where: { id: parsed.data.id, businessId: session.businessId },
       select: { id: true, isActive: true },
     })
-    if (!target) return err('Uye bulunamadi')
+    if (!target) return err('Üye bulunamadı')
 
     try {
       const [vendorAccount, activeMemberCount] = await Promise.all([
@@ -466,10 +479,10 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
 
       if (userLimit !== null && projectedActiveCount > userLimit) {
         if (vendorAccount?.isDemo || userLimit === 1) {
-          return err('Bu hesap en fazla 1 aktif kullaniciya izin verir.')
+          return err('Bu hesap en fazla 1 aktif kullanıcıya izin verir.')
         }
         return err(
-          `${getVendorPlanName(vendorAccount?.plan)} paketi en fazla ${userLimit} aktif kullaniciya izin verir.`
+          `${getVendorPlanName(vendorAccount?.plan)} paketi en fazla ${userLimit} aktif kullanıcıya izin verir.`
         )
       }
     } catch (limitError) {
@@ -478,6 +491,20 @@ export async function setTeamMemberActive(input: unknown): Promise<ActionResult>
         throw limitError
       }
     }
+  } else {
+    const target = await prisma.teamMember.findFirst({
+      where: { id: parsed.data.id, businessId: session.businessId },
+      select: { id: true, role: true, permissions: true, isActive: true },
+    })
+    if (!target) return err('Üye bulunamadı')
+    const financeGuard = await assertRemainingFinanceAdmin({
+      businessId: session.businessId,
+      memberId: target.id,
+      nextRole: target.role,
+      nextPermissions: (target.permissions as string[]) ?? [],
+      nextIsActive: false,
+    })
+    if (!financeGuard.ok) return err(financeGuard.error)
   }
 
   await prisma.teamMember.updateMany({
@@ -505,19 +532,19 @@ const resetPasswordSchema = z.object({
 
 export async function resetTeamMemberPassword(input: unknown): Promise<ActionResult> {
   const parsed = resetPasswordSchema.safeParse(input)
-  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
+  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.manage')
   const target = await prisma.teamMember.findFirst({
     where: { id: parsed.data.id, businessId: session.businessId },
     include: { user: true },
   })
-  if (!target) return err('Uye bulunamadi')
-  if (target.userId === session.userId) return err('Kendi sifrenizi buradan sifirlayamazsiniz')
+  if (!target) return err('Üye bulunamadı')
+  if (target.userId === session.userId) return err('Kendi şifrenizi buradan sıfırlayamazsınız')
 
   const admin = createAdminClient()
   if (!admin) {
     return err(
-      'Şifre sıfırlama için Supabase admin anahtarı gerekir. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY ayarlanmalı.'
+      'Şifre sıfırlama şu an kullanılamıyor. Sunucu yapılandırması eksik — destek ile iletişime geçin.'
     )
   }
 
@@ -554,7 +581,7 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
       if (error) throw error
     }
 
-    if (!authUserId) return err('Supabase kullanicisi olusturulamadi')
+    if (!authUserId) return err('Kullanıcı hesabı oluşturulamadı')
 
     await tenantTransaction(session.businessId, async (tx) => {
       let user = await tx.user.findUnique({ where: { email: target.email.toLowerCase() } })
@@ -584,7 +611,7 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
     return ok(undefined)
   } catch (e) {
     if (e instanceof Error && e.message.toLowerCase().includes('invalid api key')) {
-      return err('Supabase admin anahtari gecersiz. SUPABASE_SECRET_KEY veya SUPABASE_SERVICE_ROLE_KEY degerini duzeltin.')
+      return err('Şifre sıfırlama başarısız. Sunucu yapılandırmasını kontrol etmek için destek ile iletişime geçin.')
     }
     return err(e instanceof Error ? e.message : 'Şifre sıfırlanamadı.')
   }
@@ -593,12 +620,12 @@ export async function resetTeamMemberPassword(input: unknown): Promise<ActionRes
 export async function deleteTeamMember(input: unknown): Promise<ActionResult> {
   const schema = z.object({ id: z.string().uuid() })
   const parsed = schema.safeParse(input)
-  if (!parsed.success) return err('Gecersiz girdi', parsed.error.issues)
+  if (!parsed.success) return err('Geçersiz girdi', parsed.error.issues)
   const session = await requirePermission('team.manage')
   const target = await prisma.teamMember.findFirst({
     where: { id: parsed.data.id, businessId: session.businessId },
   })
-  if (!target) return err('Uye bulunamadi')
+  if (!target) return err('Üye bulunamadı')
   if (target.userId && target.userId === session.userId) return err('Kendinizi silemezsiniz')
   await prisma.teamMember.updateMany({
     where: { id: parsed.data.id, businessId: session.businessId },

@@ -1,4 +1,4 @@
-import { requireSession, can } from '@/lib/session'
+import { requireSession, can, canViewFinance } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { isKktcEFaturaConfigured } from '@/lib/invoicing'
 import { ClinicInvoicesBoard } from '@/components/dashboard/clinic-invoices-board'
@@ -8,10 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function FaturalarPage() {
   const session = await requireSession()
-  const allowed =
-    session.isOwner ||
-    can(session, 'appointment.manage') ||
-    can(session, 'analytics.revenue.view')
+  const allowed = can(session, 'appointment.manage') || canViewFinance(session)
 
   if (!allowed) {
     return (

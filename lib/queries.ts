@@ -152,7 +152,14 @@ export async function getPatientsList(
           riskNote: true,
           createdAt: true,
           updatedAt: true,
-          _count: { select: { appointments: true, files: true, notes: true, allergies: true } },
+          _count: {
+            select: {
+              appointments: { where: { deletedAt: null } },
+              files: { where: { deletedAt: null } },
+              notes: { where: { deletedAt: null } },
+              allergies: { where: { deletedAt: null } },
+            },
+          },
         },
       }),
     { hasQuery: Boolean(options.query) }
@@ -203,6 +210,7 @@ export async function getPatientDetail(
           labResults: { orderBy: { resultDate: 'desc' } },
           files: { orderBy: { uploadedAt: 'desc' } },
           appointments: {
+            where: { deletedAt: null },
             orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
             include: {
               service: { select: { name: true, color: true } },
@@ -210,7 +218,11 @@ export async function getPatientDetail(
               location: { select: { name: true } },
             },
           },
-          timeline: { orderBy: { createdAt: 'desc' }, take: 50 },
+          timeline: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+          },
         },
       })
 
@@ -311,10 +323,13 @@ export async function getServicesList(businessId: string) {
 }
 
 export async function getTeamList(businessId: string) {
-  return prisma.teamMember.findMany({
-    where: { businessId },
-    orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
-  })
+  // asistan_app FORCE RLS — TeamMember reads need app.business_id GUC.
+  return tenantTransaction(businessId, (tx) =>
+    tx.teamMember.findMany({
+      where: { businessId },
+      orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
+    }),
+  )
 }
 
 export async function getAppointmentsRange(

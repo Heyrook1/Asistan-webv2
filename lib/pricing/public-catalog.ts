@@ -259,7 +259,7 @@ export const PUBLIC_PRICING_PROOF_GATE: Record<
     bullets: [
       'Bugün güçlü olan: klinik paneli, gerçek slot randevusu, işletme bazlı güvenlik kontrolleri.',
       'Kanıt kapısı açık değilse iddia etmiyoruz: sahte logo/sertifika, uydurma NPS/%, imzasız “ROI garantisi”.',
-      'SMS/WhatsApp: webhook ile bağlanabilir entegrasyon — varsayılan “canlı bildirim paketi” değildir.',
+      'SMS/WhatsApp: destek ile bağlanabilir — varsayılan “canlı bildirim paketi” değildir.',
       'Ücretli geçiş: demo veya denemede randevu akışı ve destek süreci netleştikten sonra.',
     ],
   },

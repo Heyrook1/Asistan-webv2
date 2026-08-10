@@ -1,21 +1,23 @@
 'use client'
 
-import Link from 'next/link'
 import { formatTime } from '@/lib/format'
 import type { CalendarEvent } from './calendar-types'
 import { WEEK_DAY_LABELS } from './calendar-types'
 import { dayCellAriaLabel, toISODate } from './calendar-date-utils'
+import { CalendarEventChip } from './calendar-event-chip'
 
 export function MonthGrid({
   cursor,
   days,
   eventsByDate,
   onSlotClick,
+  canManage = false,
 }: {
   cursor: Date
   days: Date[]
   eventsByDate: Map<string, CalendarEvent[]>
   onSlotClick: (date: string) => void
+  canManage?: boolean
 }) {
   const today = toISODate(new Date())
   return (
@@ -39,8 +41,8 @@ export function MonthGrid({
               !inMonth ? 'bg-dashboard-surface text-muted-foreground' : 'bg-white'
             }`}
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className={`text-xs font-medium ${iso === today ? 'rounded-full bg-brand-teal text-white px-2' : ''}`}>
+            <div className="mb-1 flex items-center justify-between">
+              <span className={`text-xs font-medium ${iso === today ? 'rounded-full bg-brand-teal px-2 text-white' : ''}`}>
                 {day.getDate()}
               </span>
               {dayEvents.length > 0 && (
@@ -48,20 +50,16 @@ export function MonthGrid({
               )}
             </div>
             <div className="space-y-1">
-              {dayEvents.slice(0, 3).map((ev) => (
-                <Link
-                  key={ev.id}
-                  href={`/dashboard/hastalar/${ev.patientId}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="block rounded-md px-1.5 py-0.5 text-[10px] truncate"
-                  style={{ background: `${ev.serviceColor}1f`, color: 'var(--brand-ink)' }}
-                  title={`${ev.patientName} • ${ev.serviceName}`}
-                >
-                  <span className="font-medium">{formatTime(ev.startTime)}</span> {ev.patientName}
-                </Link>
+              {dayEvents.slice(0, 2).map((ev) => (
+                <div key={ev.id} onClick={(e) => e.stopPropagation()}>
+                  <CalendarEventChip event={ev} canManage={canManage} compact />
+                </div>
               ))}
-              {dayEvents.length > 3 && (
-                <span className="text-[10px] text-muted-foreground">+{dayEvents.length - 3} daha</span>
+              {dayEvents.length > 2 && (
+                <span className="text-[10px] text-muted-foreground">
+                  +{dayEvents.length - 2} daha
+                  {dayEvents[0] ? ` · ${formatTime(dayEvents[0].startTime)}` : ''}
+                </span>
               )}
             </div>
           </button>

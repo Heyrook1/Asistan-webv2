@@ -15,6 +15,7 @@ import {
   type IntakeFieldDef,
   type IntakeFieldTypeValue,
 } from '@/lib/intake/schema'
+import { labelIntakeFieldType } from '@/lib/ui-labels'
 
 function newField(type: IntakeFieldTypeValue = 'TEXT'): IntakeFieldDef {
   return {
@@ -128,7 +129,7 @@ export function IntakeFormEditor({
                 <Input value={field.label} onChange={(e) => updateField(field.id, { label: e.target.value })} />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs text-muted-foreground">Tip</label>
+                <label className="mb-1.5 block text-xs text-muted-foreground">Alan tipi</label>
                 <select
                   className="h-10 w-full rounded-md border px-3 text-sm"
                   value={field.type}
@@ -142,14 +143,14 @@ export function IntakeFormEditor({
                 >
                   {INTAKE_FIELD_TYPES.map((t) => (
                     <option key={t} value={t}>
-                      {t}
+                      {labelIntakeFieldType(t)}
                     </option>
                   ))}
                 </select>
               </div>
               {field.type !== 'CHECKBOX' && field.type !== 'SELECT' ? (
                 <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs text-muted-foreground">Placeholder</label>
+                  <label className="mb-1.5 block text-xs text-muted-foreground">Örnek metin</label>
                   <Input
                     value={field.placeholder ?? ''}
                     onChange={(e) => updateField(field.id, { placeholder: e.target.value })}

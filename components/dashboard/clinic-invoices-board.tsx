@@ -1,12 +1,22 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { FileText, Printer, Send, Ban, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { printReportAsPdf } from '@/lib/client-export'
 import {
   getInvoicePrintPayload,
@@ -15,14 +25,7 @@ import {
   voidInvoice,
   type ClinicInvoiceRow,
 } from '@/lib/actions/invoices'
-
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Taslak',
-  READY: 'Hazır',
-  SUBMITTED: 'Gönderildi',
-  FAILED: 'Hata',
-  VOID: 'İptal',
-}
+import { labelInvoiceStatus } from '@/lib/ui-labels'
 
 function money(amount: number, currency: string) {
   return `${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
@@ -41,6 +44,7 @@ export function ClinicInvoicesBoard({
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const [voidId, setVoidId] = useState<string | null>(null)
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) {
     startTransition(async () => {
@@ -105,15 +109,15 @@ export function ClinicInvoicesBoard({
       <div className="rounded-2xl border border-border/70 bg-slate-50/80 p-4 text-sm text-muted-foreground">
         <p className="font-semibold text-brand-ink">KKTC e-Fatura taslakları</p>
         <p className="mt-1 leading-5">
-          Tamamlanan randevudan hizmet faturası taslağı üretir. TR GİB e-SMM / e-Fatura entegrasyonu
-          yoktur. Maliye API env ile bağlanırsa gönderim denenir; yoksa yazdırılabilir READY kalır.
+          Tamamlanan randevudan hizmet faturası taslağı üretir. Resmi e-Fatura ağı yoktur. Maliye
+          bağlantısı varsa gönderim denenir; yoksa fatura yazdırılabilir hazır duruma gelir.
         </p>
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
           <Badge variant={invoiceEnabled ? 'default' : 'secondary'}>
             {invoiceEnabled ? 'Fatura açık' : 'Fatura kapalı (Ayarlar)'}
           </Badge>
           <Badge variant={kktcApiConfigured ? 'default' : 'secondary'}>
-            {kktcApiConfigured ? 'KKTC API yapılandırıldı' : 'KKTC API yok — yazdır'}
+            {kktcApiConfigured ? 'Maliye bağlantısı hazır' : 'Maliye bağlantısı yok — yazdırın'}
           </Badge>
         </div>
       </div>
@@ -134,14 +138,16 @@ export function ClinicInvoicesBoard({
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-brand-ink">{inv.number ?? inv.id.slice(0, 8)}</span>
-                      <Badge variant="outline">{STATUS_LABEL[inv.status] ?? inv.status}</Badge>
+                      <Badge variant="outline">{labelInvoiceStatus(inv.status)}</Badge>
                     </div>
                     <p className="truncate text-sm text-muted-foreground">
                       {inv.buyerName ?? 'Alıcı yok'} · {money(inv.total, inv.currency)}
                     </p>
                     {inv.lastError && (
                       <p className="text-xs text-destructive" role="alert">
-                        {inv.lastError}
+                        {/API yok|env ile|yazd[ıi]r[ıi]labilir READY/i.test(inv.lastError)
+                          ? 'Maliye bağlantısı yapılandırılmamış — belge yazdırılabilir durumda.'
+                          : inv.lastError}
                       </p>
                     )}
                     {inv.providerRef && (
@@ -186,12 +192,12 @@ export function ClinicInvoicesBoard({
                               () => submitInvoiceToKktc({ invoiceId: inv.id }),
                               kktcApiConfigured
                                 ? 'KKTC gönderimi tamam'
-                                : 'Yazdırılabilir READY (API yok)'
+                                : 'Fatura yazdırılabilir olarak işaretlendi'
                             )
                           }
                         >
                           <Send className="mr-1 h-4 w-4" />
-                          {kktcApiConfigured ? 'Maliye’ye gönder' : 'READY yap'}
+                          {kktcApiConfigured ? 'Maliye’ye gönder' : 'Yazdırılabilir yap'}
                         </Button>
                       )}
                       {inv.status !== 'SUBMITTED' && inv.status !== 'VOID' && (
@@ -200,10 +206,7 @@ export function ClinicInvoicesBoard({
                           variant="ghost"
                           size="sm"
                           disabled={pending}
-                          onClick={() => {
-                            if (!window.confirm('Bu faturayı iptal etmek istiyor musunuz?')) return
-                            run(() => voidInvoice({ invoiceId: inv.id }), 'Fatura iptal edildi')
-                          }}
+                          onClick={() => setVoidId(inv.id)}
                         >
                           <Ban className="mr-1 h-4 w-4" />
                           İptal
@@ -217,6 +220,30 @@ export function ClinicInvoicesBoard({
           ))}
         </ul>
       )}
+
+      <AlertDialog open={voidId !== null} onOpenChange={(open) => !open && setVoidId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bu faturayı iptal etmek istiyor musunuz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              İptal edilen fatura yazdırılamaz ve maliye gönderimine kapalı kalır.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hayır, geri dön</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!voidId) return
+                const invoiceId = voidId
+                setVoidId(null)
+                run(() => voidInvoice({ invoiceId }), 'Fatura iptal edildi')
+              }}
+            >
+              Evet, iptal et
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1,6 +1,11 @@
 import { APPOINTMENT_STATUS_LABELS, FILE_CATEGORY_LABELS, TREATMENT_STATUS_LABELS } from '@/lib/format'
 import { combineDateAndTime } from '@/lib/health-timeline/group-by-day'
 import type { HealthTimelineItem } from '@/lib/health-timeline/types'
+import {
+  DEFAULT_CLINIC_TIMEZONE,
+  normalizeWallTime,
+  resolveClinicTimezone,
+} from '@/lib/datetime/clinic-zone'
 
 /** Appointment lifecycle events already represented by visit rows. */
 const APPOINTMENT_TIMELINE_TYPES = new Set([
@@ -76,6 +81,7 @@ type ClinicTimelineEvent = {
   title: string
   description?: string | null
   createdAt: Date | string
+  metadata?: unknown
 }
 
 type ClinicPrescription = {
@@ -105,6 +111,8 @@ export type ClinicHealthTimelineInput = {
   intakeResponses?: ClinicIntake[]
   includeNotes?: boolean
   includeFiles?: boolean
+  /** Business.timezone — wall-clock source for visits (default Asia/Nicosia). */
+  timeZone?: string | null
 }
 
 function toIso(date: Date | string): string {
@@ -115,10 +123,12 @@ function toIso(date: Date | string): string {
 export function buildClinicHealthTimeline(input: ClinicHealthTimelineInput): HealthTimelineItem[] {
   const includeNotes = input.includeNotes !== false
   const includeFiles = input.includeFiles !== false
+  const timeZone = resolveClinicTimezone(input.timeZone ?? DEFAULT_CLINIC_TIMEZONE)
   const items: HealthTimelineItem[] = []
 
   for (const appt of input.appointments ?? []) {
-    const occurred = combineDateAndTime(appt.date, appt.startTime)
+    const occurred = combineDateAndTime(appt.date, appt.startTime, timeZone)
+    const clockTime = appt.startTime ? normalizeWallTime(appt.startTime) : null
     const parts = [
       appt.staff?.fullName,
       appt.location?.name,
@@ -128,6 +138,7 @@ export function buildClinicHealthTimeline(input: ClinicHealthTimelineInput): Hea
       id: `visit:${appt.id}`,
       kind: 'visit',
       occurredAt: occurred.toISOString(),
+      clockTime,
       title: appt.service?.name ?? 'Randevu',
       subtitle: parts.join(' · ') || null,
       status: appt.status,
@@ -217,7 +228,7 @@ export function buildClinicHealthTimeline(input: ClinicHealthTimelineInput): Hea
       id: `prescription:${rx.id}`,
       kind: 'activity',
       occurredAt: toIso(rx.issuedAt),
-      title: rx.protocolNo ? `Reçete ${rx.protocolNo}` : 'Klinik reçete',
+      title: rx.protocolNo ? `Klinik reçete ${rx.protocolNo}` : 'Klinik reçete',
       subtitle: rx.diagnosis ?? null,
       sourceEntityId: rx.id,
       href: null,
@@ -235,11 +246,42 @@ export function buildClinicHealthTimeline(input: ClinicHealthTimelineInput): Hea
     })
   }
 
-  // Residual operational events (skip appointment lifecycle — covered by visits)
+  const prescriptionIds = new Set((input.prescriptions ?? []).map((rx) => rx.id))
+  const hasPrescriptionRows = prescriptionIds.size > 0
+
+  // Residual operational events (skip appointment lifecycle — covered by visits).
+  // Soft-archived appointments keep a single breadcrumb (metadata.archived).
   for (const event of input.timeline ?? []) {
-    if (APPOINTMENT_TIMELINE_TYPES.has(event.type)) continue
+    if (APPOINTMENT_TIMELINE_TYPES.has(event.type)) {
+      const meta =
+        event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata)
+          ? (event.metadata as { archived?: unknown })
+          : null
+      if (meta?.archived !== true) continue
+    }
     if (!includeNotes && event.type === 'NOTE_ADDED') continue
     if (!includeFiles && event.type === 'FILE_UPLOADED') continue
+
+    const meta =
+      event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata)
+        ? (event.metadata as { prescriptionId?: unknown; archived?: unknown })
+        : null
+
+    // Prescription entity already rendered — skip mirror TimelineEvent (P1-08).
+    if (
+      typeof meta?.prescriptionId === 'string' &&
+      (prescriptionIds.has(meta.prescriptionId) || hasPrescriptionRows)
+    ) {
+      continue
+    }
+    if (
+      hasPrescriptionRows &&
+      (/klinik reçete/i.test(event.title) ||
+        /e-?re[cç]ete/i.test(event.title) ||
+        /^RX-\d{4}-\d+/i.test(event.description ?? ''))
+    ) {
+      continue
+    }
 
     // Prefer entity rows over duplicate activity titles when we already have typed items
     const skipDuplicates =

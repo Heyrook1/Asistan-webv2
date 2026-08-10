@@ -16,12 +16,17 @@ import {
   HELP_SUPPORT,
 } from '@/lib/dashboard-help'
 import { GUIDES, readingTimeLabel } from '@/lib/resources/guides'
-import { requireSession } from '@/lib/session'
+import { requireSession, can, canAny } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
 export default async function YardimPage() {
-  await requireSession()
+  const session = await requireSession()
+  const quickLinks = HELP_QUICK_LINKS.filter((item) => {
+    if (item.anyOfPermissions?.length) return canAny(session, item.anyOfPermissions)
+    if (item.permission) return can(session, item.permission)
+    return true
+  })
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -44,7 +49,7 @@ export default async function YardimPage() {
           Hızlı bağlantılar
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          {HELP_QUICK_LINKS.map((item) => (
+          {quickLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}

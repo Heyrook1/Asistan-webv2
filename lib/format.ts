@@ -173,3 +173,18 @@ export const FILE_CATEGORY_LABELS: Record<string, string> = {
   KIMLIK: 'Kimlik',
   DIGER: 'Diğer',
 }
+
+export {
+  ALLERGY_SEVERITY_LABELS,
+  labelAllergySeverity,
+  INTAKE_FIELD_TYPE_LABELS,
+  labelIntakeFieldType,
+  labelIdentityMatchMethod,
+  labelInvoiceStatus,
+  labelAuditSeverity,
+  labelIntakeInviteStatus,
+  labelDataDeletionStatus,
+  labelComplianceDocStatus,
+  labelPrescriptionStatus,
+  labelTimelineEventType,
+} from '@/lib/ui-labels'
