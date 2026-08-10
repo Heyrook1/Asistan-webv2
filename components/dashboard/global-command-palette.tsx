@@ -95,7 +95,7 @@ export function GlobalCommandPalette({
       href: '/dashboard/sistem-admin',
       icon: Shield,
       keywords: 'platform admin sistem',
-      groupLabel: NAV_GROUP_LABELS.sistem,
+      groupLabel: NAV_GROUP_LABELS.yonetim,
     },
   ].filter((page) => {
     if (page.href.startsWith('/dashboard/ajanda')) return canSeeAppointments
