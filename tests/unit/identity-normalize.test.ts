@@ -75,7 +75,7 @@ describe('identity score matrix', () => {
     expect(shouldAutoLinkPerson(score)).toBe(false)
   })
 
-  it('auto-links on a matching identity document hash alone', () => {
+  it('does NOT auto-link on identity hash alone (needs verified ownership / dual strong)', () => {
     const score = scoreIdentityMatch(base, {
       ...base,
       phoneE164: null,
@@ -84,7 +84,8 @@ describe('identity score matrix', () => {
       birthDateIso: null,
     })
     expect(score.identityHash).toBeGreaterThan(0)
-    expect(shouldAutoLinkPerson(score)).toBe(true)
+    expect(shouldAutoLinkPerson(score)).toBe(false)
+    expect(shouldSuggestPersonMatch(score)).toBe(true)
   })
 
   it('auto-links on dual strong signals (phone + email)', () => {
@@ -96,6 +97,18 @@ describe('identity score matrix', () => {
     })
     expect(score.phone).toBe(0.25)
     expect(score.email).toBe(0.15)
+    expect(shouldAutoLinkPerson(score)).toBe(true)
+  })
+
+  it('auto-links on identity hash + phone (verified ownership pair)', () => {
+    const score = scoreIdentityMatch(base, {
+      ...base,
+      emailNorm: null,
+      fullNameCanon: 'other',
+      birthDateIso: null,
+    })
+    expect(score.identityHash).toBeGreaterThan(0)
+    expect(score.phone).toBeGreaterThan(0)
     expect(shouldAutoLinkPerson(score)).toBe(true)
   })
 

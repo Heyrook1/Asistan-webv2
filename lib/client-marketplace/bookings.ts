@@ -159,37 +159,46 @@ export async function createClientBooking(input: {
     try {
       const booking = await createClientBookingOnce(input)
 
-      await notifyDashboardActors({
-        businessId: input.payload.businessId,
-        appointmentId: booking.appointmentId,
-        patientId: booking.patientId,
-        patientName: input.payload.fullName,
-        serviceName: booking.serviceName,
-        locationName: booking.locationName,
-        date: input.payload.date,
-        startTime: input.payload.startTime,
-        staffId: input.payload.doctorId,
-        actorUserId: input.authUserId,
-        pendingApproval: booking.status === AppointmentStatus.SCHEDULED,
-      })
-
-      if (booking.status === AppointmentStatus.CONFIRMED) {
-        const business = await prisma.business.findUnique({
-          where: { id: input.payload.businessId },
-          select: { name: true },
-        })
-        await notifyPatientChannels({
+      try {
+        await notifyDashboardActors({
           businessId: input.payload.businessId,
           appointmentId: booking.appointmentId,
           patientId: booking.patientId,
           patientName: input.payload.fullName,
-          patientPhone: input.payload.phone,
-          patientEmail: input.payload.email,
           serviceName: booking.serviceName,
-          startsAt: `${input.payload.date}T${input.payload.startTime}:00`,
-          clinicName: business?.name,
-          kind: 'confirm',
+          locationName: booking.locationName,
+          date: input.payload.date,
+          startTime: input.payload.startTime,
+          staffId: input.payload.doctorId,
+          actorUserId: input.authUserId,
+          pendingApproval: booking.status === AppointmentStatus.SCHEDULED,
         })
+      } catch (notifyError) {
+        // Appointment already committed — do not fail the client response.
+        console.error('[client-book] clinic notify failed', notifyError)
+      }
+
+      if (booking.status === AppointmentStatus.CONFIRMED) {
+        try {
+          const business = await prisma.business.findUnique({
+            where: { id: input.payload.businessId },
+            select: { name: true },
+          })
+          await notifyPatientChannels({
+            businessId: input.payload.businessId,
+            appointmentId: booking.appointmentId,
+            patientId: booking.patientId,
+            patientName: input.payload.fullName,
+            patientPhone: input.payload.phone,
+            patientEmail: input.payload.email,
+            serviceName: booking.serviceName,
+            startsAt: `${input.payload.date}T${input.payload.startTime}:00`,
+            clinicName: business?.name,
+            kind: 'confirm',
+          })
+        } catch (patientNotifyError) {
+          console.error('[client-book] patient notify failed', patientNotifyError)
+        }
       }
 
       return {

@@ -567,8 +567,10 @@
   }
 }
 
-/* Asistan Rezervasyon — patient mobile web (Expo-web reference level) */
+/* Asistan patient mobile web (Expo-web reference level) */
 .rezervasyon-shell {
+  /* Dock + raised search FAB + safe-area — content/install must clear this */
+  --rz-dock-clearance: calc(7.5rem + env(safe-area-inset-bottom, 0px));
   --rz-blue: #0071e3;
   --rz-ink: #0f172a;
   --rz-muted: #3f5163;

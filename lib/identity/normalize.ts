@@ -123,16 +123,18 @@ function strongSignalCount(score: ScoreBreakdown): number {
  *
  * A single weak signal (phone-only OR email-only) is NOT enough to silently link
  * into an existing Person that may belong to a different clinic/context — that would
- * merge cross-clinic PHI. We only auto-link when:
- *   - the identity document hash matches (strong, near-unique legal identifier), OR
- *   - at least two independent strong signals match (dual strong signal).
+ * merge cross-clinic PHI.
+ *
+ * Identity-hash alone is also insufficient: a guest can type someone else's
+ * document number. Auto-link requires verified ownership via **at least two
+ * independent strong signals** (identityHash / phone / email) — e.g. hash+phone,
+ * hash+email, or phone+email. Hash-only matches go to PersonIdentityMatch review.
  *
  * Otherwise resolve creates a **new** Person. Because `phoneE164` / `emailNorm` /
  * `identityHash` are UNIQUE, colliding signals are omitted on create and a
  * PersonIdentityMatch suggestion is queued instead of failing with P2002.
  */
 export function shouldAutoLinkPerson(score: ScoreBreakdown): boolean {
-  if (score.identityHash > 0) return true
   return strongSignalCount(score) >= 2
 }
 

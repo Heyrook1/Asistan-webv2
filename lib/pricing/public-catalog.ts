@@ -2,6 +2,10 @@
  * Public marketing pricing — single source of truth.
  * Amounts and plan codes come from `lib/vendor-membership.ts`.
  * Do not hardcode EUR/TL prices in UI components.
+ *
+ * Security rule: tenant isolation, basic RBAC, and mandatory privacy / in-product
+ * audit controls ship on every plan. Only advanced audit export / governance may
+ * differentiate upper tiers — never core security.
  */
 import {
   DEMO_PLAN_CODE,
@@ -26,10 +30,22 @@ export type PublicPlanMarketing = {
     analytics: boolean
     api: boolean
     onboarding: boolean
-    audit: boolean
+    /** Core security — always true; never a plan differentiator. */
+    tenantIsolation: boolean
+    roleAccess: boolean
+    privacyControls: boolean
+    /** Advanced audit export / governance — upper tier only. */
+    auditExport: boolean
     multiLocation: boolean
   }
 }
+
+/** Core security flags — shared by every public plan (including trial). */
+const CORE_SECURITY_MATRIX = {
+  tenantIsolation: true,
+  roleAccess: true,
+  privacyControls: true,
+} as const
 
 const MARKETING: Record<VendorPlanCode, PublicPlanMarketing> = {
   DEMO_14_DAYS: {
@@ -39,8 +55,18 @@ const MARKETING: Record<VendorPlanCode, PublicPlanMarketing> = {
       en: '14-day risk-free trial',
     },
     features: {
-      tr: ['1 klinik lokasyonu', '1 doktor / hekim', 'Sınırlı randevu akışı', 'Temel hasta kayıtları'],
-      en: ['1 clinic location', '1 doctor / practitioner', 'Limited appointment volume', 'Basic patient records'],
+      tr: [
+        '1 klinik lokasyonu',
+        '1 doktor / hekim',
+        'Sınırlı randevu akışı',
+        'Temel güvenlik (veri ayrımı, roller, gizlilik)',
+      ],
+      en: [
+        '1 clinic location',
+        '1 doctor / practitioner',
+        'Limited appointment volume',
+        'Core security (isolation, roles, privacy)',
+      ],
     },
     ctaKind: 'register',
     popular: false,
@@ -50,19 +76,32 @@ const MARKETING: Record<VendorPlanCode, PublicPlanMarketing> = {
       analytics: false,
       api: false,
       onboarding: false,
-      audit: false,
+      ...CORE_SECURITY_MATRIX,
+      auditExport: false,
       multiLocation: false,
     },
   },
   STARTER: {
     nameEn: 'Starter',
     note: {
-      tr: 'Tek muayenehane veya hekim için',
-      en: 'Single practitioner setup',
+      tr: 'Tek muayenehane veya hekim — erken erişim liste fiyatı',
+      en: 'Single practitioner — early-access list price',
     },
     features: {
-      tr: ['1 kullanıcı', 'Temel randevu düzeni', 'Hasta kayıtları', 'Hatırlatma akışı'],
-      en: ['1 user', 'Core appointment flow', 'Patient records', 'Reminder flow'],
+      tr: [
+        '1 kullanıcı',
+        'Temel randevu düzeni',
+        'Hasta kayıtları',
+        'Panel / e-posta hatırlatma',
+        'Temel güvenlik tüm planlarda',
+      ],
+      en: [
+        '1 user',
+        'Core appointment flow',
+        'Patient records',
+        'In-panel / email reminders',
+        'Core security on every plan',
+      ],
     },
     ctaKind: 'register',
     popular: false,
@@ -72,19 +111,32 @@ const MARKETING: Record<VendorPlanCode, PublicPlanMarketing> = {
       analytics: false,
       api: false,
       onboarding: false,
-      audit: false,
+      ...CORE_SECURITY_MATRIX,
+      auditExport: false,
       multiLocation: false,
     },
   },
   PROFESSIONAL: {
     nameEn: 'Professional',
     note: {
-      tr: 'Büyüyen poliklinikler ve merkezler',
-      en: 'Best for growing multi-staff clinics',
+      tr: 'Büyüyen poliklinikler — önce demo / deneme önerilir',
+      en: 'Growing clinics — demo / trial first recommended',
     },
     features: {
-      tr: ['5 kullanıcıya kadar', 'Ekip rolleri', 'Operasyon önerileri', 'Öncelikli destek'],
-      en: ['Up to 5 users', 'Team roles', 'Ops suggestions', 'Priority support'],
+      tr: [
+        '5 kullanıcıya kadar',
+        'Ekip rolleri',
+        'Operasyon görünümleri',
+        'Standart klinik destek',
+        'Temel güvenlik tüm planlarda',
+      ],
+      en: [
+        'Up to 5 users',
+        'Team roles',
+        'Ops views',
+        'Standard clinic support',
+        'Core security on every plan',
+      ],
     },
     ctaKind: 'register',
     popular: true,
@@ -94,19 +146,30 @@ const MARKETING: Record<VendorPlanCode, PublicPlanMarketing> = {
       analytics: true,
       api: false,
       onboarding: false,
-      audit: false,
+      ...CORE_SECURITY_MATRIX,
+      auditExport: false,
       multiLocation: false,
     },
   },
   ENTERPRISE: {
     nameEn: 'Enterprise',
     note: {
-      tr: 'Çoklu şube poliklinikler (hastane değil)',
-      en: 'Multi-branch polyclinics (not hospitals)',
+      tr: 'Çoklu şube — yalnızca demo ile başlar (hastane değil)',
+      en: 'Multi-branch — demo-led only (not hospitals)',
     },
     features: {
-      tr: ['Sınırsız kullanıcı', 'Özel entegrasyonlar', 'Kurulum danışmanlığı', 'Gelişmiş yetkiler'],
-      en: ['Unlimited users', 'Custom integrations', 'Setup consulting', 'Advanced permissions'],
+      tr: [
+        'Sınırsız kullanıcı',
+        'Özel entegrasyonlar (planlı)',
+        'Kurulum danışmanlığı',
+        'Gelişmiş denetim dışa aktarma / yönetişim',
+      ],
+      en: [
+        'Unlimited users',
+        'Custom integrations (planned)',
+        'Setup consulting',
+        'Advanced audit export / governance',
+      ],
     },
     ctaKind: 'demo',
     popular: false,
@@ -116,7 +179,8 @@ const MARKETING: Record<VendorPlanCode, PublicPlanMarketing> = {
       analytics: true,
       api: true,
       onboarding: true,
-      audit: true,
+      ...CORE_SECURITY_MATRIX,
+      auditExport: true,
       multiLocation: true,
     },
   },
@@ -159,6 +223,16 @@ export function publicPlanMonthlyAmount(
   return plan.yearlyPriceEur
 }
 
+/**
+ * Amount charged when paying annual upfront.
+ * `yearlyPriceEur` in catalog is the discounted monthly-equivalent rate.
+ */
+export function publicPlanAnnualPrepaidAmount(plan: PublicPricingPlan): number | null {
+  if (plan.demoOnly) return 0
+  if (plan.yearlyPriceEur == null || plan.yearlyPriceEur <= 0) return null
+  return plan.yearlyPriceEur * 12
+}
+
 export function formatPublicPlanPrice(
   amount: number | null,
   locale: PublicPricingLocale
@@ -169,22 +243,112 @@ export function formatPublicPlanPrice(
   return `€${formatted}`
 }
 
+/** Early-access pricing honesty — list price ≠ mature SaaS proof pack. */
+export const PUBLIC_PRICING_PROOF_GATE: Record<
+  PublicPricingLocale,
+  {
+    title: string
+    body: string
+    bullets: string[]
+  }
+> = {
+  tr: {
+    title: 'Liste fiyatı · erken erişim gerçeği',
+    body:
+      '€149–€499 aralığı olgun kurumsal SaaS beklentisi yaratabilir. İmzalı pilot, ölçülebilir ROI ve sahada kanıtlanmamış “canlı kanal” vaatleri olmadan önce demo veya 14 günlük deneme ile uyumu doğrulayın — fiyat sayfası satış baskısı değil, planlama aracıdır.',
+    bullets: [
+      'Bugün güçlü olan: klinik paneli, gerçek slot randevusu, işletme bazlı güvenlik kontrolleri.',
+      'Kanıt kapısı açık değilse iddia etmiyoruz: sahte logo/sertifika, uydurma NPS/%, imzasız “ROI garantisi”.',
+      'SMS/WhatsApp: webhook ile bağlanabilir entegrasyon — varsayılan “canlı bildirim paketi” değildir.',
+      'Ücretli geçiş: demo veya denemede randevu akışı ve destek süreci netleştikten sonra.',
+    ],
+  },
+  en: {
+    title: 'List price · early-access reality',
+    body:
+      '€149–€499 can imply mature enterprise SaaS. Without a signed pilot, measurable ROI, and proven live channels, start with a demo or 14-day trial — this page is for planning, not pressure selling.',
+    bullets: [
+      'Strong today: clinic panel, real slot booking, business-level security controls.',
+      'We do not invent proof: fake logos/certs, fabricated NPS/%, unsigned “ROI guarantees”.',
+      'SMS/WhatsApp: webhook integration option — not a default “live notification pack”.',
+      'Paid conversion after demo/trial shows booking flow and support fit.',
+    ],
+  },
+}
+
+/** Billing / tax honesty for marketing surfaces (no invented VAT rates). */
+export const PUBLIC_PRICING_BILLING_DISCLOSURE: Record<
+  PublicPricingLocale,
+  {
+    title: string
+    bullets: string[]
+  }
+> = {
+  tr: {
+    title: 'Vergi, para birimi ve tahsilat',
+    bullets: [
+      'Listelenen tutarlar EUR cinsindendir; faturada ayrıca belirtilmedikçe KDV/vergi hariçtir. Uygulanacak vergi oranı fatura anında netleşir.',
+      'SaaS abonelik tahsilatı varsayılan olarak EUR üzerinden yapılır (kart veya fatura).',
+      'KKTC klinikleri için TL ödeme, fatura düzenlenirken kur ile dönüştürülerek ayrıca anlaşılabilir — anlık TL checkout yoktur.',
+      'TL tahsilatta kur, fatura/ödeme tarihindeki işlem kuruna göre uygulanır; sabit kur garantisi yoktur.',
+    ],
+  },
+  en: {
+    title: 'Tax, currency, and billing',
+    bullets: [
+      'Listed amounts are in EUR and exclude VAT/tax unless the invoice states otherwise. Applicable tax is confirmed on the invoice.',
+      'SaaS subscription collection defaults to EUR (card or invoice).',
+      'TRY payment for Northern Cyprus clinics can be arranged via invoice FX conversion — there is no instant TRY checkout.',
+      'For TRY settlement, the rate is set at invoice/payment time; there is no fixed FX guarantee.',
+    ],
+  },
+}
+
 export function isDemoPlanCode(code: string) {
   return code === DEMO_PLAN_CODE
 }
 
-/** Matrix row labels shared by homepage + pricing page. */
+/**
+ * Matrix rows — core security first (all plans), then capacity/ops differentiators.
+ * Do not put tenant isolation / RBAC / privacy behind a paid tier.
+ */
 export const PUBLIC_PRICING_MATRIX_ROWS: Array<{
   id: keyof PublicPlanMarketing['matrix'] | 'users'
   label: Record<PublicPricingLocale, string>
   kind: 'users' | 'boolean'
   key: keyof PublicPlanMarketing['matrix']
+  /** When true, row is baseline security (expected ✓ on every plan). */
+  coreSecurity?: boolean
 }> = [
   {
     id: 'users',
     label: { tr: 'Kullanıcı limiti', en: 'User limit' },
     kind: 'users',
     key: 'users',
+  },
+  {
+    id: 'tenantIsolation',
+    label: { tr: 'İşletme bazlı veri ayrımı', en: 'Business-level data isolation' },
+    kind: 'boolean',
+    key: 'tenantIsolation',
+    coreSecurity: true,
+  },
+  {
+    id: 'roleAccess',
+    label: { tr: 'Temel rol güvenliği (RBAC)', en: 'Basic role security (RBAC)' },
+    kind: 'boolean',
+    key: 'roleAccess',
+    coreSecurity: true,
+  },
+  {
+    id: 'privacyControls',
+    label: {
+      tr: 'Zorunlu gizlilik + ürün içi denetim günlüğü',
+      en: 'Required privacy + in-product audit log',
+    },
+    kind: 'boolean',
+    key: 'privacyControls',
+    coreSecurity: true,
   },
   {
     id: 'reminders',
@@ -211,10 +375,13 @@ export const PUBLIC_PRICING_MATRIX_ROWS: Array<{
     key: 'onboarding',
   },
   {
-    id: 'audit',
-    label: { tr: 'Denetim günlüğü & KVKK iş akışı', en: 'Audit log & KVKK workflow' },
+    id: 'auditExport',
+    label: {
+      tr: 'Gelişmiş denetim dışa aktarma / yönetişim',
+      en: 'Advanced audit export / governance',
+    },
     kind: 'boolean',
-    key: 'audit',
+    key: 'auditExport',
   },
   {
     id: 'multiLocation',

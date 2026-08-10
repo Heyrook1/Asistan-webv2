@@ -5,8 +5,8 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 export const dynamic = 'force-dynamic'
 
 /**
- * Pre-auth gate for password login / register attempts.
- * Client calls this before supabase.auth.signInWithPassword.
+ * Pre-auth gate for password login / register / forgot attempts.
+ * Client calls this before supabase.auth — advisory rate limit + register consent check.
  */
 export async function POST(request: NextRequest) {
   const ip =
@@ -15,13 +15,26 @@ export async function POST(request: NextRequest) {
     'anon'
 
   let action = 'login'
+  let acceptedTerms = false
   try {
-    const body = (await request.json()) as { action?: string }
+    const body = (await request.json()) as {
+      action?: string
+      acceptedTerms?: boolean
+    }
     if (body.action === 'register' || body.action === 'login' || body.action === 'forgot') {
       action = body.action
     }
+    acceptedTerms = body.acceptedTerms === true
   } catch {
     // ignore empty body — still rate-limit by IP
+  }
+
+  if (action === 'register' && !acceptedTerms) {
+    return apiError(
+      'Devam etmek için gizlilik ve kullanım koşullarını kabul edin.',
+      400,
+      'TERMS_REQUIRED',
+    )
   }
 
   const allowed = await checkRateLimit(

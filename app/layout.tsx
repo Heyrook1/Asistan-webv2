@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   ],
   appleWebApp: {
     capable: true,
-    title: 'Asistan Rezervasyon',
+    title: 'Asistan',
     statusBarStyle: 'default',
   },
   formatDetection: {

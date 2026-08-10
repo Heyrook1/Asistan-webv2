@@ -10,8 +10,11 @@ import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-ro
 import {
   formatPublicPlanPrice,
   listPublicMarketingPlanCards,
+  publicPlanAnnualPrepaidAmount,
   publicPlanDisplayName,
   publicPlanMonthlyAmount,
+  PUBLIC_PRICING_BILLING_DISCLOSURE,
+  PUBLIC_PRICING_PROOF_GATE,
   PUBLIC_PRICING_MATRIX_ROWS,
   type PublicBillingCycle,
 } from '@/lib/pricing/public-catalog'
@@ -29,38 +32,71 @@ const trustItems = [
 
 const faqs = [
   {
+    question: 'Neden önce demo veya deneme?',
+    answer:
+      'Liste fiyatı (€149–€499) olgun SaaS beklentisi yaratabilir. Erken erişimde imzalı pilot, ölçülebilir ROI ve kanıtlanmış canlı bildirim paketi olmadan ücretli abonelik itiraz üretebilir. Önce randevu akışını ve desteği görün; uyum netleşince plan seçin.',
+  },
+  {
     question: 'Planımı istediğim zaman değiştirebilir miyim?',
     answer:
       'Evet. Paket geçişleri dönem sonunda veya ihtiyaç anında planlı şekilde yapılabilir.',
   },
   {
-    question: 'Yıllık ödemede indirim var mı?',
+    question: 'Yıllık ödemede ne kadar peşin öderim?',
     answer:
-      'Yıllık faturalandırmada indirimli aylık oran uygulanır (ör. Profesyonel €249 → €199/ay, yıllık tahsil).',
+      'Yıllık seçimde indirimli aylık eşdeğer gösterilir; karttan/faturadan çekilen tutar 12× bu orandır (ör. Profesyonel €199/ay eşdeğeri → €2.388 yıllık peşin).',
+  },
+  {
+    question: 'Fiyatlara KDV dahil mi? TL ödeyebilir miyim?',
+    answer:
+      'Listelenen tutarlar EUR ve vergi hariçtir (faturada aksi yazılmadıkça). Varsayılan tahsilat EUR’dur. TL ödeme fatura anında kur ile ayrıca anlaşılabilir; anlık TL checkout ve sabit kur garantisi yoktur.',
   },
   {
     question: 'Kurumsal plan ne zaman gerekir?',
     answer:
-      'Çoklu şube, özel entegrasyon veya gelişmiş yetki ihtiyacında Kurumsal (€499/ay veya yıllık indirimli) uygundur; demo ile netleştiririz.',
+      'Çoklu şube, özel entegrasyon veya gelişmiş yetki ihtiyacında Kurumsal yalnızca demo ile başlar; liste fiyatı tek başına sipariş değildir.',
   },
   {
     question: 'Hasta verileri nasıl korunuyor?',
     answer:
-      'Rol bazlı erişim, işletme bazlı veri ayrımı ve denetim izleriyle güvenli veri modeli uygulanır.',
+      'İşletme bazlı veri ayrımı, temel rol güvenliği ve zorunlu gizlilik / ürün içi denetim günlüğü tüm planlarda standarttır. Gelişmiş denetim dışa aktarma veya özel yönetişim Kurumsal pakette yer alabilir — temel güvenlik paket farkı değildir.',
   },
 ]
 
 export function PricingPageSections() {
   const [cycle, setCycle] = useState<PublicBillingCycle>('monthly')
   const plans = useMemo(() => listPublicMarketingPlanCards(), [])
+  const billingDisclosure = PUBLIC_PRICING_BILLING_DISCLOSURE.tr
+  const proofGate = PUBLIC_PRICING_PROOF_GATE.tr
 
   const modeLabel =
-    cycle === 'monthly' ? 'Aylık faturalandırma' : 'Yıllık faturalandırma (indirimli aylık oran)'
+    cycle === 'monthly' ? 'Aylık faturalandırma' : 'Yıllık faturalandırma — peşin yıllık tutar gösterilir'
 
   return (
     <>
-      <section id="sss" className="bg-white py-20">
+      <section id="plans" className="bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <aside
+            className="mb-10 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-5 py-5 sm:px-6"
+            aria-labelledby="pricing-proof-gate-title"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-amber-800">
+              Erken erişim
+            </p>
+            <h2 id="pricing-proof-gate-title" className="mt-1 text-base font-bold text-brand-navy">
+              {proofGate.title}
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-700">{proofGate.body}</p>
+            <ul className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-slate-600">
+              {proofGate.bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-700" aria-hidden />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+          </aside>
+
           <div className="mb-8 flex flex-col items-center gap-3">
             <div className="inline-flex rounded-xl border border-brand-blue/15 bg-white p-1">
               <button
@@ -87,18 +123,32 @@ export function PricingPageSections() {
             <p className="text-xs font-semibold text-brand-blue">{modeLabel}</p>
           </div>
 
-          <div className="mb-8 rounded-2xl border border-brand-blue/15 bg-brand-blue/5 px-5 py-4 text-center">
+          <div className="mb-8 rounded-2xl border border-brand-blue/15 bg-brand-blue/5 px-5 py-5 text-center">
             <p className="text-sm font-semibold text-brand-navy">
-              14 günlük ücretsiz klinik denemesi — kayıt ile başlayın, kredi kartı gerekmez.
+              Erken erişimde önerilen yol: önce demo veya 14 gün deneme — kredi kartı gerekmez.
             </p>
-            <Button asChild className="mt-3 min-h-10 rounded-xl bg-brand-blue text-white hover:bg-brand-blue/90">
-              <Link href={clinicTrialHref}>{ENTRY_CTA.clinicTrial.tr}</Link>
-            </Button>
+            <p className="mt-1 text-xs text-slate-600">
+              Liste fiyatları planlama içindir; ücretli abonelik uyum netleşince.
+            </p>
+            <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+              <Button asChild className="min-h-10 rounded-xl bg-brand-blue text-white hover:bg-brand-blue/90">
+                <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="min-h-10 rounded-xl border-brand-blue/25 bg-white text-brand-navy"
+              >
+                <Link href={clinicTrialHref}>{ENTRY_CTA.clinicTrial.tr}</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
             {plans.map((plan) => {
-              const amount = publicPlanMonthlyAmount(plan, cycle)
+              const monthlyEquivalent = publicPlanMonthlyAmount(plan, cycle)
+              const annualPrepaid =
+                cycle === 'annual' ? publicPlanAnnualPrepaidAmount(plan) : null
               const href = plan.marketing.ctaKind === 'demo' ? DEMO_CONTACT_PATH : clinicTrialHref
               const cta =
                 plan.marketing.ctaKind === 'demo'
@@ -129,16 +179,39 @@ export function PricingPageSections() {
                   </p>
 
                   <div className="mb-6 mt-6 rounded-2xl bg-dashboard-surface p-5">
-                    <p className="text-3xl font-black text-brand-navy">
-                      {formatPublicPlanPrice(amount, 'tr')}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                      {plan.demoOnly
-                        ? '14 gün deneme'
-                        : cycle === 'monthly'
-                          ? '/ ay'
-                          : '/ ay, yıllık faturalandırılır'}
-                    </p>
+                    {cycle === 'annual' && annualPrepaid != null && monthlyEquivalent != null ? (
+                      <>
+                        <p className="text-3xl font-black text-brand-navy">
+                          {formatPublicPlanPrice(monthlyEquivalent, 'tr')}
+                          <span className="ml-1 text-base font-semibold text-slate-500">/ ay</span>
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          eşdeğeri · yıllık faturalandırılır
+                        </p>
+                        <p className="mt-3 text-sm font-bold text-brand-navy">
+                          {formatPublicPlanPrice(annualPrepaid, 'tr')}{' '}
+                          <span className="font-semibold text-slate-600">
+                            yıllık peşin faturalandırılır
+                          </span>
+                        </p>
+                        <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                          Karttan / faturadan çekilecek tutar (KDV hariç, EUR). Liste fiyatı —
+                          erken erişimde önce demo/deneme.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-3xl font-black text-brand-navy">
+                          {formatPublicPlanPrice(monthlyEquivalent, 'tr')}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          {plan.demoOnly ? '14 gün deneme' : '/ ay · aylık faturalandırılır'}
+                        </p>
+                        <p className="mt-2 text-[11px] leading-snug text-slate-500">
+                          KDV/vergi hariç · EUR · erken erişim liste fiyatı
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <ul className="mb-8 space-y-3">
@@ -169,6 +242,23 @@ export function PricingPageSections() {
               )
             })}
           </div>
+
+          <aside
+            className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 sm:px-6"
+            aria-labelledby="billing-disclosure-title"
+          >
+            <h3 id="billing-disclosure-title" className="text-sm font-bold text-brand-navy">
+              {billingDisclosure.title}
+            </h3>
+            <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-slate-600">
+              {billingDisclosure.bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-blue" aria-hidden />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+          </aside>
         </div>
       </section>
 
@@ -177,7 +267,8 @@ export function PricingPageSections() {
           <div className="mb-6 rounded-2xl border border-brand-blue/10 bg-white p-4">
             <h3 className="text-lg font-bold text-brand-navy">Plan karşılaştırması</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Dashboard abonelik paneliyle aynı paket kodları (Başlangıç, Profesyonel, Kurumsal).
+              Temel güvenlik (veri ayrımı, rol erişimi, gizlilik / ürün içi denetim) tüm planlarda
+              standarttır. Gelişmiş denetim dışa aktarma yalnızca Kurumsal’da farklılaşır.
             </p>
           </div>
 
@@ -228,7 +319,7 @@ export function PricingPageSections() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
+      <section id="sss" className="bg-white py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
             <h2 className="font-heading text-3xl font-black text-brand-navy">Sık sorulanlar</h2>

@@ -7,7 +7,7 @@ import { Building2, Fingerprint, HeartPulse, Loader2, RefreshCw, ShieldAlert } f
 import { HealthTimeline } from '@/components/health-timeline/health-timeline'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
-import { productName } from '@/lib/brand/masterbrand'
+import { patientChromeName } from '@/lib/brand/masterbrand'
 import type { HealthTimelineItem } from '@/lib/health-timeline/types'
 
 type PassportClinic = {
@@ -127,22 +127,65 @@ export function ClientHealthPanel() {
       <main className="space-y-5">
         <header>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-            {productName('booking', 'tr')}
+            {patientChromeName('tr')}
           </p>
           <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">
             Asistan pasaportu
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Klinikler arası ziyaret özetiniz için giriş yapın. Klinik notları ve tahliller paylaşılmaz.
+            Klinikler arası ziyaret ve üyelik özeti — giriş sonrası açılır. Klinik notları ve
+            tahliller burada yoktur.
           </p>
         </header>
-        <div className="rounded-[1.25rem] bg-white p-5 ring-1 ring-slate-200/70">
-          <Button asChild className="h-11 min-h-11 w-full rounded-full bg-[#0071E3] font-bold text-white hover:bg-[#0077ed]">
-            <Link href="/client/profile">Giriş yap</Link>
+
+        <section
+          className="rounded-[1.25rem] bg-white p-4 ring-1 ring-slate-200/70"
+          aria-label="Nasıl çalışır"
+        >
+          <h2 className="text-sm font-bold text-slate-900">Nasıl çalışır?</h2>
+          <ol className="mt-3 space-y-3 text-[13px] leading-relaxed text-slate-600">
+            <li className="flex gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/10 text-[11px] font-bold text-[#0071E3]">
+                1
+              </span>
+              <span>
+                Klinik bulun ve randevu alın — hesap zorunlu değil; misafir randevu da olur.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/10 text-[11px] font-bold text-[#0071E3]">
+                2
+              </span>
+              <span>
+                Aynı e-posta ile giriş yapın — misafir randevular hesabınıza bağlanır.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#0071E3]/10 text-[11px] font-bold text-[#0071E3]">
+                3
+              </span>
+              <span>
+                Pasaportta klinik üyelikleri ve ziyaret zaman çizelgeniz görünür.
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <div className="space-y-3">
+          <Button
+            asChild
+            className="h-11 min-h-11 w-full rounded-full bg-[#0071E3] font-bold text-white hover:bg-[#0077ed]"
+          >
+            <Link href="/client/clinics">Klinik bul — şimdi randevu al</Link>
           </Button>
-          <Button asChild variant="outline" className="mt-3 h-11 min-h-11 w-full rounded-full">
-            <Link href="/client/clinics">Klinik bul</Link>
+          <Button asChild variant="outline" className="h-11 min-h-11 w-full rounded-full">
+            <Link href="/client/profile">Giriş yap — pasaportumu aç</Link>
           </Button>
+        </div>
+
+        <div className="rounded-[1.15rem] bg-slate-50 px-4 py-3 text-[12px] leading-relaxed text-slate-500 ring-1 ring-slate-200/80">
+          FHIR / tıbbi pasaport veya hastane EMR değildir. Yalnızca Asistan üzerindeki ziyaret
+          özeti.
         </div>
       </main>
     )
@@ -162,7 +205,7 @@ export function ClientHealthPanel() {
           </span>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-              {productName('booking', 'tr')}
+              {patientChromeName('tr')}
             </p>
             <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">{title}</h1>
           </div>

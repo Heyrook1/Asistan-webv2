@@ -16,8 +16,8 @@ export function LandingFaqSection() {
     {
       q: t({ tr: 'Asistan Health nedir?', en: 'What is Asistan Health?' }),
       a: t({
-        tr: 'Klinik operasyon paneli: randevu, hasta, ekip. Hasta kanalı Asistan Rezervasyon ile bağlanır.',
-        en: 'A clinic operations panel: scheduling, patients, team. The patient channel connects via Asistan Booking.',
+        tr: 'Klinik operasyon paneli: randevu, hasta, ekip. Hastalar Asistan ile randevu bulur.',
+        en: 'A clinic operations panel: scheduling, patients, team. Patients book through Asistan.',
       }),
     },
     {
@@ -33,8 +33,8 @@ export function LandingFaqSection() {
         en: 'How do patients book?',
       }),
       a: t({
-        tr: 'Asistan Rezervasyon (/client) veya kliniğin public book linki ile — en fazla 3 ana adım.',
-        en: 'Via Asistan Booking (/client) or the clinic public book link — at most 3 primary steps.',
+        tr: 'Asistan (/client) veya kliniğin public book linki ile — en fazla 3 ana adım.',
+        en: 'Via Asistan (/client) or the clinic public book link — at most 3 primary steps.',
       }),
     },
     {
@@ -54,8 +54,8 @@ export function LandingFaqSection() {
     {
       q: t({ tr: 'Nasıl başlarız?', en: 'How do we start?' }),
       a: t({
-        tr: 'Demo rezerve edin veya 14 gün ücretsiz deneyin. Fiyatlar /fiyatlandirma sayfasında.',
-        en: 'Book a demo or try free for 14 days. Pricing is on /fiyatlandirma.',
+        tr: 'Demo rezerve edin veya kliniğinizde 14 gün ücretsiz deneyin. Fiyat özeti ana sayfada; ayrıntı /fiyatlandirma sayfasında.',
+        en: 'Book a demo or try free for 14 days in your clinic. Pricing summary is on the homepage; detail on /fiyatlandirma.',
       }),
     },
   ]

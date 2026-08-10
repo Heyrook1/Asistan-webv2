@@ -28,7 +28,10 @@ export default function ContactPage() {
   const [company, setCompany] = useState('')
   const [serviceType, setServiceType] = useState('patient-booking')
   const [message, setMessage] = useState('')
-  
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [website, setWebsite] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -65,9 +68,22 @@ export default function ContactPage() {
     },
   ]
 
+  function resetForm() {
+    setName('')
+    setEmail('')
+    setPhone('')
+    setCompany('')
+    setServiceType('patient-booking')
+    setMessage('')
+    setPrivacyAccepted(false)
+    setWebsite('')
+    setFieldErrors({})
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    setFieldErrors({})
 
     try {
       const response = await submitContactForm({
@@ -77,30 +93,36 @@ export default function ContactPage() {
         company,
         service_type: serviceType,
         message,
+        privacyAccepted,
+        website,
       })
 
       if (response.success) {
         setSuccess(true)
-        toast.success(t({ 
-          tr: 'Mesajınız Gönderildi!', 
-          en: 'Message Sent Successfully!' 
-        }))
-        // Reset fields
-        setName('')
-        setEmail('')
-        setPhone('')
-        setCompany('')
-        setMessage('')
+        toast.success(
+          t({
+            tr: 'Mesajınız alındı',
+            en: 'Message received',
+          }),
+        )
+        resetForm()
       } else {
-        const errorDesc = response.errors 
+        if (response.errors) setFieldErrors(response.errors)
+        const errorDesc = response.errors
           ? Object.values(response.errors).flat().join(', ')
-          : response.error || 'Failed'
-        toast.error(t({ tr: 'Gönderim Başarısız', en: 'Submission Failed' }), {
-          description: errorDesc
+          : response.error ||
+            t({ tr: 'Gönderim başarısız', en: 'Submission failed' })
+        toast.error(t({ tr: 'Gönderim başarısız', en: 'Submission failed' }), {
+          description: errorDesc,
         })
       }
     } catch {
-      toast.error(t({ tr: 'Beklenmeyen Hata', en: 'Unexpected Error' }))
+      toast.error(
+        t({
+          tr: 'Bağlantı hatası — lütfen tekrar deneyin veya merhaba@asistan.online yazın',
+          en: 'Connection error — please try again or email merhaba@asistan.online',
+        }),
+      )
     } finally {
       setLoading(false)
     }
@@ -124,8 +146,8 @@ export default function ContactPage() {
             </h1>
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-600 md:text-lg">
               {t({
-                tr: 'Randevu, hasta takibi ve ekip akışınız için en doğru kurulumu kısa bir görüşmede netleştirelim.',
-                en: "Let's find the correct setup for your appointments, patient records, and workflow in a short session.",
+                tr: 'Bu form bir talep formudur — canlı toplantı takvimi yoktur. Uygun bir görüşme saati için ekibimiz dönüş yapar.',
+                en: 'This is a request form — there is no live meeting calendar. Our team replies with a suitable time.',
               })}
             </p>
           </FadeUp>
@@ -134,86 +156,139 @@ export default function ContactPage() {
             <Card className="marketing-surface rounded-2xl border-brand-blue/10 bg-white/95 shadow-xl">
               <CardContent className="p-6 md:p-7">
                 {success ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
-                    <CheckCircle2 className="size-16 text-emerald-600 stroke-[1.5]" />
+                  <div
+                    className="flex flex-col items-center justify-center space-y-4 py-10 text-center"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <CheckCircle2 className="size-16 stroke-[1.5] text-emerald-600" />
                     <h2 className="text-2xl font-bold text-brand-navy">
-                      {t({ tr: 'Teşekkür Ederiz!', en: 'Thank You!' })}
+                      {t({ tr: 'Talebiniz alındı', en: 'Request received' })}
                     </h2>
-                    <p className="text-sm text-slate-600 max-w-xs leading-relaxed">
+                    <p className="max-w-sm text-sm leading-relaxed text-slate-600">
                       {t({
-                        tr: "Mesajınız iletildi. En kısa sürede sizinle iletişime geçeceğiz.",
-                        en: "Your message has been sent. We'll get back to you soon.",
+                        tr: 'Hedef yanıt süresi: 1 iş günü içinde. Bu bir taahhütlü SLA değil; yoğunlukta gecikebilir. Acil ise merhaba@asistan.online yazın.',
+                        en: 'Target reply: within 1 business day. This is not a contractual SLA and may slip when busy. For urgency, email merhaba@asistan.online.',
                       })}
                     </p>
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       onClick={() => setSuccess(false)}
                       className="mt-4 rounded-xl bg-brand-blue text-white hover:bg-brand-blue/90"
                     >
-                      {t({ tr: 'Yeni Mesaj Gönder', en: 'Send Another Message' })}
+                      {t({ tr: 'Yeni mesaj gönder', en: 'Send another message' })}
                     </Button>
                   </div>
                 ) : (
                   <>
                     <h2 className="text-xl font-bold text-brand-navy">
-                      {t({ tr: 'Bize Ulaşın / Demo talep et', en: 'Contact us / Request a demo' })}
+                      {t({
+                        tr: 'Bize ulaşın / Demo talep et',
+                        en: 'Contact us / Request a demo',
+                      })}
                     </h2>
                     <p className="mt-2 text-sm text-slate-500">
-                      {t({ tr: 'Ekibimiz size en kısa sürede dönüş yapar.', en: 'Our team will get back to you shortly.' })}
+                      {t({
+                        tr: 'Hedef yanıt: 1 iş günü (taahhütlü SLA değil). Canlı takvim seçimi yok.',
+                        en: 'Target reply: 1 business day (not a contractual SLA). No live calendar picker.',
+                      })}
                     </p>
-                    
-                    <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+
+                    <form onSubmit={handleSubmit} className="relative mt-5 space-y-3" noValidate>
+                      {/* Honeypot — visually hidden from users */}
+                      <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                        <label htmlFor="contact-website">Website</label>
+                        <input
+                          id="contact-website"
+                          name="website"
+                          type="text"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={website}
+                          onChange={(e) => setWebsite(e.target.value)}
+                        />
+                      </div>
+
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-name">{t({ tr: 'Ad Soyad', en: 'Full Name' })}</Label>
-                          <Input 
-                            id="contact-name" 
-                            name="name" 
-                            placeholder={t({ tr: 'Ad Soyad', en: 'Full Name' })} 
-                            autoComplete="name" 
-                            required 
+                          <Label htmlFor="contact-name">
+                            {t({ tr: 'Ad Soyad', en: 'Full Name' })}
+                          </Label>
+                          <Input
+                            id="contact-name"
+                            name="name"
+                            placeholder={t({ tr: 'Ayşe Yılmaz', en: 'Jane Doe' })}
+                            autoComplete="name"
+                            required
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             disabled={loading}
+                            aria-invalid={fieldErrors.name ? true : undefined}
+                            aria-describedby={fieldErrors.name ? 'contact-name-error' : undefined}
                           />
+                          {fieldErrors.name ? (
+                            <p id="contact-name-error" className="text-xs text-red-600">
+                              {fieldErrors.name[0]}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-email">{t({ tr: 'E-posta', en: 'Email' })}</Label>
-                          <Input 
-                            id="contact-email" 
-                            name="email" 
-                            type="email" 
-                            placeholder={t({ tr: 'E-posta', en: 'Email' })} 
-                            autoComplete="email" 
-                            required 
+                          <Label htmlFor="contact-email">
+                            {t({ tr: 'İş e-postanız', en: 'Work email' })}
+                          </Label>
+                          <Input
+                            id="contact-email"
+                            name="email"
+                            type="email"
+                            placeholder="ornek@klinik.com"
+                            autoComplete="email"
+                            required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={loading}
+                            aria-invalid={fieldErrors.email ? true : undefined}
+                            aria-describedby={fieldErrors.email ? 'contact-email-error' : undefined}
                           />
+                          {fieldErrors.email ? (
+                            <p id="contact-email-error" className="text-xs text-red-600">
+                              {fieldErrors.email[0]}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-phone">{t({ tr: 'Telefon', en: 'Phone' })}</Label>
-                          <Input 
-                            id="contact-phone" 
-                            name="phone" 
-                            type="tel" 
-                            placeholder="+90 5XX XXX XX XX" 
-                            autoComplete="tel" 
-                            required 
+                          <Label htmlFor="contact-phone">
+                            {t({ tr: 'Telefon', en: 'Phone' })}
+                          </Label>
+                          <Input
+                            id="contact-phone"
+                            name="phone"
+                            type="tel"
+                            placeholder="+90 5XX XXX XX XX"
+                            autoComplete="tel"
+                            required
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             disabled={loading}
+                            aria-invalid={fieldErrors.phone ? true : undefined}
+                            aria-describedby={fieldErrors.phone ? 'contact-phone-error' : undefined}
                           />
+                          {fieldErrors.phone ? (
+                            <p id="contact-phone-error" className="text-xs text-red-600">
+                              {fieldErrors.phone[0]}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-company">{t({ tr: 'Klinik / Kurum Adı', en: 'Clinic / Organization' })}</Label>
-                          <Input 
-                            id="contact-company" 
-                            name="company" 
-                            placeholder={t({ tr: 'Klinik / Kurum Adı', en: 'Clinic / Organization' })} 
-                            autoComplete="organization" 
+                          <Label htmlFor="contact-company">
+                            {t({ tr: 'Klinik / Kurum Adı', en: 'Clinic / Organization' })}
+                          </Label>
+                          <Input
+                            id="contact-company"
+                            name="company"
+                            placeholder={t({ tr: 'Klinik / Kurum Adı', en: 'Clinic / Organization' })}
+                            autoComplete="organization"
                             value={company}
                             onChange={(e) => setCompany(e.target.value)}
                             disabled={loading}
@@ -221,25 +296,37 @@ export default function ContactPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label>{t({ tr: 'Hizmet Türü', en: 'Service Type' })}</Label>
-                        <Select 
-                          name="service_type" 
+                        <Label id="contact-service-type-label" htmlFor="contact-service-type">
+                          {t({ tr: 'Hizmet Türü', en: 'Service Type' })}
+                        </Label>
+                        <Select
+                          name="service_type"
                           value={serviceType}
                           onValueChange={(val) => setServiceType(val)}
                           disabled={loading}
                         >
-                          <SelectTrigger className="h-11 rounded-lg">
+                          <SelectTrigger
+                            id="contact-service-type"
+                            className="h-11 rounded-lg"
+                            aria-labelledby="contact-service-type-label"
+                          >
                             <SelectValue placeholder={t({ tr: 'Seçiniz', en: 'Select' })} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="patient-booking">
-                              {t({ tr: 'Randevu ve hasta yönetimi', en: 'Appointment and patient management' })}
+                              {t({
+                                tr: 'Randevu ve hasta yönetimi',
+                                en: 'Appointment and patient management',
+                              })}
                             </SelectItem>
                             <SelectItem value="provider-onboarding">
                               {t({ tr: 'Sağlayıcı kurulum süreci', en: 'Provider setup' })}
                             </SelectItem>
                             <SelectItem value="clinic-admin">
-                              {t({ tr: 'Klinik yönetim paneli', en: 'Clinic administration dashboard' })}
+                              {t({
+                                tr: 'Klinik yönetim paneli',
+                                en: 'Clinic administration dashboard',
+                              })}
                             </SelectItem>
                             <SelectItem value="custom-integration">
                               {t({ tr: 'Özel entegrasyon', en: 'Custom integration' })}
@@ -248,19 +335,126 @@ export default function ContactPage() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="contact-message">{t({ tr: 'Mesajınız', en: 'Your Message' })}</Label>
-                        <Textarea 
-                          id="contact-message" 
-                          name="message" 
-                          placeholder={t({ tr: 'Mesajınız', en: 'Your Message' })} 
-                          rows={4} 
-                          required 
+                        <Label htmlFor="contact-message">
+                          {t({ tr: 'Mesajınız', en: 'Your Message' })}
+                        </Label>
+                        <Textarea
+                          id="contact-message"
+                          name="message"
+                          placeholder={t({
+                            tr: 'Kurulum, demo veya fiyat hakkında kısaca yazın…',
+                            en: 'Briefly note setup, demo, or pricing questions…',
+                          })}
+                          rows={4}
+                          required
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
                           disabled={loading}
+                          aria-invalid={fieldErrors.message ? true : undefined}
+                          aria-describedby={fieldErrors.message ? 'contact-message-error' : undefined}
                         />
+                        {fieldErrors.message ? (
+                          <p id="contact-message-error" className="text-xs text-red-600">
+                            {fieldErrors.message[0]}
+                          </p>
+                        ) : null}
                       </div>
-                      <Button 
+
+                      <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            id="contact-privacy"
+                            name="privacyAccepted"
+                            type="checkbox"
+                            required
+                            checked={privacyAccepted}
+                            onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                            disabled={loading}
+                            aria-required="true"
+                            aria-invalid={fieldErrors.privacyAccepted ? true : undefined}
+                            aria-describedby={
+                              fieldErrors.privacyAccepted
+                                ? 'contact-privacy-error'
+                                : 'contact-privacy-hint'
+                            }
+                            className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-brand-blue focus:ring-2 focus:ring-brand-blue/40"
+                          />
+                          <label
+                            htmlFor="contact-privacy"
+                            className="cursor-pointer text-xs font-medium leading-relaxed text-slate-600"
+                          >
+                            {language === 'tr' ? (
+                              <>
+                                <Link
+                                  href="/privacy"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-brand-blue underline-offset-2 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Gizlilik politikasını
+                                </Link>
+                                {' '}ve{' '}
+                                <Link
+                                  href="/terms"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-brand-blue underline-offset-2 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  kullanım koşullarını
+                                </Link>
+                                {' '}okudum; iletişim talebim için bilgilerin işlenmesini kabul ediyorum.
+                                <span className="text-red-500" aria-hidden="true">
+                                  {' '}
+                                  *
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                I have read the{' '}
+                                <Link
+                                  href="/privacy"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-brand-blue underline-offset-2 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  privacy policy
+                                </Link>
+                                {' '}and{' '}
+                                <Link
+                                  href="/terms"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-brand-blue underline-offset-2 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  terms of use
+                                </Link>
+                                , and I consent to processing my details for this inquiry.
+                                <span className="text-red-500" aria-hidden="true">
+                                  {' '}
+                                  *
+                                </span>
+                              </>
+                            )}
+                          </label>
+                        </div>
+                        <p id="contact-privacy-hint" className="pl-6 text-[11px] leading-snug text-slate-500">
+                          {t({
+                            tr: 'Pazarlama e-postası ayrıdır ve bu formla otomatik abone olmazsınız.',
+                            en: 'Marketing email is separate — this form does not subscribe you automatically.',
+                          })}
+                        </p>
+                        {fieldErrors.privacyAccepted ? (
+                          <p id="contact-privacy-error" className="pl-6 text-xs text-red-600">
+                            {fieldErrors.privacyAccepted[0]}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <Button
                         type="submit"
                         disabled={loading}
                         className="h-10 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90"
@@ -268,11 +462,11 @@ export default function ContactPage() {
                         {loading ? (
                           <>
                             <Loader2 className="mr-1.5 size-4 animate-spin text-white" />
-                            {t({ tr: 'Gönderiliyor...', en: 'Submitting...' })}
+                            {t({ tr: 'Talep gönderiliyor…', en: 'Sending request…' })}
                           </>
                         ) : (
                           <>
-                            {t({ tr: 'Gönder', en: 'Submit' })}
+                            {t({ tr: 'Talebi gönder', en: 'Send request' })}
                             <ArrowRight className="ml-1.5 size-4" />
                           </>
                         )}
@@ -296,7 +490,10 @@ export default function ContactPage() {
                 </div>
                 <h3 className="text-lg font-extrabold text-brand-navy">{option.title}</h3>
                 <p className="mt-2 text-sm leading-7 text-slate-600">{option.description}</p>
-                <Link href={option.href} className="mt-4 inline-flex items-center text-sm font-semibold text-brand-blue hover:text-brand-teal">
+                <Link
+                  href={option.href}
+                  className="mt-4 inline-flex items-center text-sm font-semibold text-brand-blue hover:text-brand-teal"
+                >
                   {option.action}
                   <ArrowRight className="ml-1 size-4" />
                 </Link>

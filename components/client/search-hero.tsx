@@ -8,6 +8,7 @@ import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getClinicTrialPath } from '@/lib/entry-routes'
+import { markPwaEngagement } from '@/lib/pwa/engagement'
 import { cn } from '@/lib/utils'
 
 export function ClientSearchHero() {
@@ -19,14 +20,17 @@ export function ClientSearchHero() {
 
   const quickChips = [
     { label: t({ tr: 'Bugün müsait', en: 'Available today' }), params: { availableToday: 'true' } },
-    { label: t({ tr: 'Puan 4.5+', en: 'Rating 4.5+' }), params: { minRating: '4.5' } },
-    { label: t({ tr: '5 km içinde', en: 'Within 5 km' }), params: { maxDistanceKm: '5' } },
+    { label: t({ tr: 'Lefkoşa', en: 'Nicosia' }), params: { city: 'Lefkoşa' } },
+    { label: t({ tr: 'Girne', en: 'Kyrenia' }), params: { city: 'Girne' } },
   ] as const
 
   const highlights = [
     {
       title: t({ tr: 'Doğrulanmış klinikler', en: 'Verified clinics' }),
-      desc: t({ tr: 'Şeffaf puanlar ve yorumlar.', en: 'Transparent ratings and reviews.' }),
+      desc: t({
+        tr: 'Lisans bilgisi olan hekimler öne çıkar.',
+        en: 'Clinicians with license details rank higher.',
+      }),
     },
     {
       title: t({ tr: 'Gerçek müsaitlik', en: 'Real availability' }),
@@ -44,6 +48,7 @@ export function ClientSearchHero() {
     if (extra) {
       for (const [key, value] of Object.entries(extra)) params.set(key, value)
     }
+    markPwaEngagement('clinic_search')
     const qs = params.toString()
     router.push(qs ? `/client/clinics?${qs}` : '/client/clinics')
   }
@@ -59,8 +64,8 @@ export function ClientSearchHero() {
         </h1>
         <p className="max-w-2xl text-[13px] leading-relaxed text-muted-foreground md:text-base">
           {t({
-            tr: 'Asistan ile klinik bul — puan, fiyat ve müsait randevuyu karşılaştırın. Klinik paneli ile aynı ekosistem.',
-            en: 'Find clinics with Asistan — compare ratings, prices, and open slots. Same ecosystem as the clinic panel.',
+            tr: 'Asistan ile klinik bul — müsaitlik, bölge ve doğrulanmış profilleri karşılaştırın. Klinik paneli ile aynı ekosistem.',
+            en: 'Find clinics with Asistan — compare availability, area, and verified profiles. Same ecosystem as the clinic panel.',
           })}
         </p>
       </header>

@@ -1,6 +1,18 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, MapPin, Phone, Star, ShieldCheck, Clock3 } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  BadgeCheck,
+  CalendarClock,
+  Clock3,
+  Info,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Star,
+  Wallet,
+} from 'lucide-react'
 
 import { DoctorLiveSlotChips } from '@/components/client/doctor-live-slot-chips'
 import type { ClientClinicDetail } from '@/lib/client-marketplace/clinic-detail'
@@ -17,24 +29,59 @@ function mapsHref(clinic: ClientClinicDetail) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 
+function formatReviewDate(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function AboutCopy({ clinic }: { clinic: ClientClinicDetail }) {
+  if (clinic.description?.trim()) {
+    return (
+      <p className="text-[13.5px] leading-relaxed text-slate-600">{clinic.description.trim()}</p>
+    )
+  }
+  if (clinic.specialtySummary.length > 0) {
+    return (
+      <p className="text-[13.5px] leading-relaxed text-slate-600">
+        Bu klinikte randevuya açık branşlar:{' '}
+        <span className="font-semibold text-slate-800">
+          {clinic.specialtySummary.join(', ')}
+        </span>
+        . Klinik henüz ayrıntılı bir tanıtım metni paylaşmadı — hizmet ve hekim kartlarından
+        karar verebilirsiniz.
+      </p>
+    )
+  }
+  return (
+    <p className="text-[13.5px] leading-relaxed text-slate-500">
+      Klinik henüz tanıtım metni paylaşmadı. Aşağıdaki hizmetler, hekimler ve müsait saatlerle
+      randevu kararı verebilirsiniz.
+    </p>
+  )
+}
+
 export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
   const bookBase = getPublicBookPath(clinic.slug)
   const mapUrl = mapsHref(clinic)
   const ratingLabel =
     clinic.ratingAverage != null ? clinic.ratingAverage.toFixed(1) : null
+  const policy = clinic.bookingPolicy
+  const hasFeePolicy =
+    (policy.depositEnabled && policy.depositAmount != null) || policy.noShowFeeEnabled
 
   return (
     <article className="space-y-5">
       <header className="overflow-hidden rounded-[1.35rem] bg-white ring-1 ring-slate-200/80">
         <div className="flex gap-4 p-4">
-          <div className="relative size-[88px] shrink-0 overflow-hidden rounded-[1.1rem] bg-gradient-to-br from-[#0071E3] to-[#38BDF8]">
+          <div className="relative size-[96px] shrink-0 overflow-hidden rounded-[1.1rem] bg-gradient-to-br from-[#0071E3] to-[#38BDF8]">
             {clinic.logoUrl ? (
               <Image
                 src={clinic.logoUrl}
-                alt=""
+                alt={`${clinic.name} logosu`}
                 fill
                 className="object-cover"
-                sizes="88px"
+                sizes="96px"
                 unoptimized
               />
             ) : (
@@ -52,12 +99,14 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                 <span className="inline-flex items-center gap-1 font-semibold">
                   <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
                   {ratingLabel}
-                  {clinic.reviewCount > 0 ? (
-                    <span className="font-medium text-slate-400">({clinic.reviewCount})</span>
-                  ) : null}
+                  <span className="font-medium text-slate-400">
+                    ({clinic.reviewCount} yorum)
+                  </span>
                 </span>
               ) : (
-                <span className="font-semibold text-slate-500">Yeni klinik</span>
+                <span className="font-semibold text-slate-500">
+                  Yeni klinik · henüz yorum yok
+                </span>
               )}
               {clinic.city ? (
                 <span className="inline-flex items-center gap-1 text-slate-500">
@@ -69,17 +118,23 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
             {clinic.verifiedDoctorCount > 0 ? (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
                 <ShieldCheck className="size-3.5" aria-hidden />
-                {clinic.verifiedDoctorCount} hekim kimlik kaydı
+                {clinic.verifiedDoctorCount} doğrulanmış hekim profili
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                <Info className="size-3.5" aria-hidden />
+                Hekim kimlik kaydı henüz tamamlanmamış
+              </p>
+            )}
           </div>
         </div>
 
-        {clinic.description ? (
-          <p className="border-t border-slate-100 px-4 py-3 text-[13.5px] leading-relaxed text-slate-600">
-            {clinic.description}
-          </p>
-        ) : null}
+        <div className="space-y-2 border-t border-slate-100 px-4 py-3">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Klinik hakkında
+          </h2>
+          <AboutCopy clinic={clinic} />
+        </div>
 
         <div className="flex flex-col gap-2 border-t border-slate-100 p-4">
           {clinic.address ? (
@@ -113,6 +168,153 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
           </div>
         </div>
       </header>
+
+      {/* Trust / decision strip */}
+      <section
+        className="space-y-3 rounded-[1.25rem] bg-white p-4 ring-1 ring-slate-200/80"
+        aria-labelledby="clinic-trust-heading"
+      >
+        <h2
+          id="clinic-trust-heading"
+          className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400"
+        >
+          Randevu öncesi bilmeniz gerekenler
+        </h2>
+
+        <div className="space-y-3">
+          <div className="flex gap-3">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
+            <div>
+              <p className="text-[13px] font-semibold text-slate-900">Doğrulama ne demek?</p>
+              <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
+                “Doğrulanmış” hekim, klinik panelinde lisans, diploma veya KKTC kimlik numarası
+                kaydı olan profildir. Platform tıbbi yeterlilik belgesi doğrulamaz; kayıtların
+                varlığını gösterir.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <CalendarClock className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
+            <div>
+              <p className="text-[13px] font-semibold text-slate-900">İptal ve yeniden planlama</p>
+              <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
+                Randevu başlangıcından en az{' '}
+                <span className="font-semibold text-slate-800">{policy.cancelMinHours} saat</span>{' '}
+                önce uygulama üzerinden iptal veya erteleme yapabilirsiniz. Daha kısa sürede klinik
+                ile iletişime geçin.
+              </p>
+            </div>
+          </div>
+
+          {hasFeePolicy ? (
+            <div className="flex gap-3">
+              <Wallet className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
+              <div className="space-y-1">
+                <p className="text-[13px] font-semibold text-slate-900">Ücret politikası</p>
+                {policy.depositEnabled && policy.depositAmount != null ? (
+                  <p className="text-[12.5px] leading-relaxed text-slate-600">
+                    Depozito:{' '}
+                    <span className="font-semibold text-slate-800">
+                      {formatCurrency(policy.depositAmount, clinic.currency)}
+                    </span>{' '}
+                    (randevu sonrası)
+                  </p>
+                ) : null}
+                {policy.noShowFeeEnabled ? (
+                  <p className="text-[12.5px] leading-relaxed text-slate-600">
+                    Gelinmedi ücreti:{' '}
+                    <span className="font-semibold text-slate-800">
+                      {policy.noShowFeeAmount != null
+                        ? formatCurrency(policy.noShowFeeAmount, clinic.currency)
+                        : 'Klinik politikası'}
+                    </span>
+                    {policy.noShowFeeNote ? ` — ${policy.noShowFeeNote}` : ''}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex gap-3">
+            <Clock3 className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
+            <div>
+              <p className="text-[13px] font-semibold text-slate-900">Çalışma saatleri</p>
+              {clinic.openingHours.length > 0 ? (
+                <ul className="mt-1.5 space-y-1 text-[12.5px] text-slate-600">
+                  {clinic.openingHours.map((line) => (
+                    <li key={line.weekday} className="flex justify-between gap-3">
+                      <span className="font-medium text-slate-700">{line.label}</span>
+                      <span className="tabular-nums text-right">
+                        {line.windows.map((w) => `${w.startTime}–${w.endTime}`).join(', ')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
+                  Klinik genel açılış saati yayınlamadı. Saatler hekim müsaitliğine göre — açık
+                  slotlardan seçin.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Info className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden />
+            <div>
+              <p className="text-[13px] font-semibold text-slate-900">Erişim ve hizmet şekli</p>
+              <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
+                Engelli erişimi, otopark veya online/yüz yüze ayrımı klinik tarafından henüz
+                yayınlanmadı. Randevu yüz yüze klinik ziyareti olarak planlanır; özel ihtiyaçlarınız
+                için klinikle görüşün.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 rounded-[1rem] bg-amber-50/80 px-3 py-2.5 ring-1 ring-amber-200/70">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden />
+            <div>
+              <p className="text-[13px] font-semibold text-amber-950">Acil durum değil</p>
+              <p className="mt-0.5 text-[12.5px] leading-relaxed text-amber-900/90">
+                Bu kanal planlı randevu içindir. Yaşamı tehdit eden durumda{' '}
+                <span className="font-semibold">112</span> veya yerel acil servisi arayın.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {clinic.locations.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            Lokasyonlar
+          </h2>
+          <ul className="space-y-2">
+            {clinic.locations.map((loc) => (
+              <li
+                key={loc.id}
+                className="rounded-[1.1rem] bg-white p-3.5 text-[13px] text-slate-600 ring-1 ring-slate-200/80"
+              >
+                <p className="font-bold text-slate-900">{loc.name}</p>
+                {(loc.address || loc.city) && (
+                  <p className="mt-1">
+                    {[loc.address, loc.city].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {loc.phone ? (
+                  <a
+                    href={`tel:${loc.phone}`}
+                    className="mt-2 inline-flex text-[12.5px] font-semibold text-[#0071E3]"
+                  >
+                    {loc.phone}
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -193,37 +395,75 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                   className="rounded-[1.1rem] bg-white p-3.5 ring-1 ring-slate-200/80"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-slate-900">{doctor.fullName}</p>
-                      {doctor.specialty ? (
-                        <p className="mt-0.5 text-[12.5px] text-slate-500">{doctor.specialty}</p>
-                      ) : null}
-                      <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-semibold">
-                        {docRating ? (
-                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-800">
-                            ★ {docRating}
+                    <div className="flex min-w-0 flex-1 gap-3">
+                      <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-[#0071E3] to-[#38BDF8]">
+                        {doctor.avatarUrl ? (
+                          <Image
+                            src={doctor.avatarUrl}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="flex size-full items-center justify-center text-sm font-bold text-white">
+                            {doctor.fullName.slice(0, 1).toLocaleUpperCase('tr-TR')}
                           </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1 font-bold text-slate-900">
+                          <span className="truncate">{doctor.fullName}</span>
+                          {doctor.verified ? (
+                            <BadgeCheck
+                              className="size-4 shrink-0 text-[#0071E3]"
+                              aria-label="Doğrulanmış hekim profili"
+                            />
+                          ) : null}
+                        </p>
+                        {doctor.specialty ? (
+                          <p className="mt-0.5 text-[12.5px] text-slate-500">{doctor.specialty}</p>
                         ) : null}
-                        {firstSlotLabel ? (
-                          <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
-                            {firstSlotLabel}
-                          </span>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                          {doctor.verified ? (
+                            <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
+                              Doğrulanmış
+                            </span>
+                          ) : null}
+                          {docRating ? (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-800">
+                              ★ {docRating}
+                              {doctor.reviews.reviewCount > 0
+                                ? ` (${doctor.reviews.reviewCount})`
+                                : ''}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+                              Yorum yok
+                            </span>
+                          )}
+                          {firstSlotLabel ? (
+                            <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
+                              En erken {firstSlotLabel}
+                            </span>
+                          ) : null}
+                        </div>
+                        {doctor.bio ? (
+                          <p className="mt-2 text-[12.5px] leading-relaxed text-slate-500">
+                            {doctor.bio}
+                          </p>
+                        ) : null}
+                        {firstServiceId ? (
+                          <DoctorLiveSlotChips
+                            businessId={clinic.id}
+                            doctorId={doctor.id}
+                            serviceId={firstServiceId}
+                            bookBase={bookBase}
+                            initialSlots={doctor.nextSlots}
+                          />
                         ) : null}
                       </div>
-                      {doctor.bio ? (
-                        <p className="mt-2 text-[12.5px] leading-relaxed text-slate-500">
-                          {doctor.bio}
-                        </p>
-                      ) : null}
-                      {firstServiceId ? (
-                        <DoctorLiveSlotChips
-                          businessId={clinic.id}
-                          doctorId={doctor.id}
-                          serviceId={firstServiceId}
-                          bookBase={bookBase}
-                          initialSlots={doctor.nextSlots}
-                        />
-                      ) : null}
                     </div>
                     <Link
                       href={bookHref}
@@ -242,30 +482,51 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
         )}
       </section>
 
-      {clinic.recentReviews.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-2 px-0.5">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
             Yorumlar
           </h2>
+          <p className="text-[12px] font-semibold text-slate-500">
+            {clinic.reviewCount > 0
+              ? `${clinic.reviewCount} randevu sonrası yorum`
+              : 'Henüz yorum yok'}
+          </p>
+        </div>
+        {clinic.recentReviews.length === 0 ? (
+          <p className="rounded-[1.1rem] bg-white px-4 py-6 text-center text-sm leading-relaxed text-slate-500 ring-1 ring-slate-200/80">
+            {clinic.reviewCount > 0
+              ? 'Yorumlar var ancak metin paylaşılmamış. Puan özeti yukarıda.'
+              : 'Tamamlanan randevulardan sonra hastalar puan ve yorum bırakabilir. Bu klinik için henüz değerlendirme yok.'}
+          </p>
+        ) : (
           <ul className="space-y-2">
-            {clinic.recentReviews.map((review) => (
-              <li
-                key={review.id}
-                className="rounded-[1.1rem] bg-white p-3.5 ring-1 ring-slate-200/80"
-              >
-                <p className="text-[12px] font-semibold text-slate-700">
-                  {review.clientName} · ★ {review.rating}
-                </p>
-                {review.comment ? (
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600">{review.comment}</p>
-                ) : null}
-              </li>
-            ))}
+            {clinic.recentReviews.map((review) => {
+              const when = formatReviewDate(review.createdAt)
+              return (
+                <li
+                  key={review.id}
+                  className="rounded-[1.1rem] bg-white p-3.5 ring-1 ring-slate-200/80"
+                >
+                  <p className="text-[12px] font-semibold text-slate-700">
+                    {review.clientName} · ★ {review.rating}
+                    {when ? (
+                      <span className="font-medium text-slate-400"> · {when}</span>
+                    ) : null}
+                  </p>
+                  {review.comment ? (
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600">
+                      {review.comment}
+                    </p>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
-        </section>
-      ) : null}
+        )}
+      </section>
 
-      <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 pb-2 pt-1">
+      <div className="sticky bottom-[var(--rz-dock-clearance)] z-10 pb-2 pt-1">
         <Link
           href={bookBase}
           className="rz-press flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0071E3] text-[14px] font-bold text-white shadow-[0_12px_28px_rgba(0,113,227,0.35)]"

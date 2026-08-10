@@ -167,11 +167,17 @@ export function RegisterForm() {
       const gateRes = await fetch('/api/auth/gate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register' }),
+        body: JSON.stringify({ action: 'register', acceptedTerms: true }),
       })
       if (gateRes.status === 429) {
         setError(t({ tr: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.', en: 'Too many attempts. Try again in 15 minutes.' }))
         toast.error(t({ tr: 'Çok fazla deneme', en: 'Too many attempts' }))
+        setLoading(false)
+        return
+      }
+      if (!gateRes.ok) {
+        const gateJson = (await gateRes.json().catch(() => null)) as { error?: string } | null
+        setError(gateJson?.error || t({ tr: 'Kayıt doğrulaması başarısız', en: 'Registration check failed' }))
         setLoading(false)
         return
       }
@@ -491,6 +497,8 @@ export function RegisterForm() {
                   <input
                     id="register-terms"
                     type="checkbox"
+                    name="acceptedTerms"
+                    required
                     checked={agreeTerms}
                     onChange={(e) => {
                       setAgreeTerms(e.target.checked)

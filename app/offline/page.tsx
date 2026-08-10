@@ -21,7 +21,9 @@ export default function OfflinePage() {
         Çevrimdışısınız
       </h1>
       <p className="mt-4 max-w-md text-base leading-7 text-[#5D6068]">
-        İnternet bağlantısı yok. Bağlantı gelince randevu ve klinik keşfine devam edebilirsiniz.
+        İnternet bağlantısı yok. Kayıtlı bir shell gösteriliyor; klinik arama,
+        müsaitlik ve randevu listeleri güncel olmayabilir. Bağlantı gelince
+        tekrar deneyin.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Button asChild className="min-h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0063C8]">

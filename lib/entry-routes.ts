@@ -25,8 +25,8 @@ export type EntryLanguage = AuthLanguage
 export const PATIENT_BOOK_PATH = '/client'
 /** Short share alias → /client */
 export const PATIENT_BOOK_SHORT_PATH = '/r'
-/** Home showcase — PWA-first patient install narrative. */
-export const PATIENT_PWA_PATH = '/#uygulama'
+/** Home showcase — patient web app (PWA). Native Expo store is not claimed live here. */
+export const PATIENT_PWA_PATH = '/client'
 /** Optional email list for future App Store / Play updates (secondary). */
 export const STORE_WAITLIST_PATH = '/#waitlist'
 export const DEMO_CONTACT_PATH = '/contact'
@@ -44,9 +44,9 @@ export {
 export const ENTRY_CTA = {
   /** Secondary conversion — free trial (landing primary is demoRequest). */
   clinicTrial: {
-    tr: '14 gün ücretsiz klinik dene',
-    en: 'Try clinic free for 14 days',
-    short: { tr: '14 gün ücretsiz', en: '14-day free trial' },
+    tr: 'Kliniğinizde 14 gün ücretsiz deneyin',
+    en: 'Try it free for 14 days in your clinic',
+    short: { tr: '14 gün ücretsiz dene', en: '14-day free trial' },
   },
   /** Hero / register risk reducer under the primary CTA. */
   clinicTrialRiskReducer: {
@@ -70,15 +70,15 @@ export const ENTRY_CTA = {
     tr: 'Mağaza haberleri (isteğe bağlı)',
     en: 'Store updates (optional)',
   },
-  /** Landing primary conversion — sales demo (not trial). */
+  /** Landing primary conversion — sales demo request (contact form, not calendar). */
   demoRequest: {
-    tr: 'Demo rezerve et',
-    en: 'Book a demo',
-    short: { tr: 'Demo', en: 'Demo' },
+    tr: 'Demo talep et',
+    en: 'Request a demo',
+    short: { tr: 'Demo talep et', en: 'Request demo' },
   },
   demoRiskReducer: {
-    tr: '20 dakikada paneli görün — taahhüt yok',
-    en: 'See the panel in 20 minutes — no commitment',
+    tr: 'İletişim formu — canlı takvim yok; hedef yanıt 1 iş günü',
+    en: 'Contact form — no live calendar; target reply 1 business day',
   },
 } as const
 

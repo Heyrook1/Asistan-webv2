@@ -66,7 +66,7 @@ export default function ClientSearchScreen() {
   const router = useRouter()
   const theme = useAppTheme()
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'>('nearest')
+  const [sort, setSort] = useState<'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'>('highest-rated')
   const [availableToday, setAvailableToday] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [prefsReady, setPrefsReady] = useState(false)
@@ -178,10 +178,11 @@ export default function ClientSearchScreen() {
               <BrandLogo variant="light" height={28} />
               <Badge label={now} tone="info" />
               <AppText variant="hero" color={theme.colors.textInverse}>
-                Asistan Rezervasyon
+                Asistan
               </AppText>
               <AppText variant="body" color="#BCD1EF">
-                Klinik keşfet, gerçek müsait saatlerden randevu al, pasaportunu takip et.
+                Doğru kliniği bulun. Randevunuzu kolayca alın — KKTC’de klinik, hizmet ve gerçek
+                müsaitlik.
               </AppText>
             </View>
 
@@ -199,8 +200,7 @@ export default function ClientSearchScreen() {
               </View>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-                <Chip label="En yakin" selected={sort === 'nearest'} onPress={() => setSort('nearest')} />
-                <Chip label="En iyi puan" selected={sort === 'highest-rated'} onPress={() => setSort('highest-rated')} />
+                <Chip label="Onerilen" selected={sort === 'highest-rated'} onPress={() => setSort('highest-rated')} />
                 <Chip label="Erken saat" selected={sort === 'earliest-available'} onPress={() => setSort('earliest-available')} />
                 <Chip label="Cok yorum" selected={sort === 'most-reviewed'} onPress={() => setSort('most-reviewed')} />
                 <Chip label="Bugun musait" selected={availableToday} onPress={() => setAvailableToday((v) => !v)} />
@@ -358,10 +358,10 @@ export default function ClientSearchScreen() {
             <EmptyState
               icon="search-outline"
               title="Sonuç bulunamadı"
-              description="Filtreleri sadeleştirip tekrar deneyin. Alternatif olarak en yakın sıralama ile görüntüleyin."
+              description="Filtreleri sadeleştirip tekrar deneyin. Önerilen sıralama ile tüm klinikleri yeniden listeleyin."
               primaryActionLabel="Filtreleri sıfırla"
               onPrimaryAction={() => {
-                setSort('nearest')
+                setSort('highest-rated')
                 setAvailableToday(false)
                 setQuery('')
               }}

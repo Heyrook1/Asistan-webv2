@@ -79,8 +79,8 @@ export function HeroEcosystem() {
           </h1>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-[#5D6068] sm:text-lg">
             {t({
-              tr: 'Randevu, hasta ve ekip — tek panelde. Hastalar Asistan Rezervasyon ile gelir.',
-              en: 'Scheduling, patients, and team — one panel. Patients arrive via Asistan Booking.',
+              tr: 'Randevu, hasta ve ekip — tek panelde.',
+              en: 'Scheduling, patients, and team — one panel.',
             })}
           </p>
           <HomeCTA />

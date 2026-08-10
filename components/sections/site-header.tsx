@@ -32,10 +32,9 @@ const PRIMARY_NAV: readonly NavItem[] = [
     label: { tr: 'Özellikler', en: 'Features' },
     children: [
       { href: '/#why', label: { tr: 'Neden', en: 'Why' } },
-      { href: '/#modules', label: { tr: 'Modüller', en: 'Modules' } },
-      { href: '/#roadmap', label: { tr: 'Yol haritası', en: 'Roadmap' } },
       { href: '/#product', label: { tr: 'Ürün ekranları', en: 'Product screens' } },
       { href: '/#security', label: { tr: 'Güvenlik', en: 'Security' } },
+      { href: '/#pricing', label: { tr: 'Fiyat özeti', en: 'Pricing' } },
       { href: '/#faq', label: { tr: 'SSS', en: 'FAQ' } },
       { href: '/#cta', label: { tr: 'Demo', en: 'Demo' } },
       { href: '/urun', label: { tr: 'Tüm özellikler', en: 'All features' } },

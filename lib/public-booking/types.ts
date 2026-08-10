@@ -4,12 +4,24 @@ export type PublicClinicBookingPayload = {
   slug: string
   description: string | null
   phone: string | null
+  email: string | null
   city: string | null
   address: string | null
   logoUrl: string | null
   primaryColor: string
   currency: string
+  locationLat: number | null
+  locationLng: number | null
+  /** Vendor demo flag — public SEO should noindex. */
+  isDemo: boolean
+  specialtySummary: string[]
+  openingHours: Array<{
+    weekday: number
+    windows: Array<{ startTime: string; endTime: string }>
+  }>
   autoConfirmClientAppointments: boolean
+  /** Clinic opt-in: require national ID / passport on guest book (default false). */
+  requireGuestIdentity: boolean
   deposit: {
     enabled: boolean
     amount: number | null

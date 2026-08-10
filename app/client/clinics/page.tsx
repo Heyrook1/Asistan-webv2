@@ -1,10 +1,15 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import type { ClientDiscoveryFilters, ClientDiscoverySort } from '@/lib/client-marketplace/types'
-import { searchMarketplace } from '@/lib/client-marketplace/discovery'
+import {
+  publicCatalogHasRatings,
+  searchMarketplace,
+} from '@/lib/client-marketplace/discovery'
+import { shouldIncludeTestClinicsInPublicIndex } from '@/lib/client-marketplace/public-clinic-filter'
 import { ClinicFilters } from '@/components/client/clinic-filters'
 import { ClinicSearchInput } from '@/components/client/clinic-search-input'
 import { ClinicCard } from '@/components/client/clinic-card'
+import { ClientMarketplaceDemoBanner } from '@/components/client/marketplace-demo-banner'
 
 function parseNumber(input: string | string[] | undefined) {
   const value = Array.isArray(input) ? input[0] : input
@@ -22,20 +27,25 @@ function parseBoolean(input: string | string[] | undefined) {
   return value === 'true' || value === '1'
 }
 
-async function loadClinics(searchParams: Record<string, string | string[] | undefined>) {
+async function loadClinics(
+  searchParams: Record<string, string | string[] | undefined>,
+  ratingFilterEnabled: boolean,
+) {
   // Ignore unsupported distance filter until geolocation is live.
+  // Ignore minRating when catalog has no appointment-backed reviews.
   const filters: ClientDiscoveryFilters = {
     query: parseString(searchParams.query) ?? undefined,
     specialty: parseString(searchParams.specialty) ?? undefined,
     serviceId: parseString(searchParams.serviceId) ?? undefined,
-    minRating: parseNumber(searchParams.minRating),
+    minRating: ratingFilterEnabled ? parseNumber(searchParams.minRating) : undefined,
     availableToday: parseBoolean(searchParams.availableToday),
     minPrice: parseNumber(searchParams.minPrice),
     maxPrice: parseNumber(searchParams.maxPrice),
     city: parseString(searchParams.city) ?? undefined,
   }
 
-  const sort = (parseString(searchParams.sort) as ClientDiscoverySort | undefined) ?? 'nearest'
+  let sort = (parseString(searchParams.sort) as ClientDiscoverySort | undefined) ?? 'highest-rated'
+  if (!ratingFilterEnabled && sort === 'most-reviewed') sort = 'highest-rated'
 
   try {
     const rows = await searchMarketplace({ filters, sort, clientLocation: null })
@@ -55,7 +65,8 @@ export default async function ClientClinicsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
-  const { clinics, error } = await loadClinics(params)
+  const ratingFilterEnabled = await publicCatalogHasRatings()
+  const { clinics, error } = await loadClinics(params, ratingFilterEnabled)
   const query = parseString(params.query)?.trim()
   const specialty = parseString(params.specialty)?.trim()
   const heading = specialty
@@ -64,6 +75,9 @@ export default async function ClientClinicsPage({
       ? `“${query}”`
       : 'Uzman veya klinik ara'
   const hasIntent = Boolean(query || specialty)
+  const sortHint = ratingFilterEnabled
+    ? 'önerilen sıra · doğrulama, müsaitlik ve yorum'
+    : 'önerilen sıra · doğrulama ve gerçek müsaitlik'
 
   return (
     <main className="space-y-4">
@@ -75,8 +89,8 @@ export default async function ClientClinicsPage({
           {error
             ? 'Arama geçici olarak kullanılamıyor'
             : hasIntent
-              ? `${clinics.length} sonuç · puan ve gerçek müsaitlik`
-              : `${clinics.length} klinik · gerçek müsaitlikle karşılaştırın`}
+              ? `${clinics.length} sonuç · ${sortHint}`
+              : `${clinics.length} klinik · ${sortHint}`}
         </p>
       </header>
 
@@ -93,10 +107,13 @@ export default async function ClientClinicsPage({
           <div className="h-11 animate-pulse rounded-full bg-white/80 ring-1 ring-slate-200/80" />
         }
       >
-        <ClinicFilters />
+        <ClinicFilters ratingFilterEnabled={ratingFilterEnabled} />
       </Suspense>
 
       <div className="space-y-3">
+        {shouldIncludeTestClinicsInPublicIndex() ? (
+          <ClientMarketplaceDemoBanner mode="test-clinics-visible" />
+        ) : null}
         {error ? (
           <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-rose-200/80">
             <p className="text-sm font-bold text-slate-900">{error}</p>
@@ -108,7 +125,9 @@ export default async function ClientClinicsPage({
             </Link>
           </div>
         ) : clinics.length === 0 ? (
-          <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-slate-200/80">
+          <div className="space-y-3">
+            {!hasIntent ? <ClientMarketplaceDemoBanner mode="empty-catalog" /> : null}
+            <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-slate-200/80">
             <p className="text-sm font-bold text-slate-900">
               {specialty ? 'Bu branşta henüz klinik yok' : 'Eşleşen klinik yok'}
             </p>
@@ -134,6 +153,7 @@ export default async function ClientClinicsPage({
               >
                 Ana sayfaya dön
               </Link>
+            </div>
             </div>
           </div>
         ) : (

@@ -285,6 +285,8 @@ model Business {
   currency     String   @default("TRY")
   timezone     String   @default("Europe/Istanbul")
   autoConfirmClientAppointments Boolean @default(false)
+  /// When true, public /book requires KKTC/TC/passport. Default false (P0.6 minimization).
+  requireGuestIdentity Boolean @default(false)
   /// Public book deposit policy (Q3). Amount required when depositEnabled.
   depositEnabled Boolean @default(false)
   depositAmount  Decimal? @db.Decimal(10, 2)
@@ -1547,6 +1549,26 @@ model DemoBooking {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Marketing contact / demo request form leads (general inquiry — not calendar booking).
+model ContactLead {
+  id                    String   @id @default(uuid())
+  name                  String
+  email                 String
+  phone                 String
+  company               String?
+  serviceType           String?
+  message               String   @db.Text
+  privacyAcceptedAt     DateTime
+  privacyNoticeVersion  String
+  source                String   @default("contact")
+  status                String   @default("NEW")
+  createdAt             DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([email])
 }
 
 /// KKTC medical-tourism inbound leads (visit-cyprus). Not travel/visa/hotel booking.

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 
 import { ClientBottomNav } from '@/components/client/bottom-nav'
+import { ClientConnectivityBanner } from '@/components/pwa/connectivity-banner'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { RezervasyonTopBar } from '@/web-mobile/top-bar'
 import { cn } from '@/lib/utils'
@@ -23,11 +24,14 @@ export function RezervasyonAppShell({
         className,
       )}
     >
-      <div className="relative mx-auto flex w-full max-w-[480px] flex-col px-4 pb-[calc(96px+env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="relative mx-auto flex w-full max-w-[480px] flex-col px-4 pb-[var(--rz-dock-clearance)] pt-[max(0.75rem,env(safe-area-inset-top))]">
         <RezervasyonTopBar />
-        <InstallPrompt className="mt-3" />
+        <div className="mt-3">
+          <ClientConnectivityBanner />
+        </div>
         <div className="mt-4 flex-1">{children}</div>
       </div>
+      <InstallPrompt placement="above-dock" requireEngagement className="mt-0" />
       <ClientBottomNav />
     </div>
   )

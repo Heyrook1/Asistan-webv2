@@ -1,7 +1,9 @@
 /**
- * KKTC marketplace test klinikleri — /client/clinics’te görünür + randevu alınabilir.
+ * KKTC marketplace test klinikleri — staging only.
  *
- * Discovery İstanbul / isDemo=true kliniklerini gizler; bu script KKTC şehirleri kullanır.
+ * Public discovery excludes `isDemo=true` and `*-asistan-test` slugs unless
+ * CLIENT_SHOW_TEST_CLINICS=1. Display names use Turkish characters (Kliniği);
+ * slugs stay ASCII.
  *
  *   node scripts/ensure-kktc-test-clinics.mjs --i-know-this-bypasses-rls
  */
@@ -99,8 +101,9 @@ const DOCTOR_PERMISSIONS = [
  * }>} */
 const CLINICS = [
   {
+    // slug = ASCII URL key; name = Turkish display (Kliniği)
     slug: 'lefkosa-asistan-test',
-    name: 'Lefkoşa Asistan Test Klinigi',
+    name: 'Lefkoşa Asistan Test Kliniği',
     city: 'Lefkoşa',
     address: 'Bedrettin Demirel Cad. No:12 Lefkoşa',
     phone: '+90 392 555 0101',
@@ -124,7 +127,7 @@ const CLINICS = [
   },
   {
     slug: 'girne-asistan-test',
-    name: 'Girne Asistan Test Klinigi',
+    name: 'Girne Asistan Test Kliniği',
     city: 'Girne',
     address: 'Karaoğlanoğlu Cad. No:8 Girne',
     phone: '+90 392 555 0202',
@@ -148,7 +151,7 @@ const CLINICS = [
   },
   {
     slug: 'magusa-asistan-test',
-    name: 'Gazimağusa Asistan Test Klinigi',
+    name: 'Gazimağusa Asistan Test Kliniği',
     city: 'Gazimağusa',
     address: 'Salamis Yolu No:22 Gazimağusa',
     phone: '+90 392 555 0303',
@@ -282,12 +285,12 @@ async function ensureClinic(clinic) {
       businessId: business.id,
       status: 'ACTIVE',
       source: 'ADMIN_CREATED',
-      isDemo: false,
+      isDemo: true,
       plan: 'PRO',
     },
     update: {
       status: 'ACTIVE',
-      isDemo: false,
+      isDemo: true,
       deletedAt: null,
     },
   })
@@ -491,7 +494,7 @@ async function relocateLegacyDemoClinics() {
     if (biz.vendorAccount) {
       await prisma.vendorAccount.update({
         where: { id: biz.vendorAccount.id },
-        data: { isDemo: false, status: 'ACTIVE', deletedAt: null },
+        data: { isDemo: true, status: 'ACTIVE', deletedAt: null },
       })
     } else {
       await prisma.vendorAccount.create({
@@ -499,7 +502,7 @@ async function relocateLegacyDemoClinics() {
           businessId: biz.id,
           status: 'ACTIVE',
           source: 'ADMIN_CREATED',
-          isDemo: false,
+          isDemo: true,
           plan: 'PRO',
         },
       })

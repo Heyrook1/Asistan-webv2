@@ -16,6 +16,7 @@ import {
 } from '@/lib/payments/deposit'
 import { ensureIntakeInviteForAppointment } from '@/lib/intake/invites'
 import {
+  buildClientBookingSchema,
   createClientBookingSchema,
   type CreateClientBookingInput,
 } from '@/lib/client-marketplace/booking-schema'
@@ -132,13 +133,15 @@ async function notifyClinic(input: {
 }
 
 function buildGuestBookingNotes(payload: CreateClientBookingInput): string {
-  const docLabel =
-    payload.identityDocumentType === 'PASSPORT'
+  const hasId = Boolean(payload.identityNumber?.trim())
+  const docLabel = hasId
+    ? payload.identityDocumentType === 'PASSPORT'
       ? `Pasaport${payload.nationality ? `/${payload.nationality}` : ''}`
       : payload.identityDocumentType === 'TC'
         ? 'TC kimlik'
         : 'KKTC kimlik'
-  const prefix = `[Genel link · ${docLabel}]`
+    : null
+  const prefix = docLabel ? `[Genel link · ${docLabel}]` : '[Genel link]'
   return payload.note?.trim() ? `${prefix} ${payload.note.trim()}` : prefix
 }
 
@@ -175,9 +178,29 @@ async function createGuestBookingOnce(
 export const publicBookingSchema = createClientBookingSchema
 
 export async function createGuestPublicBooking(raw: unknown, idempotencyKeyRaw?: string | null) {
-  const parsed = publicBookingSchema.safeParse(raw)
+  // First pass: structural validation with optional identity (data minimization default).
+  const soft = createClientBookingSchema.safeParse(raw)
+  if (!soft.success) {
+    return { ok: false as const, error: 'Form hatalı', issues: soft.error.issues }
+  }
+
+  const policy = await prisma.business.findFirst({
+    where: { id: soft.data.businessId, isActive: true, deletedAt: null },
+    select: { requireGuestIdentity: true },
+  })
+  if (!policy) {
+    return { ok: false as const, error: 'Klinik bulunamadı' }
+  }
+
+  const parsed = policy.requireGuestIdentity
+    ? buildClientBookingSchema({ requireIdentity: true }).safeParse(raw)
+    : soft
   if (!parsed.success) {
-    return { ok: false as const, error: 'Form hatalı', issues: parsed.error.issues }
+    return {
+      ok: false as const,
+      error: 'Bu klinik kimlik veya pasaport numarası ister',
+      issues: parsed.error.issues,
+    }
   }
 
   const idempotencyKey =

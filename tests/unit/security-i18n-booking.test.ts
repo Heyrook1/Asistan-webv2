@@ -11,7 +11,10 @@ import {
   isDevNetworkOrigin,
   parseOriginList,
 } from '@/lib/cors'
-import { createClientBookingSchema } from '@/lib/client-marketplace/booking-schema'
+import {
+  buildClientBookingSchema,
+  createClientBookingSchema,
+} from '@/lib/client-marketplace/booking-schema'
 import { parseSystemAdminEmails } from '@/lib/system-admin-emails'
 import { guideWordCount, GUIDES } from '@/lib/resources/guides'
 import type { SessionContext } from '@/lib/rbac'
@@ -91,15 +94,20 @@ describe('SYSTEM_ADMIN_EMAILS', () => {
 })
 
 describe('client booking schema', () => {
+  const base = {
+    businessId: '11111111-1111-4111-8111-111111111111',
+    doctorId: '22222222-2222-4222-8222-222222222222',
+    serviceId: '33333333-3333-4333-8333-333333333333',
+    date: '2026-07-20',
+    startTime: '10:30',
+    fullName: 'Ayşe Yılmaz',
+    phone: '+905551112233',
+    privacyNoticeAccepted: true,
+  }
+
   it('accepts KKTC identity', () => {
     const parsed = createClientBookingSchema.safeParse({
-      businessId: '11111111-1111-4111-8111-111111111111',
-      doctorId: '22222222-2222-4222-8222-222222222222',
-      serviceId: '33333333-3333-4333-8333-333333333333',
-      date: '2026-07-20',
-      startTime: '10:30',
-      fullName: 'Ayşe Yılmaz',
-      phone: '+905551112233',
+      ...base,
       identityDocumentType: 'KKTC',
       identityNumber: '1234567890',
     })
@@ -109,11 +117,7 @@ describe('client booking schema', () => {
   it('accepts tourist passport (numeric or alphanumeric)', () => {
     expect(
       createClientBookingSchema.safeParse({
-        businessId: '11111111-1111-4111-8111-111111111111',
-        doctorId: '22222222-2222-4222-8222-222222222222',
-        serviceId: '33333333-3333-4333-8333-333333333333',
-        date: '2026-07-20',
-        startTime: '10:30',
+        ...base,
         fullName: 'John Smith',
         phone: '+447700900123',
         identityDocumentType: 'PASSPORT',
@@ -123,30 +127,57 @@ describe('client booking schema', () => {
     ).toBe(true)
   })
 
-  it('rejects missing identity number', () => {
+  it('accepts booking without identity number (data minimization default)', () => {
+    expect(createClientBookingSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('rejects missing privacy notice acknowledgment (P0.7)', () => {
     expect(
       createClientBookingSchema.safeParse({
-        businessId: '11111111-1111-4111-8111-111111111111',
-        doctorId: '22222222-2222-4222-8222-222222222222',
-        serviceId: '33333333-3333-4333-8333-333333333333',
-        date: '2026-07-20',
-        startTime: '10:30',
-        fullName: 'Ayşe Yılmaz',
-        phone: '+905551112233',
-      }).success
+        ...base,
+        privacyNoticeAccepted: false,
+      }).success,
+    ).toBe(false)
+    expect(
+      createClientBookingSchema.safeParse({
+        businessId: base.businessId,
+        doctorId: base.doctorId,
+        serviceId: base.serviceId,
+        date: base.date,
+        startTime: base.startTime,
+        fullName: base.fullName,
+        phone: base.phone,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('keeps marketing opt-in optional and separate from privacy ack', () => {
+    const withoutMarketing = createClientBookingSchema.safeParse(base)
+    expect(withoutMarketing.success).toBe(true)
+    if (withoutMarketing.success) {
+      expect(withoutMarketing.data.marketingOptIn).toBe(false)
+    }
+    const withMarketing = createClientBookingSchema.safeParse({
+      ...base,
+      marketingOptIn: true,
+    })
+    expect(withMarketing.success).toBe(true)
+    if (withMarketing.success) {
+      expect(withMarketing.data.marketingOptIn).toBe(true)
+    }
+  })
+
+  it('rejects missing identity when clinic requires it', () => {
+    expect(
+      buildClientBookingSchema({ requireIdentity: true }).safeParse(base).success,
     ).toBe(false)
   })
 
   it('rejects invalid date/time and short name', () => {
     expect(
       createClientBookingSchema.safeParse({
-        businessId: '11111111-1111-4111-8111-111111111111',
-        doctorId: '22222222-2222-4222-8222-222222222222',
-        serviceId: '33333333-3333-4333-8333-333333333333',
+        ...base,
         date: '20/07/2026',
-        startTime: '10:30',
-        fullName: 'Ayşe Yılmaz',
-        phone: '+905551112233',
         identityDocumentType: 'KKTC',
         identityNumber: '1234567890',
       }).success
@@ -154,10 +185,7 @@ describe('client booking schema', () => {
 
     expect(
       createClientBookingSchema.safeParse({
-        businessId: '11111111-1111-4111-8111-111111111111',
-        doctorId: '22222222-2222-4222-8222-222222222222',
-        serviceId: '33333333-3333-4333-8333-333333333333',
-        date: '2026-07-20',
+        ...base,
         startTime: '25:00',
         fullName: 'A',
         phone: '123',

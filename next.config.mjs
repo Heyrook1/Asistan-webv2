@@ -2,10 +2,15 @@
 
 /**
  * Baseline CSP for next.config headers (fallback for non-proxied paths).
- * Dynamic surfaces (/dashboard, /book, /intake) get a per-request NONCE CSP from
+ * Dynamic surfaces (/dashboard, /client, /book, /intake) get a per-request NONCE CSP from
  * proxy.ts → lib/security/response-headers.ts, which overrides this baseline —
  * there script-src drops 'unsafe-inline' in favor of 'nonce-…' + 'strict-dynamic'.
  * Keep directives aligned with buildContentSecurityPolicy() (production, non-embed).
+ *
+ * Residual (accepted for early product):
+ * - Marketing/static HTML keeps script-src 'unsafe-inline' (no per-request nonce on SSG).
+ * - style-src 'unsafe-inline' stays (React SSR style="" / Radix — attribute styles are not nonceable).
+ * Application-level tenant/auth tests remain the primary security gate.
  */
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -56,6 +61,8 @@ const baselineSecurityHeaders = [
 
 const nextConfig = {
   // Do not pin LAN IPs here — breaks other developers and leaks network layout.
+  // Hide framework fingerprint (low-risk info disclosure).
+  poweredByHeader: false,
   serverExternalPackages: ['@prisma/client', 'prisma'],
   experimental: {
     optimizePackageImports: [

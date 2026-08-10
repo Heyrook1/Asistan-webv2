@@ -82,13 +82,14 @@ describe('response security headers', () => {
   it('nonce eligibility covers dynamic surfaces only (static pages stay lax)', () => {
     expect(isNonceEligiblePath('/dashboard')).toBe(true)
     expect(isNonceEligiblePath('/dashboard/hastalar/abc')).toBe(true)
+    expect(isNonceEligiblePath('/client')).toBe(true)
+    expect(isNonceEligiblePath('/client/clinics')).toBe(true)
     expect(isNonceEligiblePath('/book/demo-klinik')).toBe(true)
     expect(isNonceEligiblePath('/intake/token123')).toBe(true)
     // Statically prerendered marketing/auth pages must not get a nonce policy.
     expect(isNonceEligiblePath('/')).toBe(false)
     expect(isNonceEligiblePath('/urun')).toBe(false)
     expect(isNonceEligiblePath('/tr/giris')).toBe(false)
-    expect(isNonceEligiblePath('/client')).toBe(false)
   })
 
   it('nonce flows through applyResponseSecurityHeaders', () => {
@@ -101,13 +102,15 @@ describe('response security headers', () => {
     expect(response.headers.get('content-security-policy')).toContain("'nonce-abc123'")
   })
 
-  it('production CSP baseline matches next.config expectations', async () => {
+  it('production CSP baseline documents poweredByHeader off', async () => {
     const fs = await import('node:fs')
     const path = await import('node:path')
     const config = fs.readFileSync(path.join(process.cwd(), 'next.config.mjs'), 'utf8')
     expect(config).toContain('Content-Security-Policy')
     expect(config).toContain('X-Frame-Options')
     expect(config).toContain("frame-ancestors 'self'")
+    expect(config).toContain('poweredByHeader: false')
+    expect(config).toContain('geolocation=()')
     expect(config).not.toContain('allowedDevOrigins')
     expect(config).not.toMatch(/unoptimized\s*:\s*true/)
     expect(config).not.toContain('192.168.')

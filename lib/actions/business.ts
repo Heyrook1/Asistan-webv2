@@ -19,6 +19,7 @@ const businessSchema = z.object({
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
   timezone: z.string().default('Europe/Istanbul'),
   autoConfirmClientAppointments: z.boolean().optional(),
+  requireGuestIdentity: z.boolean().optional(),
   depositEnabled: z.boolean().optional(),
   depositAmount: z.preprocess(
     (v) => (v === '' || v == null ? null : v),

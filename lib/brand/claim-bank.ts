@@ -65,8 +65,8 @@ export const APPROVED_CLAIMS: BrandClaim[] = [
   },
   {
     id: 'patient-channels-webhook',
-    tr: 'SMS/WhatsApp bildirimleri webhook ile bağlanabilir',
-    en: 'SMS/WhatsApp notifications can be connected via webhook',
+    tr: 'SMS/WhatsApp bildirimleri webhook ile bağlanabilir (entegrasyon; varsayılan aktif kanal değildir)',
+    en: 'SMS/WhatsApp notifications can be connected via webhook (integration option — not a default live channel)',
     surfaces: ['pricing', 'ads', 'social'],
   },
   {

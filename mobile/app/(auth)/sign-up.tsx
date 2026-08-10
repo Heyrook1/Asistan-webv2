@@ -22,6 +22,7 @@ export default function SignUpScreen() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,6 +31,10 @@ export default function SignUpScreen() {
     const trimmedEmail = email.trim()
     if (!trimmedName || !trimmedEmail || !password) {
       setError('Ad, e-posta ve sifre zorunlu.')
+      return
+    }
+    if (!acceptedTerms) {
+      setError('Devam etmek icin gizlilik ve kullanim kosullarini kabul edin.')
       return
     }
 
@@ -61,7 +66,7 @@ export default function SignUpScreen() {
 
           <View style={styles.panel}>
             <Text style={styles.title}>Yeni Hesap</Text>
-            <Text style={styles.subtitle}>Asistan Rezervasyon ile kaydını tamamla</Text>
+            <Text style={styles.subtitle}>Asistan ile kaydını tamamla</Text>
 
             <TextInput
               style={styles.input}
@@ -88,6 +93,18 @@ export default function SignUpScreen() {
               placeholder="Sifre"
               placeholderTextColor="#94a3b8"
             />
+
+            <Pressable
+              style={styles.termsRow}
+              onPress={() => setAcceptedTerms((v) => !v)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptedTerms }}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxOn]} />
+              <Text style={styles.termsText}>
+                Gizlilik ve kullanim kosullarini okudum, kabul ediyorum.
+              </Text>
+            </Pressable>
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -170,6 +187,31 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     color: palette.text,
     fontSize: 15,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 4,
+  },
+  checkbox: {
+    marginTop: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: palette.border,
+    backgroundColor: palette.surfaceSoft,
+  },
+  checkboxOn: {
+    backgroundColor: palette.primary,
+    borderColor: palette.primary,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    color: palette.textMuted,
   },
   button: {
     marginTop: 6,

@@ -19,4 +19,8 @@ export {
   type ClinicPatientInput,
   type ClinicPatientResult,
 } from '@/lib/identity/clinic-patient'
+export {
+  ensurePatientCardOnConfirm,
+  WEB_BOOKING_TAG,
+} from '@/lib/identity/ensure-patient-card-on-confirm'
 

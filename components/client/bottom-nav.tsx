@@ -23,7 +23,7 @@ export function ClientBottomNav() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-50"
       aria-label={t({ tr: 'Hasta menüsü', en: 'Patient menu' })}
     >
-      <div className="mx-auto max-w-[480px] pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto max-w-[480px] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="rezervasyon-dock pointer-events-auto flex items-end rounded-t-[1.5rem] border-t border-slate-200/90 bg-white px-0.5 pt-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)]">
           <Link
             href="/client"

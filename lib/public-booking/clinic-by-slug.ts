@@ -11,6 +11,27 @@ function toNumber(value: unknown) {
   return Number.isNaN(parsed) ? null : parsed
 }
 
+function summarizeOpeningHours(
+  rules: Array<{ weekday: number; startTime: string; endTime: string }>,
+): PublicClinicBookingPayload['openingHours'] {
+  const byDay = new Map<number, Array<{ startTime: string; endTime: string }>>()
+  for (const rule of rules) {
+    if (rule.weekday < 0 || rule.weekday > 6) continue
+    const list = byDay.get(rule.weekday) ?? []
+    const key = `${rule.startTime}-${rule.endTime}`
+    if (!list.some((w) => `${w.startTime}-${w.endTime}` === key)) {
+      list.push({ startTime: rule.startTime, endTime: rule.endTime })
+    }
+    byDay.set(rule.weekday, list)
+  }
+  return [...byDay.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([weekday, windows]) => ({
+      weekday,
+      windows: windows.sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    }))
+}
+
 /**
  * Public book payload — must use owner/catalog client.
  * `asistan_app` without `app.business_id` returns the Business row but empty
@@ -22,24 +43,29 @@ export async function getPublicClinicBySlug(slug: string): Promise<PublicClinicB
 
   const prisma = catalogPrisma()
   const business = await prisma.business.findFirst({
-    where: { slug: normalized, isActive: true },
+    where: { slug: normalized, isActive: true, deletedAt: null },
     select: {
       id: true,
       name: true,
       slug: true,
       description: true,
       phone: true,
+      email: true,
       city: true,
       address: true,
       logoUrl: true,
       primaryColor: true,
       currency: true,
+      locationLat: true,
+      locationLng: true,
       autoConfirmClientAppointments: true,
+      requireGuestIdentity: true,
       depositEnabled: true,
       depositAmount: true,
       noShowFeeEnabled: true,
       noShowFeeAmount: true,
       noShowFeeNote: true,
+      vendorAccount: { select: { isDemo: true } },
       locations: {
         where: { isActive: true },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -63,6 +89,10 @@ export async function getPublicClinicBySlug(slug: string): Promise<PublicClinicB
           id: true,
           fullName: true,
           specialty: true,
+          availabilityRules: {
+            where: { isActive: true, deletedAt: null },
+            select: { weekday: true, startTime: true, endTime: true },
+          },
           serviceAssignments: {
             where: { isActive: true },
             select: { serviceId: true },
@@ -74,18 +104,35 @@ export async function getPublicClinicBySlug(slug: string): Promise<PublicClinicB
 
   if (!business) return null
 
+  const specialtySummary = Array.from(
+    new Set(
+      business.members
+        .map((m) => m.specialty?.trim())
+        .filter((s): s is string => Boolean(s && s.length > 0)),
+    ),
+  ).slice(0, 6)
+
   return {
     id: business.id,
     name: business.name,
     slug: business.slug,
     description: business.description,
     phone: business.phone,
+    email: business.email,
     city: business.city,
     address: business.address,
     logoUrl: business.logoUrl,
     primaryColor: business.primaryColor || '#0071E3',
     currency: business.currency || 'TRY',
+    locationLat: toNumber(business.locationLat),
+    locationLng: toNumber(business.locationLng),
+    isDemo: Boolean(business.vendorAccount?.isDemo),
+    specialtySummary,
+    openingHours: summarizeOpeningHours(
+      business.members.flatMap((m) => m.availabilityRules),
+    ),
     autoConfirmClientAppointments: business.autoConfirmClientAppointments,
+    requireGuestIdentity: Boolean(business.requireGuestIdentity),
     deposit: {
       enabled: Boolean(business.depositEnabled),
       amount: toNumber(business.depositAmount),

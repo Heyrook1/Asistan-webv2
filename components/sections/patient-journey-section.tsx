@@ -30,8 +30,8 @@ const STEPS = [
   },
   {
     icon: Smartphone,
-    tr: 'Asistan Rezervasyon',
-    en: 'Asistan Booking',
+    tr: 'Asistan',
+    en: 'Asistan',
     hint: { tr: 'Talep gönderilir', en: 'Request sent' },
     tone: 'blue' as const,
   },
@@ -126,8 +126,8 @@ export function PatientJourneySection() {
             en: 'From discovery to visit summary — one flow.',
           })}
           description={t({
-            tr: 'Hasta kanalı Asistan Rezervasyon; klinik tarafı Asistan Health.',
-            en: 'Patient channel is Asistan Booking; clinic side is Asistan Health.',
+            tr: 'Hasta tarafında Asistan; klinik panelinde Asistan Health.',
+            en: 'Patients use Asistan; clinics run Asistan Health.',
           })}
         />
 

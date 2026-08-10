@@ -26,8 +26,10 @@ Son gözden geçirme: **2026-08-10**
 | Risk (önceki denetim) | Durum |
 |---|---|
 | Prisma RLS bypass | Kodda tenant-guard + `asistan_app` GUC ile kapatıldı; prod `DATABASE_URL` rolü ops doğrulaması ister |
-| owner → SUPER_ADMIN | `lib/actions/team.ts` engeli; action-level test derinleştirilebilir |
+| owner → SUPER_ADMIN | `lib/actions/team.ts` `platformRoleAssignmentError`; `tests/unit/team-super-admin-gate.test.ts` |
 | Auth fail-open | `proxy.ts` prod fail-closed; `isSystemAdmin` boş allowlist → false |
+| Empty-slot double-book | `pg_advisory_xact_lock` + day-row `FOR UPDATE` in `create-slot-appointment.ts` |
+| Paid-pilot gate | [`docs/p0.8-paid-pilot-security-gates.md`](./p0.8-paid-pilot-security-gates.md) · `pnpm verify:p0.8` |
 | Audit write swallow | Bilinçli; marketing “kesintisiz kayıt” demez |
 | Erasure incompleteness | `fullName` / notes / files tam scrub değil → planlanan |
 

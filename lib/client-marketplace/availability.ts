@@ -146,12 +146,13 @@ async function getAvailableSlotsWithDb(
     }),
   ])
 
+  // Wall-clock HH:mm in Business.timezone; empty → KKTC ops TZ (matches calendar-label).
   const timezone = business.timezone?.trim() || 'Europe/Nicosia'
   let now: { date: string; time: string }
   try {
     now = getCurrentDateAndTimeForTimezone(timezone)
   } catch {
-    now = getCurrentDateAndTimeForTimezone('Europe/Istanbul')
+    now = getCurrentDateAndTimeForTimezone('Europe/Nicosia')
   }
 
   return computeAvailableSlotsResult({

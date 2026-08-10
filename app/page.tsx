@@ -43,47 +43,11 @@ const WhyOutcomesSection = dynamic(
   { loading: () => <SectionSkeleton lines={3} /> },
 )
 
-const ModulesBentoSection = dynamic(
-  () =>
-    import('@/components/sections/modules-bento-section').then((mod) => mod.ModulesBentoSection),
-  { loading: () => <SectionSkeleton lines={4} /> },
-)
-
-const RoadmapTimelineSection = dynamic(
-  () =>
-    import('@/components/sections/roadmap-timeline-section').then(
-      (mod) => mod.RoadmapTimelineSection,
-    ),
-  { loading: () => <SectionSkeleton lines={4} /> },
-)
-
-const ComparePanelsSection = dynamic(
-  () =>
-    import('@/components/sections/compare-panels-section').then(
-      (mod) => mod.ComparePanelsSection,
-    ),
-  { loading: () => <SectionSkeleton lines={3} /> },
-)
-
-const PatientJourneySection = dynamic(
-  () =>
-    import('@/components/sections/patient-journey-section').then(
-      (mod) => mod.PatientJourneySection,
-    ),
-  { loading: () => <SectionSkeleton lines={3} /> },
-)
-
 const ProductGallerySection = dynamic(
   () =>
     import('@/components/sections/product-gallery-section').then(
       (mod) => mod.ProductGallerySection,
     ),
-  { loading: () => <SectionSkeleton lines={3} /> },
-)
-
-const DifferenceSection = dynamic(
-  () =>
-    import('@/components/sections/difference-section').then((mod) => mod.DifferenceSection),
   { loading: () => <SectionSkeleton lines={3} /> },
 )
 
@@ -95,12 +59,10 @@ const SecurityGridSection = dynamic(
   { loading: () => <SectionSkeleton lines={3} /> },
 )
 
-const OutcomeCasesSection = dynamic(
+const HomePricingSummary = dynamic(
   () =>
-    import('@/components/sections/outcome-cases-section-server').then(
-      (mod) => mod.OutcomeCasesSectionServer,
-    ),
-  { loading: () => <SectionSkeleton lines={4} /> },
+    import('@/components/sections/home-pricing-summary').then((mod) => mod.HomePricingSummary),
+  { loading: () => <SectionSkeleton lines={2} /> },
 )
 
 const LandingFaqSection = dynamic(
@@ -114,6 +76,12 @@ const FinalCtaBand = dynamic(
   { loading: () => <SectionSkeleton lines={2} /> },
 )
 
+/**
+ * B2B landing — short conversion path (audit 2026-08):
+ * Hero → kimler için → 3 sonuç → ürün ekranları → güven → fiyat özeti → SSS → final CTA.
+ * Dropped from home: modules bento, roadmap, compare, patient journey, difference, outcome cases
+ * (still reachable via /urun, /guven, /sonuclar, /fiyatlandirma).
+ */
 export default function HomePage() {
   return (
     <PageTransition>
@@ -127,19 +95,14 @@ export default function HomePage() {
             </Suspense>
             <TrustedBySection />
             <WhyOutcomesSection />
-            <ModulesBentoSection />
-            <RoadmapTimelineSection />
-            <ComparePanelsSection />
-            <PatientJourneySection />
             <ProductGallerySection />
-            <DifferenceSection />
             <SecurityGridSection />
-            <OutcomeCasesSection />
+            <HomePricingSummary />
             <LandingFaqSection />
             <FinalCtaBand />
           </main>
           <SiteFooter />
-          <FloatingCTA />
+          <FloatingCTA variant="b2b" />
         </div>
       </LandingLocaleProvider>
     </PageTransition>

@@ -333,7 +333,7 @@ export function ClientBookingsPanel() {
         <div className="rounded-[1.25rem] bg-white p-5 ring-1 ring-slate-200/70">
           <p className="text-sm text-slate-600">
             Misafir olarak klinik sayfasından randevu alabilirsiniz. Takip için{' '}
-            <span className="font-semibold text-slate-900">Asistan Rezervasyon</span> hesabı gerekir.
+            <span className="font-semibold text-slate-900">Asistan</span> hesabı gerekir.
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
@@ -453,7 +453,7 @@ export function ClientBookingsPanel() {
                 className="block rounded-[1.15rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 transition hover:border-[#0071E3]/30 hover:bg-[#0071E3]/5"
               >
                 Boylamsal ziyaret görünümü için{' '}
-                <span className="font-semibold text-[#0071E3]">Sağlık zaman çizelgesi</span>
+                <span className="font-semibold text-[#0071E3]">Asistan pasaportu</span>
               </Link>
             ) : null}
           </section>

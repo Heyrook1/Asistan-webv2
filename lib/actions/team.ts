@@ -14,6 +14,7 @@ import { env } from '@/lib/env'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
 import { getVendorPlanName, getVendorPlanUserLimit } from '@/lib/vendor-membership'
+import { platformRoleAssignmentError } from '@/lib/security/platform-roles'
 
 const memberSchema = z.object({
   fullName: z.string().trim().min(2, 'Ad soyad en az 2 karakter').max(120),
@@ -148,8 +149,9 @@ export async function createTeamMember(input: unknown): Promise<ActionResult<{ i
   if (!parsed.success) return err('Form hatali', parsed.error.issues)
   const session = await requirePermission('team.create')
   // SUPER_ADMIN is a platform-level role and can never be assigned via tenant team actions.
-  if (parsed.data.role === 'SUPER_ADMIN') {
-    return err('SUPER_ADMIN platform rolu ekip yonetimi uzerinden atanamaz.')
+  const platformRoleError = platformRoleAssignmentError(parsed.data.role)
+  if (platformRoleError) {
+    return err(platformRoleError)
   }
   if (!session.isOwner && parsed.data.role === 'ISLETME_SAHIBI') {
     return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')
@@ -334,8 +336,9 @@ export async function updateTeamMember(input: unknown): Promise<ActionResult> {
     return err('Ekip uyesi duzenleme yetkiniz yok')
   }
   // SUPER_ADMIN is a platform-level role and can never be assigned via tenant team actions.
-  if (patch.role === 'SUPER_ADMIN') {
-    return err('SUPER_ADMIN platform rolu ekip yonetimi uzerinden atanamaz.')
+  const platformRoleError = platformRoleAssignmentError(patch.role)
+  if (platformRoleError) {
+    return err(platformRoleError)
   }
   if (!session.isOwner && patch.role === 'ISLETME_SAHIBI') {
     return err('Bu rol yalnizca isletme sahibi tarafindan atanabilir.')

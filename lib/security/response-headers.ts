@@ -69,11 +69,17 @@ export function buildContentSecurityPolicy({
  * so Next.js can tag its inline scripts with the per-request nonce.
  * Statically prerendered pages (marketing) must NOT get a nonce policy —
  * their cached HTML has no nonce attributes and would be blocked.
+ *
+ * Residual risk (documented): marketing baseline in next.config.mjs still uses
+ * script-src 'unsafe-inline'. style-src keeps 'unsafe-inline' everywhere
+ * (React/Radix `style=""` attributes cannot be nonced).
  */
 export function isNonceEligiblePath(pathname: string) {
   return (
     pathname === '/dashboard' ||
     pathname.startsWith('/dashboard/') ||
+    pathname === '/client' ||
+    pathname.startsWith('/client/') ||
     pathname.startsWith('/book/') ||
     pathname.startsWith('/intake/')
   )

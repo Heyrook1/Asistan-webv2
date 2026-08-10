@@ -41,6 +41,7 @@ type BusinessForm = {
   currency: 'TRY' | 'USD' | 'EUR'
   timezone: string
   autoConfirmClientAppointments: boolean
+  requireGuestIdentity: boolean
   depositEnabled: boolean
   depositAmount: string
   noShowFeeEnabled: boolean
@@ -269,6 +270,29 @@ export function SettingsForm({
                 </div>
               </div>
 
+              <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-brand-ink">
+                      Genel linkte kimlik / pasaport zorunlu
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Kapalı (önerilen, veri minimizasyonu): ad + telefon yeter. Açık: hasta KKTC, TC veya pasaport
+                      numarası girer; platformda yalnızca tek yönlü hash tutulur, hasta kartına düz metin yazılmaz.
+                      Zorunlu tuttuğunuzda formda neden gerekli olduğu açıklanır.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.requireGuestIdentity}
+                    onCheckedChange={(checked) =>
+                      setForm({ ...form, requireGuestIdentity: checked })
+                    }
+                    disabled={!session.isOwner}
+                    aria-label="Genel linkte kimlik zorunluluğu"
+                  />
+                </div>
+              </div>
+
               <div className="rounded-xl border border-border/70 bg-slate-50/70 p-4 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -355,6 +379,7 @@ export function SettingsForm({
                     startTransition(async () => {
                       const result = await updateBusinessSettings({
                         autoConfirmClientAppointments: form.autoConfirmClientAppointments,
+                        requireGuestIdentity: form.requireGuestIdentity,
                         depositEnabled: form.depositEnabled,
                         depositAmount: form.depositEnabled
                           ? form.depositAmount === ''

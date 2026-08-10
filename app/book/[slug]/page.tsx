@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PublicBookingWidget } from '@/components/book/public-booking-widget'
 import { getPublicClinicBySlug } from '@/lib/public-booking/clinic-by-slug'
-import { getPublicBookPath } from '@/lib/public-booking/paths'
-import { absoluteUrl, withCanonical } from '@/lib/seo'
+import {
+  buildClinicPageMetadata,
+  buildMedicalClinicJsonLd,
+} from '@/lib/seo/clinic-seo'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,16 +25,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params
   const clinic = await getPublicClinicBySlug(slug)
   if (!clinic) {
-    return { title: 'Randevu bulunamadı' }
+    return {
+      title: 'Randevu bulunamadı',
+      robots: { index: false, follow: false },
+    }
   }
-  return withCanonical(getPublicBookPath(clinic.slug), {
-    title: `${clinic.name} — Online randevu`,
-    description: clinic.description?.slice(0, 160) || `${clinic.name} için online randevu alın.`,
-    openGraph: {
-      title: `${clinic.name} — Online randevu`,
-      description: clinic.description?.slice(0, 160) || `${clinic.name} için online randevu alın.`,
-      url: absoluteUrl(getPublicBookPath(clinic.slug)),
-    },
+
+  return buildClinicPageMetadata({
+    name: clinic.name,
+    slug: clinic.slug,
+    description: clinic.description,
+    city: clinic.city,
+    address: clinic.address,
+    phone: clinic.phone,
+    email: clinic.email,
+    logoUrl: clinic.logoUrl,
+    locationLat: clinic.locationLat,
+    locationLng: clinic.locationLng,
+    specialtySummary: clinic.specialtySummary,
+    doctors: clinic.doctors,
+    openingHours: clinic.openingHours,
+    isDemo: clinic.isDemo,
+    isActive: true,
   })
 }
 
@@ -45,11 +59,39 @@ export default async function PublicBookPage({ params, searchParams }: PageProps
   const langRaw = (query.lang || 'tr').toLowerCase()
   const lang = langRaw === 'en' || langRaw === 'ru' ? langRaw : 'tr'
 
+  const jsonLd = buildMedicalClinicJsonLd({
+    name: clinic.name,
+    slug: clinic.slug,
+    description: clinic.description,
+    city: clinic.city,
+    address: clinic.address,
+    phone: clinic.phone,
+    email: clinic.email,
+    logoUrl: clinic.logoUrl,
+    locationLat: clinic.locationLat,
+    locationLng: clinic.locationLng,
+    specialtySummary: clinic.specialtySummary,
+    doctors: clinic.doctors,
+    openingHours: clinic.openingHours,
+    isDemo: clinic.isDemo,
+    isActive: true,
+  })
+
   return (
     <main
       className={embed ? 'min-h-dvh bg-white' : undefined}
-      style={!embed ? { background: `radial-gradient(90%_60%_at_50%_-10%, ${clinic.primaryColor}33, transparent 55%), linear-gradient(180deg, #E8EEF6 0%, #F3F6FA 100%)` } : undefined}
+      style={
+        !embed
+          ? {
+              background: `radial-gradient(90% 60% at 50% -10%, ${clinic.primaryColor}33, transparent 55%), linear-gradient(180deg, #E8EEF6 0%, #F3F6FA 100%)`,
+            }
+          : undefined
+      }
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <PublicBookingWidget
         clinic={clinic}
         embed={embed}

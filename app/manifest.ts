@@ -53,7 +53,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: 'Randevularım',
         short_name: 'Randevu',
-        url: '/client/appointments?source=pwa-shortcut',
+        url: '/client/bookings?source=pwa-shortcut',
         icons: [{ src: '/images/icon-192.png', sizes: '192x192' }],
       },
     ],

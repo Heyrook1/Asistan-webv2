@@ -6,7 +6,7 @@ import { ArrowLeft, Bell } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLanguage } from '@/hooks/useLanguage'
-import { productName } from '@/lib/brand/masterbrand'
+import { patientChromeName } from '@/lib/brand/masterbrand'
 import { cn } from '@/lib/utils'
 
 const TITLES: Record<string, { tr: string; en: string }> = {
@@ -70,14 +70,14 @@ export function RezervasyonTopBar() {
         <Link
           href="/client"
           className="group inline-flex min-w-0 items-center gap-3 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]/35"
-          aria-label={productName('booking', language)}
+          aria-label={patientChromeName(language)}
         >
           <span className="flex size-11 items-center justify-center rounded-[1.1rem] bg-white ring-1 ring-slate-900/5 transition group-active:scale-[0.98]">
             <AsistanLogo lockup="mark" variant="dark" size="sm" />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">
-              {productName('booking', language)}
+              {patientChromeName(language)}
             </span>
             <span className="block truncate font-heading text-lg font-extrabold tracking-tight text-slate-900">
               {t(screen)}

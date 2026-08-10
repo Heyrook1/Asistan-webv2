@@ -48,8 +48,24 @@ Apply parity + Person + PHI hardening migrations on each environment before rely
 
 | Layer | Location | Role |
 |-------|----------|------|
-| Static (all hosts) | `next.config.mjs` `headers()` | CSP + `X-Frame-Options: SAMEORIGIN` (except `/book/*`) + HSTS / nosniff / Referrer / Permissions-Policy |
-| Dynamic | `proxy.ts` → `lib/security/response-headers.ts` | Path-aware CSP; allows `/book/?embed=1` iframe embeds via `frame-ancestors https:` (drops XFO on that surface only) |
+| Static (all hosts) | `next.config.mjs` `headers()` | CSP + `X-Frame-Options: SAMEORIGIN` (except `/book/*`) + HSTS / nosniff / Referrer / Permissions-Policy (`geolocation=()`) |
+| Dynamic | `proxy.ts` → `lib/security/response-headers.ts` | Path-aware CSP; nonce + `strict-dynamic` on `/dashboard`, `/client`, `/book`, `/intake` (drops script `unsafe-inline`); allows `/book/?embed=1` iframe embeds via `frame-ancestors https:` (drops XFO on that surface only) |
+| Fingerprint | `poweredByHeader: false` | Suppresses `X-Powered-By: Next.js` |
+
+### CSP residual (accepted for early product)
+
+- **Marketing/SSG** baseline still has `script-src 'unsafe-inline'` (no per-request nonce on cached HTML).
+- **`style-src 'unsafe-inline'`** everywhere — React/Radix emit `style=""` attributes; nonces do not cover attribute styles.
+- Primary security gate remains **application-level tenant isolation + auth tests**, not CSP alone.
+
+### Reverse-proxy fingerprint (nginx)
+
+```nginx
+server_tokens off;
+proxy_hide_header X-Powered-By;
+# Optional if headers-more module is installed:
+# more_clear_headers Server;
+```
 
 Vercel/`vercel.json` is not used. Headers ship with the Next.js process on any host.
 

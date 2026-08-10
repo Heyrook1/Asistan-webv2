@@ -88,7 +88,7 @@ const sections: LegalSection[] = [
         <LegalP>Hizmetin niteliğine göre aşağıdaki kategoriler işlenebilir:</LegalP>
         <LegalUl
           items={[
-            <>Kimlik ve iletişim: ad-soyad, e-posta, telefon, KKTC kimlik numarası (gerekli hallerde)</>,
+            <>Kimlik ve iletişim: ad-soyad, e-posta, telefon; KKTC / TC kimlik veya pasaport numarası yalnızca klinik politikası veya açıkça gerekli hallerde (varsayılan randevu formunda zorunlu değildir)</>,
             <>Hesap ve yetki: kullanıcı kimliği, rol, izinler, oturum ve güvenlik olayları</>,
             <>Klinik operasyon: hasta kartı, randevu, hizmet, ekip, mesajlaşma, hatırlatma tercihleri</>,
             <>Sağlıkla ilişkili veriler: klinik tarafından girilen anamnez, not, reçete ve dosya içerikleri (özel nitelikli kişisel veri)</>,
@@ -142,6 +142,12 @@ const sections: LegalSection[] = [
           bu verileri yalnızca hizmetin sağlanması için gerekli teknik ve organizasyonel sınırlar
           içinde işler.
         </LegalP>
+        <LegalP>
+          Genel randevu formunda kimlik / pasaport numarası varsayılan olarak zorunlu değildir
+          (veri minimizasyonu). Klinik bunu açıkça zorunlu kıldığında işleme dayanağı, randevu ve
+          hasta dosyasının klinik tarafında yürütülmesi (sözleşmenin ifası / meşru menfaat) ile
+          sınırlıdır; platform katmanında belgenin kendisi değil, tek yönlü hash tutulur.
+        </LegalP>
       </>
     ),
   },
@@ -175,6 +181,15 @@ const sections: LegalSection[] = [
             <>Hesap ve abonelik kayıtları: sözleşme süresi + yasal zamanaşımı / muhasebe süreleri</>,
             <>Güvenlik ve denetim logları: güvenlik ve uyumluluk için makul süre</>,
             <>Klinik hasta / randevu verileri: veri sorumlusunun (klinik) talimatı ve sektörel saklama kuralları</>,
+            <>
+              Kimlik belgesi (KKTC / TC / pasaport): genel randevu linkinde varsayılan olarak
+              toplanmaz. Klinik zorunlu kılarsa veya kullanıcı isteğe bağlı verirse, platform kimlik
+              katmanında yalnızca tek yönlü (hash) değer tutulur; genel linkten hasta kartına düz
+              metin yazılmaz. Hash eşleşmesi tek başına otomatik birleştirme için yeterli değildir —
+              doğrulanmış sahiplik (ör. ek iletişim sinyali veya personel onayı) gerekir. Silme /
+              unutulma taleplerinde hash alanı da anonimleştirilebilir (yasal saklama istisnaları
+              saklıdır).
+            </>,
             <>Pazarlama rızası kayıtları: rıza geri alınana veya hesap kapanana kadar</>,
           ]}
         />

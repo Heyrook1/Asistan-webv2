@@ -1,9 +1,12 @@
 /**
  * Locked masterbrand architecture (KKTC-first → international).
  *
- * Asistan          → company / ecosystem
+ * Asistan          → company / ecosystem + **patient-app chrome** (day-to-day UI)
  * Asistan Health   → clinic B2B product (dashboard, membership)
- * Asistan Rezervasyon → patient booking surface (/client + mobile)
+ * Asistan Rezervasyon → patient product **full name** (about, onboarding, legal, store long-form)
+ *
+ * Patient surfaces: lead with "Asistan"; use "Rezervasyon" only as subtitle on
+ * about / onboarding — do not repeat the long product name in every header.
  *
  * Never invent fourth product names (e.g. "Asistan Client", "Asistan Mobile")
  * in customer-facing copy.
@@ -65,14 +68,14 @@ export const BRAND_PRODUCTS: Record<BrandProductId, BrandProduct> = {
     id: 'company',
     name: { tr: 'Asistan', en: 'Asistan' },
     role: {
-      tr: 'Şirket ve ekosistem markası',
-      en: 'Company and ecosystem brand',
+      tr: 'Şirket markası; hasta uygulamasında günlük chrome',
+      en: 'Company brand; patient-app day-to-day chrome',
     },
     audience: {
-      tr: 'Kurumsal, yatırımcı, kariyer, genel iletişim',
-      en: 'Corporate, investor, careers, general communications',
+      tr: 'Kurumsal, yatırımcı, kariyer; hasta UI chrome',
+      en: 'Corporate, investor, careers; patient UI chrome',
     },
-    surfaces: ['footer-corporate', 'legal-company', 'press'],
+    surfaces: ['footer-corporate', 'legal-company', 'press', '/client-chrome', 'web-mobile-chrome'],
   },
   health: {
     id: 'health',
@@ -91,14 +94,14 @@ export const BRAND_PRODUCTS: Record<BrandProductId, BrandProduct> = {
     id: 'booking',
     name: { tr: 'Asistan Rezervasyon', en: 'Asistan Booking' },
     role: {
-      tr: 'Hasta keşif ve randevu yüzeyi (web + mobil)',
-      en: 'Patient discovery and booking (web + mobile)',
+      tr: 'Hasta ürününün tam adı — about, onboarding, yasal metin',
+      en: 'Full patient product name — about, onboarding, legal',
     },
     audience: {
       tr: 'Hastalar / randevu arayan kullanıcılar',
       en: 'Patients and appointment seekers',
     },
-    surfaces: ['/client', '/r', 'web-mobile', 'mobile', 'pwa-install', 'store-updates-optional'],
+    surfaces: ['/client', '/r', 'web-mobile', 'mobile', 'pwa-install', 'about', 'onboarding'],
   },
 }
 
@@ -109,8 +112,13 @@ export const BRAND_TAGLINES = {
     en: 'The digital clinic panel that calms day-to-day operations in Northern Cyprus.',
   },
   booking: {
-    tr: 'Asistan Health kullanan kliniklerden randevu keşfi ve talebi.',
-    en: 'Discover and request appointments at clinics that run Asistan Health.',
+    tr: 'KKTC’deki klinikleri, hizmetleri ve gerçek müsaitliği karşılaştırın.',
+    en: 'Compare clinics, services, and live availability in Northern Cyprus.',
+  },
+  /** Patient home hero headline (chrome brand is Asistan, not the long product name). */
+  bookingHero: {
+    tr: 'Doğru kliniği bulun. Randevunuzu kolayca alın.',
+    en: 'Find the right clinic. Book easily.',
   },
   company: {
     tr: 'İşinizi yöneten, hayatı kolaylaştıran dijital asistan.',
@@ -129,6 +137,19 @@ export const FORBIDDEN_PRODUCT_ALIASES = [
 
 export function productName(id: BrandProductId, locale: BrandLocale = 'tr'): string {
   return BRAND_PRODUCTS[id].name[locale]
+}
+
+/**
+ * Day-to-day patient UI wordmark — "Asistan".
+ * Use {@link bookingProductFullName} on about / onboarding / legal only.
+ */
+export function patientChromeName(locale: BrandLocale = 'tr'): string {
+  return BRAND_PRODUCTS.company.name[locale]
+}
+
+/** Full patient product name — about, onboarding, legal, long-form SEO. */
+export function bookingProductFullName(locale: BrandLocale = 'tr'): string {
+  return BRAND_PRODUCTS.booking.name[locale]
 }
 
 export function productRole(id: BrandProductId, locale: BrandLocale = 'tr'): string {

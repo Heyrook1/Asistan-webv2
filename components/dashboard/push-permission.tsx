@@ -115,19 +115,23 @@ export function PushPermissionToggle() {
 
   if (permission === 'unsupported') return null
 
-  if (subscribed) {
-    return (
-      <Button variant="outline" size="sm" onClick={handleDisable} disabled={pending} className="gap-1">
-        <BellOff className="h-4 w-4" />
-        Tarayıcı bildirimleri kapalı
-      </Button>
-    )
-  }
-
   return (
-    <Button variant="outline" size="sm" onClick={handleEnable} disabled={pending} className="gap-1">
-      <Bell className="h-4 w-4" />
-      Tarayıcı bildirimlerini aç
-    </Button>
+    <div className="flex flex-col items-start gap-2">
+      <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+        Randevu onayı ve iptal uyarılarını tarayıcıdan alın. İzin yalnızca siz
+        düğmeye bastığınızda istenir.
+      </p>
+      {subscribed ? (
+        <Button variant="outline" size="sm" onClick={handleDisable} disabled={pending} className="gap-1">
+          <BellOff className="h-4 w-4" />
+          Tarayıcı bildirimlerini kapat
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={handleEnable} disabled={pending} className="gap-1">
+          <Bell className="h-4 w-4" />
+          Tarayıcı bildirimlerini aç
+        </Button>
+      )}
+    </div>
   )
 }

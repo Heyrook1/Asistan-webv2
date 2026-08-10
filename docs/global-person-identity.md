@@ -32,6 +32,13 @@ npm run db:generate
 
 Restart `next` after generate if Windows locks the query engine DLL.
 
+## Auto-link gate (P0.6)
+
+`shouldAutoLinkPerson` requires **≥2 strong signals** (identityHash / phoneE164 / emailNorm).
+Hash-only matches are queued via `PersonIdentityMatch` — guest-typed document numbers are not verified ownership.
+
+Guest public book: national ID optional unless `Business.requireGuestIdentity`; plaintext is not written to `Patient` from the guest form.
+
 ## GPI format
 
 `GPI-` + 10 hex chars (opaque). Internal PK remains UUID.

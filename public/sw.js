@@ -3,8 +3,9 @@
 // Push delivery is handled server-side when VAPID keys are configured.
 // Offline: precache shell assets only. Never cache /_next/* (avoids stale
 // JS vs fresh SSR hydration mismatches under Turbopack / deploys).
+// Navigations are always network-first with /offline.html fallback (including /client).
 
-const CACHE_VERSION = 'asistan-shell-v4'
+const CACHE_VERSION = 'asistan-shell-v5'
 const PRECACHE = ['/offline.html', '/images/icon-192.png', '/images/icon-512.png', '/images/apple-touch-icon.png']
 
 self.addEventListener('install', (event) => {
@@ -58,9 +59,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
-  if (isExcludedPath(url.pathname)) return
 
-  // Navigations: network-first, offline fallback
+  // Navigations: network-first, offline fallback (includes /client — was previously skipped).
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(async () => {
@@ -70,6 +70,8 @@ self.addEventListener('fetch', (event) => {
     )
     return
   }
+
+  if (isExcludedPath(url.pathname)) return
 
   // Same-origin static assets (images/fonts only): cache-first
   if (isStaticAsset(url.pathname)) {

@@ -41,8 +41,8 @@ export function ModulesBentoSection() {
       icon: Smartphone,
       title: t({ tr: 'Hasta mobil', en: 'Patient mobile' }),
       body: t({
-        tr: 'Asistan Rezervasyon — keşif ve talep · PWA / Expo.',
-        en: 'Asistan Booking — discover and request · PWA / Expo.',
+        tr: 'Asistan — hasta keşif ve randevu talebi (web / PWA). Native mağaza sürümü ayrı yol haritasında.',
+        en: 'Asistan — patient discover & booking request (web / PWA). Native store build is on a separate roadmap.',
       }),
     },
     {

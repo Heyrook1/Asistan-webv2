@@ -158,6 +158,7 @@ export default async function AyarlarPage() {
             currency: business.currency as 'TRY' | 'USD' | 'EUR',
             timezone: business.timezone,
             autoConfirmClientAppointments: business.autoConfirmClientAppointments,
+            requireGuestIdentity: business.requireGuestIdentity ?? false,
             depositEnabled: business.depositEnabled,
             depositAmount:
               business.depositAmount != null ? String(Number(business.depositAmount)) : '',

@@ -103,6 +103,15 @@ sudo systemctl enable --now asistan
 
 Terminate TLS at nginx/Caddy and proxy to `127.0.0.1:3000`. Security headers are set in `next.config.mjs` / `lib/security/response-headers.ts`.
 
+Hide low-risk server fingerprints at the proxy:
+
+```nginx
+server_tokens off;
+proxy_hide_header X-Powered-By;
+```
+
+Next.js also sets `poweredByHeader: false` so app responses do not emit `X-Powered-By: Next.js`.
+
 ## Step 4: Scheduled jobs (cron)
 
 Vercel Cron is **not** used. Call HTTP endpoints from your scheduler with `CRON_SECRET`:

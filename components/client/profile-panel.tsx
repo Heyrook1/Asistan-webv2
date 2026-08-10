@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
-import { productName } from '@/lib/brand/masterbrand'
+import { patientChromeName } from '@/lib/brand/masterbrand'
 import { cn } from '@/lib/utils'
 
 type Profile = {
@@ -160,10 +160,18 @@ export function ClientProfilePanel() {
       const gateRes = await fetch('/api/auth/gate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: mode === 'login' ? 'login' : 'register' }),
+        body: JSON.stringify({
+          action: mode === 'login' ? 'login' : 'register',
+          ...(mode === 'register' ? { acceptedTerms: true } : {}),
+        }),
       })
       if (gateRes.status === 429) {
         toast.error('Çok fazla deneme. 15 dakika sonra tekrar deneyin.')
+        return
+      }
+      if (!gateRes.ok) {
+        const gateJson = (await gateRes.json().catch(() => null)) as { error?: string } | null
+        toast.error(gateJson?.error || 'Kayıt doğrulaması başarısız')
         return
       }
 
@@ -181,7 +189,12 @@ export function ClientProfilePanel() {
           email: trimmed,
           password,
           options: {
-            data: { full_name: authName.trim() || trimmed.split('@')[0] },
+            data: {
+              full_name: authName.trim() || trimmed.split('@')[0],
+              privacy_accepted: true,
+              privacy_notice_version: '2026-08-10',
+              privacy_accepted_at: new Date().toISOString(),
+            },
             emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent('/client/profile')}`,
           },
         })
@@ -267,7 +280,7 @@ export function ClientProfilePanel() {
       <main className="space-y-5">
         <header className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-            {productName('booking', 'tr')}
+            {patientChromeName('tr')}
           </p>
           <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">Profil</h1>
           <p className="text-sm text-slate-500">
@@ -363,9 +376,12 @@ export function ClientProfilePanel() {
               <label className="flex items-start gap-2 text-[12px] leading-relaxed text-slate-600">
                 <input
                   type="checkbox"
+                  name="acceptedTerms"
                   className="mt-0.5 size-4 rounded border-slate-300"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  required
+                  aria-required="true"
                 />
                 <span>
                   <Link href="/privacy" className="font-semibold text-[#0071E3] underline-offset-2 hover:underline">
@@ -412,9 +428,9 @@ export function ClientProfilePanel() {
             href="/client/health"
             className="rounded-[1.15rem] bg-white p-4 ring-1 ring-slate-200/70 transition active:scale-[0.98]"
           >
-            <HeartPulse className="size-4 text-emerald-600" />
-            <p className="mt-2 text-sm font-bold text-slate-900">Sağlık</p>
-            <p className="mt-1 text-xs text-slate-500">Ziyaret geçmişi</p>
+            <HeartPulse className="size-4 text-[#0071E3]" />
+            <p className="mt-2 text-sm font-bold text-slate-900">Pasaport</p>
+            <p className="mt-1 text-xs text-slate-500">Ziyaret özeti</p>
           </Link>
         </div>
       </main>
@@ -426,7 +442,7 @@ export function ClientProfilePanel() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-            {productName('booking', 'tr')}
+            {patientChromeName('tr')}
           </p>
           <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">Profilim</h1>
           <p className="mt-1 text-sm text-slate-500">İletişim bilgilerinizi güncelleyin.</p>
@@ -485,6 +501,12 @@ export function ClientProfilePanel() {
         >
           {claiming ? 'Bağlanıyor…' : 'Misafir randevularımı bağla'}
         </Button>
+        <p className="text-[11px] leading-relaxed text-slate-500">
+          Hesapsız aldığınız randevular, giriş yaptığınız{' '}
+          <span className="font-semibold text-slate-700">doğrulanmış e-posta</span> ile
+          eşleşirse otomatik veya bu düğmeyle bağlanır. Telefon veya kimlik numarası ile
+          bağlama yoktur — güvenlik için e-posta sahipliği gerekir.
+        </p>
         <p className="text-center text-[11px] text-slate-400">
           <Link href="/privacy" className="underline-offset-2 hover:underline">
             Gizlilik
@@ -506,7 +528,7 @@ export function ClientProfilePanel() {
         <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
           <Link href="/client/health">
             <HeartPulse className="mr-1.5 size-4" />
-            Sağlık
+            Pasaport
           </Link>
         </Button>
       </div>

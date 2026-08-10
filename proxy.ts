@@ -1,7 +1,7 @@
 /**
  * Next.js edge proxy (eski middleware) — oturum, CSP nonce, CORS, auth yönlendirme.
  *
- * Supabase session yeniler; dashboard/book/intake için CSP nonce üretir;
+ * Supabase session yeniler; dashboard/client/book/intake için CSP nonce üretir;
  * `/api/client/*` CORS allowlist uygular. İş mantığı burada yok — sadece
  * request kapısı.
  */
@@ -21,7 +21,7 @@ function authLanguageFromRequest(request: NextRequest) {
 }
 
 /**
- * İstek başına CSP nonce (dashboard / book / intake PHI yüzeyleri).
+ * İstek başına CSP nonce (dashboard / client / book / intake dinamik yüzeyler).
  * Request CSP’ye yazılır (Next inline script etiketler); response’ta tarayıcı uygular.
  * Dev + nonce-dışı path: null.
  */

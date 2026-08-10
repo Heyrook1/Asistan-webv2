@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, Phone, Stethoscope } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import {
   formatDayChipLabel,
 } from '@/lib/datetime/calendar-label'
 import { formatCurrency } from '@/lib/format'
+import { markPwaEngagement } from '@/lib/pwa/engagement'
 import type { PublicClinicBookingPayload } from '@/lib/public-booking/types'
 
 type Step = 1 | 2 | 3
@@ -188,13 +190,16 @@ export function PublicBookingWidget({
   const [nationality, setNationality] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
+  const [privacyNoticeAccepted, setPrivacyNoticeAccepted] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
+  const [privacyError, setPrivacyError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [identityError, setIdentityError] = useState<string | null>(null)
   const idempotencyKeyRef = useRef(newIdempotencyKey())
 
-  // Product chrome always uses Asistan Rezervasyon blue — clinic.primaryColor
+  // Product chrome uses Asistan masterbrand blue — clinic.primaryColor
   // was painting teal CTAs next to the blue product label (renk uyuşmazlığı).
   const accent = '#0071E3'
 
@@ -325,7 +330,20 @@ export function PublicBookingWidget({
   }
 
   function validateIdentity(value: string, docType: IdentityDocumentType = identityDocumentType) {
-    if (!isValidIdentityDocument(value, docType)) {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      if (clinic.requireGuestIdentity) {
+        setIdentityError(
+          lang === 'en'
+            ? 'This clinic requires an ID or passport number'
+            : 'Bu klinik kimlik veya pasaport numarası ister',
+        )
+        return false
+      }
+      setIdentityError(null)
+      return true
+    }
+    if (!isValidIdentityDocument(trimmed, docType)) {
       setIdentityError(
         docType === 'PASSPORT'
           ? lang === 'en'
@@ -355,10 +373,20 @@ export function PublicBookingWidget({
     const nameOk = validateName(fullName)
     const phoneOk = validatePhone(phone)
     const identityOk = validateIdentity(identityNumber, identityDocumentType)
+    if (!privacyNoticeAccepted) {
+      setPrivacyError(
+        lang === 'en'
+          ? 'Please confirm you have read the privacy notice'
+          : 'Gizlilik aydınlatmasını kabul etmelisiniz',
+      )
+      return
+    }
+    setPrivacyError(null)
     if (!nameOk || !phoneOk || !identityOk) return
     setSubmitError(null)
     startTransition(async () => {
       try {
+        const identityTrimmed = identityNumber.trim()
         const res = await fetch('/api/public/bookings', {
           method: 'POST',
           headers: {
@@ -374,12 +402,18 @@ export function PublicBookingWidget({
             startTime,
             fullName,
             phone,
-            identityDocumentType,
-            identityNumber,
-            nationality:
-              identityDocumentType === 'PASSPORT' ? nationality.trim() || null : null,
+            ...(identityTrimmed
+              ? {
+                  identityDocumentType,
+                  identityNumber: identityTrimmed,
+                  nationality:
+                    identityDocumentType === 'PASSPORT' ? nationality.trim() || null : null,
+                }
+              : {}),
             email: email.trim() || null,
             note: note.trim() || null,
+            privacyNoticeAccepted: true,
+            marketingOptIn,
           }),
         })
         const { ok, status, data } = await readJsonResponse<Record<string, unknown>>(res, {
@@ -406,6 +440,7 @@ export function PublicBookingWidget({
           return
         }
         setSubmitError(null)
+        markPwaEngagement('booking_complete')
         setDone({
           message: (typeof json.message === 'string' && json.message) || 'Randevu alındı',
           appointmentId,
@@ -444,7 +479,7 @@ export function PublicBookingWidget({
       <div className={embed ? 'p-3 sm:p-4' : 'mx-auto w-full max-w-xl px-4 py-8 sm:px-6'}>
         {!embed ? (
           <header className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Asistan Rezervasyon</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Asistan</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{clinic.name}</h1>
           </header>
         ) : null}
@@ -522,6 +557,7 @@ export function PublicBookingWidget({
             <InstallPrompt
               className="mb-0 mt-2 text-left"
               delayMs={600}
+              requireEngagement={false}
               dismissKey="asistan-pwa-install-dismissed-post-book-v1"
               title={{
                 tr: 'Randevularınız için uygulamayı yükleyin',
@@ -558,7 +594,7 @@ export function PublicBookingWidget({
         {!embed ? (
           <header className="mb-6 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">
-              Asistan Rezervasyon
+              Asistan
             </p>
             <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">
               {clinic.name}
@@ -585,7 +621,7 @@ export function PublicBookingWidget({
       <div className={embed ? 'p-3 sm:p-4' : 'mx-auto w-full max-w-xl px-4 py-8 sm:px-6'}>
         {!embed ? (
           <header className="mb-6 space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">Asistan Rezervasyon</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0071E3]">Asistan</p>
             <div className="flex items-start gap-3">
               {clinic.logoUrl ? (
                 <img src={clinic.logoUrl} alt="" className="size-12 rounded-2xl object-cover ring-1 ring-slate-900/5" />
@@ -1081,7 +1117,13 @@ export function PublicBookingWidget({
             </div>
             <div>
               <p className="mb-1.5 text-xs font-medium text-slate-500" id="book-doc-type-label">
-                {lang === 'en' ? 'Document type *' : 'Belge tipi *'}
+                {clinic.requireGuestIdentity
+                  ? lang === 'en'
+                    ? 'Document type *'
+                    : 'Belge tipi *'
+                  : lang === 'en'
+                    ? 'Document type (optional)'
+                    : 'Belge tipi (opsiyonel)'}
               </p>
               <div
                 role="radiogroup"
@@ -1115,9 +1157,13 @@ export function PublicBookingWidget({
                 })}
               </div>
               <p className="mt-1.5 text-xs text-slate-500">
-                {lang === 'en'
-                  ? 'Visitors & tourists: choose Passport.'
-                  : 'Turistler / yabancılar: Pasaport seçin.'}
+                {clinic.requireGuestIdentity
+                  ? lang === 'en'
+                    ? 'This clinic asks for ID so reception can match your file. Visitors: choose Passport.'
+                    : 'Bu klinik, kabulde dosyanızı eşleştirmek için kimlik ister. Turistler: Pasaport seçin.'
+                  : lang === 'en'
+                    ? 'Optional — skip if you prefer. Visitors may choose Passport.'
+                    : 'Opsiyonel — boş bırakabilirsiniz. Turistler Pasaport seçebilir.'}
               </p>
             </div>
             <div>
@@ -1127,15 +1173,27 @@ export function PublicBookingWidget({
               >
                 {identityDocumentType === 'PASSPORT'
                   ? lang === 'en'
-                    ? 'Passport number *'
-                    : 'Pasaport no *'
+                    ? clinic.requireGuestIdentity
+                      ? 'Passport number *'
+                      : 'Passport number (optional)'
+                    : clinic.requireGuestIdentity
+                      ? 'Pasaport no *'
+                      : 'Pasaport no (opsiyonel)'
                   : identityDocumentType === 'TC'
                     ? lang === 'en'
-                      ? 'TR national ID *'
-                      : 'TC kimlik no *'
+                      ? clinic.requireGuestIdentity
+                        ? 'TR national ID *'
+                        : 'TR national ID (optional)'
+                      : clinic.requireGuestIdentity
+                        ? 'TC kimlik no *'
+                        : 'TC kimlik no (opsiyonel)'
                     : lang === 'en'
-                      ? 'KKTC ID number *'
-                      : 'KKTC kimlik no *'}
+                      ? clinic.requireGuestIdentity
+                        ? 'KKTC ID number *'
+                        : 'KKTC ID number (optional)'
+                      : clinic.requireGuestIdentity
+                        ? 'KKTC kimlik no *'
+                        : 'KKTC kimlik no (opsiyonel)'}
               </label>
               <Input
                 id="book-identity"
@@ -1145,7 +1203,7 @@ export function PublicBookingWidget({
                   if (identityError) setIdentityError(null)
                 }}
                 onBlur={() => {
-                  if (identityNumber.trim()) {
+                  if (identityNumber.trim() || clinic.requireGuestIdentity) {
                     validateIdentity(identityNumber, identityDocumentType)
                   }
                 }}
@@ -1176,13 +1234,17 @@ export function PublicBookingWidget({
                 </p>
               ) : (
                 <p id="book-identity-hint" className="mt-1 text-xs text-slate-500">
-                  {lang === 'en'
-                    ? 'Stored as a one-way hash for matching — not shown publicly.'
-                    : 'Eşleştirme için tek yönlü hash olarak saklanır — herkese açık gösterilmez.'}
+                  {clinic.requireGuestIdentity
+                    ? lang === 'en'
+                      ? 'Why: clinic file matching at reception. Platform keeps a one-way hash only — not shown publicly; clinic card does not get the raw number from this form.'
+                      : 'Neden: kabulde dosya eşleştirmesi. Platformda yalnızca tek yönlü hash tutulur; bu formdan hasta kartına düz metin yazılmaz.'
+                    : lang === 'en'
+                      ? 'Optional. If provided, stored as a one-way hash for matching — not shown publicly.'
+                      : 'Opsiyonel. Verirseniz eşleştirme için tek yönlü hash saklanır — herkese açık gösterilmez.'}
                 </p>
               )}
             </div>
-            {identityDocumentType === 'PASSPORT' ? (
+            {identityDocumentType === 'PASSPORT' && identityNumber.trim() ? (
               <div>
                 <label
                   className="mb-1.5 block text-xs font-medium text-slate-500"
@@ -1225,6 +1287,153 @@ export function PublicBookingWidget({
                 className="text-base md:text-sm"
               />
             </div>
+
+            <div
+              className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3"
+              aria-labelledby="book-privacy-heading"
+            >
+              <div>
+                <p id="book-privacy-heading" className="text-xs font-semibold text-slate-800">
+                  {lang === 'en' ? 'Privacy notice' : 'Aydınlatma'}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  {lang === 'en' ? (
+                    <>
+                      Data on this form is processed to create your booking request with{' '}
+                      <strong className="font-semibold text-slate-800">{clinic.name}</strong>. The
+                      clinic is the data controller for patient/appointment records; Asistan
+                      processes them as a SaaS processor. Operational SMS/WhatsApp about
+                      this booking (confirm / remind) is part of the service — not marketing.
+                    </>
+                  ) : (
+                    <>
+                      Bu formdaki veriler{' '}
+                      <strong className="font-semibold text-slate-800">{clinic.name}</strong>{' '}
+                      için randevu talebinizi oluşturmak üzere işlenir. Hasta / randevu kayıtlarında
+                      klinik veri sorumlusudur; Asistan SaaS olarak veri işleyendir.
+                      Bu randevuya ilişkin operasyonel SMS / WhatsApp (onay / hatırlatma) hizmet
+                      ifasının parçasıdır — pazarlama değildir.
+                    </>
+                  )}
+                </p>
+                <p className="mt-1.5 text-xs text-slate-500">
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-sky-700 underline-offset-2 hover:underline"
+                  >
+                    {lang === 'en' ? 'Privacy policy' : 'Gizlilik politikası'}
+                  </Link>
+                  {' · '}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-sky-700 underline-offset-2 hover:underline"
+                  >
+                    {lang === 'en' ? 'Terms' : 'Kullanım koşulları'}
+                  </Link>
+                  {' · '}
+                  <Link
+                    href="/guven"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-sky-700 underline-offset-2 hover:underline"
+                  >
+                    {lang === 'en' ? 'Trust Center' : 'Güven Merkezi'}
+                  </Link>
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-start gap-2.5">
+                  <input
+                    id="book-privacy-ack"
+                    type="checkbox"
+                    checked={privacyNoticeAccepted}
+                    onChange={(e) => {
+                      setPrivacyNoticeAccepted(e.target.checked)
+                      if (e.target.checked) setPrivacyError(null)
+                    }}
+                    disabled={pending}
+                    aria-required="true"
+                    aria-invalid={privacyError ? true : undefined}
+                    aria-describedby={
+                      privacyError ? 'book-privacy-error' : 'book-privacy-ack-hint'
+                    }
+                    className="mt-0.5 h-4 w-4 min-h-4 min-w-4 cursor-pointer rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500/40"
+                  />
+                  <label
+                    htmlFor="book-privacy-ack"
+                    className="cursor-pointer text-xs font-medium leading-5 text-slate-700"
+                  >
+                    {lang === 'en' ? (
+                      <>
+                        I have read the privacy notice and accept processing of my data for this
+                        booking request.
+                        <span className="text-red-500" aria-hidden="true">
+                          {' '}
+                          *
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        Aydınlatmayı okudum; randevu talebi için kişisel verilerimin işlenmesini
+                        kabul ediyorum.
+                        <span className="text-red-500" aria-hidden="true">
+                          {' '}
+                          *
+                        </span>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {privacyError ? (
+                  <p
+                    id="book-privacy-error"
+                    role="alert"
+                    className="pl-6 text-xs font-medium text-red-600"
+                  >
+                    {privacyError}
+                  </p>
+                ) : (
+                  <p id="book-privacy-ack-hint" className="pl-6 text-[11px] text-slate-500">
+                    {lang === 'en'
+                      ? 'Required for the booking — not marketing consent.'
+                      : 'Randevu için zorunlu — pazarlama onayı değildir.'}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-start gap-2.5 border-t border-slate-200/80 pt-3">
+                <input
+                  id="book-marketing-optin"
+                  type="checkbox"
+                  checked={marketingOptIn}
+                  onChange={(e) => setMarketingOptIn(e.target.checked)}
+                  disabled={pending}
+                  aria-describedby="book-marketing-hint"
+                  className="mt-0.5 h-4 w-4 min-h-4 min-w-4 cursor-pointer rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500/40"
+                />
+                <div>
+                  <label
+                    htmlFor="book-marketing-optin"
+                    className="cursor-pointer text-xs font-medium leading-5 text-slate-700"
+                  >
+                    {lang === 'en'
+                      ? 'I want optional campaign / product updates (not required to book).'
+                      : 'Kampanya ve ürün bilgilendirmesi almak istiyorum (randevu için gerekli değil).'}
+                  </label>
+                  <p id="book-marketing-hint" className="mt-0.5 text-[11px] text-slate-500">
+                    {lang === 'en'
+                      ? 'Separate from booking. You can leave this unchecked.'
+                      : 'Randevu onayından ayrıdır. İşaretlemeden devam edebilirsiniz.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <p className="text-xs text-slate-500">
               {clinic.autoConfirmClientAppointments
                 ? lang === 'en'
@@ -1266,7 +1475,12 @@ export function PublicBookingWidget({
               </Button>
               <Button
                 type="button"
-                disabled={pending || fullName.trim().length < 2 || phone.trim().length < 7}
+                disabled={
+                  pending ||
+                  !privacyNoticeAccepted ||
+                  fullName.trim().length < 2 ||
+                  phone.trim().length < 7
+                }
                 className="h-11 min-h-11 text-white"
                 style={{ backgroundColor: accent }}
                 onClick={submit}
@@ -1332,7 +1546,12 @@ export function PublicBookingWidget({
               ) : (
                 <Button
                   type="button"
-                  disabled={pending || fullName.trim().length < 2 || phone.trim().length < 7}
+                  disabled={
+                    pending ||
+                    !privacyNoticeAccepted ||
+                    fullName.trim().length < 2 ||
+                    phone.trim().length < 7
+                  }
                   className="h-11 min-h-11 w-full text-white"
                   style={{ backgroundColor: accent }}
                   onClick={submit}

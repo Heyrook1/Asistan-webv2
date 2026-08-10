@@ -15,8 +15,10 @@ export default function ClientHealthPage() {
     <Suspense
       fallback={
         <main className="space-y-2">
-          <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight">Sağlık</h1>
-          <p className="text-[13px] text-muted-foreground">Zaman çizelgesi yükleniyor…</p>
+          <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight">
+            Asistan pasaportu
+          </h1>
+          <p className="text-[13px] text-muted-foreground">Ziyaret özeti yükleniyor…</p>
         </main>
       }
     >

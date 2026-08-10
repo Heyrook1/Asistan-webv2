@@ -27,6 +27,7 @@ import {
 import { trackFunnelEvent } from '@/lib/observability/funnel'
 import { createClientNotification } from '@/lib/client-marketplace/notifications'
 import { canTransitionAppointmentStatus } from '@/lib/appointment-transitions'
+import { ensurePatientCardOnConfirm } from '@/lib/identity/ensure-patient-card-on-confirm'
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -413,6 +414,15 @@ export async function setAppointmentStatus(
     })
     if (updated.count === 0) throw new Error('Randevu bulunamadı')
 
+    if (parsed.data.status === 'CONFIRMED') {
+      await ensurePatientCardOnConfirm(tx, {
+        businessId: session.businessId,
+        patientId: existing.patientId,
+        staffId: existing.staffId,
+        appointmentSource: existing.source,
+      })
+    }
+
     await tx.timelineEvent.create({
       data: {
         businessId: session.businessId,
@@ -635,6 +645,7 @@ export async function setAppointmentStatus(
   revalidatePath('/dashboard/randevular')
   revalidatePath('/dashboard/takvim')
   revalidatePath('/dashboard/bildirimler')
+  revalidatePath('/dashboard/hastalar')
   revalidatePath(`/dashboard/hastalar/${existing.patientId}`)
   await writeAuditLog({
     businessId: session.businessId,

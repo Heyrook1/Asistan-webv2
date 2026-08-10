@@ -8,6 +8,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import { getAvailableSlotsTx } from '@/lib/client-marketplace/availability'
 import type { CreateClientBookingInput } from '@/lib/client-marketplace/booking-schema'
+import { BOOKING_PRIVACY_NOTICE_VERSION } from '@/lib/client-marketplace/booking-schema'
 import { resolveOrCreateClinicPatient } from '@/lib/identity/clinic-patient'
 import { ensurePatientCardOnConfirm } from '@/lib/identity/ensure-patient-card-on-confirm'
 import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
@@ -90,6 +91,16 @@ export async function createSlotAppointmentTx(
     throw new Error('Klinik, doktor veya hizmet bilgisi bulunamadı')
   }
 
+  // P0.8 — serialize concurrent books for this doctor+day (not just identical startTime).
+  // Overlapping starts (e.g. 09:45–10:05 vs 10:00–10:20) must take the same lock;
+  // FOR UPDATE alone only locks *existing* rows, so empty-day races need this key.
+  await tx.$executeRaw`
+    SELECT pg_advisory_xact_lock(
+      hashtext(${payload.businessId}),
+      hashtext(${`${payload.doctorId}:${payload.date}`})
+    )
+  `
+
   // IDs are text (Prisma String), not postgres uuid — do not cast ::uuid
   await tx.$queryRaw`
     select "id"
@@ -139,6 +150,8 @@ export async function createSlotAppointmentTx(
     identityNumber: payload.identityNumber,
     address: payload.address,
     city: payload.city,
+    // Guest public book: never write plaintext national ID to Patient card.
+    persistIdentityOnPatientCard: Boolean(input.clientUserId),
   })
 
   const status = business.autoConfirmClientAppointments
@@ -188,6 +201,9 @@ export async function createSlotAppointmentTx(
         source: 'client_book',
         identityDocumentType: payload.identityDocumentType,
         ...(payload.nationality ? { nationality: payload.nationality } : {}),
+        privacyNoticeAccepted: payload.privacyNoticeAccepted,
+        marketingOptIn: payload.marketingOptIn,
+        privacyNoticeVersion: BOOKING_PRIVACY_NOTICE_VERSION,
       },
     },
   })

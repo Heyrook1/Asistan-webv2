@@ -1,5 +1,6 @@
 import { searchMarketplace } from '@/lib/client-marketplace/discovery'
 import type { ClientDiscoveryItem } from '@/lib/client-marketplace/types'
+import { shouldIncludeTestClinicsInPublicIndex } from '@/lib/client-marketplace/public-clinic-filter'
 import { RezervasyonHomeHub } from '@/web-mobile/home-hub'
 
 export const dynamic = 'force-dynamic'
@@ -20,5 +21,11 @@ async function loadFeatured(): Promise<ClientDiscoveryItem[]> {
 
 export default async function ClientHomePage() {
   const featured = await loadFeatured()
-  return <RezervasyonHomeHub featured={featured} />
+  return (
+    <RezervasyonHomeHub
+      featured={featured}
+      catalogEmpty={featured.length === 0}
+      showTestClinics={shouldIncludeTestClinicsInPublicIndex()}
+    />
+  )
 }

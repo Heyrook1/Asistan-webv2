@@ -232,13 +232,18 @@ export async function handleFrontDeskMessage(input: {
         draft.fullName = intent.fullName
         step = 'confirming'
         replies.push(
-          `Özet: ${draft.serviceName} · ${draft.date} ${draft.startTime} · ${draft.fullName}\nOnaylamak için “evet” yazın. İptal için “iptal”.`
+          `Özet: ${draft.serviceName} · ${draft.date} ${draft.startTime} · ${draft.fullName}\n` +
+            `Verileriniz randevu için işlenir; klinik veri sorumlusu, Asistan veri işleyendir. ` +
+            `Aydınlatma: ${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://kktc.asistan.online'}/privacy\n` +
+            `Onaylamak için “evet” yazın (pazarlama izni değildir). İptal için “iptal”.`
         )
       } else if (intent.type === 'service_query' && input.text.trim().length >= 3) {
         draft.fullName = input.text.trim()
         step = 'confirming'
         replies.push(
-          `Özet: ${draft.serviceName} · ${draft.date} ${draft.startTime} · ${draft.fullName}\nOnaylamak için “evet” yazın.`
+          `Özet: ${draft.serviceName} · ${draft.date} ${draft.startTime} · ${draft.fullName}\n` +
+            `Verileriniz randevu için işlenir; klinik veri sorumlusu, Asistan veri işleyendir. ` +
+            `Onaylamak için “evet” yazın (pazarlama izni değildir).`
         )
       } else {
         replies.push('Ad Soyad bekliyorum.')
@@ -256,6 +261,9 @@ export async function handleFrontDeskMessage(input: {
             fullName: draft.fullName,
             phone: input.peerKey,
             note: '[WhatsApp ön-büro]',
+            // Conversational “evet” after privacy notice — service fulfilment only.
+            privacyNoticeAccepted: true,
+            marketingOptIn: false,
           },
           input.inboundId ? `wa-${input.inboundId}` : undefined
         )

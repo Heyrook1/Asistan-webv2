@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 
 import { ClientBottomNav } from '@/components/client/bottom-nav'
+import { ClientConnectivityBanner } from '@/components/pwa/connectivity-banner'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { normalizeAuthLanguage } from '@/lib/auth-routes'
 import { withCanonical } from '@/lib/seo'
@@ -13,20 +14,20 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = withCanonical('/client', {
   title: {
     default: 'Klinik bul ve randevu al',
-    template: '%s | Asistan Rezervasyon',
+    template: '%s | Asistan',
   },
   description:
-    'Asistan Rezervasyon: KKTC klinikleri puan, fiyat ve müsaitliğe göre karşılaştırın; randevu talebi oluşturun. Ana ekrana ekleyerek uygulama gibi kullanın.',
+    'Asistan ile KKTC klinikleri, hizmetleri ve gerçek müsaitliği karşılaştırın; randevu talebi oluşturun. Ana ekrana ekleyerek uygulama gibi kullanın.',
   appleWebApp: {
     capable: true,
-    title: 'Asistan Rezervasyon',
+    title: 'Asistan',
     statusBarStyle: 'default',
   },
   openGraph: {
     locale: 'tr_CY',
-    title: 'Klinik bul ve randevu al | Asistan Rezervasyon',
+    title: 'Klinik bul ve randevu al | Asistan',
     description:
-      'Hasta randevusu PWA — ana ekrana ekleyin. Klinik paneli ile aynı ekosistemde keşfedin, müsaitlik görün, randevu alın.',
+      'Doğru kliniği bulun. Randevunuzu kolayca alın. KKTC’deki klinikleri, hizmetleri ve gerçek müsaitliği karşılaştırın.',
   },
 })
 
@@ -48,13 +49,14 @@ export default async function ClientLayout({ children }: { children: React.React
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-[52vh] bg-[radial-gradient(85%_65%_at_50%_-8%,rgba(0,113,227,0.14),transparent_68%)]"
         />
-        <div className="relative mx-auto flex w-full max-w-screen-sm flex-col px-4 pb-[calc(96px+env(safe-area-inset-bottom))] pt-0 md:max-w-[480px] md:px-5 md:shadow-[0_0_40px_rgba(15,23,42,0.08)]">
+        <div className="relative mx-auto flex w-full max-w-screen-sm flex-col px-4 pb-[var(--rz-dock-clearance)] pt-0 md:max-w-[480px] md:px-5 md:shadow-[0_0_40px_rgba(15,23,42,0.08)]">
           <RezervasyonTopBar />
           <div className="mt-3 flex-1 space-y-4 has-[[data-rz-home]]:mt-0 md:mt-4 md:has-[[data-rz-home]]:mt-0">
+            <ClientConnectivityBanner />
             {children}
-            <InstallPrompt />
           </div>
         </div>
+        <InstallPrompt placement="above-dock" requireEngagement />
         <ClientBottomNav />
       </div>
     </ClientLanguageBoundary>

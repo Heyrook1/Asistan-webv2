@@ -16,8 +16,9 @@ import {
 } from 'lucide-react'
 
 import { ClinicCard } from '@/components/client/clinic-card'
+import { ClientMarketplaceDemoBanner } from '@/components/client/marketplace-demo-banner'
 import { useLanguage } from '@/hooks/useLanguage'
-import { productName } from '@/lib/brand/masterbrand'
+import { patientChromeName, brandTagline } from '@/lib/brand/masterbrand'
 import type { ClientDiscoveryItem } from '@/lib/client-marketplace/types'
 import { getClinicTrialPath } from '@/lib/entry-routes'
 import { cn } from '@/lib/utils'
@@ -46,13 +47,17 @@ function featuredByClinic(items: ClientDiscoveryItem[] | null | undefined) {
 
 export function RezervasyonHomeHub({
   featured = [],
+  catalogEmpty = false,
+  showTestClinics = false,
 }: {
   featured?: ClientDiscoveryItem[] | null
+  catalogEmpty?: boolean
+  showTestClinics?: boolean
 }) {
   const router = useRouter()
   const { t, language } = useLanguage()
   const clinics = featuredByClinic(featured).slice(0, 6)
-  const brand = productName('booking', language)
+  const brand = patientChromeName(language)
 
   function goSearch(specialty?: string) {
     const params = new URLSearchParams()
@@ -87,17 +92,11 @@ export function RezervasyonHomeHub({
             <p className="rz-enter font-heading text-[1.65rem] font-extrabold tracking-tight text-white sm:text-[1.85rem]">
               {brand}
             </p>
-            <h1 className="rz-enter rz-enter-delay-1 mt-3 max-w-[14ch] font-heading text-[1.55rem] font-extrabold leading-[1.12] tracking-tight text-white sm:text-[1.7rem]">
-              {t({
-                tr: 'Randevunuzu sakin bir şekilde alın',
-                en: 'Book your visit with calm clarity',
-              })}
+            <h1 className="rz-enter rz-enter-delay-1 mt-3 max-w-[18ch] font-heading text-[1.55rem] font-extrabold leading-[1.12] tracking-tight text-white sm:text-[1.7rem]">
+              {brandTagline('bookingHero', language)}
             </h1>
-            <p className="rz-enter rz-enter-delay-2 mt-2 max-w-[32ch] text-[13.5px] leading-relaxed text-white/82">
-              {t({
-                tr: 'Yakınınızdaki klinikler, gerçek müsaitlikle.',
-                en: 'Nearby clinics with live availability.',
-              })}
+            <p className="rz-enter rz-enter-delay-2 mt-2 max-w-[36ch] text-[13.5px] leading-relaxed text-white/82">
+              {brandTagline('booking', language)}
             </p>
 
             <div className="rz-enter rz-enter-delay-2 mt-5 flex flex-col gap-2.5">
@@ -181,16 +180,21 @@ export function RezervasyonHomeHub({
           </Link>
         </div>
 
+        {showTestClinics ? <ClientMarketplaceDemoBanner mode="test-clinics-visible" /> : null}
         {clinics.length === 0 ? (
-          <div className="px-1 py-10 text-center">
+          <div className="space-y-3">
+            {catalogEmpty && !showTestClinics ? (
+              <ClientMarketplaceDemoBanner mode="empty-catalog" />
+            ) : null}
+            <div className="px-1 py-10 text-center">
             <Building2 className="mx-auto size-8 text-slate-300" aria-hidden />
             <p className="mt-3 text-sm font-bold text-slate-900">
               {t({ tr: 'Henüz klinik yok', en: 'No clinics yet' })}
             </p>
             <p className="mt-1.5 text-sm text-slate-500">
               {t({
-                tr: 'Arama yaparak uzman veya branş bulun.',
-                en: 'Search by specialist or specialty.',
+                tr: 'Canlı klinikler eklendikçe burada görünür. Branş veya uzman arayabilirsiniz.',
+                en: 'Live clinics appear here as they join. You can still search by specialty.',
               })}
             </p>
             <button
@@ -200,6 +204,7 @@ export function RezervasyonHomeHub({
             >
               {t({ tr: 'Uzman ara', en: 'Search' })}
             </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

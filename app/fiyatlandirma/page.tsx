@@ -12,7 +12,8 @@ import { withCanonical } from '@/lib/seo'
 
 export const metadata: Metadata = withCanonical('/fiyatlandirma', {
   title: 'Fiyatlandırma',
-  description: 'Asistan Health klinik planları, deneme ve demo seçeneklerini inceleyin.',
+  description:
+    'Asistan Health erken erişim liste fiyatları. Önce demo veya 14 gün deneme — imzalı kanıt olmadan satış baskısı yok.',
 })
 
 export default function PricingPage() {
@@ -26,13 +27,15 @@ export default function PricingPage() {
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeUp className="mx-auto max-w-3xl text-center">
             <Badge className="mb-6 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/10">
-              Fiyatlandırma
+              Erken erişim · liste fiyatı
             </Badge>
             <h1 className="font-heading text-4xl font-black leading-tight text-brand-navy sm:text-5xl lg:text-6xl">
-              Kliniğiniz için doğru planı seçin.
+              Planları görün. Önce uyumu doğrulayın.
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-slate-600">
-              Şeffaf fiyatlandırma, ölçülebilir değer. İstediğiniz zaman yükseltin veya küçültün.
+              €149–€499 katalog fiyatları planlama içindir. İmzalı pilot ve ölçülebilir kanıt
+              olmadan satış baskısı yapmıyoruz — demo veya 14 gün deneme ile başlayın; vergi/EUR
+              koşulları kartlarda açık.
             </p>
           </FadeUp>
         </div>
@@ -46,10 +49,10 @@ export default function PricingPage() {
             <div>
               <Sparkles className="mb-5 h-8 w-8 text-brand-cyan" aria-hidden="true" />
               <h2 className="font-heading text-3xl font-black">
-                Kliniğiniz için en doğru çözümü birlikte bulalım.
+                Önce paneli görün — fiyat sonra netleşir.
               </h2>
               <p className="mt-4 max-w-2xl text-white/75">
-                Demo talep edin veya klinik denemesini başlatın.
+                Erken erişimde doğru sıra: demo veya deneme, canlı randevu akışı, sonra plan.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">

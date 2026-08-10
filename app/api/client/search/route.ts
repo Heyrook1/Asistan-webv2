@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       city: params.get('city') ?? undefined,
     }
 
-    const sort = (params.get('sort') as ClientDiscoverySort | null) ?? 'nearest'
+    const sort = (params.get('sort') as ClientDiscoverySort | null) ?? 'highest-rated'
     const lat = parseNumber(params.get('lat'))
     const lng = parseNumber(params.get('lng'))
 

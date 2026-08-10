@@ -52,8 +52,8 @@ export function WhyOutcomesSection() {
             en: 'Not a feature list — business outcomes.',
           })}
           description={t({
-            tr: 'Asistan Health klinik gününü sakinleştirir; Asistan Rezervasyon hastayı içeri getirir.',
-            en: 'Asistan Health calms the clinic day; Asistan Booking brings patients in.',
+            tr: 'Asistan Health klinik gününü sakinleştirir; hastalar Asistan üzerinden randevu bulur.',
+            en: 'Asistan Health calms the clinic day; patients find appointments through Asistan.',
           })}
         />
         <motion.ul

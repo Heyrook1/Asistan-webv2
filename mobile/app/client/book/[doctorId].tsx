@@ -78,6 +78,8 @@ export default function ClientBookDoctorScreen() {
   )
   const [identityNumber, setIdentityNumber] = useState('')
   const [nationality, setNationality] = useState('')
+  const [privacyNoticeAccepted, setPrivacyNoticeAccepted] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
 
@@ -139,11 +141,7 @@ export default function ClientBookDoctorScreen() {
   const canContinueStep1 = Boolean(selectedServiceId)
   const canContinueStep2 = Boolean(selectedStart)
   const canSubmit = Boolean(
-    fullName.trim() &&
-      phone.trim() &&
-      identityNumber.trim().length >= 6 &&
-      selectedServiceId &&
-      selectedStart,
+    fullName.trim() && phone.trim() && selectedServiceId && selectedStart && privacyNoticeAccepted,
   )
 
   async function submitBooking() {
@@ -151,13 +149,21 @@ export default function ClientBookDoctorScreen() {
       Alert.alert('Eksik bilgi', 'Lütfen hizmet ve saat seçin.')
       return
     }
-    if (!fullName.trim() || !phone.trim() || identityNumber.trim().length < 6) {
-      Alert.alert('Eksik bilgi', 'Ad soyad, telefon ve kimlik / pasaport no zorunludur.')
+    if (!fullName.trim() || !phone.trim()) {
+      Alert.alert('Eksik bilgi', 'Ad soyad ve telefon zorunludur.')
+      return
+    }
+    if (!privacyNoticeAccepted) {
+      Alert.alert(
+        'Aydınlatma gerekli',
+        'Randevu için gizlilik aydınlatmasını kabul etmelisiniz. Pazarlama onayı ayrıdır ve zorunlu değildir.',
+      )
       return
     }
 
     setSaving(true)
     try {
+      const identityTrimmed = identityNumber.trim()
       const result = await apiPost<{
         ok: boolean
         data?: { appointmentId: string; status: string; message: string }
@@ -170,12 +176,18 @@ export default function ClientBookDoctorScreen() {
         startTime: selectedStart,
         fullName: fullName.trim(),
         phone: phone.trim(),
-        identityDocumentType,
-        identityNumber: identityNumber.trim(),
-        nationality:
-          identityDocumentType === 'PASSPORT' ? nationality.trim() || null : null,
+        ...(identityTrimmed
+          ? {
+              identityDocumentType,
+              identityNumber: identityTrimmed,
+              nationality:
+                identityDocumentType === 'PASSPORT' ? nationality.trim() || null : null,
+            }
+          : {}),
         email: email.trim() || null,
         note: note.trim() || null,
+        privacyNoticeAccepted: true,
+        marketingOptIn,
       })
 
       if (!result.ok) {
@@ -350,7 +362,7 @@ export default function ClientBookDoctorScreen() {
               accessibilityLabel="Telefon"
             />
             <AppText variant="caption" color={theme.colors.textMuted}>
-              Belge tipi
+              Belge tipi (opsiyonel)
             </AppText>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
               {(
@@ -374,17 +386,17 @@ export default function ClientBookDoctorScreen() {
             <AppInput
               label={
                 identityDocumentType === 'PASSPORT'
-                  ? 'Pasaport no'
+                  ? 'Pasaport no (opsiyonel)'
                   : identityDocumentType === 'TC'
-                    ? 'TC kimlik no'
-                    : 'KKTC kimlik no'
+                    ? 'TC kimlik no (opsiyonel)'
+                    : 'KKTC kimlik no (opsiyonel)'
               }
               value={identityNumber}
               onChangeText={setIdentityNumber}
               autoCapitalize="characters"
-              accessibilityLabel="Kimlik veya pasaport numarası"
+              accessibilityLabel="Kimlik veya pasaport numarası (opsiyonel)"
             />
-            {identityDocumentType === 'PASSPORT' ? (
+            {identityDocumentType === 'PASSPORT' && identityNumber.trim() ? (
               <AppInput
                 label="Uyruk (opsiyonel, örn. GB)"
                 value={nationality}
@@ -408,6 +420,47 @@ export default function ClientBookDoctorScreen() {
               style={{ minHeight: 72, textAlignVertical: 'top' }}
               accessibilityLabel="Randevu notu"
             />
+
+            <AppCard style={{ gap: 10, padding: 12 }}>
+              <AppText variant="caption" color={theme.colors.textMuted}>
+                Aydınlatma — {doctor.clinic.name} için randevu talebinizi oluşturmak üzere verileriniz
+                işlenir. Klinik veri sorumlusudur; Asistan veri işleyendir. Operasyonel
+                SMS/WhatsApp (onay/hatırlatma) hizmet ifasıdır, pazarlama değildir.
+              </AppText>
+              <Pressable
+                onPress={() => setPrivacyNoticeAccepted((v) => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: privacyNoticeAccepted }}
+                accessibilityLabel="Gizlilik aydınlatmasını kabul et"
+                style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}
+              >
+                <Ionicons
+                  name={privacyNoticeAccepted ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={privacyNoticeAccepted ? palette.primary : theme.colors.textMuted}
+                />
+                <AppText variant="caption" style={{ flex: 1 }}>
+                  Aydınlatmayı okudum; randevu talebi için kişisel verilerimin işlenmesini kabul
+                  ediyorum. *
+                </AppText>
+              </Pressable>
+              <Pressable
+                onPress={() => setMarketingOptIn((v) => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: marketingOptIn }}
+                accessibilityLabel="Kampanya bilgilendirmesi (opsiyonel)"
+                style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}
+              >
+                <Ionicons
+                  name={marketingOptIn ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={marketingOptIn ? palette.primary : theme.colors.textMuted}
+                />
+                <AppText variant="caption" style={{ flex: 1 }}>
+                  Kampanya ve ürün bilgilendirmesi almak istiyorum (randevu için gerekli değil).
+                </AppText>
+              </Pressable>
+            </AppCard>
 
             <View style={styles.wizardRow}>
               <AppButton label="Geri" variant="ghost" onPress={() => setStep(2)} style={{ flex: 1 }} />

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { prisma } from '@/lib/prisma'
-import { normalizeEmail, normalizePhoneE164, phoneLookupVariants } from '@/lib/identity/normalize'
+import { normalizeEmail } from '@/lib/identity/normalize'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
 export type ClaimGuestBookingsResult = {
@@ -10,39 +10,30 @@ export type ClaimGuestBookingsResult = {
 }
 
 /**
- * Bağla: doğrulanmış e-posta (ve varsa telefon) ile eşleşen,
- * henüz clientUserId'siz randevuları bu ClientUser'a bağlar.
+ * Bağla: yalnızca **doğrulanmış oturum e-postası** ile eşleşen,
+ * henüz `clientUserId`'siz randevuları bu ClientUser'a bağlar.
  *
- * Otomatik Person merge değil — yalnız Appointment.clientUserId sahipliği.
- * E-posta doğrulanmamış hesaplarda çağrılmamalı (requireClientAuth zaten engeller).
+ * Telefon ile claim YOK — profil telefonu self-asserted; OTP yokken
+ * phone-only claim randevu gaspına açık olur.
+ *
+ * Kimlik numarası / identityHash ile claim YOK (enumerable secret olmaz).
+ * Person auto-merge değil — yalnız Appointment.clientUserId sahipliği.
+ *
+ * E-posta doğrulanmamış hesaplarda çağrılmamalı (`requireClientAuth` engeller).
  */
 export async function claimGuestBookingsForClientUser(input: {
   clientUserId: string
+  /** Must be the verified auth email (not an editable profile spoof). */
   email: string | null
-  phone: string | null
 }): Promise<ClaimGuestBookingsResult> {
   const email = normalizeEmail(input.email)
-  const phone = normalizePhoneE164(input.phone)
-  const phoneVariants = input.phone ? phoneLookupVariants(input.phone) : []
-
-  if (!email && phoneVariants.length === 0) {
+  if (!email) {
     return { claimed: 0, appointmentIds: [] }
   }
 
   return runWithTenantBypassAsync('client:claim-guest-bookings', async () => {
-    const orFilters: Array<Record<string, unknown>> = []
-    if (email) {
-      orFilters.push({ email: { equals: email, mode: 'insensitive' as const } })
-    }
-    for (const variant of phoneVariants) {
-      orFilters.push({ phone: variant })
-    }
-    if (phone) {
-      orFilters.push({ phone })
-    }
-
     const patients = await prisma.patient.findMany({
-      where: { OR: orFilters },
+      where: { email: { equals: email, mode: 'insensitive' } },
       select: { id: true },
       take: 200,
     })

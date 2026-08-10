@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/client/bookings/claim
- * Doğrulanmış oturumdaki e-posta/telefon ile misafir randevularını bağlar.
+ * Doğrulanmış oturum e-postası ile misafir randevularını bağlar (telefon ile claim yok).
  */
 export async function POST(request: NextRequest) {
   const auth = await requireClientAuth(request)
@@ -23,19 +23,28 @@ export async function POST(request: NextRequest) {
     return apiError('Çok fazla istek. Lütfen biraz sonra tekrar deneyin.', 429)
   }
 
+  const email = auth.email || auth.clientUser.email
+  if (!email) {
+    return apiSuccess({
+      claimed: 0,
+      appointmentIds: [],
+      message:
+        'Bağlama için doğrulanmış e-posta gerekir. Misafir randevuda kullandığınız e-posta ile giriş yapın.',
+    })
+  }
+
   try {
     const result = await claimGuestBookingsForClientUser({
       clientUserId: auth.clientUser.id,
-      email: auth.clientUser.email ?? auth.email,
-      phone: auth.clientUser.phone,
+      email,
     })
     return apiSuccess({
       claimed: result.claimed,
       appointmentIds: result.appointmentIds,
       message:
         result.claimed > 0
-          ? `${result.claimed} misafir randevu hesabınıza bağlandı.`
-          : 'Bağlanacak misafir randevu bulunamadı.',
+          ? `${result.claimed} misafir randevu, doğrulanmış e-postanızla hesabınıza bağlandı.`
+          : 'Bu e-posta ile bağlanacak misafir randevu bulunamadı. Randevuda aynı e-postayı kullanmış olmalısınız.',
     })
   } catch (error) {
     console.error('[api/client/bookings/claim]', error)

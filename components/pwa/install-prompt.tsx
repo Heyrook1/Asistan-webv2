@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react'
 import { Download, Share, X } from 'lucide-react'
 
 import { useLanguage } from '@/hooks/useLanguage'
+import {
+  hasPwaEngagement,
+  PWA_ENGAGED_EVENT,
+} from '@/lib/pwa/engagement'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_DISMISS_KEY = 'asistan-pwa-install-dismissed-v2'
@@ -30,7 +34,9 @@ function bindGlobalBeforeInstall() {
 function isIosSafari() {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent
-  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const iOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const webkit = /WebKit/.test(ua)
   const chrome = /CriOS|FxiOS|EdgiOS/.test(ua)
   return iOS && webkit && !chrome
@@ -40,39 +46,68 @@ function isStandaloneDisplay() {
   if (typeof window === 'undefined') return false
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    ('standalone' in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
+    ('standalone' in navigator &&
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
   )
 }
 
 type InstallPromptProps = {
   className?: string
-  /** Delay before showing when no beforeinstallprompt yet (ms). */
+  /** Delay after eligibility before showing (ms). */
   delayMs?: number
   /** Separate dismiss bucket (e.g. post-book). */
   dismissKey?: string
   /** Override title for intent-gated surfaces. */
   title?: { tr: string; en: string }
+  /**
+   * When true (default), wait for search/clinic view/booking engagement.
+   * Post-book surfaces should pass false — booking itself is the signal.
+   */
+  requireEngagement?: boolean
+  /** Sit above the patient bottom dock (not behind it). */
+  placement?: 'inline' | 'above-dock'
 }
 
 /**
- * Soft install CTA — /client, #uygulama, post-book.
+ * Soft install CTA — /client, post-book.
  * Chromium: beforeinstallprompt. iOS: Share → Add to Home Screen.
+ * Does not show on first paint when requireEngagement is true.
  */
 export function InstallPrompt({
   className,
-  delayMs = 1800,
+  delayMs = 1200,
   dismissKey = DEFAULT_DISMISS_KEY,
   title,
+  requireEngagement = true,
+  placement = 'inline',
 }: InstallPromptProps) {
   const { t } = useLanguage()
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
   const [mode, setMode] = useState<'chromium' | 'ios' | 'manual'>('manual')
+  const [engaged, setEngaged] = useState(() =>
+    requireEngagement ? false : true,
+  )
+
+  useEffect(() => {
+    if (!requireEngagement) {
+      setEngaged(true)
+      return
+    }
+    if (hasPwaEngagement()) {
+      setEngaged(true)
+      return
+    }
+    const onEngaged = () => setEngaged(true)
+    window.addEventListener(PWA_ENGAGED_EVENT, onEngaged)
+    return () => window.removeEventListener(PWA_ENGAGED_EVENT, onEngaged)
+  }, [requireEngagement])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (isStandaloneDisplay()) return
     if (window.localStorage.getItem(dismissKey) === '1') return
+    if (!engaged) return
 
     let cancelled = false
     bindGlobalBeforeInstall()
@@ -107,7 +142,7 @@ export function InstallPrompt({
       window.clearTimeout(timer)
       window.removeEventListener('asistan:pwa-deferred', adoptDeferred)
     }
-  }, [delayMs, dismissKey])
+  }, [delayMs, dismissKey, engaged])
 
   function dismiss() {
     window.localStorage.setItem(dismissKey, '1')
@@ -148,10 +183,11 @@ export function InstallPrompt({
       en: 'Install Asistan Booking',
     } as const)
 
-  return (
+  const card = (
     <div
       className={cn(
-        'mb-4 rounded-2xl border border-[#0071E3]/15 bg-[#0071E3]/5 px-4 py-3 text-[#1D1D1F]',
+        'rounded-2xl border border-[#0071E3]/15 bg-white/95 px-4 py-3 text-[#1D1D1F] shadow-[0_8px_28px_rgba(15,23,42,0.12)] backdrop-blur-sm',
+        placement === 'inline' && 'mb-4',
         className,
       )}
       role="region"
@@ -159,7 +195,11 @@ export function InstallPrompt({
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0071E3] text-white">
-          {mode === 'ios' ? <Share className="h-4 w-4" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
+          {mode === 'ios' ? (
+            <Share className="h-4 w-4" aria-hidden />
+          ) : (
+            <Download className="h-4 w-4" aria-hidden />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold tracking-tight">{t(heading)}</p>
@@ -194,4 +234,17 @@ export function InstallPrompt({
       </div>
     </div>
   )
+
+  if (placement === 'above-dock') {
+    return (
+      <div
+        className="pointer-events-none fixed inset-x-0 z-40 px-4"
+        style={{ bottom: 'var(--rz-dock-clearance)' }}
+      >
+        <div className="pointer-events-auto mx-auto mb-2 max-w-[480px]">{card}</div>
+      </div>
+    )
+  }
+
+  return card
 }

@@ -10,6 +10,11 @@ import type {
 } from './types'
 import { matchesSpecialtyTerms, specialtySearchTerms } from './specialty-aliases'
 import { getCurrentDateAndTimeForTimezone, getWeekdayFromDateString } from './time'
+import {
+  shouldIncludeTestClinicsInPublicIndex,
+} from './public-clinic-filter'
+import { CLIENT_GEOLOCATION_ENABLED } from './geolocation-policy'
+import { compareRecommended } from './discovery-ranking'
 
 function toNumber(value: unknown) {
   if (value == null) return null
@@ -60,7 +65,7 @@ export async function searchMarketplace(input: {
   return runWithTenantBypassAsync('marketplace:search-catalog', async () => {
     const prisma = catalogPrisma()
     const filters = input.filters ?? {}
-    const sort = input.sort ?? 'nearest'
+    const sort = input.sort ?? 'highest-rated'
 
     const specialtyTerms = specialtySearchTerms(filters.specialty)
 
@@ -78,10 +83,18 @@ export async function searchMarketplace(input: {
           : {}),
         business: {
           isActive: true,
-          // Demo vendor accounts and mainland-TR seed cities stay out of KKTC discovery.
+          // Demo vendor accounts, mainland-TR seeds, and *-asistan-test clinics stay out of public index.
           NOT: {
             OR: [
               { vendorAccount: { isDemo: true } },
+              ...(shouldIncludeTestClinicsInPublicIndex()
+                ? []
+                : [
+                    { slug: { endsWith: '-asistan-test' } },
+                    { name: { contains: 'Test Klinik', mode: 'insensitive' as const } },
+                    { name: { contains: 'Test Kliniği', mode: 'insensitive' as const } },
+                    { name: { contains: 'Asistan Test', mode: 'insensitive' as const } },
+                  ]),
               { city: { equals: 'İstanbul', mode: 'insensitive' } },
               { city: { equals: 'Istanbul', mode: 'insensitive' } },
               { city: { equals: 'Ataşehir', mode: 'insensitive' } },
@@ -101,6 +114,10 @@ export async function searchMarketplace(input: {
         businessId: true,
         fullName: true,
         specialty: true,
+        kktcIdentityNo: true,
+        medicalLicenseNo: true,
+        diplomaNo: true,
+        user: { select: { avatarUrl: true } },
         business: {
           select: {
             id: true,
@@ -209,11 +226,15 @@ export async function searchMarketplace(input: {
       }
 
       const prices = services
-        .map((service) => toNumber(service.price))
-        .filter((price): price is number => price != null)
+        .map((service) => ({ name: service.name, price: toNumber(service.price) }))
+        .filter((row): row is { name: string; price: number } => row.price != null)
 
-      const minPrice = prices.length > 0 ? Math.min(...prices) : null
-      const maxPrice = prices.length > 0 ? Math.max(...prices) : null
+      const minPrice = prices.length > 0 ? Math.min(...prices.map((row) => row.price)) : null
+      const maxPrice = prices.length > 0 ? Math.max(...prices.map((row) => row.price)) : null
+      const fromPriceServiceName =
+        minPrice != null
+          ? (prices.find((row) => row.price === minPrice)?.name ?? null)
+          : null
 
       if (filters.minPrice != null && minPrice != null && minPrice < filters.minPrice) {
         continue
@@ -237,11 +258,17 @@ export async function searchMarketplace(input: {
       const ratingAverage = review?.avg != null ? Number(review.avg) : null
       const reviewCount = review?.count ?? 0
 
-      if (filters.minRating != null && ratingAverage != null && ratingAverage < filters.minRating) {
-        continue
+      // Unrated ("Yeni") clinics must not pass a min-rating filter.
+      if (filters.minRating != null) {
+        if (ratingAverage == null || reviewCount < 1 || ratingAverage < filters.minRating) {
+          continue
+        }
       }
 
       const serviceIds = services.map((service) => service.id)
+      const doctorVerified = Boolean(
+        doctor.kktcIdentityNo || doctor.medicalLicenseNo || doctor.diplomaNo,
+      )
 
       drafts.push({
         businessId: doctor.business.id,
@@ -253,12 +280,16 @@ export async function searchMarketplace(input: {
         businessDistanceKm: distance,
         doctorId: doctor.id,
         doctorName: doctor.fullName,
+        doctorAvatarUrl: doctor.user?.avatarUrl ?? null,
+        doctorVerified,
         specialty: doctor.specialty,
         ratingAverage,
         reviewCount,
         serviceCount: serviceIds.length,
         minPrice,
         maxPrice,
+        fromPriceServiceName,
+        isSponsored: false,
         serviceIds,
         timezone: doctor.business.timezone || 'Europe/Istanbul',
         openNow: (() => {
@@ -300,17 +331,28 @@ export async function searchMarketplace(input: {
       filtered.push({ ...rest, nextAvailableAt })
     }
 
-    filtered.sort((a, b) => {
-      if (sort === 'highest-rated') {
-        return (b.ratingAverage ?? 0) - (a.ratingAverage ?? 0)
+    // Sponsored rows (when product exists) stay first but must be UI-labeled via isSponsored.
+    const organic = filtered.filter((row) => !row.isSponsored)
+    const sponsored = filtered.filter((row) => row.isSponsored)
+
+    organic.sort((a, b) => {
+      // Never claim nearest without geolocation policy + coordinates.
+      const effectiveSort =
+        sort === 'nearest' &&
+        (!CLIENT_GEOLOCATION_ENABLED || input.clientLocation == null)
+          ? 'highest-rated'
+          : sort
+      if (effectiveSort === 'highest-rated') {
+        // "Önerilen" = documented composite, not raw rating alone.
+        return compareRecommended(a, b, filters.city)
       }
-      if (sort === 'earliest-available') {
+      if (effectiveSort === 'earliest-available') {
         if (!a.nextAvailableAt && !b.nextAvailableAt) return 0
         if (!a.nextAvailableAt) return 1
         if (!b.nextAvailableAt) return -1
         return a.nextAvailableAt.localeCompare(b.nextAvailableAt)
       }
-      if (sort === 'most-reviewed') {
+      if (effectiveSort === 'most-reviewed') {
         return b.reviewCount - a.reviewCount
       }
       if (a.businessDistanceKm == null && b.businessDistanceKm == null) return 0
@@ -319,6 +361,24 @@ export async function searchMarketplace(input: {
       return a.businessDistanceKm - b.businessDistanceKm
     })
 
-    return filtered
+    return [...sponsored, ...organic]
+  })
+}
+
+/** True when the public catalog has at least one appointment-backed review. */
+export async function publicCatalogHasRatings(): Promise<boolean> {
+  return runWithTenantBypassAsync('marketplace:catalog-has-ratings', async () => {
+    const prisma = catalogPrisma()
+    const row = await prisma.review.findFirst({
+      where: {
+        deletedAt: null,
+        business: {
+          isActive: true,
+          deletedAt: null,
+        },
+      },
+      select: { id: true },
+    })
+    return row != null
   })
 }

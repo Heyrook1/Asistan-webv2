@@ -49,7 +49,7 @@ const FOOTER_COPY = {
       `${productName('company', 'tr')}; klinik paneli ${productName('health', 'tr')} ve hasta randevusu ${productName('booking', 'tr')} aynı ekosistemde — web panel, keşif ve rezervasyon.`,
     appStore: 'Ana ekrana ekle',
     playStore: 'Hasta uygulamasını aç',
-    queue: 'PWA canlı · mağaza isteğe bağlı',
+    queue: 'Web / PWA canlı · native mağaza yol haritasında',
     newsletter: 'Bültene Abone Olun',
     newsletterDesc: 'Ürün güncellemeleri, operasyonel rehberler ve hekim büyüme taktikleri.',
     placeholder: 'E-posta adresiniz...',
@@ -95,7 +95,7 @@ const FOOTER_COPY = {
       `${productName('company', 'en')}; clinic panel ${productName('health', 'en')} and patient booking ${productName('booking', 'en')} in one ecosystem — web panel, discovery, and reservations.`,
     appStore: 'Add to home screen',
     playStore: 'Open patient app',
-    queue: 'PWA live · stores optional',
+    queue: 'Web / PWA live · native stores on roadmap',
     newsletter: 'Subscribe to Newsletter',
     newsletterDesc: 'Product milestones, operational guides, and growth tactics.',
     placeholder: 'you@clinic.com',
@@ -169,10 +169,10 @@ export function SiteFooter() {
               {copy.summary}
             </p>
 
-            {/* Patient PWA install — native stores optional */}
+            {/* Patient web / PWA — native store not claimed live */}
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Link
-                href="/#uygulama"
+                href="/client"
                 className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/80 px-4 py-3 shadow-sm transition-colors hover:border-[#0071E3]/30 hover:bg-white"
               >
                 <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export function SiteFooter() {
                 <div className="flex items-center gap-3">
                   <Play className="h-5 w-5 text-[#1D1D1F]" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Web app</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Web</p>
                     <p className="text-xs font-bold text-[#1D1D1F]">{copy.playStore}</p>
                   </div>
                 </div>
