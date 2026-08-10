@@ -254,7 +254,8 @@ export function SettingsForm({
                   <div>
                     <p className="text-sm font-semibold text-brand-ink">Mobil / web randevularını otomatik onayla</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Açıkken hasta talepleri (marketplace + genel link) doğrudan onaylanır. Kapalıyken klinik onayı gerekir.
+                      Kapalı (önerilen): hasta “Randevu talebi gönder” der; kayıt Onay bekliyor kalır, klinik onayından
+                      sonra kesinleşir — çakışma riski düşer. Açık: talep anında onaylanır.
                     </p>
                   </div>
                   <Switch

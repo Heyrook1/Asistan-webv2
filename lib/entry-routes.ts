@@ -58,9 +58,9 @@ export const ENTRY_CTA = {
     en: 'Open clinic panel',
   },
   patientBook: {
-    tr: '3 adımda randevu talep et',
-    en: 'Request a booking in 3 steps',
-    short: { tr: 'Randevu talep et', en: 'Request booking' },
+    tr: '3 adımda randevu talebi gönder',
+    en: 'Send a booking request in 3 steps',
+    short: { tr: 'Randevu talebi gönder', en: 'Send request' },
   },
   patientPwaInstall: {
     tr: 'Uygulamayı yükle (PWA)',

@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { getAvailableSlotsTx } from '@/lib/client-marketplace/availability'
 import type { CreateClientBookingInput } from '@/lib/client-marketplace/booking-schema'
 import { resolveOrCreateClinicPatient } from '@/lib/identity/clinic-patient'
+import { ensurePatientCardOnConfirm } from '@/lib/identity/ensure-patient-card-on-confirm'
 import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
 
 export class SlotConflictError extends Error {
@@ -142,7 +143,7 @@ export async function createSlotAppointmentTx(
 
   const status = business.autoConfirmClientAppointments
     ? AppointmentStatus.CONFIRMED
-    : AppointmentStatus.SCHEDULED
+    : AppointmentStatus.SCHEDULED // Model B: clinic-approved request (Onay bekliyor)
 
   const appointment = await tx.appointment.create({
     data: {
@@ -162,6 +163,16 @@ export async function createSlotAppointmentTx(
     },
     select: { id: true, status: true },
   })
+
+  // Auto-confirm clinics: promote patient card immediately (same as manual approve).
+  if (status === AppointmentStatus.CONFIRMED) {
+    await ensurePatientCardOnConfirm(tx, {
+      businessId: payload.businessId,
+      patientId,
+      staffId: payload.doctorId,
+      appointmentSource: 'CLIENT_APP',
+    })
+  }
 
   await tx.timelineEvent.create({
     data: {

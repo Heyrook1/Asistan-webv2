@@ -457,8 +457,8 @@ export function PublicBookingWidget({
                   ? 'Appointment confirmed'
                   : 'Randevunuz onaylandı'
                 : lang === 'en'
-                  ? 'Request received'
-                  : 'Talebiniz alındı'}
+                  ? 'Request sent — awaiting clinic approval'
+                  : 'Talep gönderildi — klinik onayı bekleniyor'}
             </h2>
             <p className="text-sm text-slate-600">{done.message}</p>
             {done.summary ? (
@@ -1227,8 +1227,12 @@ export function PublicBookingWidget({
             </div>
             <p className="text-xs text-slate-500">
               {clinic.autoConfirmClientAppointments
-                ? 'Randevu gönderildiğinde otomatik onaylanır.'
-                : 'Klinik onayı sonrası randevunuz kesinleşir.'}
+                ? lang === 'en'
+                  ? 'This clinic confirms requests immediately when you submit.'
+                  : 'Bu klinikte gönderdiğiniz talep anında onaylanır.'
+                : lang === 'en'
+                  ? 'Your request stays pending until the clinic confirms — this prevents double-booking.'
+                  : 'Talebiniz klinik onayına düşer (Onay bekliyor). Onaydan sonra kesinleşir — böylece çakışma önlenir.'}
             </p>
             {submitError ? (
               <div
@@ -1267,7 +1271,17 @@ export function PublicBookingWidget({
                 style={{ backgroundColor: accent }}
                 onClick={submit}
               >
-                {pending ? 'Gönderiliyor…' : 'Randevu talep et'}
+                {pending
+                  ? lang === 'en'
+                    ? 'Sending…'
+                    : 'Gönderiliyor…'
+                  : clinic.autoConfirmClientAppointments
+                    ? lang === 'en'
+                      ? 'Create appointment'
+                      : 'Randevuyu oluştur'
+                    : lang === 'en'
+                      ? 'Send booking request'
+                      : 'Randevu talebi gönder'}
               </Button>
             </div>
           </div>
@@ -1323,7 +1337,17 @@ export function PublicBookingWidget({
                   style={{ backgroundColor: accent }}
                   onClick={submit}
                 >
-                  {pending ? 'Gönderiliyor…' : 'Randevu talep et'}
+                  {pending
+                    ? lang === 'en'
+                      ? 'Sending…'
+                      : 'Gönderiliyor…'
+                    : clinic.autoConfirmClientAppointments
+                      ? lang === 'en'
+                        ? 'Create appointment'
+                        : 'Randevuyu oluştur'
+                      : lang === 'en'
+                        ? 'Send booking request'
+                        : 'Randevu talebi gönder'}
                 </Button>
               )}
             </div>

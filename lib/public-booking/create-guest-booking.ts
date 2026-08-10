@@ -39,7 +39,7 @@ import { classifyBookingError } from '@/lib/public-booking/booking-error'
 function bookingMessage(status: AppointmentStatus): string {
   return status === AppointmentStatus.CONFIRMED
     ? 'Randevunuz onaylandı.'
-    : 'Randevu talebiniz alındı. Klinik onayından sonra bilgilendirileceksiniz.'
+    : 'Randevu talebiniz gönderildi. Klinik onayından sonra kesinleşir; onay beklerken aynı saat başkasına verilmez.'
 }
 
 async function notifyClinic(input: {
