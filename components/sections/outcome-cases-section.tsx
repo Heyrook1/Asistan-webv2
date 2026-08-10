@@ -14,8 +14,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useLandingLocale } from '@/components/sections/landing-locale'
 import {
   OUTCOME_CASES_DISCLAIMER,
-  listPublishedOutcomeCases,
-  type OutcomeCase,
+  listPublicOutcomeCases,
+  type PublicOutcomeCase,
 } from '@/lib/brand/outcome-cases'
 import type { PlatformOutcomeSnapshot } from '@/lib/trust/platform-outcomes'
 import { revealSoft, staggerContainer, appleEase } from '@/lib/animations'
@@ -52,10 +52,11 @@ const COPY = {
   },
 } as const
 
-const CASE_ICONS: Record<string, typeof Building2> = {
-  'kktc-dental-single-agenda': Sparkles,
-  'kktc-multi-staff-roles': LockKeyhole,
-  'kktc-aesthetic-public-book': Link2,
+const CASE_ICONS: Record<PublicOutcomeCase['iconKey'], typeof Building2> = {
+  dental: Sparkles,
+  roles: LockKeyhole,
+  booking: Link2,
+  generic: Building2,
 }
 
 /** Split "A + B → C" headlines into before/after for faster scanning. */
@@ -71,13 +72,13 @@ function CaseCard({
   beforeLabel,
   afterLabel,
 }: {
-  item: OutcomeCase
+  item: PublicOutcomeCase
   locale: 'tr' | 'en'
   beforeLabel: string
   afterLabel: string
 }) {
   const reduceMotion = useReducedMotion()
-  const Icon = CASE_ICONS[item.id] ?? Building2
+  const Icon = CASE_ICONS[item.iconKey] ?? Building2
   const split = splitHeadline(item.headline[locale])
   // Show at most 2 metrics on the card — keep scan easy
   const metrics = item.metrics.slice(0, 2)
@@ -136,7 +137,7 @@ function CaseCard({
         <ul className="mt-auto space-y-2">
           {metrics.map((metric) => (
             <li
-              key={metric.id}
+              key={`${metric.label[locale]}-${metric.before}-${metric.after}`}
               className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-slate-100 bg-[#FAFBFC] px-2.5 py-2.5"
             >
               <div className="min-w-0 text-left">
@@ -166,11 +167,11 @@ function CaseCard({
 
 export function OutcomeCasesSection({
   live,
-  cases = listPublishedOutcomeCases(),
+  cases = listPublicOutcomeCases(),
   showDetailCta = true,
 }: {
   live?: PlatformOutcomeSnapshot | null
-  cases?: OutcomeCase[]
+  cases?: PublicOutcomeCase[]
   showDetailCta?: boolean
 }) {
   const { locale: landingLocale } = useLandingLocale()
@@ -206,9 +207,9 @@ export function OutcomeCasesSection({
           whileInView={reduceMotion ? undefined : 'visible'}
           viewport={{ once: true, amount: 0.15 }}
         >
-          {cases.map((item) => (
+          {cases.map((item, index) => (
             <CaseCard
-              key={item.id}
+              key={`${item.iconKey}-${index}`}
               item={item}
               locale={locale}
               beforeLabel={copy.before}

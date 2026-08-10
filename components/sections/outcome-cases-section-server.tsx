@@ -1,4 +1,5 @@
 import { OutcomeCasesSection } from '@/components/sections/outcome-cases-section'
+import { listPublicOutcomeCases } from '@/lib/brand/outcome-cases'
 import { getPlatformOutcomeSnapshot } from '@/lib/trust/platform-outcomes'
 
 export async function OutcomeCasesSectionServer({
@@ -6,6 +7,9 @@ export async function OutcomeCasesSectionServer({
 }: {
   showDetailCta?: boolean
 } = {}) {
-  const live = await getPlatformOutcomeSnapshot()
-  return <OutcomeCasesSection live={live} showDetailCta={showDetailCta} />
+  const [live, cases] = await Promise.all([
+    getPlatformOutcomeSnapshot(),
+    Promise.resolve(listPublicOutcomeCases()),
+  ])
+  return <OutcomeCasesSection live={live} cases={cases} showDetailCta={showDetailCta} />
 }

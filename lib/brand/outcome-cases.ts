@@ -6,6 +6,7 @@
  * - Prefer process/ops before→after that product actually enables.
  * - Percent metrics only when source = 'signed_pilot' (replace placeholders before ads).
  * - Always show early-access / anonymized framing when published.
+ * - Public surfaces must never serialize draft/status/internal ids.
  */
 
 export type OutcomeMetric = {
@@ -17,10 +18,13 @@ export type OutcomeMetric = {
   note?: { tr: string; en: string }
 }
 
+/** Internal catalog row — never pass straight to client components. */
 export type OutcomeCase = {
   id: string
   /** Only `published` render on public surfaces */
   status: 'published' | 'draft'
+  /** Stable icon bucket for UI — not a CMS document id */
+  iconKey: 'dental' | 'roles' | 'booking' | 'generic'
   /** Anonymized archetype — never a real clinic trade name without written approval */
   clinicType: { tr: string; en: string }
   region: { tr: string; en: string }
@@ -33,6 +37,25 @@ export type OutcomeCase = {
 }
 
 /**
+ * Public marketing DTO — no status, source enum, or internal document keys.
+ */
+export type PublicOutcomeCase = {
+  iconKey: OutcomeCase['iconKey']
+  clinicType: OutcomeCase['clinicType']
+  region: OutcomeCase['region']
+  period: OutcomeCase['period']
+  headline: OutcomeCase['headline']
+  summary: OutcomeCase['summary']
+  metrics: Array<{
+    label: OutcomeMetric['label']
+    before: string
+    after: string
+    note?: OutcomeMetric['note']
+  }>
+  sourceLabel: OutcomeCase['sourceLabel']
+}
+
+/**
  * Three published process-outcome cards for early-access sales.
  * Replace `process_pilot` rows with `signed_pilot` + real % when clinics sign off.
  */
@@ -40,6 +63,7 @@ export const OUTCOME_CASES: OutcomeCase[] = [
   {
     id: 'kktc-dental-single-agenda',
     status: 'published',
+    iconKey: 'dental',
     clinicType: { tr: 'Diş kliniği (1–2 hekim)', en: 'Dental clinic (1–2 clinicians)' },
     region: { tr: 'Lefkoşa bölgesi · anonim', en: 'Nicosia area · anonymized' },
     period: { tr: '90 günlük erken erişim pilotu', en: '90-day early-access pilot' },
@@ -83,6 +107,7 @@ export const OUTCOME_CASES: OutcomeCase[] = [
   {
     id: 'kktc-multi-staff-roles',
     status: 'published',
+    iconKey: 'roles',
     clinicType: { tr: 'Çoklu ekip polikliniği', en: 'Multi-staff outpatient clinic' },
     region: { tr: 'Mağusa bölgesi · anonim', en: 'Famagusta area · anonymized' },
     period: { tr: '60 günlük erken erişim pilotu', en: '60-day early-access pilot' },
@@ -123,6 +148,7 @@ export const OUTCOME_CASES: OutcomeCase[] = [
   {
     id: 'kktc-beauty-booking-link',
     status: 'published',
+    iconKey: 'booking',
     clinicType: { tr: 'Estetik / cilt kliniği', en: 'Aesthetic / skin clinic' },
     region: { tr: 'Girne bölgesi · anonim', en: 'Kyrenia area · anonymized' },
     period: { tr: '45 günlük erken erişim pilotu', en: '45-day early-access pilot' },
@@ -162,10 +188,14 @@ export const OUTCOME_CASES: OutcomeCase[] = [
   },
 ]
 
-/** Signed-% template — keep draft until written clinic approval. */
+/**
+ * Internal signed-% template — never included in public queries.
+ * Kept for ops/docs; not part of OUTCOME_CASES publish set.
+ */
 export const SIGNED_METRIC_CASE_TEMPLATE: OutcomeCase = {
   id: 'kktc-signed-noshow-template',
   status: 'draft',
+  iconKey: 'generic',
   clinicType: { tr: 'Klinik tipi (onay sonrası)', en: 'Clinic type (after approval)' },
   region: { tr: 'KKTC · isim gizli', en: 'Northern Cyprus · name withheld' },
   period: { tr: 'Örn. 120 gün', en: 'e.g. 120 days' },
@@ -200,14 +230,49 @@ export const SIGNED_METRIC_CASE_TEMPLATE: OutcomeCase = {
 }
 
 export const OUTCOME_CASES_DISCLAIMER = {
-  tr: 'Kartlar anonimleştirilmiş erken erişim süreç pilotlarıdır; isimli klinik referansı veya uydurma testimonial değildir. Yüzdelik no-show / NPS iddiası ancak imzalı pilot (`signed_pilot`) kaydıyla eklenir.',
-  en: 'Cards are anonymized early-access process pilots — not named endorsements or fabricated testimonials. Percentage no-show / NPS claims are added only via signed_pilot records.',
+  tr: 'Kartlar anonimleştirilmiş erken erişim süreç pilotlarıdır; isimli klinik referansı veya uydurma testimonial değildir. Yüzdelik sonuçlar yalnızca doğrulanmış ölçüm ve klinik onayıyla yayınlanır.',
+  en: 'Cards are anonymized early-access process pilots — not named endorsements or fabricated testimonials. Percentage results are published only with verified measurement and clinic approval.',
 } as const
 
+/** Full internal catalog including drafts (ops/tests only — not for UI props). */
+export function listAllOutcomeCases(): OutcomeCase[] {
+  return [...OUTCOME_CASES, SIGNED_METRIC_CASE_TEMPLATE]
+}
+
+function toPublicOutcomeCase(item: OutcomeCase): PublicOutcomeCase {
+  return {
+    iconKey: item.iconKey,
+    clinicType: item.clinicType,
+    region: item.region,
+    period: item.period,
+    headline: item.headline,
+    summary: item.summary,
+    metrics: item.metrics.map(({ label, before, after, note }) => ({
+      label,
+      before,
+      after,
+      ...(note ? { note } : {}),
+    })),
+    sourceLabel: item.sourceLabel,
+  }
+}
+
+/** Published + approved rows only, as a client-safe DTO. */
+export function listPublicOutcomeCases(): PublicOutcomeCase[] {
+  return OUTCOME_CASES.filter((item) => item.status === 'published').map(toPublicOutcomeCase)
+}
+
+/** @deprecated Prefer listPublicOutcomeCases for any UI surface. */
 export function listPublishedOutcomeCases() {
   return OUTCOME_CASES.filter((item) => item.status === 'published')
 }
 
 export function getOutcomeCaseById(id: string) {
-  return OUTCOME_CASES.find((item) => item.id === id) ?? null
+  return listAllOutcomeCases().find((item) => item.id === id) ?? null
+}
+
+/** Public lookup — draft/internal ids resolve to null. */
+export function getPublicOutcomeCaseById(id: string): PublicOutcomeCase | null {
+  const row = OUTCOME_CASES.find((item) => item.id === id && item.status === 'published')
+  return row ? toPublicOutcomeCase(row) : null
 }

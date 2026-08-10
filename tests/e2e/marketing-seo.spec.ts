@@ -36,6 +36,16 @@ test.describe('Public marketing & SEO', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30_000 })
   })
 
+  test('/sonuclar never exposes draft/internal outcome records', async ({ page }) => {
+    await page.goto('/sonuclar', { waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 45_000 })
+    const body = await page.locator('body').innerText()
+    expect(body).not.toMatch(/kktc-signed-noshow-template/i)
+    expect(body).not.toMatch(/status\s*=\s*draft/i)
+    expect(body).not.toContain('İmzalı metrik şablonu')
+    expect(body).not.toContain('Innovation pillar')
+  })
+
   test('sitemap.xml and robots.txt are served', async ({ request }) => {
     const sitemap = await request.get('/sitemap.xml')
     expect(sitemap.ok()).toBeTruthy()
