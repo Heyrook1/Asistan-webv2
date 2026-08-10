@@ -56,13 +56,13 @@ export type PublicOutcomeCase = {
 }
 
 /**
- * Three published process-outcome cards for early-access sales.
- * Replace `process_pilot` rows with `signed_pilot` + real % when clinics sign off.
+ * Process-pilot drafts — NOT public until a real clinic pilot is documented
+ * (written approval + measurement method). Invented 45/60/90-day cards must stay draft.
  */
 export const OUTCOME_CASES: OutcomeCase[] = [
   {
     id: 'kktc-dental-single-agenda',
-    status: 'published',
+    status: 'draft',
     iconKey: 'dental',
     clinicType: { tr: 'Diş kliniği (1–2 hekim)', en: 'Dental clinic (1–2 clinicians)' },
     region: { tr: 'Lefkoşa bölgesi · anonim', en: 'Nicosia area · anonymized' },
@@ -106,7 +106,7 @@ export const OUTCOME_CASES: OutcomeCase[] = [
   },
   {
     id: 'kktc-multi-staff-roles',
-    status: 'published',
+    status: 'draft',
     iconKey: 'roles',
     clinicType: { tr: 'Çoklu ekip polikliniği', en: 'Multi-staff outpatient clinic' },
     region: { tr: 'Mağusa bölgesi · anonim', en: 'Famagusta area · anonymized' },
@@ -147,7 +147,7 @@ export const OUTCOME_CASES: OutcomeCase[] = [
   },
   {
     id: 'kktc-beauty-booking-link',
-    status: 'published',
+    status: 'draft',
     iconKey: 'booking',
     clinicType: { tr: 'Estetik / cilt kliniği', en: 'Aesthetic / skin clinic' },
     region: { tr: 'Girne bölgesi · anonim', en: 'Kyrenia area · anonymized' },
@@ -230,8 +230,8 @@ export const SIGNED_METRIC_CASE_TEMPLATE: OutcomeCase = {
 }
 
 export const OUTCOME_CASES_DISCLAIMER = {
-  tr: 'Kartlar anonimleştirilmiş erken erişim süreç pilotlarıdır; isimli klinik referansı veya uydurma testimonial değildir. Yüzdelik sonuçlar yalnızca doğrulanmış ölçüm ve klinik onayıyla yayınlanır.',
-  en: 'Cards are anonymized early-access process pilots — not named endorsements or fabricated testimonials. Percentage results are published only with verified measurement and clinic approval.',
+  tr: 'Kamuya açık sonuç kartları yalnızca belgelenmiş klinik pilotu ve onaylı ölçümle yayınlanır. Yüzdelik sonuçlar için yazılı klinik onayı zorunludur.',
+  en: 'Public outcome cards ship only with a documented clinic pilot and approved measurement. Percentage results require written clinic approval.',
 } as const
 
 /** Full internal catalog including drafts (ops/tests only — not for UI props). */

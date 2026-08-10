@@ -23,9 +23,9 @@ import { Button } from '@/components/ui/button'
 
 const COPY = {
   tr: {
-    badge: 'Pilot sonuçları',
-    title: 'Üç klinik tipi. Aynı net dönüşüm.',
-    description: 'Anonim erken erişim pilotları — sahte logo veya uydurma yüzde yok.',
+    badge: 'Doğrulanmış sonuçlar',
+    title: 'Ölçülen operasyon sinyalleri',
+    description: 'Yalnızca onaylı ölçüm veya canlı platform eşiği aşıldığında yayınlanır.',
     before: 'Önce',
     after: 'Sonra',
     cta: 'Tüm sonuçları gör',
@@ -37,9 +37,9 @@ const COPY = {
     liveReviews: 'Yorum ort.',
   },
   en: {
-    badge: 'Pilot outcomes',
-    title: 'Three clinic types. One clear shift.',
-    description: 'Anonymized early-access pilots — no fake logos or invented percentages.',
+    badge: 'Verified outcomes',
+    title: 'Measured operations signals',
+    description: 'Published only with approved measurement or once the live platform threshold is met.',
     before: 'Before',
     after: 'After',
     cta: 'See all outcomes',
@@ -200,23 +200,25 @@ export function OutcomeCasesSection({
           <p className="mt-3 text-base leading-relaxed text-[#5D6068]">{copy.description}</p>
         </motion.div>
 
-        <motion.div
-          className="grid gap-5 md:grid-cols-3"
-          variants={reduceMotion ? undefined : staggerContainer(0.1, 0.02)}
-          initial={reduceMotion ? undefined : 'hidden'}
-          whileInView={reduceMotion ? undefined : 'visible'}
-          viewport={{ once: true, amount: 0.15 }}
-        >
-          {cases.map((item, index) => (
-            <CaseCard
-              key={`${item.iconKey}-${index}`}
-              item={item}
-              locale={locale}
-              beforeLabel={copy.before}
-              afterLabel={copy.after}
-            />
-          ))}
-        </motion.div>
+        {cases.length > 0 ? (
+          <motion.div
+            className="grid gap-5 md:grid-cols-3"
+            variants={reduceMotion ? undefined : staggerContainer(0.1, 0.02)}
+            initial={reduceMotion ? undefined : 'hidden'}
+            whileInView={reduceMotion ? undefined : 'visible'}
+            viewport={{ once: true, amount: 0.15 }}
+          >
+            {cases.map((item, index) => (
+              <CaseCard
+                key={`${item.iconKey}-${index}`}
+                item={item}
+                locale={locale}
+                beforeLabel={copy.before}
+                afterLabel={copy.after}
+              />
+            ))}
+          </motion.div>
+        ) : null}
 
         {live ? (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">

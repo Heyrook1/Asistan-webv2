@@ -11,5 +11,11 @@ export async function OutcomeCasesSectionServer({
     getPlatformOutcomeSnapshot(),
     Promise.resolve(listPublicOutcomeCases()),
   ])
+
+  // No invented pilot cards: hide section until published cases or live proof gate opens.
+  if (cases.length === 0 && !live?.ready) {
+    return null
+  }
+
   return <OutcomeCasesSection live={live} cases={cases} showDetailCta={showDetailCta} />
 }

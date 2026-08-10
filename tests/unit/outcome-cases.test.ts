@@ -19,13 +19,16 @@ const DRAFT_MARKERS = [
   '"status":"draft"',
   'İmzalı metrik şablonu',
   'Innovation pillar',
+  '90 günlük',
+  '60 günlük',
+  '45 günlük',
 ] as const
 
 describe('lib/brand/outcome-cases', () => {
-  it('publishes exactly three process-pilot cards via public DTO', () => {
-    const published = listPublicOutcomeCases()
-    expect(published).toHaveLength(3)
-    expect(listPublishedOutcomeCases()).toHaveLength(3)
+  it('publishes zero invented process-pilot cards until proof gate opens', () => {
+    expect(listPublicOutcomeCases()).toHaveLength(0)
+    expect(listPublishedOutcomeCases()).toHaveLength(0)
+    expect(OUTCOME_CASES.every((item) => item.status === 'draft')).toBe(true)
   })
 
   it('keeps signed %/NPS template draft and unpublished', () => {
@@ -35,13 +38,10 @@ describe('lib/brand/outcome-cases', () => {
     expect(getPublicOutcomeCaseById(SIGNED_METRIC_CASE_TEMPLATE.id)).toBeNull()
   })
 
-  it('does not invent percentage no-show or NPS on published cards', () => {
-    for (const item of listPublicOutcomeCases()) {
-      for (const metric of item.metrics) {
-        expect(metric.before).not.toMatch(/%\d/)
-        expect(metric.after).not.toMatch(/%\d/)
-        expect(metric.label.tr.toLowerCase()).not.toContain('nps')
-      }
+  it('stores process drafts internally without public duration claims', () => {
+    for (const item of OUTCOME_CASES) {
+      expect(item.status).toBe('draft')
+      expect(item.source).toBe('process_pilot')
     }
   })
 
@@ -49,25 +49,19 @@ describe('lib/brand/outcome-cases', () => {
     for (const item of OUTCOME_CASES) {
       expect(item.clinicType.tr.toLowerCase()).not.toMatch(/dişçim|klinik adı|dr\./)
       expect(item.region.tr.toLowerCase()).toContain('anonim')
-      expect(item.sourceLabel.tr.toLowerCase()).toMatch(/anonim|imzalı/)
     }
   })
 
   it('resolves internal cases by id but public lookup rejects drafts', () => {
     expect(getOutcomeCaseById('kktc-dental-single-agenda')?.headline.tr).toContain('tek ajanda')
     expect(getOutcomeCaseById('missing')).toBeNull()
-    expect(getOutcomeCaseById(SIGNED_METRIC_CASE_TEMPLATE.id)?.status).toBe('draft')
+    expect(getPublicOutcomeCaseById('kktc-dental-single-agenda')).toBeNull()
     expect(getPublicOutcomeCaseById(SIGNED_METRIC_CASE_TEMPLATE.id)).toBeNull()
   })
 
-  it('public DTO omits status, source, and internal document keys', () => {
+  it('public DTO omits status, source, internal keys, and duration claims', () => {
     const payload = JSON.stringify(listPublicOutcomeCases())
-    expect(payload).not.toContain('"status"')
-    expect(payload).not.toContain('"source"')
-    expect(payload).not.toContain('kktc-')
-    expect(payload).not.toContain('process_pilot')
-    expect(payload).not.toContain('signed_pilot')
-    expect(payload).not.toContain('draft')
+    expect(payload).toBe('[]')
     for (const marker of DRAFT_MARKERS) {
       expect(payload).not.toContain(marker)
     }
@@ -78,26 +72,20 @@ describe('public /sonuclar surface', () => {
   it('page module does not import or render draft template markers', () => {
     const pageSource = readFileSync(join(process.cwd(), 'app/sonuclar/page.tsx'), 'utf8')
     expect(pageSource).not.toContain('SIGNED_METRIC_CASE_TEMPLATE')
-    expect(pageSource).not.toContain('listPublishedOutcomeCases')
     expect(pageSource).not.toContain('listAllOutcomeCases')
-    for (const marker of DRAFT_MARKERS) {
-      expect(pageSource).not.toContain(marker)
-    }
+    expect(pageSource).not.toContain('Innovation pillar')
+    expect(pageSource).not.toContain('90 günlük')
+    expect(pageSource).not.toContain('60 günlük')
+    expect(pageSource).not.toContain('45 günlük')
   })
 
   it('integration: public query serialization never includes draft result', () => {
     const publicRows = listPublicOutcomeCases()
-    const serialized = JSON.stringify({
-      cases: publicRows,
-      disclaimer: {
-        tr: 'Erken erişim kliniklerinde gözlemlediğimiz operasyonel değişimleri şeffaf biçimde paylaşıyoruz.',
-      },
-    })
+    const serialized = JSON.stringify({ cases: publicRows })
 
-    expect(publicRows.every((row) => row.iconKey !== 'generic')).toBe(true)
+    expect(publicRows).toHaveLength(0)
     expect(serialized).not.toMatch(/kktc-signed-noshow-template/i)
+    expect(serialized).not.toMatch(/90 günlük|60 günlük|45 günlük/)
     expect(serialized).not.toMatch(/status\s*=\s*draft/i)
-    expect(serialized).not.toMatch(/"status"\s*:\s*"draft"/i)
-    expect(serialized).not.toContain('İmzalı metrik şablonu')
   })
 })
