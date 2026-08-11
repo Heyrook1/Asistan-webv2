@@ -5,6 +5,8 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 
+type FieldElement = React.ReactElement<Record<string, unknown>>
+
 type AccessibleFieldProps = {
   label: string
   error?: string
@@ -13,6 +15,10 @@ type AccessibleFieldProps = {
   labelClassName?: string
   errorClassName?: string
   children: React.ReactElement
+}
+
+function asFieldElement(element: React.ReactElement): FieldElement {
+  return element as FieldElement
 }
 
 function elementSlot(element: React.ReactElement): string | undefined {
@@ -62,37 +68,34 @@ function attachFieldProps(
   fieldProps: Record<string, unknown>,
 ): React.ReactNode {
   if (!React.isValidElement(node)) return node
+  const element = asFieldElement(node)
 
-  if (isSelectRoot(node)) {
-    const children = (node.props as { children?: React.ReactNode }).children
+  if (isSelectRoot(element)) {
+    const children = element.props.children as React.ReactNode
     return React.cloneElement(
-      node,
+      element,
       {},
       React.Children.map(children, (child) => attachFieldProps(child, fieldProps)),
     )
   }
 
-  if (isSelectTrigger(node) || isFormControl(node)) {
-    const existingId = (node.props as { id?: string }).id
-    return React.cloneElement(node, {
+  if (isSelectTrigger(element) || isFormControl(element)) {
+    const existingId = typeof element.props.id === 'string' ? element.props.id : undefined
+    return React.cloneElement(element, {
       ...fieldProps,
       id: existingId ?? fieldProps.id,
     })
   }
 
   // Single-child wrappers (rare): recurse one level.
-  const nested = (node.props as { children?: React.ReactNode }).children
+  const nested = element.props.children as React.ReactNode
   if (React.isValidElement(nested) && React.Children.count(nested) === 1) {
-    return React.cloneElement(
-      node,
-      {},
-      attachFieldProps(nested, fieldProps) as React.ReactNode,
-    )
+    return React.cloneElement(element, {}, attachFieldProps(nested, fieldProps) as React.ReactNode)
   }
 
   // Field API expects a control that accepts id — still forward so callers don't silently fail.
-  const existingId = (node.props as { id?: string }).id
-  return React.cloneElement(node, {
+  const existingId = typeof element.props.id === 'string' ? element.props.id : undefined
+  return React.cloneElement(element, {
     ...fieldProps,
     id: existingId ?? fieldProps.id,
   })
