@@ -10,7 +10,7 @@ import 'server-only'
 
 import { Prisma } from '@prisma/client'
 import type { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { clientIdentityPrisma } from '@/lib/prisma-owner'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export type ClientAuthContext = {
@@ -58,8 +58,11 @@ async function upsertClientUser(input: {
   email: string | null
   fullName: string
 }) {
-  const byAuthId = await prisma.clientUser.findFirst({
-    where: { authUserId: input.authUserId },
+  // Owner/migrate when runtime is asistan_app — auth.uid() RLS blocks ClientUser DML.
+  const db = clientIdentityPrisma()
+
+  const byAuthId = await db.clientUser.findFirst({
+    where: { authUserId: input.authUserId, deletedAt: null },
     select: { id: true, fullName: true, email: true, phone: true, city: true },
   })
 
@@ -67,7 +70,7 @@ async function upsertClientUser(input: {
     const nextName = byAuthId.fullName || input.fullName
     const shouldUpdate = byAuthId.fullName !== nextName || byAuthId.email !== input.email
     if (shouldUpdate) {
-      const updated = await prisma.clientUser.update({
+      const updated = await db.clientUser.update({
         where: { id: byAuthId.id },
         data: {
           fullName: nextName,
@@ -84,13 +87,13 @@ async function upsertClientUser(input: {
     // Only adopt an *orphan* ClientUser (no authUserId yet, e.g. created via guest
     // booking). Never re-point a row that is already bound to a different auth user —
     // that would be an email-based account takeover.
-    const byEmail = await prisma.clientUser.findFirst({
-      where: { email: input.email, authUserId: null },
+    const byEmail = await db.clientUser.findFirst({
+      where: { email: input.email, authUserId: null, deletedAt: null },
       select: { id: true, fullName: true, email: true, phone: true, city: true },
     })
 
     if (byEmail) {
-      return prisma.clientUser.update({
+      return db.clientUser.update({
         where: { id: byEmail.id },
         data: {
           authUserId: input.authUserId,
@@ -101,7 +104,7 @@ async function upsertClientUser(input: {
     }
   }
 
-  return prisma.clientUser.create({
+  return db.clientUser.create({
     data: {
       authUserId: input.authUserId,
       fullName: input.fullName,
@@ -152,8 +155,10 @@ export async function requireClientAuth(request: NextRequest): Promise<ClientAut
     // Unique collisions can happen in first-login races; recover by loading
     // the row again and continuing the request.
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      const existing = await prisma.clientUser.findFirst({
+      const db = clientIdentityPrisma()
+      const existing = await db.clientUser.findFirst({
         where: {
+          deletedAt: null,
           OR: [
             { authUserId: authUser.id },
             // email fallback only matches orphan rows (no takeover of bound accounts)
@@ -172,6 +177,7 @@ export async function requireClientAuth(request: NextRequest): Promise<ClientAut
         }
       }
     }
+    console.error('[requireClientAuth] ClientUser upsert failed', error)
     throw error
   }
 }

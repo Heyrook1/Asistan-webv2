@@ -46,6 +46,16 @@ export function sessionPrisma(): PrismaClient {
 }
 
 /**
+ * ClientUser identity (patient PWA / marketplace Bearer auth).
+ *
+ * Runtime `asistan_app` hits auth.uid()-only RLS on "ClientUser" unless
+ * `client_user_asistan_app` is applied — same bootstrap pattern as sessionPrisma.
+ */
+export function clientIdentityPrisma(): PrismaClient {
+  return getOwnerClient()
+}
+
+/**
  * Cross-tenant public catalog ( /client search, clinic detail, availability ).
  * asistan_app GUC RLS cannot list bookable doctors without app.business_id.
  */

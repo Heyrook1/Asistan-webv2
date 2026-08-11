@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { apiError, apiValidationError } from '@/lib/api-response'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
 import { requireClientAuth } from '@/lib/client-marketplace/auth'
+import { clientIdentityPrisma } from '@/lib/prisma-owner'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -18,7 +18,13 @@ const updateProfileSchema = z.object({
 })
 
 export async function GET(request: NextRequest) {
-  const auth = await requireClientAuth(request)
+  let auth
+  try {
+    auth = await requireClientAuth(request)
+  } catch (error) {
+    console.error('[api/client/profile] auth failed', error)
+    return apiError('Profil oturumu hazırlanamadı', 503)
+  }
   if (!auth) {
     return apiError('Unauthorized', 401)
   }
@@ -33,8 +39,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const profile = await prisma.clientUser.findFirst({
-      where: { id: auth.clientUser.id },
+    // Same bootstrap client as requireClientAuth — asistan_app may lack ClientUser RLS.
+    const db = clientIdentityPrisma()
+    const profile = await db.clientUser.findFirst({
+      where: { id: auth.clientUser.id, deletedAt: null },
       select: {
         id: true,
         fullName: true,
@@ -67,7 +75,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireClientAuth(request)
+  let auth
+  try {
+    auth = await requireClientAuth(request)
+  } catch (error) {
+    console.error('[api/client/profile] auth failed', error)
+    return apiError('Profil oturumu hazırlanamadı', 503)
+  }
   if (!auth) {
     return apiError('Unauthorized', 401)
   }
@@ -79,38 +93,43 @@ export async function PUT(request: NextRequest) {
   }
 
   const patch = parsed.data
-  const updated = await prisma.clientUser.update({
-    where: { id: auth.clientUser.id },
-    data: {
-      fullName: patch.fullName,
-      phone: patch.phone ?? undefined,
-      email: patch.email?.toLowerCase() ?? patch.email ?? undefined,
-      address: patch.address ?? undefined,
-      city: patch.city ?? undefined,
-      locationLat: patch.locationLat ?? undefined,
-      locationLng: patch.locationLng ?? undefined,
-    },
-    select: {
-      id: true,
-      fullName: true,
-      phone: true,
-      email: true,
-      address: true,
-      city: true,
-      locationLat: true,
-      locationLng: true,
-      updatedAt: true,
-    },
-  })
+  const db = clientIdentityPrisma()
+  try {
+    const updated = await db.clientUser.update({
+      where: { id: auth.clientUser.id },
+      data: {
+        fullName: patch.fullName,
+        phone: patch.phone ?? undefined,
+        email: patch.email?.toLowerCase() ?? patch.email ?? undefined,
+        address: patch.address ?? undefined,
+        city: patch.city ?? undefined,
+        locationLat: patch.locationLat ?? undefined,
+        locationLng: patch.locationLng ?? undefined,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        address: true,
+        city: true,
+        locationLat: true,
+        locationLng: true,
+        updatedAt: true,
+      },
+    })
 
-  return NextResponse.json({
-    ok: true,
-    profile: {
-      ...updated,
-      locationLat: updated.locationLat != null ? Number(updated.locationLat) : null,
-      locationLng: updated.locationLng != null ? Number(updated.locationLng) : null,
-      updatedAt: updated.updatedAt.toISOString(),
-    },
-  })
+    return NextResponse.json({
+      ok: true,
+      profile: {
+        ...updated,
+        locationLat: updated.locationLat != null ? Number(updated.locationLat) : null,
+        locationLng: updated.locationLng != null ? Number(updated.locationLng) : null,
+        updatedAt: updated.updatedAt.toISOString(),
+      },
+    })
+  } catch (error) {
+    console.error('[api/client/profile] PUT failed', error)
+    return apiError('Profil kaydedilemedi', 500)
+  }
 }
-

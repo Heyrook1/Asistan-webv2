@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { prisma } from '@/lib/prisma'
+import { clientIdentityPrisma } from '@/lib/prisma-owner'
 import { resolveOrCreatePerson } from '@/lib/identity/resolve'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 
@@ -43,8 +44,10 @@ export async function ensureClientUserPersonLink(input: {
   email?: string | null
 }): Promise<{ personId: string; gpiDisplay: string } | null> {
   try {
-    const existing = await prisma.clientUser.findFirst({
-      where: { id: input.clientUserId },
+    // ClientUser identity reads/writes — owner/migrate when asistan_app lacks RLS policy.
+    const identityDb = clientIdentityPrisma()
+    const existing = await identityDb.clientUser.findFirst({
+      where: { id: input.clientUserId, deletedAt: null },
       select: {
         id: true,
         personId: true,
@@ -64,19 +67,18 @@ export async function ensureClientUserPersonLink(input: {
     if (!phone && !email) return null
 
     return await runWithTenantBypassAsync('passport:link-client-user', async () => {
-      const result = await prisma.$transaction(async (tx) => {
-        const resolved = await resolveOrCreatePerson(tx, {
+      const resolved = await prisma.$transaction(async (tx) => {
+        return resolveOrCreatePerson(tx, {
           fullName: input.fullName || existing.fullName,
           phone, // may be ''; normalize → null; email-only still works
           email,
         })
-        await tx.clientUser.update({
-          where: { id: existing.id },
-          data: { personId: resolved.personId },
-        })
-        return resolved
       })
-      return { personId: result.personId, gpiDisplay: result.gpiDisplay }
+      await identityDb.clientUser.update({
+        where: { id: existing.id },
+        data: { personId: resolved.personId },
+      })
+      return { personId: resolved.personId, gpiDisplay: resolved.gpiDisplay }
     })
   } catch (error) {
     console.error('[ensureClientUserPersonLink] soft-fail', error)

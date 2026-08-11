@@ -46,6 +46,14 @@ describe('whereHasTenantScope', () => {
     expect(whereHasTenantScope('Appointment', { clientUserId: 'client-1' })).toBe(true)
   })
 
+  it('accepts patientId alternate scope for Appointment', () => {
+    expect(whereHasTenantScope('Appointment', { patientId: 'pat-1' })).toBe(true)
+  })
+
+  it('accepts personId alternate scope for Patient', () => {
+    expect(whereHasTenantScope('Patient', { personId: 'person-1' })).toBe(true)
+  })
+
   it('accepts Review clientUserId / appointmentId alternate scopes', () => {
     expect(whereHasTenantScope('Review', { clientUserId: 'c1' })).toBe(true)
     expect(whereHasTenantScope('Review', { appointmentId: 'a1' })).toBe(true)

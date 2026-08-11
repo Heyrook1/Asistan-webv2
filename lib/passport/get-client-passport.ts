@@ -86,6 +86,7 @@ export async function getClientPassport(input: {
       const patients = await tx.patient.findMany({
         where: { personId: link.personId },
         select: {
+          id: true,
           patientNumber: true,
           businessId: true,
           business: { select: { id: true, name: true, slug: true, city: true } },
@@ -93,38 +94,73 @@ export async function getClientPassport(input: {
         take: 50,
       })
 
-      // Do not `include: { service }` — Prisma requires the relation; orphaned
-      // serviceId or RLS-hidden Service rows throw "got null instead".
-      const appointments = await tx.appointment.findMany({
-        where: {
-          OR: [
-            { clientUserId: input.clientUserId },
-            { patient: { personId: link.personId } },
-          ],
-        },
-        orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
-        select: {
-          id: true,
-          status: true,
-          date: true,
-          startTime: true,
-          businessId: true,
-          serviceId: true,
-          business: { select: { id: true, name: true, slug: true } },
-          staff: { select: { id: true, fullName: true, specialty: true } },
-          location: { select: { id: true, name: true, address: true } },
-        },
-        take: 200,
+      const patientIds = patients.map((p) => p.id)
+      const businessIds = Array.from(new Set(patients.map((p) => p.businessId)))
+
+      // Split OR branches — tenant-guard requires every OR arm to carry scope.
+      const [byClient, byPatient] = await Promise.all([
+        tx.appointment.findMany({
+          where: { clientUserId: input.clientUserId },
+          orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+          select: {
+            id: true,
+            status: true,
+            date: true,
+            startTime: true,
+            businessId: true,
+            serviceId: true,
+            business: { select: { id: true, name: true, slug: true } },
+            staff: { select: { id: true, fullName: true, specialty: true } },
+            location: { select: { id: true, name: true, address: true } },
+          },
+          take: 200,
+        }),
+        patientIds.length === 0
+          ? Promise.resolve([])
+          : tx.appointment.findMany({
+              where: { patientId: { in: patientIds } },
+              orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+              select: {
+                id: true,
+                status: true,
+                date: true,
+                startTime: true,
+                businessId: true,
+                serviceId: true,
+                business: { select: { id: true, name: true, slug: true } },
+                staff: { select: { id: true, fullName: true, specialty: true } },
+                location: { select: { id: true, name: true, address: true } },
+              },
+              take: 200,
+            }),
+      ])
+
+      const appointmentById = new Map<string, (typeof byClient)[number]>()
+      for (const row of byClient) appointmentById.set(row.id, row)
+      for (const row of byPatient) appointmentById.set(row.id, row)
+      const appointments = Array.from(appointmentById.values()).sort((a, b) => {
+        const dateCmp = b.date.getTime() - a.date.getTime()
+        if (dateCmp !== 0) return dateCmp
+        return b.startTime.localeCompare(a.startTime)
       })
 
+      // Do not `include: { service }` — orphaned serviceId / RLS-hidden Service throws.
       const serviceIds = Array.from(
         new Set(appointments.map((a) => a.serviceId).filter(Boolean))
+      )
+      const serviceBusinessIds = Array.from(
+        new Set([...businessIds, ...appointments.map((a) => a.businessId)])
       )
       const services =
         serviceIds.length === 0
           ? []
           : await tx.service.findMany({
-              where: { id: { in: serviceIds } },
+              where: {
+                id: { in: serviceIds },
+                ...(serviceBusinessIds.length > 0
+                  ? { businessId: { in: serviceBusinessIds } }
+                  : {}),
+              },
               select: { id: true, name: true },
             })
       const serviceById = new Map(services.map((s) => [s.id, s]))

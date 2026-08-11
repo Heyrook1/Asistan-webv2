@@ -14,7 +14,13 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const auth = await requireClientAuth(request)
+  let auth
+  try {
+    auth = await requireClientAuth(request)
+  } catch (error) {
+    console.error('[api/client/passport] auth failed', error)
+    return apiError('Pasaport oturumu hazırlanamadı', 503)
+  }
   if (!auth) return apiError('Unauthorized', 401)
 
   const ip =

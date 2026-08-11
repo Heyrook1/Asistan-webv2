@@ -81,10 +81,12 @@ const OPTIONAL_BUSINESS_ID_ON_CREATE = new Set<string>([
  * Keys are model names; values are field names that prove intentional scope.
  */
 export const ALTERNATE_SCOPE_FIELDS: Readonly<Record<string, readonly string[]>> = {
-  Appointment: ['clientUserId'],
+  Appointment: ['clientUserId', 'patientId'],
   Review: ['clientUserId', 'appointmentId'],
   ClientNotification: ['clientUserId', 'appointmentId'],
   AuditLog: ['entityId'],
+  /** Passport / GPI membership reads — personId is ecosystem scope, not clinic. */
+  Patient: ['personId'],
 }
 
 type BypassStore = { reason: string }
