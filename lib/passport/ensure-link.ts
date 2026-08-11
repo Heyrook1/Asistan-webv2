@@ -42,39 +42,44 @@ export async function ensureClientUserPersonLink(input: {
   phone?: string | null
   email?: string | null
 }): Promise<{ personId: string; gpiDisplay: string } | null> {
-  const existing = await prisma.clientUser.findFirst({
-    where: { id: input.clientUserId },
-    select: {
-      id: true,
-      personId: true,
-      phone: true,
-      email: true,
-      fullName: true,
-    },
-  })
-  if (!existing) return null
-
-  if (existing.personId) {
-    return readPersonGpi(existing.personId)
-  }
-
-  const phone = (input.phone || existing.phone || '').trim()
-  const email = (input.email ?? existing.email)?.trim() || null
-  if (!phone && !email) return null
-
-  return runWithTenantBypassAsync('passport:link-client-user', async () => {
-    const result = await prisma.$transaction(async (tx) => {
-      const resolved = await resolveOrCreatePerson(tx, {
-        fullName: input.fullName || existing.fullName,
-        phone, // may be ''; normalize → null; email-only still works
-        email,
-      })
-      await tx.clientUser.update({
-        where: { id: existing.id },
-        data: { personId: resolved.personId },
-      })
-      return resolved
+  try {
+    const existing = await prisma.clientUser.findFirst({
+      where: { id: input.clientUserId },
+      select: {
+        id: true,
+        personId: true,
+        phone: true,
+        email: true,
+        fullName: true,
+      },
     })
-    return { personId: result.personId, gpiDisplay: result.gpiDisplay }
-  })
+    if (!existing) return null
+
+    if (existing.personId) {
+      return readPersonGpi(existing.personId)
+    }
+
+    const phone = (input.phone || existing.phone || '').trim()
+    const email = (input.email ?? existing.email)?.trim() || null
+    if (!phone && !email) return null
+
+    return await runWithTenantBypassAsync('passport:link-client-user', async () => {
+      const result = await prisma.$transaction(async (tx) => {
+        const resolved = await resolveOrCreatePerson(tx, {
+          fullName: input.fullName || existing.fullName,
+          phone, // may be ''; normalize → null; email-only still works
+          email,
+        })
+        await tx.clientUser.update({
+          where: { id: existing.id },
+          data: { personId: resolved.personId },
+        })
+        return resolved
+      })
+      return { personId: result.personId, gpiDisplay: result.gpiDisplay }
+    })
+  } catch (error) {
+    console.error('[ensureClientUserPersonLink] soft-fail', error)
+    return null
+  }
 }

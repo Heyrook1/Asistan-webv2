@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { LogOut, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { AsistanLogo } from '@/components/asistan-logo'
+import { DashboardBrandLockup } from '@/components/dashboard/dashboard-brand-lockup'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   DASHBOARD_NAV_ITEMS,
@@ -73,13 +73,8 @@ export function DashboardSidebar({
         <div className="pointer-events-none absolute -left-20 -top-32 h-64 w-64 rounded-full bg-brand-blue/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-brand-blue/5 blur-3xl" />
 
-        <div className="relative flex h-[72px] shrink-0 flex-col justify-center border-b border-sidebar-border px-5">
-          <Link href="/dashboard" aria-label="Asistan Health paneli" className="inline-flex flex-col items-start gap-0.5">
-            <AsistanLogo lockup="mark" variant="light" size="lg" priority />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-              Asistan Health
-            </span>
-          </Link>
+        <div className="relative flex h-[76px] shrink-0 items-center border-b border-white/[0.08] px-5">
+          <DashboardBrandLockup />
         </div>
 
         <ScrollArea className="relative flex-1 py-3">

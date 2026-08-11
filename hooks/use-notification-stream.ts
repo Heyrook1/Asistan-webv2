@@ -116,13 +116,22 @@ export function useNotificationStream({
     }
 
     // ── Polling (also drives foreground notifications) ─────────────────────
+    let unauthorized = false
+    let interval = 0
+
     async function poll() {
-      if (document.visibilityState !== 'visible') return
+      if (unauthorized || document.visibilityState !== 'visible') return
       try {
         const res = await fetch(
           `/api/notifications/since?after=${encodeURIComponent(watermarkRef.current)}`,
-          { cache: 'no-store' }
+          { cache: 'no-store', credentials: 'same-origin' },
         )
+        if (res.status === 401) {
+          unauthorized = true
+          if (interval) window.clearInterval(interval)
+          router.replace('/auth/login?reason=session-expired')
+          return
+        }
         if (!res.ok) return
         const data = (await res.json()) as { notifications: IncomingNotification[] }
         if (data.notifications.length > 0) {
@@ -137,7 +146,7 @@ export function useNotificationStream({
       }
     }
 
-    const interval = window.setInterval(poll, pollMs)
+    interval = window.setInterval(poll, pollMs)
 
     function onFocus() {
       if (document.visibilityState === 'visible') {

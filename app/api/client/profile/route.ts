@@ -32,33 +32,38 @@ export async function GET(request: NextRequest) {
     return apiError('Too many requests', 429)
   }
 
-  const profile = await prisma.clientUser.findFirst({
-    where: { id: auth.clientUser.id },
-    select: {
-      id: true,
-      fullName: true,
-      phone: true,
-      email: true,
-      address: true,
-      city: true,
-      locationLat: true,
-      locationLng: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  })
+  try {
+    const profile = await prisma.clientUser.findFirst({
+      where: { id: auth.clientUser.id },
+      select: {
+        id: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        address: true,
+        city: true,
+        locationLat: true,
+        locationLng: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
 
-  return NextResponse.json({
-    profile: profile
-      ? {
-          ...profile,
-          locationLat: profile.locationLat != null ? Number(profile.locationLat) : null,
-          locationLng: profile.locationLng != null ? Number(profile.locationLng) : null,
-          createdAt: profile.createdAt.toISOString(),
-          updatedAt: profile.updatedAt.toISOString(),
-        }
-      : null,
-  })
+    return NextResponse.json({
+      profile: profile
+        ? {
+            ...profile,
+            locationLat: profile.locationLat != null ? Number(profile.locationLat) : null,
+            locationLng: profile.locationLng != null ? Number(profile.locationLng) : null,
+            createdAt: profile.createdAt.toISOString(),
+            updatedAt: profile.updatedAt.toISOString(),
+          }
+        : null,
+    })
+  } catch (error) {
+    console.error('[api/client/profile] GET failed', error)
+    return apiError('Profil yüklenemedi', 500)
+  }
 }
 
 export async function PUT(request: NextRequest) {

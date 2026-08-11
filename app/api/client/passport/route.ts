@@ -38,9 +38,7 @@ export async function GET(request: NextRequest) {
     })
     return apiSuccess(passport)
   } catch (error) {
-    return apiError(
-      error instanceof Error ? error.message : 'Passport load failed',
-      500
-    )
+    console.error('[api/client/passport] GET failed', error)
+    return apiError('Pasaport yüklenemedi', 500)
   }
 }

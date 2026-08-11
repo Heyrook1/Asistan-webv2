@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner'
 
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
+import { DashboardBrandLockup } from '@/components/dashboard/dashboard-brand-lockup'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
@@ -355,19 +356,22 @@ export function MobileShell({
         >
           <SheetTitle className="sr-only">Menü</SheetTitle>
           <div className="flex h-full flex-col pt-safe">
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="min-w-0">
-                <p className="truncate text-base font-bold">{session.businessName}</p>
-                <p className="text-[11px] text-white/55">{ROLE_LABELS[session.role]} · {session.fullName}</p>
+            <div className="border-b border-white/[0.08] px-5 py-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <DashboardBrandLockup />
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  className="tap-target flex shrink-0 items-center justify-center rounded-xl text-white/70 hover:bg-white/5"
+                  aria-label="Menüyü kapat"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="tap-target flex items-center justify-center rounded-xl text-white/70 hover:bg-white/5"
-                aria-label="Menüyü kapat"
-              >
-                <X className="h-6 w-6" />
-              </button>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white/90">{session.businessName}</p>
+                <p className="text-[11px] text-white/50">{ROLE_LABELS[session.role]} · {session.fullName}</p>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-3">

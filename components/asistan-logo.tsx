@@ -6,13 +6,16 @@ interface AsistanLogoProps {
   showText?: boolean
   /** Kept for backwards compatibility. */
   showTagline?: boolean
-  /** Kept for backwards compatibility — lockup uses the same asset on light/dark shells. */
+  /**
+   * `light` = assets for dark shells (sidebar, navy).
+   * `dark` = assets for light shells (white headers).
+   */
   variant?: 'light' | 'dark'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'sidebar'
   priority?: boolean
   /**
-   * `wordmark` = mark + “asistan” (marketing / auth).
-   * `mark` = icon only (client + dashboard shells).
+   * `wordmark` = mark + “asistan”.
+   * `mark` = icon only.
    */
   lockup?: 'wordmark' | 'mark'
 }
@@ -20,24 +23,28 @@ interface AsistanLogoProps {
 const MARK_HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
   sm: 28,
   md: 36,
-  lg: 56,
+  lg: 44,
+  sidebar: 40,
 }
 
 /** Full lockup aspect ≈ 978×239 */
 const WORDMARK_HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, { w: number; h: number }> = {
   sm: { w: 128, h: 31 },
   md: { w: 168, h: 41 },
-  lg: { w: 236, h: 58 },
+  lg: { w: 220, h: 54 },
+  sidebar: { w: 168, h: 41 },
 }
 
 const MARK_SRC = '/images/asistan-icon.png'
-const WORDMARK_SRC = '/images/asistan-full-logo.png'
+const WORDMARK_ON_LIGHT = '/images/asistan-full-logo.png'
+const WORDMARK_ON_DARK = '/images/asistan-full-logo-light.png'
 
 export function AsistanLogo({
   className = '',
   size = 'md',
   priority = false,
   lockup = 'wordmark',
+  variant = 'dark',
 }: AsistanLogoProps) {
   if (lockup === 'mark') {
     const side = MARK_HEIGHTS[size]
@@ -57,16 +64,17 @@ export function AsistanLogo({
   }
 
   const { w, h } = WORDMARK_HEIGHTS[size]
+  const src = variant === 'light' ? WORDMARK_ON_DARK : WORDMARK_ON_LIGHT
   return (
     <Image
-      src={WORDMARK_SRC}
+      src={src}
       alt="Asistan"
       width={w}
       height={h}
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block h-auto w-auto select-none object-contain object-left ${className}`}
+      className={`block h-auto w-auto max-w-full select-none object-contain object-left ${className}`}
       style={{ width: w, height: h }}
     />
   )
