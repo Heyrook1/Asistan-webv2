@@ -796,7 +796,9 @@ const rescheduleSchema = z.object({
   ),
 })
 
-export async function rescheduleAppointment(rawInput: unknown): Promise<ActionResult> {
+export async function rescheduleAppointment(
+  rawInput: unknown,
+): Promise<ActionResult<{ date: string; startTime: string; endTime: string }>> {
   const parsed = rescheduleSchema.safeParse(rawInput)
   if (!parsed.success) {
     const fieldHint = parsed.error.issues[0]?.message
