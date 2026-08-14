@@ -45,6 +45,10 @@ export default tseslint.config(
       'node_modules/**',
       'public/**',
       'supabase/**',
+      // Claude Code workspace — gitignored, so CI never sees it; ESLint flat
+      // config does not read .gitignore, so ignore it here to keep local
+      // `pnpm lint` identical to the CI job.
+      '.claude/**',
       // Ops / CDP / migration scripts — Node tooling, not app surface
       'scripts/**',
       // Expo app — linted separately; CommonJS + require() asset patterns break root ESLint

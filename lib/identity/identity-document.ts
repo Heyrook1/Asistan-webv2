@@ -24,7 +24,7 @@ export function normalizeIdentityDocument(
   documentType?: IdentityDocumentType | null,
 ): string | null {
   if (!raw) return null
-  const cleaned = raw.replace(/[\s\-]/g, '').toUpperCase()
+  const cleaned = raw.replace(/[\s-]/g, '').toUpperCase()
   if (cleaned.length < 5 || cleaned.length > 20) return null
   if (!/^[A-Z0-9]+$/.test(cleaned)) return null
 

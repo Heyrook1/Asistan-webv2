@@ -39,8 +39,12 @@ function auditFile(relPath: string) {
   const source = readFileSync(abs, 'utf8')
   const errors: string[] = []
 
-  if (!HAS_ZOD_IMPORT.test(source)) {
-    errors.push(`${relPath}: missing zod import`)
+  // The import path is only a proxy for "this file validates" — a zod schema can
+  // legitimately arrive from a domain module (e.g. contactLeadSchema from
+  // @/lib/marketing/contact-lead). A real validation call is direct evidence and
+  // supersedes it; the per-function check below stays the actual guardrail.
+  if (!HAS_ZOD_IMPORT.test(source) && !VALIDATES.test(source)) {
+    errors.push(`${relPath}: no zod import and no validation call`)
   }
 
   for (const match of source.matchAll(EXPORT_FN)) {

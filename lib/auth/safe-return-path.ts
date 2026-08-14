@@ -18,7 +18,7 @@ export function sanitizeReturnPath(
   fallback = '/',
 ): string {
   if (!raw) return fallback
-  let path = raw.trim()
+  const path = raw.trim()
   if (!path.startsWith('/')) return fallback
   if (path.startsWith('//')) return fallback
   if (path.includes('://')) return fallback

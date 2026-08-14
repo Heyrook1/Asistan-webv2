@@ -82,10 +82,9 @@ export async function processNotificationOutbox(limit = 40): Promise<{
   }
 
   const now = new Date()
-  let rows: OutboxRow[] = []
 
-  try {
-    rows = await outbox.findMany({
+  const rows: OutboxRow[] | null = await outbox
+    .findMany({
       where: {
         status: 'pending',
         nextAttemptAt: { lte: now },
@@ -93,7 +92,8 @@ export async function processNotificationOutbox(limit = 40): Promise<{
       orderBy: { nextAttemptAt: 'asc' },
       take: limit,
     })
-  } catch {
+    .catch(() => null)
+  if (!rows) {
     return { processed: 0, sent: 0, failed: 0, dead: 0 }
   }
 

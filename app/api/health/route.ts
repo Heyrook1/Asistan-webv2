@@ -92,7 +92,7 @@ export async function GET(
       ? 'unhealthy'
       : 'degraded'
 
-  let identityRole: CheckState = 'unhealthy'
+  let identityRole: CheckState
   try {
     if (isIdentityPrismaDistinct()) {
       // Book path uses owner/migrate client for Person (no SET ROLE).
