@@ -556,13 +556,17 @@
   }
 }
 
+/* Slide only — no opacity. `animation-fill-mode: both` holds the `from` state
+   before the animation starts, and Chromium does not count a paint of fully
+   transparent content as contentful. Fading the whole page in therefore pushed
+   first-contentful-paint from ~1.8s to ~9.9s unthrottled, which under
+   Lighthouse's 4x CPU throttling exceeded maxWaitForFcp and reported NO_FCP —
+   nulling every category score, not just performance. */
 @keyframes marketing-page-enter {
   from {
-    opacity: 0;
     transform: translateY(12px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
