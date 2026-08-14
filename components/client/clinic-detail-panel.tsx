@@ -18,6 +18,7 @@ import { DoctorLiveSlotChips } from '@/components/client/doctor-live-slot-chips'
 import type { ClientClinicDetail } from '@/lib/client-marketplace/clinic-detail'
 import { formatCurrency } from '@/lib/format'
 import { getPublicBookPath } from '@/lib/public-booking/paths'
+import { getServerLanguage, type ServerLanguage, type Translate } from '@/lib/server-language'
 import { cn } from '@/lib/utils'
 
 function mapsHref(clinic: ClientClinicDetail) {
@@ -29,13 +30,17 @@ function mapsHref(clinic: ClientClinicDetail) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 
-function formatReviewDate(iso: string) {
+function formatReviewDate(iso: string, language: ServerLanguage) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+  return d.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
-function AboutCopy({ clinic }: { clinic: ClientClinicDetail }) {
+function AboutCopy({ clinic, t }: { clinic: ClientClinicDetail; t: Translate }) {
   if (clinic.description?.trim()) {
     return (
       <p className="text-[13.5px] leading-relaxed text-slate-600">{clinic.description.trim()}</p>
@@ -44,24 +49,32 @@ function AboutCopy({ clinic }: { clinic: ClientClinicDetail }) {
   if (clinic.specialtySummary.length > 0) {
     return (
       <p className="text-[13.5px] leading-relaxed text-slate-600">
-        Bu klinikte randevuya açık branşlar:{' '}
+        {t({
+          tr: 'Bu klinikte randevuya açık branşlar: ',
+          en: 'Specialties open for booking at this clinic: ',
+        })}
         <span className="font-semibold text-slate-800">
           {clinic.specialtySummary.join(', ')}
         </span>
-        . Klinik henüz ayrıntılı bir tanıtım metni paylaşmadı — hizmet ve hekim kartlarından
-        karar verebilirsiniz.
+        {t({
+          tr: '. Klinik henüz ayrıntılı bir tanıtım metni paylaşmadı — hizmet ve hekim kartlarından karar verebilirsiniz.',
+          en: '. The clinic has not published a detailed introduction yet — you can decide from the service and doctor cards below.',
+        })}
       </p>
     )
   }
   return (
     <p className="text-[13.5px] leading-relaxed text-slate-500">
-      Klinik henüz tanıtım metni paylaşmadı. Aşağıdaki hizmetler, hekimler ve müsait saatlerle
-      randevu kararı verebilirsiniz.
+      {t({
+        tr: 'Klinik henüz tanıtım metni paylaşmadı. Aşağıdaki hizmetler, hekimler ve müsait saatlerle randevu kararı verebilirsiniz.',
+        en: 'The clinic has not published an introduction yet. You can decide using the services, doctors and open slots below.',
+      })}
     </p>
   )
 }
 
-export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
+export async function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
+  const { language, t } = await getServerLanguage()
   const bookBase = getPublicBookPath(clinic.slug)
   const mapUrl = mapsHref(clinic)
   const ratingLabel =
@@ -100,12 +113,15 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                   <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
                   {ratingLabel}
                   <span className="font-medium text-slate-400">
-                    ({clinic.reviewCount} yorum)
+                    ({t({
+                      tr: `${clinic.reviewCount} yorum`,
+                      en: `${clinic.reviewCount} review${clinic.reviewCount === 1 ? '' : 's'}`,
+                    })})
                   </span>
                 </span>
               ) : (
                 <span className="font-semibold text-slate-500">
-                  Yeni klinik · henüz yorum yok
+                  {t({ tr: 'Yeni klinik · henüz yorum yok', en: 'New clinic · no reviews yet' })}
                 </span>
               )}
               {clinic.city ? (
@@ -118,12 +134,18 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
             {clinic.verifiedDoctorCount > 0 ? (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
                 <ShieldCheck className="size-3.5" aria-hidden />
-                {clinic.verifiedDoctorCount} doğrulanmış hekim profili
+                {t({
+                  tr: `${clinic.verifiedDoctorCount} doğrulanmış hekim profili`,
+                  en: `${clinic.verifiedDoctorCount} verified doctor profile${clinic.verifiedDoctorCount === 1 ? '' : 's'}`,
+                })}
               </p>
             ) : (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                 <Info className="size-3.5" aria-hidden />
-                Hekim kimlik kaydı henüz tamamlanmamış
+                {t({
+                  tr: 'Hekim kimlik kaydı henüz tamamlanmamış',
+                  en: 'Doctor identity records not completed yet',
+                })}
               </p>
             )}
           </div>
@@ -131,15 +153,17 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
 
         <div className="space-y-2 border-t border-slate-100 px-4 py-3">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-            Klinik hakkında
+            {t({ tr: 'Klinik hakkında', en: 'About the clinic' })}
           </h2>
-          <AboutCopy clinic={clinic} />
+          <AboutCopy clinic={clinic} t={t} />
         </div>
 
         <div className="flex flex-col gap-2 border-t border-slate-100 p-4">
           {clinic.address ? (
             <p className="text-[13px] text-slate-600">
-              <span className="font-semibold text-slate-800">Adres · </span>
+              <span className="font-semibold text-slate-800">
+                {t({ tr: 'Adres · ', en: 'Address · ' })}
+              </span>
               {clinic.address}
               {clinic.city ? `, ${clinic.city}` : ''}
             </p>
@@ -151,7 +175,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-slate-100 px-3.5 text-[12.5px] font-semibold text-slate-800"
               >
                 <Phone className="size-3.5" aria-hidden />
-                Ara
+                {t({ tr: 'Ara', en: 'Call' })}
               </a>
             ) : null}
             {mapUrl ? (
@@ -162,7 +186,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-slate-100 px-3.5 text-[12.5px] font-semibold text-slate-800"
               >
                 <MapPin className="size-3.5" aria-hidden />
-                Haritada aç
+                {t({ tr: 'Haritada aç', en: 'Open in Maps' })}
               </a>
             ) : null}
           </div>
@@ -178,18 +202,21 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
           id="clinic-trust-heading"
           className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400"
         >
-          Randevu öncesi bilmeniz gerekenler
+          {t({ tr: 'Randevu öncesi bilmeniz gerekenler', en: 'What to know before booking' })}
         </h2>
 
         <div className="space-y-3">
           <div className="flex gap-3">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
             <div>
-              <p className="text-[13px] font-semibold text-slate-900">Doğrulama ne demek?</p>
+              <p className="text-[13px] font-semibold text-slate-900">
+                {t({ tr: 'Doğrulama ne demek?', en: 'What does “verified” mean?' })}
+              </p>
               <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
-                “Doğrulanmış” hekim, klinik panelinde lisans, diploma veya KKTC kimlik numarası
-                kaydı olan profildir. Platform tıbbi yeterlilik belgesi doğrulamaz; kayıtların
-                varlığını gösterir.
+                {t({
+                  tr: '“Doğrulanmış” hekim, klinik panelinde lisans, diploma veya KKTC kimlik numarası kaydı olan profildir. Platform tıbbi yeterlilik belgesi doğrulamaz; kayıtların varlığını gösterir.',
+                  en: 'A “verified” doctor is a profile with a licence, diploma or TRNC identity number on record in the clinic panel. The platform does not validate medical qualifications; it shows that these records exist.',
+                })}
               </p>
             </div>
           </div>
@@ -197,12 +224,21 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
           <div className="flex gap-3">
             <CalendarClock className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
             <div>
-              <p className="text-[13px] font-semibold text-slate-900">İptal ve yeniden planlama</p>
+              <p className="text-[13px] font-semibold text-slate-900">
+                {t({ tr: 'İptal ve yeniden planlama', en: 'Cancelling and rescheduling' })}
+              </p>
               <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
-                Randevu başlangıcından en az{' '}
-                <span className="font-semibold text-slate-800">{policy.cancelMinHours} saat</span>{' '}
-                önce uygulama üzerinden iptal veya erteleme yapabilirsiniz. Daha kısa sürede klinik
-                ile iletişime geçin.
+                {t({ tr: 'Randevu başlangıcından en az ', en: 'You can cancel or reschedule in the app up to ' })}
+                <span className="font-semibold text-slate-800">
+                  {t({
+                    tr: `${policy.cancelMinHours} saat`,
+                    en: `${policy.cancelMinHours} hour${policy.cancelMinHours === 1 ? '' : 's'}`,
+                  })}
+                </span>
+                {t({
+                  tr: ' önce uygulama üzerinden iptal veya erteleme yapabilirsiniz. Daha kısa sürede klinik ile iletişime geçin.',
+                  en: ' before the appointment starts. Any later than that, please contact the clinic directly.',
+                })}
               </p>
             </div>
           </div>
@@ -211,23 +247,25 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
             <div className="flex gap-3">
               <Wallet className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
               <div className="space-y-1">
-                <p className="text-[13px] font-semibold text-slate-900">Ücret politikası</p>
+                <p className="text-[13px] font-semibold text-slate-900">
+                  {t({ tr: 'Ücret politikası', en: 'Fee policy' })}
+                </p>
                 {policy.depositEnabled && policy.depositAmount != null ? (
                   <p className="text-[12.5px] leading-relaxed text-slate-600">
-                    Depozito:{' '}
+                    {t({ tr: 'Depozito: ', en: 'Deposit: ' })}
                     <span className="font-semibold text-slate-800">
                       {formatCurrency(policy.depositAmount, clinic.currency)}
                     </span>{' '}
-                    (randevu sonrası)
+                    {t({ tr: '(randevu sonrası)', en: '(after the appointment)' })}
                   </p>
                 ) : null}
                 {policy.noShowFeeEnabled ? (
                   <p className="text-[12.5px] leading-relaxed text-slate-600">
-                    Gelinmedi ücreti:{' '}
+                    {t({ tr: 'Gelinmedi ücreti: ', en: 'No-show fee: ' })}
                     <span className="font-semibold text-slate-800">
                       {policy.noShowFeeAmount != null
                         ? formatCurrency(policy.noShowFeeAmount, clinic.currency)
-                        : 'Klinik politikası'}
+                        : t({ tr: 'Klinik politikası', en: 'Per clinic policy' })}
                     </span>
                     {policy.noShowFeeNote ? ` — ${policy.noShowFeeNote}` : ''}
                   </p>
@@ -239,7 +277,9 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
           <div className="flex gap-3">
             <Clock3 className="mt-0.5 size-4 shrink-0 text-[#0071E3]" aria-hidden />
             <div>
-              <p className="text-[13px] font-semibold text-slate-900">Çalışma saatleri</p>
+              <p className="text-[13px] font-semibold text-slate-900">
+                {t({ tr: 'Çalışma saatleri', en: 'Opening hours' })}
+              </p>
               {clinic.openingHours.length > 0 ? (
                 <ul className="mt-1.5 space-y-1 text-[12.5px] text-slate-600">
                   {clinic.openingHours.map((line) => (
@@ -253,8 +293,10 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                 </ul>
               ) : (
                 <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
-                  Klinik genel açılış saati yayınlamadı. Saatler hekim müsaitliğine göre — açık
-                  slotlardan seçin.
+                  {t({
+                    tr: 'Klinik genel açılış saati yayınlamadı. Saatler hekim müsaitliğine göre — açık slotlardan seçin.',
+                    en: 'The clinic has not published general opening hours. Times follow each doctor’s availability — pick from the open slots.',
+                  })}
                 </p>
               )}
             </div>
@@ -263,11 +305,14 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
           <div className="flex gap-3">
             <Info className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden />
             <div>
-              <p className="text-[13px] font-semibold text-slate-900">Erişim ve hizmet şekli</p>
+              <p className="text-[13px] font-semibold text-slate-900">
+                {t({ tr: 'Erişim ve hizmet şekli', en: 'Accessibility and format' })}
+              </p>
               <p className="mt-0.5 text-[12.5px] leading-relaxed text-slate-600">
-                Engelli erişimi, otopark veya online/yüz yüze ayrımı klinik tarafından henüz
-                yayınlanmadı. Randevu yüz yüze klinik ziyareti olarak planlanır; özel ihtiyaçlarınız
-                için klinikle görüşün.
+                {t({
+                  tr: 'Engelli erişimi, otopark veya online/yüz yüze ayrımı klinik tarafından henüz yayınlanmadı. Randevu yüz yüze klinik ziyareti olarak planlanır; özel ihtiyaçlarınız için klinikle görüşün.',
+                  en: 'The clinic has not published accessibility, parking, or online/in-person details yet. Appointments are scheduled as in-person clinic visits; contact the clinic about any specific needs.',
+                })}
               </p>
             </div>
           </div>
@@ -275,10 +320,19 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
           <div className="flex gap-3 rounded-[1rem] bg-amber-50/80 px-3 py-2.5 ring-1 ring-amber-200/70">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden />
             <div>
-              <p className="text-[13px] font-semibold text-amber-950">Acil durum değil</p>
+              <p className="text-[13px] font-semibold text-amber-950">
+                {t({ tr: 'Acil durum değil', en: 'Not for emergencies' })}
+              </p>
               <p className="mt-0.5 text-[12.5px] leading-relaxed text-amber-900/90">
-                Bu kanal planlı randevu içindir. Yaşamı tehdit eden durumda{' '}
-                <span className="font-semibold">112</span> veya yerel acil servisi arayın.
+                {t({
+                  tr: 'Bu kanal planlı randevu içindir. Yaşamı tehdit eden durumda ',
+                  en: 'This channel is for scheduled appointments. In a life-threatening emergency call ',
+                })}
+                <span className="font-semibold">112</span>
+                {t({
+                  tr: ' veya yerel acil servisi arayın.',
+                  en: ' or your local emergency number.',
+                })}
               </p>
             </div>
           </div>
@@ -288,7 +342,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
       {clinic.locations.length > 0 ? (
         <section className="space-y-3">
           <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-            Lokasyonlar
+            {t({ tr: 'Lokasyonlar', en: 'Locations' })}
           </h2>
           <ul className="space-y-2">
             {clinic.locations.map((loc) => (
@@ -318,11 +372,14 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
 
       <section className="space-y-3">
         <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-          Hizmetler
+          {t({ tr: 'Hizmetler', en: 'Services' })}
         </h2>
         {clinic.services.length === 0 ? (
           <p className="rounded-[1.1rem] bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200/80">
-            Bu klinik için henüz yayınlanmış hizmet yok.
+            {t({
+              tr: 'Bu klinik için henüz yayınlanmış hizmet yok.',
+              en: 'No services have been published for this clinic yet.',
+            })}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -357,7 +414,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                       href={bookHref}
                       className="rz-press inline-flex h-10 shrink-0 items-center gap-1 rounded-full bg-[#0071E3] px-3.5 text-[12px] font-bold text-white"
                     >
-                      Seç
+                      {t({ tr: 'Seç', en: 'Select' })}
                       <ArrowRight className="size-3.5" aria-hidden />
                     </Link>
                   </div>
@@ -370,11 +427,14 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
 
       <section className="space-y-3">
         <h2 className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-          Hekimler
+          {t({ tr: 'Hekimler', en: 'Doctors' })}
         </h2>
         {clinic.doctors.length === 0 ? (
           <p className="rounded-[1.1rem] bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200/80">
-            Randevuya açık hekim bulunamadı.
+            {t({
+              tr: 'Randevuya açık hekim bulunamadı.',
+              en: 'No doctors are currently open for booking.',
+            })}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -418,7 +478,10 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                           {doctor.verified ? (
                             <BadgeCheck
                               className="size-4 shrink-0 text-[#0071E3]"
-                              aria-label="Doğrulanmış hekim profili"
+                              aria-label={t({
+                                tr: 'Doğrulanmış hekim profili',
+                                en: 'Verified doctor profile',
+                              })}
                             />
                           ) : null}
                         </p>
@@ -428,7 +491,7 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
                         <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-semibold">
                           {doctor.verified ? (
                             <span className="rounded-full bg-[#0071E3]/10 px-2 py-0.5 text-[#0071E3]">
-                              Doğrulanmış
+                              {t({ tr: 'Doğrulanmış', en: 'Verified' })}
                             </span>
                           ) : null}
                           {docRating ? (
@@ -485,24 +548,33 @@ export function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail }) {
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-2 px-0.5">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-            Yorumlar
+            {t({ tr: 'Yorumlar', en: 'Reviews' })}
           </h2>
           <p className="text-[12px] font-semibold text-slate-500">
             {clinic.reviewCount > 0
-              ? `${clinic.reviewCount} randevu sonrası yorum`
-              : 'Henüz yorum yok'}
+              ? t({
+                  tr: `${clinic.reviewCount} randevu sonrası yorum`,
+                  en: `${clinic.reviewCount} post-appointment review${clinic.reviewCount === 1 ? '' : 's'}`,
+                })
+              : t({ tr: 'Henüz yorum yok', en: 'No reviews yet' })}
           </p>
         </div>
         {clinic.recentReviews.length === 0 ? (
           <p className="rounded-[1.1rem] bg-white px-4 py-6 text-center text-sm leading-relaxed text-slate-500 ring-1 ring-slate-200/80">
             {clinic.reviewCount > 0
-              ? 'Yorumlar var ancak metin paylaşılmamış. Puan özeti yukarıda.'
-              : 'Tamamlanan randevulardan sonra hastalar puan ve yorum bırakabilir. Bu klinik için henüz değerlendirme yok.'}
+              ? t({
+                  tr: 'Yorumlar var ancak metin paylaşılmamış. Puan özeti yukarıda.',
+                  en: 'There are reviews, but no written comments were shared. The rating summary is above.',
+                })
+              : t({
+                  tr: 'Tamamlanan randevulardan sonra hastalar puan ve yorum bırakabilir. Bu klinik için henüz değerlendirme yok.',
+                  en: 'Patients can leave a rating and review after a completed appointment. There are no reviews for this clinic yet.',
+                })}
           </p>
         ) : (
           <ul className="space-y-2">
             {clinic.recentReviews.map((review) => {
-              const when = formatReviewDate(review.createdAt)
+              const when = formatReviewDate(review.createdAt, language)
               return (
                 <li
                   key={review.id}

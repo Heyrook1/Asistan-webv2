@@ -19,6 +19,10 @@ import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
 import { patientChromeName } from '@/lib/brand/masterbrand'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
+
+/** Same pair shape as useLanguage().t — passed into module-level helpers. */
+type Translate = <T>(translations: { tr: T; en: T }) => T
 
 type Profile = {
   id: string
@@ -35,7 +39,7 @@ async function getAccessToken() {
   return data.session?.access_token ?? null
 }
 
-async function claimGuestBookings(token: string) {
+async function claimGuestBookings(token: string, t: Translate) {
   const res = await fetch('/api/client/bookings/claim', {
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },
@@ -50,13 +54,20 @@ async function claimGuestBookings(token: string) {
   const claimed = json?.data?.claimed ?? json?.claimed ?? 0
   const message = json?.data?.message ?? json?.message
   if (claimed > 0) {
-    toast.success(message || `${claimed} misafir randevu hesabınıza bağlandı.`)
+    toast.success(
+      message ||
+        t({
+          tr: `${claimed} misafir randevu hesabınıza bağlandı.`,
+          en: `${claimed} guest booking${claimed === 1 ? '' : 's'} linked to your account.`,
+        }),
+    )
   } else if (message) {
     toast.message(message)
   }
 }
 
 export function ClientProfilePanel() {
+  const { language, t } = useLanguage()
   const [booting, setBooting] = useState(true)
   const [authed, setAuthed] = useState(false)
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -107,7 +118,7 @@ export function ClientProfilePanel() {
       setAddress(json.profile.address ?? '')
     }
     if (opts?.claim) {
-      await claimGuestBookings(token)
+      await claimGuestBookings(token, t)
     }
   }, [])
 
@@ -147,11 +158,21 @@ export function ClientProfilePanel() {
     e.preventDefault()
     const trimmed = email.trim().toLowerCase()
     if (!trimmed || password.length < 6) {
-      toast.error('Geçerli e-posta ve en az 6 karakter şifre girin')
+      toast.error(
+        t({
+          tr: 'Geçerli e-posta ve en az 6 karakter şifre girin',
+          en: 'Enter a valid email and a password of at least 6 characters',
+        }),
+      )
       return
     }
     if (mode === 'register' && !acceptedTerms) {
-      toast.error('Devam etmek için gizlilik ve kullanım koşullarını kabul edin')
+      toast.error(
+        t({
+          tr: 'Devam etmek için gizlilik ve kullanım koşullarını kabul edin',
+          en: 'Accept the privacy policy and terms of use to continue',
+        }),
+      )
       return
     }
     setAuthBusy(true)
@@ -166,22 +187,35 @@ export function ClientProfilePanel() {
         }),
       })
       if (gateRes.status === 429) {
-        toast.error('Çok fazla deneme. 15 dakika sonra tekrar deneyin.')
+        toast.error(
+          t({
+            tr: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.',
+            en: 'Too many attempts. Try again in 15 minutes.',
+          }),
+        )
         return
       }
       if (!gateRes.ok) {
         const gateJson = (await gateRes.json().catch(() => null)) as { error?: string } | null
-        toast.error(gateJson?.error || 'Kayıt doğrulaması başarısız')
+        toast.error(
+          gateJson?.error ||
+            t({ tr: 'Kayıt doğrulaması başarısız', en: 'Sign-up verification failed' }),
+        )
         return
       }
 
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email: trimmed, password })
         if (error) {
-          toast.error('Giriş başarısız. E-posta veya şifreyi kontrol edin.')
+          toast.error(
+            t({
+              tr: 'Giriş başarısız. E-posta veya şifreyi kontrol edin.',
+              en: 'Sign-in failed. Check your email and password.',
+            }),
+          )
           return
         }
-        toast.success('Giriş yapıldı')
+        toast.success(t({ tr: 'Giriş yapıldı', en: 'Signed in' }))
         await loadProfile({ claim: true })
       } else {
         const origin = window.location.origin
@@ -199,20 +233,35 @@ export function ClientProfilePanel() {
           },
         })
         if (error) {
-          toast.error('Kayıt tamamlanamadı. Lütfen tekrar deneyin.')
+          toast.error(
+            t({
+              tr: 'Kayıt tamamlanamadı. Lütfen tekrar deneyin.',
+              en: 'Sign-up could not be completed. Please try again.',
+            }),
+          )
           return
         }
         if (data.session) {
-          toast.success('Hesap oluşturuldu')
+          toast.success(t({ tr: 'Hesap oluşturuldu', en: 'Account created' }))
           await loadProfile({ claim: true })
         } else {
           setVerifyHint(true)
           setMode('login')
-          toast.success('Doğrulama e-postası gönderildi. Gelen kutunuzu kontrol edin.')
+          toast.success(
+            t({
+              tr: 'Doğrulama e-postası gönderildi. Gelen kutunuzu kontrol edin.',
+              en: 'Verification email sent. Check your inbox.',
+            }),
+          )
         }
       }
     } catch {
-      toast.error('Kimlik doğrulama başarısız. Lütfen tekrar deneyin.')
+      toast.error(
+        t({
+          tr: 'Kimlik doğrulama başarısız. Lütfen tekrar deneyin.',
+          en: 'Authentication failed. Please try again.',
+        }),
+      )
     } finally {
       setAuthBusy(false)
     }
@@ -238,11 +287,14 @@ export function ClientProfilePanel() {
         }),
       })
       const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error((json as { error?: string }).error || 'Kayıt başarısız')
-      toast.success('Profil güncellendi')
+      const failed = t({ tr: 'Kayıt başarısız', en: 'Save failed' })
+      if (!res.ok) throw new Error((json as { error?: string }).error || failed)
+      toast.success(t({ tr: 'Profil güncellendi', en: 'Profile updated' }))
       await loadProfile({ claim: true })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kayıt başarısız')
+      toast.error(
+        error instanceof Error ? error.message : t({ tr: 'Kayıt başarısız', en: 'Save failed' }),
+      )
     } finally {
       setSaving(false)
     }
@@ -253,7 +305,7 @@ export function ClientProfilePanel() {
     if (!token) return
     setClaiming(true)
     try {
-      await claimGuestBookings(token)
+      await claimGuestBookings(token, t)
     } finally {
       setClaiming(false)
     }
@@ -264,7 +316,7 @@ export function ClientProfilePanel() {
     await supabase.auth.signOut()
     setAuthed(false)
     setProfile(null)
-    toast.message('Çıkış yapıldı')
+    toast.message(t({ tr: 'Çıkış yapıldı', en: 'Signed out' }))
   }
 
   if (booting) {
@@ -280,17 +332,25 @@ export function ClientProfilePanel() {
       <main className="space-y-5">
         <header className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-            {patientChromeName('tr')}
+            {patientChromeName(language)}
           </p>
-          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">Profil</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">
+            {t({ tr: 'Profil', en: 'Profile' })}
+          </h1>
           <p className="text-sm text-slate-500">
-            Randevularınızı takip etmek için giriş yapın. Hesap olmadan da kliniklerden randevu alabilirsiniz.
+            {t({
+              tr: 'Randevularınızı takip etmek için giriş yapın. Hesap olmadan da kliniklerden randevu alabilirsiniz.',
+              en: 'Sign in to keep track of your appointments. You can also book with clinics without an account.',
+            })}
           </p>
         </header>
 
         {verifyHint ? (
           <div className="rounded-[1.15rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            E-posta doğrulaması gerekli. Gelen kutunuzdaki bağlantıyı açtıktan sonra tekrar giriş yapın.
+            {t({
+              tr: 'E-posta doğrulaması gerekli. Gelen kutunuzdaki bağlantıyı açtıktan sonra tekrar giriş yapın.',
+              en: 'Email verification required. Open the link in your inbox, then sign in again.',
+            })}
           </div>
         ) : null}
 
@@ -304,7 +364,7 @@ export function ClientProfilePanel() {
                 mode === 'login' ? 'bg-white text-slate-900' : 'text-slate-500',
               )}
             >
-              Giriş
+              {t({ tr: 'Giriş', en: 'Sign in' })}
             </button>
             <button
               type="button"
@@ -314,7 +374,7 @@ export function ClientProfilePanel() {
                 mode === 'register' ? 'bg-white text-slate-900' : 'text-slate-500',
               )}
             >
-              Kayıt
+              {t({ tr: 'Kayıt', en: 'Sign up' })}
             </button>
           </div>
 
@@ -322,7 +382,7 @@ export function ClientProfilePanel() {
             {mode === 'register' ? (
               <div>
                 <label htmlFor="client-auth-name" className="mb-1.5 block text-xs font-medium text-slate-500">
-                  Ad soyad
+                  {t({ tr: 'Ad soyad', en: 'Full name' })}
                 </label>
                 <Input
                   id="client-auth-name"
@@ -334,7 +394,7 @@ export function ClientProfilePanel() {
             ) : null}
             <div>
               <label htmlFor="client-auth-email" className="mb-1.5 block text-xs font-medium text-slate-500">
-                E-posta
+                {t({ tr: 'E-posta', en: 'Email' })}
               </label>
               <Input
                 id="client-auth-email"
@@ -347,7 +407,7 @@ export function ClientProfilePanel() {
             </div>
             <div>
               <label htmlFor="client-auth-password" className="mb-1.5 block text-xs font-medium text-slate-500">
-                Şifre
+                {t({ tr: 'Şifre', en: 'Password' })}
               </label>
               <div className="relative">
                 <Input
@@ -364,7 +424,11 @@ export function ClientProfilePanel() {
                   type="button"
                   className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-slate-700"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                  aria-label={
+                    showPassword
+                      ? t({ tr: 'Şifreyi gizle', en: 'Hide password' })
+                      : t({ tr: 'Şifreyi göster', en: 'Show password' })
+                  }
                   aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -384,14 +448,15 @@ export function ClientProfilePanel() {
                   aria-required="true"
                 />
                 <span>
+                  {t({ tr: '', en: 'I have read and accept the ' })}
                   <Link href="/privacy" className="font-semibold text-[#0071E3] underline-offset-2 hover:underline">
-                    Gizlilik
+                    {t({ tr: 'Gizlilik', en: 'privacy policy' })}
                   </Link>
-                  {' '}ve{' '}
+                  {t({ tr: ' ve ', en: ' and ' })}
                   <Link href="/terms" className="font-semibold text-[#0071E3] underline-offset-2 hover:underline">
-                    kullanım koşullarını
-                  </Link>{' '}
-                  okudum, kabul ediyorum.
+                    {t({ tr: 'kullanım koşullarını', en: 'terms of use' })}
+                  </Link>
+                  {t({ tr: ' okudum, kabul ediyorum.', en: '.' })}
                 </span>
               </label>
             ) : (
@@ -400,7 +465,7 @@ export function ClientProfilePanel() {
                   href="/auth/forgot-password"
                   className="text-[12px] font-semibold text-[#0071E3] underline-offset-2 hover:underline"
                 >
-                  Şifremi unuttum
+                  {t({ tr: 'Şifremi unuttum', en: 'Forgot my password' })}
                 </Link>
               </div>
             )}
@@ -410,7 +475,11 @@ export function ClientProfilePanel() {
               disabled={authBusy}
               className="h-11 w-full rounded-full bg-[#0071E3] font-bold text-white hover:bg-[#0077ed]"
             >
-              {authBusy ? 'Bekleyin…' : mode === 'login' ? 'Giriş yap' : 'Hesap oluştur'}
+              {authBusy
+                ? t({ tr: 'Bekleyin…', en: 'Please wait…' })
+                : mode === 'login'
+                  ? t({ tr: 'Giriş yap', en: 'Sign in' })
+                  : t({ tr: 'Hesap oluştur', en: 'Create account' })}
             </Button>
           </form>
         </div>
@@ -421,16 +490,24 @@ export function ClientProfilePanel() {
             className="rounded-[1.15rem] bg-white p-4 ring-1 ring-slate-200/70 transition active:scale-[0.98]"
           >
             <Search className="size-4 text-[#0071E3]" />
-            <p className="mt-2 text-sm font-bold text-slate-900">Klinik bul</p>
-            <p className="mt-1 text-xs text-slate-500">Hesapsız randevu</p>
+            <p className="mt-2 text-sm font-bold text-slate-900">
+              {t({ tr: 'Klinik bul', en: 'Find a clinic' })}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {t({ tr: 'Hesapsız randevu', en: 'Book without an account' })}
+            </p>
           </Link>
           <Link
             href="/client/health"
             className="rounded-[1.15rem] bg-white p-4 ring-1 ring-slate-200/70 transition active:scale-[0.98]"
           >
             <HeartPulse className="size-4 text-[#0071E3]" />
-            <p className="mt-2 text-sm font-bold text-slate-900">Pasaport</p>
-            <p className="mt-1 text-xs text-slate-500">Ziyaret özeti</p>
+            <p className="mt-2 text-sm font-bold text-slate-900">
+              {t({ tr: 'Pasaport', en: 'Passport' })}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {t({ tr: 'Ziyaret özeti', en: 'Visit summary' })}
+            </p>
           </Link>
         </div>
       </main>
@@ -442,14 +519,21 @@ export function ClientProfilePanel() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0071E3]">
-            {patientChromeName('tr')}
+            {patientChromeName(language)}
           </p>
-          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">Profilim</h1>
-          <p className="mt-1 text-sm text-slate-500">İletişim bilgilerinizi güncelleyin.</p>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-slate-900">
+            {t({ tr: 'Profilim', en: 'My profile' })}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {t({
+              tr: 'İletişim bilgilerinizi güncelleyin.',
+              en: 'Update your contact details.',
+            })}
+          </p>
         </div>
         <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={handleLogout}>
           <LogOut className="mr-1 size-3.5" />
-          Çıkış
+          {t({ tr: 'Çıkış', en: 'Sign out' })}
         </Button>
       </header>
 
@@ -458,30 +542,42 @@ export function ClientProfilePanel() {
           <UserRound className="size-5" />
         </span>
         <div className="min-w-0">
-          <p className="truncate font-bold">{fullName || profile?.fullName || 'Hasta'}</p>
+          <p className="truncate font-bold">
+            {fullName || profile?.fullName || t({ tr: 'Hasta', en: 'Patient' })}
+          </p>
           <p className="truncate text-sm text-white/80">{profileEmail || profile?.email || email}</p>
         </div>
       </div>
 
       <div className="space-y-3 rounded-[1.25rem] bg-white p-4 ring-1 ring-slate-200/70">
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">Ad soyad</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500">
+            {t({ tr: 'Ad soyad', en: 'Full name' })}
+          </label>
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">Telefon</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500">
+            {t({ tr: 'Telefon', en: 'Phone' })}
+          </label>
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">E-posta</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500">
+            {t({ tr: 'E-posta', en: 'Email' })}
+          </label>
           <Input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">Şehir</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500">
+            {t({ tr: 'Şehir', en: 'City' })}
+          </label>
           <Input value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">Adres</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500">
+            {t({ tr: 'Adres', en: 'Address' })}
+          </label>
           <Input value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
         <Button
@@ -490,7 +586,7 @@ export function ClientProfilePanel() {
           className="h-11 w-full rounded-xl bg-[#0071E3] font-semibold text-white hover:bg-[#0077ed]"
           onClick={handleSave}
         >
-          {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          {saving ? t({ tr: 'Kaydediliyor…', en: 'Saving…' }) : t({ tr: 'Kaydet', en: 'Save' })}
         </Button>
         <Button
           type="button"
@@ -499,21 +595,30 @@ export function ClientProfilePanel() {
           className="h-11 w-full rounded-xl"
           onClick={handleClaim}
         >
-          {claiming ? 'Bağlanıyor…' : 'Misafir randevularımı bağla'}
+          {claiming
+            ? t({ tr: 'Bağlanıyor…', en: 'Linking…' })
+            : t({ tr: 'Misafir randevularımı bağla', en: 'Link my guest bookings' })}
         </Button>
         <p className="text-[11px] leading-relaxed text-slate-500">
-          Hesapsız aldığınız randevular, giriş yaptığınız{' '}
-          <span className="font-semibold text-slate-700">doğrulanmış e-posta</span> ile
-          eşleşirse otomatik veya bu düğmeyle bağlanır. Telefon veya kimlik numarası ile
-          bağlama yoktur — güvenlik için e-posta sahipliği gerekir.
+          {t({
+            tr: 'Hesapsız aldığınız randevular, giriş yaptığınız ',
+            en: 'Bookings you made without an account are linked automatically — or with this button — when they match the ',
+          })}
+          <span className="font-semibold text-slate-700">
+            {t({ tr: 'doğrulanmış e-posta', en: 'verified email' })}
+          </span>
+          {t({
+            tr: ' ile eşleşirse otomatik veya bu düğmeyle bağlanır. Telefon veya kimlik numarası ile bağlama yoktur — güvenlik için e-posta sahipliği gerekir.',
+            en: ' you signed in with. Linking by phone or identity number is not possible — for security, proof of email ownership is required.',
+          })}
         </p>
         <p className="text-center text-[11px] text-slate-400">
           <Link href="/privacy" className="underline-offset-2 hover:underline">
-            Gizlilik
+            {t({ tr: 'Gizlilik', en: 'Privacy' })}
           </Link>
           {' · '}
           <Link href="/terms" className="underline-offset-2 hover:underline">
-            Kullanım koşulları
+            {t({ tr: 'Kullanım koşulları', en: 'Terms of use' })}
           </Link>
         </p>
       </div>
@@ -522,13 +627,13 @@ export function ClientProfilePanel() {
         <Button asChild variant="outline" className="h-11 rounded-xl">
           <Link href="/client/bookings">
             <CalendarDays className="mr-1.5 size-4" />
-            Randevularım
+            {t({ tr: 'Randevularım', en: 'My appointments' })}
           </Link>
         </Button>
         <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
           <Link href="/client/health">
             <HeartPulse className="mr-1.5 size-4" />
-            Pasaport
+            {t({ tr: 'Pasaport', en: 'Passport' })}
           </Link>
         </Button>
       </div>

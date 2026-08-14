@@ -10,6 +10,7 @@ import { ClinicFilters } from '@/components/client/clinic-filters'
 import { ClinicSearchInput } from '@/components/client/clinic-search-input'
 import { ClinicCard } from '@/components/client/clinic-card'
 import { ClientMarketplaceDemoBanner } from '@/components/client/marketplace-demo-banner'
+import { getServerLanguage } from '@/lib/server-language'
 
 function parseNumber(input: string | string[] | undefined) {
   const value = Array.isArray(input) ? input[0] : input
@@ -49,13 +50,11 @@ async function loadClinics(
 
   try {
     const rows = await searchMarketplace({ filters, sort, clientLocation: null })
-    return { clinics: Array.isArray(rows) ? rows : [], error: null as string | null }
+    return { clinics: Array.isArray(rows) ? rows : [], failed: false }
   } catch (error) {
     console.error('[client/clinics] marketplace search failed:', error)
-    return {
-      clinics: [],
-      error: 'Klinikler şu anda yüklenemiyor. Lütfen tekrar deneyin.',
-    }
+    // Localized at render time — this runs on the server, away from the request locale.
+    return { clinics: [], failed: true }
   }
 }
 
@@ -65,19 +64,30 @@ export default async function ClientClinicsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
+  const { language, t } = await getServerLanguage()
   const ratingFilterEnabled = await publicCatalogHasRatings()
-  const { clinics, error } = await loadClinics(params, ratingFilterEnabled)
+  const { clinics, failed } = await loadClinics(params, ratingFilterEnabled)
   const query = parseString(params.query)?.trim()
   const specialty = parseString(params.specialty)?.trim()
   const heading = specialty
-    ? specialty.charAt(0).toLocaleUpperCase('tr-TR') + specialty.slice(1)
+    ? specialty.charAt(0).toLocaleUpperCase(language === 'tr' ? 'tr-TR' : 'en-US') +
+      specialty.slice(1)
     : query
       ? `“${query}”`
-      : 'Uzman veya klinik ara'
+      : t({ tr: 'Uzman veya klinik ara', en: 'Search a specialist or clinic' })
   const hasIntent = Boolean(query || specialty)
   const sortHint = ratingFilterEnabled
-    ? 'önerilen sıra · doğrulama, müsaitlik ve yorum'
-    : 'önerilen sıra · doğrulama ve gerçek müsaitlik'
+    ? t({
+        tr: 'önerilen sıra · doğrulama, müsaitlik ve yorum',
+        en: 'recommended order · verification, availability and reviews',
+      })
+    : t({
+        tr: 'önerilen sıra · doğrulama ve gerçek müsaitlik',
+        en: 'recommended order · verification and real availability',
+      })
+  const countLabel = hasIntent
+    ? t({ tr: `${clinics.length} sonuç`, en: `${clinics.length} result${clinics.length === 1 ? '' : 's'}` })
+    : t({ tr: `${clinics.length} klinik`, en: `${clinics.length} clinic${clinics.length === 1 ? '' : 's'}` })
 
   return (
     <main className="space-y-4">
@@ -86,11 +96,9 @@ export default async function ClientClinicsPage({
           {heading}
         </h1>
         <p className="text-[13px] leading-relaxed text-slate-500">
-          {error
-            ? 'Arama geçici olarak kullanılamıyor'
-            : hasIntent
-              ? `${clinics.length} sonuç · ${sortHint}`
-              : `${clinics.length} klinik · ${sortHint}`}
+          {failed
+            ? t({ tr: 'Arama geçici olarak kullanılamıyor', en: 'Search is temporarily unavailable' })
+            : `${countLabel} · ${sortHint}`}
         </p>
       </header>
 
@@ -114,14 +122,19 @@ export default async function ClientClinicsPage({
         {shouldIncludeTestClinicsInPublicIndex() ? (
           <ClientMarketplaceDemoBanner mode="test-clinics-visible" />
         ) : null}
-        {error ? (
+        {failed ? (
           <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-rose-200/80">
-            <p className="text-sm font-bold text-slate-900">{error}</p>
+            <p className="text-sm font-bold text-slate-900">
+              {t({
+                tr: 'Klinikler şu anda yüklenemiyor. Lütfen tekrar deneyin.',
+                en: 'Clinics cannot be loaded right now. Please try again.',
+              })}
+            </p>
             <Link
               href="/client/clinics"
               className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#0071E3] px-5 text-sm font-bold text-white"
             >
-              Tekrar dene
+              {t({ tr: 'Tekrar dene', en: 'Try again' })}
             </Link>
           </div>
         ) : clinics.length === 0 ? (
@@ -129,14 +142,25 @@ export default async function ClientClinicsPage({
             {!hasIntent ? <ClientMarketplaceDemoBanner mode="empty-catalog" /> : null}
             <div className="rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-slate-200/80">
             <p className="text-sm font-bold text-slate-900">
-              {specialty ? 'Bu branşta henüz klinik yok' : 'Eşleşen klinik yok'}
+              {specialty
+                ? t({ tr: 'Bu branşta henüz klinik yok', en: 'No clinics in this specialty yet' })
+                : t({ tr: 'Eşleşen klinik yok', en: 'No matching clinics' })}
             </p>
             <p className="mt-2 text-sm text-slate-500">
               {specialty
-                ? 'Diğer branşlara bakın veya tüm klinikleri listeleyin — içerik engellenmiyor, katalog henüz boş.'
+                ? t({
+                    tr: 'Diğer branşlara bakın veya tüm klinikleri listeleyin — içerik engellenmiyor, katalog henüz boş.',
+                    en: 'Try other specialties or list every clinic — nothing is being hidden, the catalogue is simply still empty.',
+                  })
                 : query
-                  ? 'Farklı bir kelime deneyin veya filtreleri temizleyin.'
-                  : 'Filtreleri gevşetin (özellikle “Bugün müsait”) veya daha sonra tekrar bakın.'}
+                  ? t({
+                      tr: 'Farklı bir kelime deneyin veya filtreleri temizleyin.',
+                      en: 'Try a different word or clear the filters.',
+                    })
+                  : t({
+                      tr: 'Filtreleri gevşetin (özellikle “Bugün müsait”) veya daha sonra tekrar bakın.',
+                      en: 'Loosen the filters (especially “Available today”) or check back later.',
+                    })}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {hasIntent ? (
@@ -144,14 +168,14 @@ export default async function ClientClinicsPage({
                   href="/client/clinics"
                   className="inline-flex h-10 items-center rounded-full bg-slate-100 px-4 text-sm font-semibold text-slate-700"
                 >
-                  Tüm klinikleri göster
+                  {t({ tr: 'Tüm klinikleri göster', en: 'Show all clinics' })}
                 </Link>
               ) : null}
               <Link
                 href="/client"
                 className="inline-flex h-10 items-center rounded-full bg-[#0071E3] px-4 text-sm font-bold text-white"
               >
-                Ana sayfaya dön
+                {t({ tr: 'Ana sayfaya dön', en: 'Back to home' })}
               </Link>
             </div>
             </div>

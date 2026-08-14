@@ -18,8 +18,11 @@ describe('lib/seo', () => {
 
   it('attaches per-page canonical without forcing root', () => {
     const meta = withCanonical('/fiyatlandirma', { title: 'Fiyatlandırma' })
+    // canonical stays relative — Next resolves it against metadataBase.
     expect(meta.alternates?.canonical).toBe('/fiyatlandirma')
-    expect(meta.openGraph?.url).toBe('/fiyatlandirma')
+    // og:url must be absolute: the Open Graph spec requires it, and relative
+    // values break WhatsApp / Facebook link previews.
+    expect(meta.openGraph?.url).toBe('https://kktc.asistan.online/fiyatlandirma')
     expect(meta.title).toBe('Fiyatlandırma')
   })
 

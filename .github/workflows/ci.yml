@@ -39,6 +39,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm check:action-validation
       - run: pnpm check:public-env
+      # Offline (no DB): fails when a Prisma model has no RLS posture in the
+      # inventory, or when a deny-default table's migration never enables RLS.
+      # This check already named PersonIdentityMergeLedger while it was shipping
+      # to production unprotected — it just was not wired to block anything.
+      - run: pnpm check:rls-inventory
+        name: RLS inventory covers every Prisma model
 
   # 2) Vitest — gates merges on unit test failure
   test:

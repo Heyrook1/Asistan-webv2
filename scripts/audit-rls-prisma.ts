@@ -11,6 +11,8 @@ import {
 } from '../lib/security/legacy-schema'
 import {
   RLS_ECOSYSTEM_DENY_TABLES,
+  RLS_IDENTITY_LEDGER_DENY_TABLES,
+  RLS_LEAD_CAPTURE_DENY_TABLES,
   RLS_PARITY_GAP_TABLES,
   listRequiredRlsTableNames,
 } from '../lib/security/rls-inventory'
@@ -20,6 +22,11 @@ const schemaPath = path.join(root, 'prisma', 'schema.prisma')
 const migrationsDir = path.join(root, 'supabase', 'migrations')
 const parityMigration = path.join(migrationsDir, '20260714000400_rls_prisma_parity.sql')
 const personRlsMigration = path.join(migrationsDir, '20260716000100_person_identity_rls.sql')
+const identityLedgerMigration = path.join(
+  migrationsDir,
+  '20260810000400_person_identity_merge_ledger.sql'
+)
+const leadCaptureMigration = path.join(migrationsDir, '20260811000100_lead_capture_deny_rls.sql')
 const phiRlsMigration = path.join(migrationsDir, '20260717000100_rls_phi_business_scope_hardening.sql')
 const textCastMigration = path.join(migrationsDir, '20260717000200_rls_auth_uid_text_cast.sql')
 const dropLegacyMigration = path.join(migrationsDir, '20260716000200_drop_legacy_snake_schema.sql')
@@ -44,10 +51,41 @@ function main() {
     (table) => !paritySql.includes(`'${table}'`) && !paritySql.includes(`"${table}"`)
   )
 
-  const personSql = fs.readFileSync(personRlsMigration, 'utf8')
-  const ecosystemMissingInMigration = [...ecosystem].filter(
-    (table) => !personSql.includes(`'${table}'`) && !personSql.includes(`"${table}"`)
-  )
+  // Each deny-by-default group must be named in the migration that establishes
+  // its posture. A table can sit in the inventory and still have no RLS shipped —
+  // that is exactly how PersonIdentityMergeLedger reached production unprotected.
+  const denyGroups: { label: string; tables: readonly string[]; migration: string }[] = [
+    {
+      label: '20260716000100 (ecosystem deny)',
+      tables: RLS_ECOSYSTEM_DENY_TABLES,
+      migration: personRlsMigration,
+    },
+    {
+      label: '20260810000400 (identity merge ledger)',
+      tables: RLS_IDENTITY_LEDGER_DENY_TABLES,
+      migration: identityLedgerMigration,
+    },
+    {
+      label: '20260811000100 (lead capture deny)',
+      tables: RLS_LEAD_CAPTURE_DENY_TABLES,
+      migration: leadCaptureMigration,
+    },
+  ]
+
+  const denyGroupIssues: string[] = []
+  for (const group of denyGroups) {
+    const sql = fs.readFileSync(group.migration, 'utf8')
+    const missing = group.tables.filter(
+      (table) => !sql.includes(`'${table}'`) && !sql.includes(`"${table}"`)
+    )
+    if (missing.length) {
+      denyGroupIssues.push(`${group.label}: ${missing.join(', ')}`)
+    }
+    // Naming the table is not enough — the migration must actually turn RLS on.
+    if (!/enable row level security/i.test(sql)) {
+      denyGroupIssues.push(`${group.label}: migration never enables row level security`)
+    }
+  }
 
   const phiSql = fs.readFileSync(phiRlsMigration, 'utf8')
   const textCastSql = fs.readFileSync(textCastMigration, 'utf8')
@@ -89,10 +127,8 @@ function main() {
   if (gapsMissingInMigration.length) {
     issues.push(`Parity gaps not mentioned in 20260714000400: ${gapsMissingInMigration.join(', ')}`)
   }
-  if (ecosystemMissingInMigration.length) {
-    issues.push(
-      `Ecosystem deny tables not mentioned in 20260716000100: ${ecosystemMissingInMigration.join(', ')}`
-    )
+  if (denyGroupIssues.length) {
+    issues.push(`Deny-default tables not covered by their migration — ${denyGroupIssues.join(' | ')}`)
   }
   if (phiMissing.length) {
     issues.push(`PHI hardening migration missing policies: ${phiMissing.join(', ')}`)

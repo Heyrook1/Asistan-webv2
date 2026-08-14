@@ -59,9 +59,14 @@ export const RLS_PARENT_SCOPED_TABLES = [
 export const RLS_DENY_POSTGREST_TABLES = [
   'Person',
   'PersonIdentityMatch',
+  'PersonIdentityMergeLedger',
   'BookingIdempotency',
   'Waitlist',
   'TourismLead',
+  'ContactLead',
+  'DemoBooking',
+  'NewsletterSubscriber',
+  'ProcessedWebhookEvent',
 ] as const
 
 /** No businessId column — membership via Business.id or User self */

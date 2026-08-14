@@ -7,6 +7,7 @@ import { MarkPwaEngagement } from '@/components/pwa/mark-engagement'
 import { getClientClinicDetail } from '@/lib/client-marketplace/clinic-detail'
 import { parsePathId } from '@/lib/api-response'
 import { getPublicBookPath } from '@/lib/public-booking/paths'
+import { getServerLanguage } from '@/lib/server-language'
 import {
   buildClinicPageMetadata,
   buildMedicalClinicJsonLd,
@@ -20,20 +21,16 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const id = parsePathId((await params).id)
-  if (!id) {
-    return {
-      title: 'Klinik bulunamadı',
-      robots: { index: false, follow: false },
-    }
+  const { t } = await getServerLanguage()
+  const notFoundMetadata: Metadata = {
+    title: t({ tr: 'Klinik bulunamadı', en: 'Clinic not found' }),
+    robots: { index: false, follow: false },
   }
 
+  if (!id) return notFoundMetadata
+
   const clinic = await getClientClinicDetail(id)
-  if (!clinic) {
-    return {
-      title: 'Klinik bulunamadı',
-      robots: { index: false, follow: false },
-    }
-  }
+  if (!clinic) return notFoundMetadata
 
   // Canonical consolidates to stable slug URL (/book/{slug}) — avoid UUID duplicate ranking.
   return buildClinicPageMetadata(

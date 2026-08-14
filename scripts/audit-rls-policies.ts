@@ -82,6 +82,18 @@ async function run() {
 
   const failures: string[] = []
 
+  // An inventoried table that is absent from the database used to be skipped in
+  // silence, so "code shipped, migration did not" looked identical to a clean
+  // run. Missing is now a failure: it means the schema and the deployed database
+  // have diverged. Set RLS_AUDIT_ALLOW_MISSING=1 for environments that are
+  // deliberately partial (a fresh branch database, for example).
+  const missingFromDb = ALL_CHECK.filter((table) => !rlsMap.has(table))
+  if (missingFromDb.length && process.env.RLS_AUDIT_ALLOW_MISSING !== '1') {
+    for (const table of missingFromDb) {
+      failures.push(`${table}: in RLS inventory but MISSING from database (migration not applied?)`)
+    }
+  }
+
   for (const table of ALL_CHECK) {
     if (!rlsMap.has(table)) continue
     if (rlsMap.get(table) !== true) {
@@ -132,6 +144,7 @@ async function run() {
   console.log('RLS policy audit')
   console.log(`  Tables checked: ${ALL_CHECK.length}`)
   console.log(`  Present in DB: ${rlsMap.size}`)
+  console.log(`  Missing from DB: ${missingFromDb.length}`)
   console.log(`  Policy rows: ${policyRows.rows.length}`)
 
   if (failures.length) {

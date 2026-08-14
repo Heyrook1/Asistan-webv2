@@ -83,6 +83,29 @@ export const RLS_ECOSYSTEM_DENY_TABLES: readonly string[] = [
   'BookingIdempotency',
 ] as const
 
+/**
+ * Identity merge ledger — deny-by-default for anon+authenticated.
+ * Migration: `20260810000400_person_identity_merge_ledger.sql` (RLS block at the end).
+ * Kept separate from RLS_ECOSYSTEM_DENY_TABLES because the posture ships in the
+ * table's own creation migration, not in 20260716000100.
+ */
+export const RLS_IDENTITY_LEDGER_DENY_TABLES: readonly string[] = [
+  'PersonIdentityMergeLedger',
+] as const
+
+/**
+ * Lead capture + platform internals — deny-by-default for anon+authenticated.
+ * Migration: `20260811000100_lead_capture_deny_rls.sql`
+ * All are Prisma-only (server actions / API routes); no supabase-js `.from()` path.
+ */
+export const RLS_LEAD_CAPTURE_DENY_TABLES: readonly string[] = [
+  'ContactLead',
+  'TourismLead',
+  'DemoBooking',
+  'NewsletterSubscriber',
+  'ProcessedWebhookEvent',
+] as const
+
 /** Q3 clinic money / front-desk — GUC app.business_id (fixed 20260730) */
 export const RLS_Q3_BUSINESS_SCOPED_TABLES: readonly string[] = [
   'AppointmentDeposit',
@@ -105,6 +128,14 @@ export const REQUIRED_RLS_TABLES: readonly RlsExpectation[] = [
   ...RLS_Q3_BUSINESS_SCOPED_TABLES.map((table) => ({
     table,
     reason: 'Q3 business GUC RLS (deposit/invoice/front-desk)',
+  })),
+  ...RLS_IDENTITY_LEDGER_DENY_TABLES.map((table) => ({
+    table,
+    reason: 'identity merge ledger deny-default migration 20260810000400',
+  })),
+  ...RLS_LEAD_CAPTURE_DENY_TABLES.map((table) => ({
+    table,
+    reason: 'lead capture deny-default migration 20260811000100',
   })),
 ]
 

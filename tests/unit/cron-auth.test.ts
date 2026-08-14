@@ -1,22 +1,18 @@
-import { describe, expect, it, afterEach } from 'vitest'
+import { describe, expect, it, afterEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 import { authorizeCronRequest } from '@/lib/security/cron-auth'
 
 describe('authorizeCronRequest (BUG-002)', () => {
-  const prevSecret = process.env.CRON_SECRET
-  const prevNodeEnv = process.env.NODE_ENV
-
+  // NODE_ENV is readonly under current @types/node, so assigning it directly is
+  // a type error. vi.stubEnv handles the write and restores everything here.
   afterEach(() => {
-    if (prevSecret === undefined) delete process.env.CRON_SECRET
-    else process.env.CRON_SECRET = prevSecret
-    if (prevNodeEnv === undefined) delete process.env.NODE_ENV
-    else process.env.NODE_ENV = prevNodeEnv
+    vi.unstubAllEnvs()
   })
 
   it('returns 503 when CRON_SECRET is unset — including non-prod (fail-closed)', () => {
-    delete process.env.CRON_SECRET
-    process.env.NODE_ENV = 'development'
+    vi.stubEnv('CRON_SECRET', undefined)
+    vi.stubEnv('NODE_ENV', 'development')
     const req = new NextRequest('http://localhost/api/cron/appointment-reminders')
     expect(authorizeCronRequest(req)).toEqual({
       ok: false,
@@ -26,8 +22,8 @@ describe('authorizeCronRequest (BUG-002)', () => {
   })
 
   it('returns 503 when CRON_SECRET is whitespace-only', () => {
-    process.env.CRON_SECRET = '   '
-    process.env.NODE_ENV = 'test'
+    vi.stubEnv('CRON_SECRET', '   ')
+    vi.stubEnv('NODE_ENV', 'test')
     const req = new NextRequest('http://localhost/api/cron/google-calendar-sync')
     expect(authorizeCronRequest(req)).toEqual({
       ok: false,
@@ -37,7 +33,7 @@ describe('authorizeCronRequest (BUG-002)', () => {
   })
 
   it('returns 401 when Bearer does not match', () => {
-    process.env.CRON_SECRET = 'cron-secret'
+    vi.stubEnv('CRON_SECRET', 'cron-secret')
     const req = new NextRequest('http://localhost/api/cron/appointment-reminders', {
       headers: { authorization: 'Bearer wrong' },
     })
@@ -49,7 +45,7 @@ describe('authorizeCronRequest (BUG-002)', () => {
   })
 
   it('allows matching Bearer token', () => {
-    process.env.CRON_SECRET = 'cron-secret'
+    vi.stubEnv('CRON_SECRET', 'cron-secret')
     const req = new NextRequest('http://localhost/api/cron/appointment-reminders', {
       headers: { authorization: 'Bearer cron-secret' },
     })

@@ -55,10 +55,21 @@ describe('ui labels (P1-07)', () => {
     expect(looksLikeUserFacingTechLeak('Zayıf sinyal önerisi')).toBe(false)
   })
 
+  /**
+   * Drop regex literals that feed `.test(...)`.
+   *
+   * Components legitimately name the runbook phrases they are guarding against —
+   * clinic-invoices-board.tsx matches `/API yok|env ile|…/i` on a backend error
+   * string so it can replace it with a human sentence. Scanning raw source made
+   * that guard indistinguishable from the leak it prevents.
+   */
+  const stripDetectorPatterns = (source: string) =>
+    source.replace(/\/(?:[^/\\\r\n]|\\.)+\/[gimsuy]*(?=\s*\.test\()/g, '/*detector*/')
+
   it('clinic surfaces do not expose raw enum / env runbook copy', () => {
     const root = process.cwd()
     for (const rel of CLINIC_COPY_SURFACES) {
-      const text = readFileSync(join(root, rel), 'utf8')
+      const text = stripDetectorPatterns(readFileSync(join(root, rel), 'utf8'))
       expect(text.includes('suggest:weak-signal'), rel).toBe(false)
       expect(text.includes('READY yap'), rel).toBe(false)
       expect(text.includes('Yazdırılabilir READY'), rel).toBe(false)

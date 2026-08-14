@@ -35,6 +35,7 @@ import {
 } from '@/lib/client-marketplace/cancel-policy'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 
@@ -57,12 +58,22 @@ type AppointmentRow = {
 
 type Slot = { startTime: string; endTime: string }
 
-const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  SCHEDULED: 'Onay bekliyor',
-  CONFIRMED: 'Onaylandı',
-  COMPLETED: 'Tamamlandı',
-  CANCELLED: 'İptal',
-  NO_SHOW: 'Gelinmedi',
+/** Same pair shape as useLanguage().t — for module-level helpers. */
+type Translate = <T>(translations: { tr: T; en: T }) => T
+
+function statusLabel(status: AppointmentStatus, t: Translate): string {
+  switch (status) {
+    case 'SCHEDULED':
+      return t({ tr: 'Onay bekliyor', en: 'Awaiting confirmation' })
+    case 'CONFIRMED':
+      return t({ tr: 'Onaylandı', en: 'Confirmed' })
+    case 'COMPLETED':
+      return t({ tr: 'Tamamlandı', en: 'Completed' })
+    case 'CANCELLED':
+      return t({ tr: 'İptal', en: 'Cancelled' })
+    case 'NO_SHOW':
+      return t({ tr: 'Gelinmedi', en: 'No-show' })
+  }
 }
 
 const STATUS_CLASS: Record<AppointmentStatus, string> = {
@@ -87,18 +98,33 @@ function isUpcomingRow(row: AppointmentRow, now = Date.now()) {
   return isActive(row.status) && appointmentStartsAtMs(row.date, row.startTime) >= now
 }
 
-function nextStepCopy(status: AppointmentStatus) {
+function nextStepCopy(status: AppointmentStatus, t: Translate) {
   switch (status) {
     case 'SCHEDULED':
-      return 'Klinik onayı bekleniyor. Onaylanınca bildirim alırsınız.'
+      return t({
+        tr: 'Klinik onayı bekleniyor. Onaylanınca bildirim alırsınız.',
+        en: 'Waiting for clinic confirmation. You will be notified once it is approved.',
+      })
     case 'CONFIRMED':
-      return 'Randevunuz onaylandı. Zamanı gelince hatırlatma gönderilir.'
+      return t({
+        tr: 'Randevunuz onaylandı. Zamanı gelince hatırlatma gönderilir.',
+        en: 'Your appointment is confirmed. A reminder will be sent closer to the time.',
+      })
     case 'COMPLETED':
-      return 'Ziyaret tamamlandı. Deneyiminizi puanlayabilirsiniz.'
+      return t({
+        tr: 'Ziyaret tamamlandı. Deneyiminizi puanlayabilirsiniz.',
+        en: 'Visit completed. You can rate your experience.',
+      })
     case 'CANCELLED':
-      return 'Bu randevu iptal edildi. Yeni bir saat seçebilirsiniz.'
+      return t({
+        tr: 'Bu randevu iptal edildi. Yeni bir saat seçebilirsiniz.',
+        en: 'This appointment was cancelled. You can pick a new time.',
+      })
     case 'NO_SHOW':
-      return 'Bu randevu gelinmedi olarak işaretlendi.'
+      return t({
+        tr: 'Bu randevu gelinmedi olarak işaretlendi.',
+        en: 'This appointment was marked as a no-show.',
+      })
   }
 }
 
@@ -110,7 +136,7 @@ async function getAccessToken() {
   return data.session?.access_token ?? null
 }
 
-async function clientFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function clientFetch<T>(path: string, init?: RequestInit, t?: Translate): Promise<T> {
   const token = await getAccessToken()
   if (!token) {
     throw new Error('AUTH_REQUIRED')
@@ -125,12 +151,16 @@ async function clientFetch<T>(path: string, init?: RequestInit): Promise<T> {
   })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) {
-    throw new Error((body as { error?: string }).error ?? 'İstek başarısız')
+    const fallback = t
+      ? t({ tr: 'İstek başarısız', en: 'Request failed' })
+      : 'Request failed'
+    throw new Error((body as { error?: string }).error ?? fallback)
   }
   return body as T
 }
 
 export function ClientBookingsPanel() {
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const focusId = searchParams.get('id')
 
@@ -176,7 +206,11 @@ export function ClientBookingsPanel() {
   const load = useCallback(async (opts?: { quiet?: boolean }) => {
     if (!opts?.quiet) setLoading(true)
     try {
-      const data = await clientFetch<{ appointments: AppointmentRow[] }>('/api/client/appointments')
+      const data = await clientFetch<{ appointments: AppointmentRow[] }>(
+        '/api/client/appointments',
+        undefined,
+        t,
+      )
       setRows(data.appointments)
       setAuthRequired(false)
     } catch (error) {
@@ -184,12 +218,16 @@ export function ClientBookingsPanel() {
         setAuthRequired(true)
         setRows([])
       } else if (!opts?.quiet) {
-        toast.error(error instanceof Error ? error.message : 'Randevular yüklenemedi')
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t({ tr: 'Randevular yüklenemedi', en: 'Could not load appointments' }),
+        )
       }
     } finally {
       if (!opts?.quiet) setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void load()
@@ -241,7 +279,10 @@ export function ClientBookingsPanel() {
     const policy = canCancelOrRescheduleByPolicy(row.date, row.startTime, CANCEL_MIN_HOURS)
     if (!policy.ok) {
       toast.error(
-        `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldığı için iptal edilemez. Klinik ile iletişime geçin.`
+        t({
+          tr: `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldığı için iptal edilemez. Klinik ile iletişime geçin.`,
+          en: `This cannot be cancelled with less than ${CANCEL_MIN_HOURS} hours to the appointment. Please contact the clinic.`,
+        }),
       )
       return
     }
@@ -255,14 +296,24 @@ export function ClientBookingsPanel() {
 
     setSavingId(row.id)
     try {
-      await clientFetch(`/api/client/appointments/${row.id}/cancel`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      })
-      toast.success('Randevu iptal edildi — bildirim gönderildi')
+      await clientFetch(
+        `/api/client/appointments/${row.id}/cancel`,
+        { method: 'POST', body: JSON.stringify({}) },
+        t,
+      )
+      toast.success(
+        t({
+          tr: 'Randevu iptal edildi — bildirim gönderildi',
+          en: 'Appointment cancelled — notification sent',
+        }),
+      )
       await load()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'İptal başarısız')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t({ tr: 'İptal başarısız', en: 'Cancellation failed' }),
+      )
     } finally {
       setSavingId(null)
     }
@@ -272,12 +323,20 @@ export function ClientBookingsPanel() {
     const policy = canCancelOrRescheduleByPolicy(row.date, row.startTime, CANCEL_MIN_HOURS)
     if (!policy.ok) {
       toast.error(
-        `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldığı için yeniden planlama yapılamaz.`
+        t({
+          tr: `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldığı için yeniden planlama yapılamaz.`,
+          en: `This cannot be rescheduled with less than ${CANCEL_MIN_HOURS} hours to the appointment.`,
+        }),
       )
       return
     }
     if (!row.doctorId) {
-      toast.error('Bu randevu için hekim bilgisi eksik')
+      toast.error(
+        t({
+          tr: 'Bu randevu için hekim bilgisi eksik',
+          en: 'Doctor information is missing for this appointment',
+        }),
+      )
       return
     }
     setRescheduleId(row.id)
@@ -292,20 +351,27 @@ export function ClientBookingsPanel() {
 
   async function submitReschedule(id: string) {
     if (!rescheduleDate || !selectedSlot) {
-      toast.error('Tarih ve saat seçin')
+      toast.error(t({ tr: 'Tarih ve saat seçin', en: 'Select a date and time' }))
       return
     }
     setSavingId(id)
     try {
-      await clientFetch(`/api/client/appointments/${id}/reschedule`, {
-        method: 'POST',
-        body: JSON.stringify({ date: rescheduleDate, startTime: selectedSlot }),
-      })
-      toast.success('Randevu yeniden planlandı')
+      await clientFetch(
+        `/api/client/appointments/${id}/reschedule`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ date: rescheduleDate, startTime: selectedSlot }),
+        },
+        t,
+      )
+      toast.success(t({ tr: 'Randevu yeniden planlandı', en: 'Appointment rescheduled' }))
       setRescheduleId(null)
       await load()
     } catch (error) {
-      const msg = userMessageFromUnknown(error, 'Yeniden planlama başarısız')
+      const msg = userMessageFromUnknown(
+        error,
+        t({ tr: 'Yeniden planlama başarısız', en: 'Rescheduling failed' }),
+      )
       toast.error(msg)
       setSelectedSlot(null)
       refreshRescheduleSlots()
@@ -317,17 +383,25 @@ export function ClientBookingsPanel() {
   async function submitReview(id: string) {
     setSavingId(id)
     try {
-      await clientFetch('/api/client/reviews', {
-        method: 'POST',
-        body: JSON.stringify({ appointmentId: id, rating, comment: comment.trim() || undefined }),
-      })
-      toast.success('Yorumunuz kaydedildi')
+      await clientFetch(
+        '/api/client/reviews',
+        {
+          method: 'POST',
+          body: JSON.stringify({ appointmentId: id, rating, comment: comment.trim() || undefined }),
+        },
+        t,
+      )
+      toast.success(t({ tr: 'Yorumunuz kaydedildi', en: 'Your review was saved' }))
       setReviewId(null)
       setComment('')
       setRating(5)
       await load()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Yorum kaydedilemedi')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t({ tr: 'Yorum kaydedilemedi', en: 'Review could not be saved' }),
+      )
     } finally {
       setSavingId(null)
     }
@@ -338,23 +412,34 @@ export function ClientBookingsPanel() {
       <main className="space-y-5">
         <header className="space-y-1">
           <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight text-slate-900">
-            Randevularım
+            {t({ tr: 'Randevularım', en: 'My appointments' })}
           </h1>
           <p className="text-[13px] text-slate-500">
-            Kayıtlı randevularınızı görmek, iptal veya yeniden planlamak için giriş yapın.
+            {t({
+              tr: 'Kayıtlı randevularınızı görmek, iptal veya yeniden planlamak için giriş yapın.',
+              en: 'Sign in to view, cancel or reschedule your saved appointments.',
+            })}
           </p>
         </header>
         <div className="rounded-[1.25rem] bg-white p-5 ring-1 ring-slate-200/70">
           <p className="text-sm text-slate-600">
-            Misafir olarak klinik sayfasından randevu alabilirsiniz. Takip için{' '}
-            <span className="font-semibold text-slate-900">Asistan</span> hesabı gerekir.
+            {t({
+              tr: 'Misafir olarak klinik sayfasından randevu alabilirsiniz. Takip için ',
+              en: 'You can book as a guest from a clinic page. To track bookings you need an ',
+            })}
+            <span className="font-semibold text-slate-900">Asistan</span>
+            {t({ tr: ' hesabı gerekir.', en: ' account.' })}
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
-              <Link href="/client/profile">Giriş / kayıt</Link>
+              <Link href="/client/profile">
+                {t({ tr: 'Giriş / kayıt', en: 'Sign in / sign up' })}
+              </Link>
             </Button>
             <Button asChild variant="outline" className="h-11 rounded-xl">
-              <Link href="/client/clinics">Hesapsız klinik bul</Link>
+              <Link href="/client/clinics">
+                {t({ tr: 'Hesapsız klinik bul', en: 'Find a clinic without an account' })}
+              </Link>
             </Button>
           </div>
         </div>
@@ -367,31 +452,39 @@ export function ClientBookingsPanel() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight text-slate-900">
-            Randevularım
+            {t({ tr: 'Randevularım', en: 'My appointments' })}
           </h1>
           <p className="text-[13px] text-slate-500">
-            Onay, iptal, yeniden planlama ve değerlendirme burada.
+            {t({
+              tr: 'Onay, iptal, yeniden planlama ve değerlendirme burada.',
+              en: 'Confirmations, cancellations, rescheduling and reviews live here.',
+            })}
           </p>
         </div>
         <Button asChild className="h-10 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
-          <Link href="/client/clinics">Yeni randevu</Link>
+          <Link href="/client/clinics">{t({ tr: 'Yeni randevu', en: 'New appointment' })}</Link>
         </Button>
       </header>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Randevular yükleniyor…
+          {t({ tr: 'Randevular yükleniyor…', en: 'Loading appointments…' })}
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-[1.25rem] bg-white p-6 ring-1 ring-slate-200/70">
-          <p className="text-sm font-semibold text-slate-900">Henüz randevunuz yok</p>
+          <p className="text-sm font-semibold text-slate-900">
+            {t({ tr: 'Henüz randevunuz yok', en: 'You have no appointments yet' })}
+          </p>
           <p className="mt-1 text-sm text-slate-500">
-            Klinik keşfedin veya bildiğiniz klinik linkinden 3 adımda talep oluşturun.
+            {t({
+              tr: 'Klinik keşfedin veya bildiğiniz klinik linkinden 3 adımda talep oluşturun.',
+              en: 'Browse clinics, or use a clinic link you already have to request one in three steps.',
+            })}
           </p>
           <div className="mt-4">
             <Button asChild className="h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0077ed]">
-              <Link href="/client/clinics">Klinik ara</Link>
+              <Link href="/client/clinics">{t({ tr: 'Klinik ara', en: 'Search clinics' })}</Link>
             </Button>
           </div>
         </div>
@@ -399,10 +492,12 @@ export function ClientBookingsPanel() {
         <>
           <section className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Yaklaşan ({upcoming.length})
+              {t({ tr: 'Yaklaşan', en: 'Upcoming' })} ({upcoming.length})
             </h2>
             {upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Yaklaşan randevu yok.</p>
+              <p className="text-sm text-muted-foreground">
+                {t({ tr: 'Yaklaşan randevu yok.', en: 'No upcoming appointments.' })}
+              </p>
             ) : (
               upcoming.map((row) => (
                 <BookingCard
@@ -429,7 +524,7 @@ export function ClientBookingsPanel() {
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Geçmiş ({past.length})
+                {t({ tr: 'Geçmiş', en: 'Past' })} ({past.length})
               </h2>
               {past.length > 3 ? (
                 <button
@@ -437,7 +532,9 @@ export function ClientBookingsPanel() {
                   className="text-xs font-semibold text-[#0071E3] hover:underline"
                   onClick={() => setShowPast((value) => !value)}
                 >
-                  {showPast ? 'Daralt' : 'Tümünü göster'}
+                  {showPast
+                    ? t({ tr: 'Daralt', en: 'Collapse' })
+                    : t({ tr: 'Tümünü göster', en: 'Show all' })}
                 </button>
               ) : null}
             </div>
@@ -466,8 +563,13 @@ export function ClientBookingsPanel() {
                 href="/client/health"
                 className="block rounded-[1.15rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 transition hover:border-[#0071E3]/30 hover:bg-[#0071E3]/5"
               >
-                Boylamsal ziyaret görünümü için{' '}
-                <span className="font-semibold text-[#0071E3]">Asistan pasaportu</span>
+                {t({
+                  tr: 'Boylamsal ziyaret görünümü için ',
+                  en: 'For a longitudinal view of your visits, see the ',
+                })}
+                <span className="font-semibold text-[#0071E3]">
+                  {t({ tr: 'Asistan pasaportu', en: 'Asistan passport' })}
+                </span>
               </Link>
             ) : null}
           </section>
@@ -477,17 +579,25 @@ export function ClientBookingsPanel() {
       <AlertDialog open={cancelTarget !== null} onOpenChange={(open) => !open && setCancelTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Bu randevuyu iptal etmek istiyor musunuz?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t({
+                tr: 'Bu randevuyu iptal etmek istiyor musunuz?',
+                en: 'Cancel this appointment?',
+              })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {cancelTarget
-                ? `${cancelTarget.clinic.name} — ${cancelTarget.date} ${cancelTarget.startTime}. İptal, randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce yapılmalıdır.`
+                ? t({
+                    tr: `${cancelTarget.clinic.name} — ${cancelTarget.date} ${cancelTarget.startTime}. İptal, randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce yapılmalıdır.`,
+                    en: `${cancelTarget.clinic.name} — ${cancelTarget.date} ${cancelTarget.startTime}. Cancellation must be at least ${CANCEL_MIN_HOURS} hours before the appointment starts.`,
+                  })
                 : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hayır, geri dön</AlertDialogCancel>
+            <AlertDialogCancel>{t({ tr: 'Hayır, geri dön', en: 'No, go back' })}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void confirmCancelAppointment()}>
-              Evet, iptal et
+              {t({ tr: 'Evet, iptal et', en: 'Yes, cancel it' })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -543,6 +653,7 @@ function BookingCard({
   onCommentChange?: (value: string) => void
   onSubmitReview?: () => void
 }) {
+  const { t } = useLanguage()
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyEvents, setHistoryEvents] = useState<
@@ -561,10 +672,14 @@ function BookingCard({
     try {
       const data = await clientFetch<{
         events: Array<{ id: string; title: string; description: string | null; createdAt: string }>
-      }>(`/api/client/appointments/${row.id}/history`)
+      }>(`/api/client/appointments/${row.id}/history`, undefined, t)
       setHistoryEvents(data.events ?? [])
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Durum geçmişi alınamadı')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t({ tr: 'Durum geçmişi alınamadı', en: 'Could not load status history' }),
+      )
       setHistoryOpen(false)
     } finally {
       setHistoryLoading(false)
@@ -598,11 +713,11 @@ function BookingCard({
           ) : null}
         </div>
         <span className={cn('rounded-full border px-2.5 py-1 text-[11px] font-semibold', STATUS_CLASS[row.status])}>
-          {STATUS_LABELS[row.status]}
+          {statusLabel(row.status, t)}
         </span>
       </div>
 
-      <p className="mt-3 text-xs leading-5 text-muted-foreground">{nextStepCopy(row.status)}</p>
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">{nextStepCopy(row.status, t)}</p>
 
       {isActive(row.status) ? (
         <div className="mt-4 space-y-2">
@@ -615,7 +730,7 @@ function BookingCard({
               className="gap-1.5"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Yeniden planla
+              {t({ tr: 'Yeniden planla', en: 'Reschedule' })}
             </Button>
             <Button
               size="sm"
@@ -625,7 +740,7 @@ function BookingCard({
               className="gap-1.5 text-rose-700 hover:text-rose-800"
             >
               <XCircle className="h-3.5 w-3.5" />
-              İptal et
+              {t({ tr: 'İptal et', en: 'Cancel' })}
             </Button>
             <Button
               size="sm"
@@ -638,7 +753,10 @@ function BookingCard({
                   const response = await fetch(`/api/client/appointments/${row.id}/ics`, {
                     headers: { authorization: `Bearer ${token}` },
                   })
-                  if (!response.ok) throw new Error('Takvim dosyası alınamadı')
+                  if (!response.ok)
+                    throw new Error(
+                      t({ tr: 'Takvim dosyası alınamadı', en: 'Could not fetch calendar file' }),
+                    )
                   const blob = await response.blob()
                   const url = URL.createObjectURL(blob)
                   const anchor = document.createElement('a')
@@ -647,17 +765,27 @@ function BookingCard({
                   anchor.click()
                   URL.revokeObjectURL(url)
                 } catch (error) {
-                  toast.error(error instanceof Error ? error.message : 'Takvim dosyası alınamadı')
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : t({ tr: 'Takvim dosyası alınamadı', en: 'Could not fetch calendar file' }),
+                  )
                 }
               }}
             >
-              Takvime ekle
+              {t({ tr: 'Takvime ekle', en: 'Add to calendar' })}
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
             {policyOk
-              ? `İptal / yeniden planlama: randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce.`
-              : `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldı — iptal için klinik ile iletişime geçin.`}
+              ? t({
+                  tr: `İptal / yeniden planlama: randevu başlangıcından en az ${CANCEL_MIN_HOURS} saat önce.`,
+                  en: `Cancel / reschedule: at least ${CANCEL_MIN_HOURS} hours before the appointment starts.`,
+                })
+              : t({
+                  tr: `Randevu başlangıcına ${CANCEL_MIN_HOURS} saatten az kaldı — iptal için klinik ile iletişime geçin.`,
+                  en: `Less than ${CANCEL_MIN_HOURS} hours to the appointment — contact the clinic to cancel.`,
+                })}
           </p>
         </div>
       ) : null}
@@ -666,7 +794,7 @@ function BookingCard({
         <div className="mt-4">
           <Button size="sm" variant="outline" className="gap-1.5" onClick={onOpenReview} disabled={saving}>
             <Star className="h-3.5 w-3.5" />
-            Değerlendir
+            {t({ tr: 'Değerlendir', en: 'Leave a review' })}
           </Button>
         </div>
       ) : null}
@@ -677,7 +805,7 @@ function BookingCard({
             <Link
               href={`/book/${row.clinic.slug}${row.doctorId ? `?doctorId=${encodeURIComponent(row.doctorId)}` : ''}${row.serviceId ? `${row.doctorId ? '&' : '?'}serviceId=${encodeURIComponent(row.serviceId)}` : ''}`}
             >
-              Bu klinikten yeni randevu
+              {t({ tr: 'Bu klinikten yeni randevu', en: 'New appointment at this clinic' })}
             </Link>
           </Button>
         </div>
@@ -686,7 +814,10 @@ function BookingCard({
       {row.status === 'COMPLETED' && row.hasReview ? (
         <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Doğrulanmış ziyaret · değerlendirme gönderildi
+          {t({
+            tr: 'Doğrulanmış ziyaret · değerlendirme gönderildi',
+            en: 'Verified visit · review submitted',
+          })}
         </p>
       ) : null}
 
@@ -696,14 +827,20 @@ function BookingCard({
           onClick={() => void loadHistory()}
           className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-[#0071E3] hover:underline"
         >
-          {historyOpen ? 'Durum geçmişini gizle' : 'Durum geçmişini göster'}
+          {historyOpen
+            ? t({ tr: 'Durum geçmişini gizle', en: 'Hide status history' })
+            : t({ tr: 'Durum geçmişini göster', en: 'Show status history' })}
         </button>
         {historyOpen ? (
           <div className="mt-2 space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
             {historyLoading ? (
-              <p className="text-xs text-muted-foreground">Geçmiş yükleniyor…</p>
+              <p className="text-xs text-muted-foreground">
+                {t({ tr: 'Geçmiş yükleniyor…', en: 'Loading history…' })}
+              </p>
             ) : historyEvents.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Henüz kayıtlı durum olayı yok.</p>
+              <p className="text-xs text-muted-foreground">
+                {t({ tr: 'Henüz kayıtlı durum olayı yok.', en: 'No status events recorded yet.' })}
+              </p>
             ) : (
               historyEvents.map((event) => (
                 <div key={event.id} className="text-xs text-slate-700">
@@ -729,7 +866,9 @@ function BookingCard({
             onChange={(e) => onDateChange?.(e.target.value)}
           />
           {slotsLoading ? (
-            <p className="text-xs text-muted-foreground">Saatler yükleniyor…</p>
+            <p className="text-xs text-muted-foreground">
+              {t({ tr: 'Saatler yükleniyor…', en: 'Loading times…' })}
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {(slots ?? []).map((slot) => (
@@ -748,16 +887,18 @@ function BookingCard({
                 </button>
               ))}
               {(slots ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground">Bu tarihte uygun saat yok.</p>
+                <p className="text-xs text-muted-foreground">
+                  {t({ tr: 'Bu tarihte uygun saat yok.', en: 'No times available on this date.' })}
+                </p>
               ) : null}
             </div>
           )}
           <div className="flex gap-2">
             <Button size="sm" onClick={onSubmitReschedule} disabled={saving || !selectedSlot}>
-              Kaydet
+              {t({ tr: 'Kaydet', en: 'Save' })}
             </Button>
             <Button size="sm" variant="ghost" onClick={onCloseReschedule}>
-              Vazgeç
+              {t({ tr: 'Vazgeç', en: 'Cancel' })}
             </Button>
           </div>
         </div>
@@ -775,7 +916,10 @@ function BookingCard({
                   'rounded-md p-1',
                   (rating ?? 0) >= value ? 'text-amber-500' : 'text-slate-300'
                 )}
-                aria-label={`${value} yıldız`}
+                aria-label={t({
+                  tr: `${value} yıldız`,
+                  en: `${value} star${value === 1 ? '' : 's'}`,
+                })}
               >
                 <Star className="h-5 w-5 fill-current" />
               </button>
@@ -784,15 +928,15 @@ function BookingCard({
           <Textarea
             value={comment}
             onChange={(e) => onCommentChange?.(e.target.value)}
-            placeholder="İsteğe bağlı yorum"
+            placeholder={t({ tr: 'İsteğe bağlı yorum', en: 'Optional comment' })}
             rows={3}
           />
           <div className="flex gap-2">
             <Button size="sm" onClick={onSubmitReview} disabled={saving}>
-              Gönder
+              {t({ tr: 'Gönder', en: 'Submit' })}
             </Button>
             <Button size="sm" variant="ghost" onClick={onCloseReview}>
-              Vazgeç
+              {t({ tr: 'Vazgeç', en: 'Cancel' })}
             </Button>
           </div>
         </div>

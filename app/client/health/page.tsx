@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 
 import { ClientHealthPanel } from '@/components/client/health-panel'
 import { withCanonical } from '@/lib/seo'
+import { getServerLanguage } from '@/lib/server-language'
 
 export const metadata: Metadata = withCanonical('/client/health', {
   title: 'Asistan pasaportu',
@@ -10,15 +11,19 @@ export const metadata: Metadata = withCanonical('/client/health', {
     'Asistan pasaportu — klinikler arası ziyaret ve üyelik özeti. Klinik notları ve tahliller paylaşılmaz; FHIR / tıbbi pasaport değildir.',
 })
 
-export default function ClientHealthPage() {
+export default async function ClientHealthPage() {
+  const { t } = await getServerLanguage()
+
   return (
     <Suspense
       fallback={
         <main className="space-y-2">
           <h1 className="font-heading text-[1.45rem] font-extrabold tracking-tight">
-            Asistan pasaportu
+            {t({ tr: 'Asistan pasaportu', en: 'Asistan passport' })}
           </h1>
-          <p className="text-[13px] text-muted-foreground">Ziyaret özeti yükleniyor…</p>
+          <p className="text-[13px] text-muted-foreground">
+            {t({ tr: 'Ziyaret özeti yükleniyor…', en: 'Loading visit summary…' })}
+          </p>
         </main>
       }
     >

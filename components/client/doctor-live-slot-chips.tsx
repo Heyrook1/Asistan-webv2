@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useLiveAvailability } from '@/hooks/use-live-availability'
 import { addCalendarDays, calendarDateInTimeZone, formatNextSlotLabelStable } from '@/lib/datetime/calendar-label'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type Props = {
   businessId: string
@@ -28,6 +29,7 @@ export function DoctorLiveSlotChips({
   bookBase,
   initialSlots = [],
 }: Props) {
+  const { language, t } = useLanguage()
   const [mounted, setMounted] = useState(false)
   const [dayOffset, setDayOffset] = useState(0)
 
@@ -73,14 +75,16 @@ export function DoctorLiveSlotChips({
   const first = displaySlots[0]
   const firstLabel =
     mounted && first
-      ? formatNextSlotLabelStable(`${first.date}T${first.startTime}:00`, 'tr')
+      ? formatNextSlotLabelStable(`${first.date}T${first.startTime}:00`, language)
       : first
         ? first.startTime
         : null
 
   if (mounted && !loading && displaySlots.length === 0 && dayOffset >= 6) {
     return (
-      <p className="mt-2 text-[12px] text-slate-500">Yakın tarihte açık slot yok</p>
+      <p className="mt-2 text-[12px] text-slate-500">
+        {t({ tr: 'Yakın tarihte açık slot yok', en: 'No open slots in the coming days' })}
+      </p>
     )
   }
 
@@ -89,7 +93,7 @@ export function DoctorLiveSlotChips({
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
           <Clock3 className="size-3" aria-hidden />
-          Boş saatler
+          {t({ tr: 'Boş saatler', en: 'Open times' })}
           {firstLabel ? (
             <span className="normal-case tracking-normal text-slate-500">· {firstLabel}</span>
           ) : null}
@@ -97,7 +101,7 @@ export function DoctorLiveSlotChips({
         {mounted && syncedAt ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
             <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-            Canlı
+            {t({ tr: 'Canlı', en: 'Live' })}
           </span>
         ) : null}
       </div>
