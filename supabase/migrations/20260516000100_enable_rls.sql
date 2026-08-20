@@ -3,10 +3,13 @@
 -- Date: 2026-05-16
 -- ============================================================================
 --
--- This migration enforces multi-tenancy at the database layer. Without it,
--- any authenticated user could read/write any clinic's data via supabase-js.
+-- LEGACY SCHEMA ERA — snake_case tables (providers, customers, team_members, …).
+-- Production Asistan Health uses Prisma PascalCase tables ("Business", "Patient", …).
+-- Do NOT treat this file as the current RLS inventory.
+-- Canonical map: lib/security/rls-inventory.ts
+-- Live PascalCase RLS: 20260518000200_* + 20260519* + 20260529* + 20260714000400_rls_prisma_parity.sql
 --
--- Key concepts:
+-- Key concepts (legacy):
 -- * `auth.uid()` = the authenticated user calling the request
 -- * `is_provider_owner(provider_id)` = user owns this clinic
 -- * `is_team_member(provider_id, capability)` = user is a team member

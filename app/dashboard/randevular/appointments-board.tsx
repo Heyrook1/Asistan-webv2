@@ -33,12 +33,20 @@ import {
   Check,
   Calendar as CalendarIcon,
   Frown,
+  FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { setAppointmentStatus, rescheduleAppointment, deleteAppointment } from '@/lib/actions/appointments'
+import { createDraftInvoiceFromAppointment } from '@/lib/actions/invoices'
 import { AppointmentFormDrawer } from '@/components/dashboard/appointment-form-drawer'
+import {
+  AppointmentCancelDialog,
+  AppointmentConfirmDialog,
+  formatAppointmentSlotLabel,
+} from '@/components/dashboard/appointment-action-dialogs'
 import { AjandaModeSwitch } from '@/components/dashboard/ajanda-mode-switch'
 import { EmptyState } from '@/components/dashboard/empty-state'
+import { MobileAgendaShell } from '@/components/dashboard/mobile-agenda-shell'
 import { APPOINTMENT_STATUS_LABELS, formatTime } from '@/lib/format'
 import { allowedNextStatuses } from '@/lib/appointment-transitions'
 import { readUiPreference, UI_PREF_KEYS, writeUiPreference } from '@/lib/ui-preferences'
@@ -128,7 +136,7 @@ const STATUS_ICON: Record<AppointmentStatus, typeof Clock> = {
 
 const FILTERS: Array<{ value: FilterValue; label: string; icon: typeof Clock; iconClass: string }> = [
   { value: 'ALL', label: 'Tümü', icon: Check, iconClass: 'text-current' },
-  { value: 'SCHEDULED', label: 'Planlandı', icon: Clock, iconClass: 'text-orange-500' },
+  { value: 'SCHEDULED', label: 'Onay bekliyor', icon: Clock, iconClass: 'text-orange-500' },
   { value: 'CONFIRMED', label: 'Onaylandı', icon: CalendarCheck, iconClass: 'text-sky-500' },
   { value: 'COMPLETED', label: 'Tamamlandı', icon: CheckCircle2, iconClass: 'text-emerald-500' },
   { value: 'CANCELLED', label: 'İptal', icon: XCircle, iconClass: 'text-rose-500' },
@@ -191,6 +199,8 @@ export function AppointmentsBoard({
   const [createOpen, setCreateOpen] = useState(initialCreateOpen)
   const [reschedule, setReschedule] = useState<PlainAppointment | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PlainAppointment | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<PlainAppointment | null>(null)
+  const [confirmTarget, setConfirmTarget] = useState<PlainAppointment | null>(null)
   const focusId = searchParams.get('id')
   const prefsHydrated = useRef(false)
 
@@ -228,29 +238,134 @@ export function AppointmentsBoard({
 
   useEffect(() => {
     if (!focusId) return
+    const focused = appointments.find((a) => a.id === focusId)
+    if (!focused) return
+    // Deep-link must not be hidden by a conflicting status chip / saved pref.
+    if (status !== 'ALL' && status !== focused.status) {
+      setStatus(focused.status)
+      writeUiPreference(UI_PREF_KEYS.appointmentStatusFilter, focused.status)
+      const params = new URLSearchParams(searchParams.toString())
+      if (pathname.includes('/ajanda')) params.set('mode', 'liste')
+      params.set('status', focused.status)
+      params.set('id', focusId)
+      const qs = params.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    }
+  }, [focusId, appointments, status, pathname, router, searchParams])
+
+  useEffect(() => {
+    if (!focusId) return
     const el = document.getElementById(`appointment-${focusId}`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [focusId, appointments])
+    if (!el) return
+    const timer = window.setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+    return () => window.clearTimeout(timer)
+  }, [focusId, appointments, status])
 
   const filtered = useMemo(
     () => (status === 'ALL' ? appointments : appointments.filter((a) => a.status === status)),
     [appointments, status]
   )
 
-  function changeStatus(id: string, next: AppointmentStatus) {
+  const scheduledCount = useMemo(
+    () => appointments.filter((a) => a.status === 'SCHEDULED').length,
+    [appointments]
+  )
+
+  function changeStatus(
+    id: string,
+    next: AppointmentStatus,
+    options?: { cancelReason?: string; undoCancel?: boolean }
+  ) {
     startTransition(async () => {
-      const result = await setAppointmentStatus({ id, status: next })
-      if (!result.ok) { toast.error(result.error); return }
-      toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`)
-      router.refresh()
+      try {
+        const result = await setAppointmentStatus({
+          id,
+          status: next,
+          cancelReason: options?.cancelReason,
+          undoCancel: options?.undoCancel,
+        })
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        if (result.data.alreadyInStatus) {
+          toast.message(`Randevu zaten: ${APPOINTMENT_STATUS_LABELS[next]}`)
+          router.refresh()
+          return
+        }
+        const channel = result.data.channelDelivery
+        const offer = result.data.fillGapOffer
+        const offerNote =
+          offer && offer.attempted > 0
+            ? `Boşalan saat için ${offer.attempted} dönen hastaya teklif denendi.`
+            : null
+        const channelNote = channel?.label ?? null
+        const description = [channelNote, offerNote].filter(Boolean).join(' ') || undefined
+        const previousStatus = result.data.previousStatus
+        const appt = appointments.find((row) => row.id === id)
+        const slotLabel = appt ? formatAppointmentSlotLabel(appt) : null
+
+        if (next === 'CANCELLED' && !options?.undoCancel) {
+          toast.success(slotLabel ? `İptal edildi — ${slotLabel}` : 'Randevu iptal edildi', {
+            description: description ?? 'Hasta bildirim kanalları kontrol edildi.',
+            duration: 8000,
+            action:
+              previousStatus === 'SCHEDULED' || previousStatus === 'CONFIRMED'
+                ? {
+                    label: 'Geri al',
+                    onClick: () => {
+                      changeStatus(id, previousStatus, { undoCancel: true })
+                    },
+                  }
+                : undefined,
+          })
+        } else if (options?.undoCancel) {
+          toast.success(`İptal geri alındı → ${APPOINTMENT_STATUS_LABELS[next]}`, {
+            description,
+          })
+        } else if (next === 'CONFIRMED') {
+          toast.success(slotLabel ? `Onaylandı — ${slotLabel}` : 'Randevu onaylandı', {
+            description,
+          })
+        } else if (channel && channel.outcome === 'error') {
+          toast.warning(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, { description })
+        } else if (channel && channel.outcome === 'not_configured') {
+          toast.message(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, { description })
+        } else if (channel && (channel.outcome === 'sent' || channel.outcome === 'skipped')) {
+          toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, { description })
+        } else if (offerNote) {
+          toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`, {
+            description: offerNote,
+          })
+        } else {
+          toast.success(`Durum güncellendi: ${APPOINTMENT_STATUS_LABELS[next]}`)
+        }
+        router.refresh()
+      } catch {
+        toast.error('Randevu durumu güncellenemedi. Lütfen tekrar deneyin.')
+      }
     })
+  }
+
+  async function confirmCancel(appointment: PlainAppointment, reason: string) {
+    setCancelTarget(null)
+    changeStatus(appointment.id, 'CANCELLED', {
+      cancelReason: reason.trim(),
+    })
+  }
+
+  function confirmAppointment(appointment: PlainAppointment) {
+    setConfirmTarget(null)
+    changeStatus(appointment.id, 'CONFIRMED')
   }
 
   function remove(id: string) {
     startTransition(async () => {
       const result = await deleteAppointment({ id })
       if (!result.ok) { toast.error(result.error); return }
-      toast.success('Randevu silindi')
+      toast.success('Randevu ajandadan kaldırıldı')
       setDeleteTarget(null)
       router.refresh()
     })
@@ -282,12 +397,64 @@ export function AppointmentsBoard({
         )}
       </div>
 
-      {/* Filter chips + Filtrele */}
-      <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+      {/* Onay bekleyenler inbox — desktop / tablet */}
+      {scheduledCount > 0 && status !== 'SCHEDULED' && (
+        <button
+          type="button"
+          onClick={() => selectStatusFilter('SCHEDULED')}
+          className="hidden w-full items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-left transition-colors hover:bg-amber-50 md:flex"
+        >
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-amber-900">
+              Onay bekleyenler
+              <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-amber-950">
+                {scheduledCount > 99 ? '99+' : scheduledCount}
+              </span>
+            </p>
+            <p className="mt-0.5 text-[12px] text-amber-800/80">
+              Hasta talepleri onay veya iptal bekliyor — kuyruğu açın.
+            </p>
+          </div>
+          <span className="shrink-0 text-[12px] font-semibold text-amber-900">Kuyruk →</span>
+        </button>
+      )}
+
+      {status === 'SCHEDULED' && (
+        <div className="hidden rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-2.5 md:block">
+          <p className="text-[13px] font-bold text-amber-900">
+            Onay bekleyenler
+            {scheduledCount > 0 ? (
+              <span className="ml-2 font-semibold text-amber-800/80">({scheduledCount})</span>
+            ) : null}
+          </p>
+          <p className="text-[12px] text-amber-800/75">
+            Onaylayın veya iptal edin — hasta SMS/WhatsApp ile bilgilendirilir (kanal bağlıysa).
+          </p>
+        </div>
+      )}
+
+      <MobileAgendaShell
+        appointments={appointments}
+        canManage={canManage}
+        pending={pending}
+        onConfirm={(appointment) => {
+          const full = appointments.find((row) => row.id === appointment.id) ?? null
+          setConfirmTarget(full)
+        }}
+        onCancel={(appointment) => {
+          const full = appointments.find((row) => row.id === appointment.id) ?? null
+          setCancelTarget(full)
+        }}
+        onCreate={canManage ? () => setCreateOpen(true) : undefined}
+      />
+
+      {/* Filter chips — desktop / tablet */}
+      <div className="hidden flex-wrap items-center gap-2 md:flex md:flex-nowrap">
         <div className="grid w-full grid-cols-3 gap-2 md:flex md:w-auto md:flex-1 md:flex-nowrap md:overflow-x-auto md:no-scrollbar">
           {FILTERS.map((filter) => {
             const active = status === filter.value
             const FilterIcon = filter.icon
+            const chipCount = filter.value === 'SCHEDULED' ? scheduledCount : null
             return (
               <button
                 key={filter.value}
@@ -303,13 +470,24 @@ export function AppointmentsBoard({
               >
                 <FilterIcon className={cn('h-4 w-4', active ? 'text-white' : filter.iconClass)} />
                 {filter.label}
+                {chipCount != null && chipCount > 0 ? (
+                  <span
+                    className={cn(
+                      'inline-flex h-5 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                      active ? 'bg-white/25 text-white' : 'bg-amber-400 text-amber-950'
+                    )}
+                  >
+                    {chipCount > 9 ? '9+' : chipCount}
+                  </span>
+                ) : null}
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* List */}
+      {/* List — desktop / tablet */}
+      <div className="hidden md:block">
       {filtered.length === 0 ? (
         <EmptyState
           title={
@@ -350,17 +528,31 @@ export function AppointmentsBoard({
                 focused={focusId === appointment.id}
                 canManage={canManage}
                 pending={pending}
-                onConfirm={() => changeStatus(appointment.id, 'CONFIRMED')}
+                onConfirm={() => setConfirmTarget(appointment)}
                 onComplete={() => changeStatus(appointment.id, 'COMPLETED')}
-                onCancel={() => changeStatus(appointment.id, 'CANCELLED')}
+                onCancel={() => setCancelTarget(appointment)}
                 onNoShow={() => changeStatus(appointment.id, 'NO_SHOW')}
                 onReschedule={() => setReschedule(appointment)}
                 onDelete={() => setDeleteTarget(appointment)}
+                onInvoice={() => {
+                  startTransition(async () => {
+                    const result = await createDraftInvoiceFromAppointment({
+                      appointmentId: appointment.id,
+                    })
+                    if (!result.ok) {
+                      toast.error(result.error)
+                      return
+                    }
+                    toast.success(`Fatura taslağı: ${result.data.number}`)
+                    router.push('/dashboard/faturalar')
+                  })
+                }}
               />
             </li>
           ))}
         </ul>
       )}
+      </div>
 
       {/* Mobile floating create button (lives above the bottom-nav FAB area is already handled by global FAB, so we hide this) */}
 
@@ -380,12 +572,32 @@ export function AppointmentsBoard({
         onSuccess={() => router.refresh()}
       />
 
+      <AppointmentConfirmDialog
+        appointment={confirmTarget}
+        pending={pending}
+        onClose={() => setConfirmTarget(null)}
+        onConfirm={() => {
+          if (confirmTarget) confirmAppointment(confirmTarget)
+        }}
+      />
+
+      <AppointmentCancelDialog
+        appointment={cancelTarget}
+        pending={pending}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={(reason) => {
+          if (cancelTarget) void confirmCancel(cancelTarget, reason)
+        }}
+      />
+
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Randevuyu sil</AlertDialogTitle>
+            <AlertDialogTitle>Ajandadan kaldır</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteTarget ? `${deleteTarget.patientName} - ${deleteTarget.serviceName} randevusu silinecek. Bu işlem geri alınamaz.` : 'Bu randevu silinecek.'}
+              {deleteTarget
+                ? `${deleteTarget.patientName} — ${deleteTarget.serviceName} randevusu ajanda, hasta kartı, zaman çizelgesi ve sayaçlardan kaldırılır. Kayıt denetim için arşivlenir; bu işlem geri alınamaz.`
+                : 'Bu randevu ajandadan kaldırılacak ve arşivlenecek.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -395,7 +607,7 @@ export function AppointmentsBoard({
               onClick={() => deleteTarget && remove(deleteTarget.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Sil
+              Ajandadan kaldır
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -415,6 +627,7 @@ function AppointmentRow({
   onNoShow,
   onReschedule,
   onDelete,
+  onInvoice,
 }: {
   appointment: PlainAppointment
   focused?: boolean
@@ -426,6 +639,7 @@ function AppointmentRow({
   onNoShow: () => void
   onReschedule: () => void
   onDelete: () => void
+  onInvoice: () => void
 }) {
   const tone = STATUS_TONE[appointment.status]
   const StatusIcon = STATUS_ICON[appointment.status]
@@ -478,7 +692,7 @@ function AppointmentRow({
         <div className="hidden shrink-0 items-center md:flex">
           <span
             className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white"
-            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-teal)'}, var(--brand-cyan))` }}
+            style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-blue)'}, var(--brand-blue-hover))` }}
           >
             {initialsOf(appointment.patientName)}
           </span>
@@ -489,7 +703,7 @@ function AppointmentRow({
           <div className="flex items-start gap-3">
             <span
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white md:hidden"
-              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-teal)'}, var(--brand-cyan))` }}
+              style={{ background: `linear-gradient(135deg, ${appointment.serviceColor || 'var(--brand-blue)'}, var(--brand-blue-hover))` }}
             >
               {initialsOf(appointment.patientName)}
             </span>
@@ -570,7 +784,11 @@ function AppointmentRow({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 {canConfirm ? (
-                  <DropdownMenuItem onClick={onConfirm} disabled={pending}>
+                  <DropdownMenuItem
+                    onClick={onConfirm}
+                    disabled={pending}
+                    data-testid="appointment-confirm"
+                  >
                     <CalendarCheck className="mr-2 h-4 w-4 text-sky-600" /> Onayla
                   </DropdownMenuItem>
                 ) : null}
@@ -594,8 +812,13 @@ function AppointmentRow({
                     <Frown className="mr-2 h-4 w-4 text-slate-600" /> Gelmedi
                   </DropdownMenuItem>
                 ) : null}
+                {appointment.status === 'COMPLETED' ? (
+                  <DropdownMenuItem onClick={onInvoice} disabled={pending}>
+                    <FileText className="mr-2 h-4 w-4 text-brand-teal" /> Fatura taslağı
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onClick={onDelete} disabled={pending} className="text-rose-600 focus:text-rose-600">
-                  Sil
+                  Ajandadan kaldır
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -615,31 +838,71 @@ function RescheduleDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
-  const [pending, startTransition] = useTransition()
-  const [date, setDate] = useState(appointment?.date ?? '')
-  const [startTime, setStartTime] = useState(appointment?.startTime ?? '')
+  const [pending, setPending] = useState(false)
+  const [date, setDate] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
-    setDate(appointment?.date ?? '')
-    setStartTime(appointment?.startTime ?? '')
-  }, [appointment])
+    if (!appointment) return
+    setDate(appointment.date)
+    // Strip seconds so controlled <input type="time"> stays HH:mm across browsers.
+    setStartTime(appointment.startTime.slice(0, 5))
+    setFormError(null)
+  }, [appointment?.id, appointment?.date, appointment?.startTime])
 
   if (!appointment) return null
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!appointment) return
-    startTransition(async () => {
-      const result = await rescheduleAppointment({ id: appointment.id, date, startTime })
-      if (!result.ok) { toast.error(result.error); return }
-      toast.success('Randevu yeniden planlandı')
-      onSuccess()
+    e.stopPropagation()
+    if (!appointment || pending) return
+
+    const normalizedTime = startTime.trim().slice(0, 5)
+    if (!/^\d{2}:\d{2}$/.test(normalizedTime)) {
+      setFormError('Saat ss:dd formatında olmalı (örn. 15:30)')
+      toast.error('Saat ss:dd formatında olmalı (örn. 15:30)')
+      return
+    }
+
+    setPending(true)
+    setFormError(null)
+    try {
+      const result = await rescheduleAppointment({
+        id: appointment.id,
+        date,
+        startTime: normalizedTime,
+      })
+      if (!result.ok) {
+        setFormError(result.error)
+        toast.error(result.error)
+        return
+      }
+      // Close first so the toast is not hidden behind the dialog layer.
       onClose()
-    })
+      const slotLabel = formatAppointmentSlotLabel({
+        date,
+        startTime: normalizedTime,
+      })
+      toast.success(`Yeniden planlandı — ${slotLabel}`, {
+        description: 'Hasta ve ekip bildirimleri gönderildi (kanal bağlıysa).',
+      })
+      onSuccess()
+    } catch {
+      setFormError('Randevu yeniden planlanamadı. Lütfen tekrar deneyin.')
+      toast.error('Randevu yeniden planlanamadı. Lütfen tekrar deneyin.')
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !pending) onClose()
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Randevuyu Yeniden Planla</DialogTitle>
@@ -653,14 +916,43 @@ function RescheduleDialog({
           </p>
           <div className="grid grid-cols-2 gap-3">
             <AccessibleField label="Tarih" required labelClassName="text-xs text-muted-foreground mb-1.5 block">
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                disabled={pending}
+              />
             </AccessibleField>
-            <AccessibleField label="Saat" required labelClassName="text-xs text-muted-foreground mb-1.5 block">
-              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            <AccessibleField
+              label="Saat"
+              required
+              error={formError ?? undefined}
+              labelClassName="text-xs text-muted-foreground mb-1.5 block"
+              errorClassName="text-xs text-destructive"
+            >
+              <Input
+                type="time"
+                step={60}
+                value={startTime}
+                onChange={(e) => {
+                  setStartTime(e.target.value.slice(0, 5))
+                  setFormError(null)
+                }}
+                required
+                disabled={pending}
+              />
             </AccessibleField>
           </div>
+          {formError ? (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive" role="alert">
+              {formError}
+            </p>
+          ) : null}
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>İptal</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+              Vazgeç
+            </Button>
             <Button type="submit" disabled={pending} className="bg-brand-teal hover:bg-brand-teal-hover text-white">
               {pending ? 'Kaydediliyor...' : 'Güncelle'}
             </Button>

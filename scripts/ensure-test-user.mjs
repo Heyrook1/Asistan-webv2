@@ -1,11 +1,14 @@
 /**
  * Ensures a clinic test user exists in Supabase Auth + Prisma.
  *
- *   node scripts/ensure-test-user.mjs
+ *   node scripts/ensure-test-user.mjs --i-know-this-bypasses-rls
+ *
+ * Uses SUPABASE_SERVICE_ROLE_KEY (Auth Admin). Remote targets require confirmation.
  */
 import { readFileSync } from 'node:fs'
 import { PrismaClient, TeamRole } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { requireElevatedOps } from './lib/privilege-guard.mjs'
 
 function parseEnvFile(path) {
   try {
@@ -30,6 +33,13 @@ const env = {
   ...process.env,
 }
 
+requireElevatedOps({
+  script: 'ensure-test-user',
+  purpose: 'Create/update Auth users + clinic fixtures via service_role',
+  surfaces: ['supabase-service-role', 'postgres-owner'],
+  env,
+})
+
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL ?? env.SUPABASE_URL
 const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_SECRET_KEY
 
@@ -38,15 +48,15 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const CONFIG = {
-  email: 'Demo@asistan.online',
+  email: 'demo.owner@example.com',
   password: 'Demo123',
-  fullName: 'Demo Kullanici',
+  fullName: 'Demo Kullanici (TEST)',
   clinic: {
     slug: 'asistan-demo-klinigi',
-    name: 'Asistan Demo Klinigi',
-    phone: '+90 212 555 0100',
-    address: 'Bagdat Cad. No:120 Kadikoy',
-    city: 'Istanbul',
+    name: 'Asistan Demo Klinigi (TEST)',
+    phone: '+90 555 010 0000',
+    address: 'TEST adres — Bedrettin Demirel Cad. No:120 Lefkosa',
+    city: 'Lefkosa',
   },
 }
 
@@ -205,7 +215,7 @@ async function ensureVendorAccount(businessId) {
       accessStartAt: new Date(),
       accessEndAt,
       packageDurationDays: 365,
-      notes: 'Test user Demo@asistan.online',
+      notes: 'Test user demo.owner@example.com',
     },
   })
 }

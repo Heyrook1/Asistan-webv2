@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, type CSSProperties } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Root-level error boundary — replaces the root layout, so we cannot rely on
@@ -17,12 +18,33 @@ const brand = {
   card: '#FFFFFF',
 } as const
 
+function linkStyle(primary: boolean): CSSProperties {
+  return {
+    display: 'inline-block',
+    marginTop: 8,
+    marginRight: 8,
+    padding: '10px 16px',
+    borderRadius: 10,
+    border: primary ? 'none' : `1px solid ${brand.border}`,
+    background: primary ? brand.blue : brand.card,
+    color: primary ? '#FFFFFF' : brand.ink,
+    fontSize: 14,
+    fontWeight: 600,
+    textDecoration: 'none',
+    cursor: 'pointer',
+  }
+}
+
 export default function GlobalError({
   error,
 }: {
   error: Error & { digest?: string }
 }) {
   useEffect(() => {
+    Sentry.captureException(error, {
+      tags: { boundary: 'global-error' },
+      extra: error.digest ? { digest: error.digest } : undefined,
+    })
     if (process.env.NODE_ENV !== 'production') {
       console.error(error)
     }
@@ -55,7 +77,8 @@ export default function GlobalError({
               Bir hata oluştu
             </h1>
             <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: brand.muted }}>
-              Güvenliğiniz için teknik detaylar gizlendi. Lütfen sayfayı yenileyin.
+              Güvenliğiniz için teknik detaylar gizlendi. Panele dönebilir veya destek sayfasını
+              açabilirsiniz.
             </p>
             {error.digest ? (
               <p
@@ -68,32 +91,30 @@ export default function GlobalError({
                   color: brand.muted,
                 }}
               >
-                Hata kodu: {error.digest}
+                Destek için kod: {error.digest}
               </p>
             ) : null}
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              style={{
-                marginTop: 16,
-                padding: '10px 16px',
-                borderRadius: 10,
-                border: 'none',
-                background: brand.blue,
-                color: '#FFFFFF',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = brand.blueHover
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = brand.blue
-              }}
-            >
-              Sayfayı yenile
-            </button>
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                style={linkStyle(true)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = brand.blueHover
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = brand.blue
+                }}
+              >
+                Sayfayı yenile
+              </button>
+              <a href="/dashboard" style={linkStyle(false)}>
+                Panele dön
+              </a>
+              <a href="/contact" style={linkStyle(false)}>
+                Destek
+              </a>
+            </div>
           </section>
         </main>
       </body>

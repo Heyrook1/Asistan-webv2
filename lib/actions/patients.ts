@@ -11,8 +11,14 @@ import {
 import { prisma } from '@/lib/prisma'
 import { writeAuditLog } from '@/lib/audit'
 import { requirePermission, requireSession } from '@/lib/session'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
+import { clinicStaffAssignmentError } from '@/lib/security/platform-roles'
 import { ok, err, type ActionResult } from './result'
 import { createNotification } from '@/lib/notifications/service'
+import { resolveOrCreatePerson } from '@/lib/identity/resolve'
+import { patientSearchQuerySchema } from '@/lib/actions/validation'
+import { logPhiAccess } from '@/lib/observability/phi-access'
+import { withPerfSpan } from '@/lib/observability/logger'
 
 async function getPatientNotificationContext(businessId: string, patientId: string) {
   const [business, patient] = await Promise.all([
@@ -20,8 +26,8 @@ async function getPatientNotificationContext(businessId: string, patientId: stri
       where: { id: businessId },
       select: { ownerUserId: true },
     }),
-    prisma.patient.findUnique({
-      where: { id: patientId },
+    prisma.patient.findFirst({
+      where: { id: patientId, businessId },
       select: {
         fullName: true,
         patientNumber: true,
@@ -200,11 +206,19 @@ export async function createPatient(rawInput: unknown): Promise<ActionResult<{ i
   const businessId = session.businessId
 
   try {
-    const patient = await prisma.$transaction(async (tx) => {
+    const patient = await tenantTransaction(businessId, async (tx) => {
+      const { personId } = await resolveOrCreatePerson(tx, {
+        fullName: input.fullName,
+        phone: input.phone,
+        email: input.email ?? null,
+        identityNumber: input.identityNumber ?? null,
+        birthDate: toDate(input.birthDate),
+      })
       const patientNumber = await nextPatientNumber(tx, businessId)
       const created = await tx.patient.create({
         data: {
           businessId,
+          personId,
           patientNumber,
           fullName: input.fullName,
           identityNumber: input.identityNumber ?? null,
@@ -397,15 +411,16 @@ export async function updatePatient(rawInput: unknown): Promise<ActionResult> {
     .filter(([_, value]) => value !== undefined)
     .map(([key]) => key)
 
-  await prisma.$transaction(async (tx) => {
-    await tx.patient.update({
-      where: { id },
+  await tenantTransaction(session.businessId, async (tx) => {
+    const updated = await tx.patient.updateMany({
+      where: { id, businessId: session.businessId },
       data: {
         ...patch,
         birthDate: patch.birthDate !== undefined ? toDate(patch.birthDate) : undefined,
         tags: patch.tags ?? undefined,
       },
     })
+    if (updated.count === 0) throw new Error('Hasta bulunamadı')
 
     await tx.timelineEvent.create({
       data: {
@@ -444,6 +459,15 @@ export async function updatePatient(rawInput: unknown): Promise<ActionResult> {
   revalidatePath(`/dashboard/hastalar/${id}`)
   revalidatePath('/dashboard/hastalar')
   revalidatePath('/dashboard/bildirimler')
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'patient.update',
+    entityType: 'Patient',
+    entityId: id,
+    summary: `Hasta güncellendi (#${existing.patientNumber})`,
+    metadata: { changedFields },
+  })
   return ok(undefined)
 }
 
@@ -484,7 +508,7 @@ export async function addPatientNote(input: unknown): Promise<ActionResult<{ id:
     select: { id: true },
   })
   if (!ownership) return err('Hasta bulunamadı')
-  const note = await prisma.$transaction(async (tx) => {
+  const note = await tenantTransaction(session.businessId, async (tx) => {
     const createdNote = await tx.patientNote.create({
       data: {
         businessId: session.businessId,
@@ -545,7 +569,7 @@ export async function addMedication(input: unknown): Promise<ActionResult<{ id: 
   const session = await requirePermission('patient.edit')
   const data = parsed.data
   if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
-  const med = await prisma.$transaction(async (tx) => {
+  const med = await tenantTransaction(session.businessId, async (tx) => {
     const createdMedication = await tx.medication.create({
       data: {
         businessId: session.businessId,
@@ -582,7 +606,7 @@ export async function addAllergy(input: unknown): Promise<ActionResult<{ id: str
   const session = await requirePermission('patient.edit')
   const data = parsed.data
   if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await tenantTransaction(session.businessId, async (tx) => {
     const createdAllergy = await tx.allergy.create({
       data: {
         businessId: session.businessId,
@@ -617,7 +641,7 @@ export async function addTreatment(input: unknown): Promise<ActionResult<{ id: s
   const session = await requirePermission('patient.edit')
   const data = parsed.data
   if (!(await isPatientOwned(data.patientId, session.businessId))) return err('Hasta bulunamadı')
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await tenantTransaction(session.businessId, async (tx) => {
     const createdTreatment = await tx.treatment.create({
       data: {
         businessId: session.businessId,
@@ -686,7 +710,7 @@ export async function addLabResult(input: unknown): Promise<ActionResult<{ id: s
   const fileUrlError = validateLabResultFileUrl(data.fileUrl, session.businessId, data.patientId)
   if (fileUrlError) return err(fileUrlError)
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await tenantTransaction(session.businessId, async (tx) => {
     const createdLabResult = await tx.labResult.create({
       data: {
         businessId: session.businessId,
@@ -758,7 +782,7 @@ export async function addPatientFile(input: unknown): Promise<ActionResult<{ id:
   const fileReferenceError = validatePatientFileReference(data, session.businessId, data.patientId)
   if (fileReferenceError) return err(fileReferenceError)
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await tenantTransaction(session.businessId, async (tx) => {
     const createdFile = await tx.patientFile.create({
       data: {
         businessId: session.businessId,
@@ -814,10 +838,21 @@ export async function addPatientFile(input: unknown): Promise<ActionResult<{ id:
 
   revalidatePath(`/dashboard/hastalar/${data.patientId}`)
   revalidatePath('/dashboard/bildirimler')
+  await writeAuditLog({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'patient.file.upload',
+    entityType: 'PatientFile',
+    entityId: created.id,
+    summary: 'Hasta dosyası yüklendi',
+    metadata: {
+      patientId: data.patientId,
+      category: data.category,
+      fileSize: data.fileSize ?? null,
+    },
+  })
   return ok({ id: created.id })
 }
-
-// ── Hasta meta (Hasta Kartı hızlı düzenleme) ───────────────────────────────
 
 const metaSchema = z.object({
   patientId: z.string().uuid(),
@@ -841,8 +876,21 @@ export async function updatePatientMeta(input: unknown): Promise<ActionResult> {
   })
   if (!owned) return err('Hasta bulunamadı')
 
-  await prisma.patient.update({
-    where: { id: parsed.data.patientId },
+  if (parsed.data.assignedDoctorId) {
+    const doctor = await prisma.teamMember.findFirst({
+      where: { id: parsed.data.assignedDoctorId },
+      select: { id: true, businessId: true, isActive: true, role: true },
+    })
+    const doctorError = clinicStaffAssignmentError({
+      staff: doctor,
+      expectedBusinessId: session.businessId,
+    })
+    if (doctorError) return err(doctorError)
+    if (doctor?.role !== 'DOKTOR') return err('Atanan kişi doktor olmalıdır')
+  }
+
+  const updated = await prisma.patient.updateMany({
+    where: { id: parsed.data.patientId, businessId: session.businessId },
     data: {
       lastDiagnosis: parsed.data.lastDiagnosis ?? null,
       currentTreatment: parsed.data.currentTreatment ?? null,
@@ -851,6 +899,7 @@ export async function updatePatientMeta(input: unknown): Promise<ActionResult> {
       assignedDoctorId: parsed.data.assignedDoctorId ?? null,
     },
   })
+  if (updated.count === 0) return err('Hasta bulunamadı')
   revalidatePath(`/dashboard/hastalar/${parsed.data.patientId}`)
   return ok(undefined)
 }
@@ -901,7 +950,11 @@ export async function updateTreatmentPlanItem(input: unknown): Promise<ActionRes
   })
   if (!owned) return err('Tedavi planı kalemi bulunamadı')
   const { id, ...patch } = parsed.data
-  await prisma.treatmentPlanItem.update({ where: { id }, data: patch })
+  const updated = await prisma.treatmentPlanItem.updateMany({
+    where: { id, businessId: session.businessId },
+    data: patch,
+  })
+  if (updated.count === 0) return err('Tedavi planı kalemi bulunamadı')
   revalidatePath(`/dashboard/hastalar/${owned.patientId}`)
   return ok(undefined)
 }
@@ -916,7 +969,10 @@ export async function deleteTreatmentPlanItem(input: unknown): Promise<ActionRes
     select: { patientId: true },
   })
   if (!owned) return err('Kayıt bulunamadı')
-  await prisma.treatmentPlanItem.delete({ where: { id: parsed.data.id } })
+  const deleted = await prisma.treatmentPlanItem.deleteMany({
+    where: { id: parsed.data.id, businessId: session.businessId },
+  })
+  if (deleted.count === 0) return err('Kayıt bulunamadı')
   revalidatePath(`/dashboard/hastalar/${owned.patientId}`)
   return ok(undefined)
 }
@@ -924,31 +980,47 @@ export async function deleteTreatmentPlanItem(input: unknown): Promise<ActionRes
 // ── Search ─────────────────────────────────────────────────────────────────
 
 export async function searchPatients(query: string) {
-  const session = await requireSession()
-  const q = query.trim()
+  const parsed = patientSearchQuerySchema.safeParse(query)
+  if (!parsed.success) return []
+  const q = parsed.data
   if (!q) return []
-  return prisma.patient.findMany({
-    where: {
-      businessId: session.businessId,
-      isArchived: false,
-      OR: [
-        { fullName: { contains: q, mode: 'insensitive' } },
-        { phone: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } },
-        { patientNumber: { contains: q, mode: 'insensitive' } },
-        { identityNumber: { contains: q, mode: 'insensitive' } },
-        { tags: { has: q } },
-      ],
-    },
-    take: 15,
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      fullName: true,
-      patientNumber: true,
-      phone: true,
-      email: true,
-      tags: true,
+  const session = await requireSession()
+  const rows = await withPerfSpan('patients.search', 'db.query', () =>
+    prisma.patient.findMany({
+      where: {
+        businessId: session.businessId,
+        isArchived: false,
+        OR: [
+          { fullName: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { patientNumber: { contains: q, mode: 'insensitive' } },
+          { identityNumber: { contains: q, mode: 'insensitive' } },
+          { tags: { has: q } },
+        ],
+      },
+      take: 15,
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        fullName: true,
+        patientNumber: true,
+        phone: true,
+        email: true,
+        tags: true,
+      },
+    })
+  )
+  logPhiAccess({
+    businessId: session.businessId,
+    actorUserId: session.userId,
+    action: 'patient.search',
+    summary: 'Hasta typeahead araması',
+    metadata: {
+      hitCount: rows.length,
+      queryLen: q.length,
+      source: 'patients.search',
     },
   })
+  return rows
 }

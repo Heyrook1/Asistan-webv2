@@ -61,7 +61,7 @@ export default async function GuideArticlePage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <article className="bg-white pb-20 pt-28">
+      <article className="bg-white pb-20 pt-10">
         <div className="marketing-container max-w-3xl">
           <FadeUp>
             <Link
@@ -87,10 +87,10 @@ export default async function GuideArticlePage({ params }: PageProps) {
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <h1 className="font-heading text-3xl font-black leading-tight text-brand-navy md:text-4xl">
+                <h1 className="font-heading text-3xl font-black leading-[1.16] tracking-tight text-brand-navy md:text-4xl">
                   {guide.title}
                 </h1>
-                <p className="mt-3 text-base leading-7 text-slate-600 md:text-lg">
+                <p className="mt-6 text-base leading-7 text-[#6B7280] md:text-lg">
                   {guide.description}
                 </p>
               </div>
@@ -121,7 +121,7 @@ export default async function GuideArticlePage({ params }: PageProps) {
             <p className="mt-2 text-sm leading-7 text-white/75">
               Ajanda, hasta kartı ve ekip yetkilerini Asistan panelinde birlikte kurabiliriz.
             </p>
-            <Button asChild className="mt-5 rounded-xl bg-white text-brand-navy hover:bg-white/90">
+            <Button asChild className="mt-5 rounded-xl bg-white text-brand-navy shadow-[0_10px_22px_-14px_rgba(15,23,42,0.5)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-px hover:bg-white/90 hover:shadow-[0_16px_28px_-14px_rgba(15,23,42,0.58)] active:translate-y-0">
               <Link href={DEMO_CONTACT_PATH}>
                 {ENTRY_CTA.demoRequest.tr}
                 <ArrowRight className="ml-2 h-4 w-4" />

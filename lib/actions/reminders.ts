@@ -55,8 +55,8 @@ export async function toggleReminder(rawInput: unknown): Promise<ActionResult> {
     select: { id: true },
   })
   if (!owned) return err('Hatırlatma bulunamadı')
-  await prisma.reminder.update({
-    where: { id: parsed.data.id },
+  await prisma.reminder.updateMany({
+    where: { id: parsed.data.id, businessId: session.businessId, userId: session.userId },
     data: { isDone: parsed.data.isDone },
   })
   revalidatePath('/dashboard')
@@ -75,8 +75,8 @@ export async function updateReminder(rawInput: unknown): Promise<ActionResult> {
     select: { id: true },
   })
   if (!owned) return err('Hatırlatma bulunamadı')
-  await prisma.reminder.update({
-    where: { id },
+  await prisma.reminder.updateMany({
+    where: { id, businessId: session.businessId, userId: session.userId },
     data: {
       title: patch.title,
       note: patch.note ?? undefined,
@@ -99,7 +99,9 @@ export async function deleteReminder(rawInput: unknown): Promise<ActionResult> {
     select: { id: true },
   })
   if (!owned) return err('Hatırlatma bulunamadı')
-  await prisma.reminder.delete({ where: { id: parsed.data.id } })
+  await prisma.reminder.deleteMany({
+    where: { id: parsed.data.id, businessId: session.businessId, userId: session.userId },
+  })
   revalidatePath('/dashboard')
   return ok(undefined)
 }

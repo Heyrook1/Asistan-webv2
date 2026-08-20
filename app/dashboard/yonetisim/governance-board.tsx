@@ -26,6 +26,11 @@ import {
   upsertComplianceDocument,
 } from '@/lib/actions/governance'
 import { cn } from '@/lib/utils'
+import {
+  labelAuditSeverity,
+  labelComplianceDocStatus,
+  labelDataDeletionStatus,
+} from '@/lib/ui-labels'
 
 type AuditRow = {
   id: string
@@ -266,10 +271,10 @@ export function GovernanceBoard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tüm önem</SelectItem>
-                  <SelectItem value="INFO">INFO</SelectItem>
-                  <SelectItem value="WARN">WARN</SelectItem>
-                  <SelectItem value="ERROR">ERROR</SelectItem>
-                  <SelectItem value="CRITICAL">CRITICAL</SelectItem>
+                  <SelectItem value="INFO">Bilgi</SelectItem>
+                  <SelectItem value="WARN">Uyarı</SelectItem>
+                  <SelectItem value="ERROR">Hata</SelectItem>
+                  <SelectItem value="CRITICAL">Kritik</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={actionFilter} onValueChange={setActionFilter}>
@@ -310,7 +315,7 @@ export function GovernanceBoard({
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-brand-ink">{log.summary || log.action}</p>
                         <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', SEVERITY_STYLE[log.severity] ?? SEVERITY_STYLE.INFO)}>
-                          {log.severity}
+                          {labelAuditSeverity(log.severity)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -414,7 +419,7 @@ export function GovernanceBoard({
                             {formatDate(req.requestedAt)}
                           </p>
                         </div>
-                        <Badge className="border-0 bg-slate-100 text-slate-700">{req.status}</Badge>
+                        <Badge className="border-0 bg-slate-100 text-slate-700">{labelDataDeletionStatus(req.status)}</Badge>
                       </div>
                       {req.reason && <p className="mt-2 text-xs text-muted-foreground">{req.reason}</p>}
                       {canManage && (req.status === 'PENDING' || req.status === 'IN_REVIEW') && (
@@ -533,7 +538,7 @@ export function GovernanceBoard({
                       <td className="px-3 py-2 text-muted-foreground">{doc.category}</td>
                       <td className="px-3 py-2">{doc.version}</td>
                       <td className="px-3 py-2">
-                        <Badge className="border-0 bg-emerald-100 text-emerald-800">{doc.status}</Badge>
+                        <Badge className="border-0 bg-emerald-100 text-emerald-800">{labelComplianceDocStatus(doc.status)}</Badge>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {formatDate(doc.effectiveAt)}

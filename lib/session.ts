@@ -1,11 +1,21 @@
 import 'server-only'
 
+/**
+ * Klinik panel oturumu (Asistan Health).
+ *
+ * Supabase Auth → TeamMember / VendorAccount çözümler; RBAC izinleri,
+ * demo paket süresi ve support-mode çerezi burada birleşir.
+ * Sayfa/API koruması: `requireSession` / `requirePermission` / `requirePagePermission`.
+ * Hasta (client) auth ayrıdır → `lib/client-marketplace/auth.ts`.
+ */
+
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Prisma, TeamRole } from '@prisma/client'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { sessionPrisma } from '@/lib/prisma-owner'
 import { addDays, DEMO_PLAN_CODE, DEMO_TRIAL_DAYS } from '@/lib/vendor-membership'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { SUPPORT_BUSINESS_COOKIE, isSupportModeCookie } from '@/lib/support-mode'
@@ -17,9 +27,27 @@ import {
   type Permission,
   type SessionContext,
   can,
+  canAny,
+  canAccessTeam,
+  canViewFinance,
+  FINANCE_VIEW_PERMISSION,
+  TEAM_ACCESS_PERMISSIONS,
+  isPrivilegedClinicAdmin,
 } from '@/lib/rbac'
 
-export { PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS, can, parseSystemAdminEmails }
+export {
+  PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+  ROLE_LABELS,
+  can,
+  canAny,
+  canAccessTeam,
+  canViewFinance,
+  FINANCE_VIEW_PERMISSION,
+  TEAM_ACCESS_PERMISSIONS,
+  isPrivilegedClinicAdmin,
+  parseSystemAdminEmails,
+}
 export type { Permission, SessionContext }
 
 type SessionBlockReason = 'package_expired' | null
@@ -34,8 +62,10 @@ type VendorAccountDelegate = {
   update: typeof prisma.vendorAccount.update
 }
 
-function getVendorAccountDelegate(): VendorAccountDelegate | null {
-  const delegate = (prisma as { vendorAccount?: VendorAccountDelegate }).vendorAccount
+function getVendorAccountDelegate(
+  client: typeof prisma = sessionPrisma()
+): VendorAccountDelegate | null {
+  const delegate = (client as { vendorAccount?: VendorAccountDelegate }).vendorAccount
   if (!delegate) {
     console.error('Prisma delegate "vendorAccount" is unavailable. Run prisma generate and restart the server.')
     return null
@@ -57,17 +87,18 @@ async function createBootstrapBusiness(input: {
   ownerUserId: string
   email: string
 }) {
+  const db = sessionPrisma()
   let slug = input.baseSlug
   let suffix = 1
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    while (await prisma.business.findUnique({ where: { slug } })) {
+    while (await db.business.findUnique({ where: { slug } })) {
       suffix += 1
       slug = `${input.baseSlug}-${suffix}`
     }
 
     try {
-      return await prisma.business.create({
+      return await db.business.create({
         data: {
           name: `${input.fullName} Kliniği`,
           slug,
@@ -80,7 +111,7 @@ async function createBootstrapBusiness(input: {
         throw error
       }
 
-      const owned = await prisma.business.findUnique({ where: { ownerUserId: input.ownerUserId } })
+      const owned = await db.business.findUnique({ where: { ownerUserId: input.ownerUserId } })
       if (owned) return owned
 
       suffix += 1
@@ -88,7 +119,7 @@ async function createBootstrapBusiness(input: {
     }
   }
 
-  return prisma.business.create({
+  return db.business.create({
     data: {
       name: `${input.fullName} Kliniği`,
       slug: `${input.baseSlug}-${Date.now().toString(36)}`,
@@ -99,7 +130,8 @@ async function createBootstrapBusiness(input: {
 }
 
 async function createSelfSignupDemoVendorAccount(businessId: string) {
-  const vendorAccount = getVendorAccountDelegate()
+  const db = sessionPrisma()
+  const vendorAccount = getVendorAccountDelegate(db)
   if (!vendorAccount) return
 
   const exists = await vendorAccount.findUnique({
@@ -130,7 +162,8 @@ async function ensureVendorAccessState(input: {
 }): Promise<SessionBlockReason> {
   if (input.role === TeamRole.SUPER_ADMIN) return null
 
-  const vendorAccount = getVendorAccountDelegate()
+  const db = sessionPrisma()
+  const vendorAccount = getVendorAccountDelegate(db)
   if (!vendorAccount) return input.businessIsActive ? null : 'package_expired'
 
   const account = await vendorAccount.findUnique({
@@ -150,12 +183,12 @@ async function ensureVendorAccessState(input: {
   const expired = !!account.accessEndAt && account.accessEndAt.getTime() <= now.getTime()
 
   if (expired && (account.status === 'TRIAL' || account.status === 'ACTIVE')) {
-    await prisma.$transaction([
+    await db.$transaction([
       vendorAccount.update({
         where: { id: account.id },
         data: { status: 'SUSPENDED' },
       }),
-      prisma.business.update({
+      db.business.update({
         where: { id: input.businessId },
         data: { isActive: false },
       }),
@@ -184,13 +217,16 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
     (authUser.user_metadata?.name as string | undefined) ||
     authUser.email.split('@')[0]
 
-  let user = await prisma.user.findFirst({
+  // Owner/migrate client when runtime is asistan_app — User INSERT is denied by auth.uid RLS.
+  const db = sessionPrisma()
+
+  let user = await db.user.findFirst({
     where: { OR: [{ id: authUser.id }, { email: authUser.email }] },
   })
 
   if (!user) {
     try {
-      user = await prisma.user.create({
+      user = await db.user.create({
         data: {
           id: authUser.id,
           email: authUser.email,
@@ -200,7 +236,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
       })
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        user = await prisma.user.findUnique({ where: { email: authUser.email } })
+        user = await db.user.findUnique({ where: { email: authUser.email } })
       }
       if (!user) throw error
     }
@@ -211,7 +247,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
       user.email !== authUser.email || user.fullName !== nextFullName || user.avatarUrl !== nextAvatar
 
     if (shouldUpdateUser) {
-      user = await prisma.user.update({
+      user = await db.user.update({
         where: { id: user.id },
         data: {
           email: authUser.email,
@@ -225,8 +261,8 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
   if (!user.isActive) return { session: null, blockedReason: null }
 
   const [ownedBusiness, membership] = await Promise.all([
-    prisma.business.findUnique({ where: { ownerUserId: user.id } }),
-    prisma.teamMember.findFirst({
+    db.business.findUnique({ where: { ownerUserId: user.id } }),
+    db.teamMember.findFirst({
       where: {
         OR: [{ userId: user.id }, { email: user.email }],
         isActive: true,
@@ -247,7 +283,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
       ownerUserId: user.id,
       email: authUser.email,
     })
-    await prisma.teamMember.upsert({
+    await db.teamMember.upsert({
       where: {
         businessId_email: {
           businessId: business.id,
@@ -274,7 +310,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
     await createSelfSignupDemoVendorAccount(business.id)
   } else {
     if (membership && !membership.userId) {
-      await prisma.teamMember.update({
+      await db.teamMember.update({
         where: { id: membership.id },
         data: { userId: user.id },
       })
@@ -284,7 +320,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
   const isOwner = business.ownerUserId === user.id
   const currentMembership = isOwner
     ? null
-    : await prisma.teamMember.findFirst({
+    : await db.teamMember.findFirst({
         where: {
           businessId: business.id,
           isActive: true,
@@ -296,13 +332,13 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
 
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
   if (currentMembership && (!currentMembership.lastSeenAt || currentMembership.lastSeenAt < fiveMinAgo)) {
-    await prisma.teamMember.update({
+    await db.teamMember.update({
       where: { id: currentMembership.id },
       data: { lastSeenAt: new Date() },
     })
   }
 
-  let role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
+  const role = (currentMembership?.role ?? (isOwner ? TeamRole.ISLETME_SAHIBI : TeamRole.PERSONEL)) as TeamRole
   let resolvedBusiness = business
   let resolvedIsOwner = isOwner
   let supportMode: SessionContext['supportMode'] = null
@@ -312,7 +348,7 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
       const jar = await cookies()
       const supportId = jar.get(SUPPORT_BUSINESS_COOKIE)?.value
       if (isSupportModeCookie(supportId)) {
-        const target = await prisma.business.findUnique({ where: { id: supportId! } })
+        const target = await db.business.findUnique({ where: { id: supportId! } })
         if (target) {
           resolvedBusiness = target
           resolvedIsOwner = false
@@ -334,8 +370,10 @@ const resolveSession = cache(async (): Promise<SessionResolution> => {
   if (blockedReason) return { session: null, blockedReason }
 
   const explicit = (currentMembership?.permissions ?? []) as Permission[]
+  // ISLETME_SAHIBI / owner / super-admin always get the live capability matrix.
+  // Stale TeamMember.permissions JSON must not strip newly added keys (e.g. team.view).
   const permissions =
-    resolvedIsOwner || role === TeamRole.SUPER_ADMIN
+    resolvedIsOwner || role === TeamRole.SUPER_ADMIN || role === TeamRole.ISLETME_SAHIBI
       ? [...PERMISSIONS]
       : explicit.length > 0
         ? explicit
@@ -385,17 +423,21 @@ export async function requireSession(): Promise<SessionContext> {
 
 export async function requirePermission(permission: Permission): Promise<SessionContext> {
   const session = await requireSession()
-  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
-  if (!session.permissions.includes(permission)) {
+  if (!can(session, permission)) {
     throw new Error('Bu işlem için yetkiniz yok')
   }
   return session
 }
 
+function forbiddenRedirect(need: string) {
+  redirect(`/dashboard/yetkisiz?need=${encodeURIComponent(need)}`)
+}
+
 export async function requirePagePermission(permission: Permission): Promise<SessionContext> {
   const session = await requireSession()
-  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
-  if (!session.permissions.includes(permission)) redirect('/dashboard')
+  if (!can(session, permission)) {
+    forbiddenRedirect(permission)
+  }
   return session
 }
 
@@ -403,8 +445,9 @@ export async function requirePageAnyPermission(
   ...permissions: Permission[]
 ): Promise<SessionContext> {
   const session = await requireSession()
-  if (session.isOwner || session.role === TeamRole.SUPER_ADMIN) return session
-  if (!permissions.some((p) => session.permissions.includes(p))) redirect('/dashboard')
+  if (!canAny(session, permissions)) {
+    forbiddenRedirect(permissions.join(','))
+  }
   return session
 }
 
@@ -417,6 +460,11 @@ export function isSystemAdmin(session: SessionContext | null) {
   const allowlist = getSystemAdminEmails()
   if (allowlist.size > 0) {
     return allowlist.has(session.email.toLowerCase())
+  }
+  // Fail closed in production: with no explicit allowlist configured, do NOT trust the
+  // tenant-assignable SUPER_ADMIN role as proof of platform admin. Only dev/test may fall back.
+  if (process.env.NODE_ENV === 'production') {
+    return false
   }
   return session.role === TeamRole.SUPER_ADMIN
 }

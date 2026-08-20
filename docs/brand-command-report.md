@@ -6,12 +6,12 @@ Executive canvas: sohbet yanında açılabilir denetim özeti (bu sprint + açı
 
 ## Verdict
 
-**Marka sağlığı: ~78/100**
+**Marka sağlığı: ~80/100**
 
 KKTC’te satılabilir klinik SaaS; premium global değil. Sistem kimliği artık yönetilebilir — mesafe kapanır.
 
 - **Güç:** erken erişim dürüstlüğü, ENTRY_CTA hunileri, claim/stage/hub guardrails, palette + Manrope, dashboard chrome
-- **Zayıf:** FloatingCTA login bias; ölçülen inovasyon kanıtı; cyan gradyan; ölü dual-hero
+- **Zayıf:** Signed % no-show/NPS henüz yok; `brand-teal` className naming debt (tokens already blue)
 
 **Marka vaadi (kilitli):**  
 > “KKTC kliniklerinin günlük operasyonunu sakinleştiren dijital sağlık paneli.”
@@ -26,8 +26,8 @@ Trust = kanıtlı kontrol · Innovation = ölçülen operasyon sonucu · Profess
 |--------|------|
 | Trust (güven iletişimi) | 78 |
 | Professionalism | 72 |
-| Innovation (kanıtlı yenilik) | 58 |
-| Visual / system consistency | 76 |
+| Innovation (kanıtlı yenilik) | 68 |
+| Visual / system consistency | 82 |
 | Copy & content quality (TR) | 78 |
 | SEO & owned digital | 74 |
 | Journey & conversion clarity | 72 |
@@ -69,11 +69,11 @@ Kaynak: [`masterbrand.md`](./masterbrand.md) · `lib/brand/masterbrand.ts`
 
 | Sev | Alan | Sorun | Aksiyon |
 |-----|------|-------|---------|
-| P2 | Conversion | FloatingCTA login-only; hero trial-first | Floater = trial (login secondary); demo ayrı rol |
-| P2 | Visual residue | HomeCTA cyan uç `#00b4d8`; `brand-teal` adı borcu | İlk ekran gradyan → mavi aile |
+| P2 | Conversion | ~~FloatingCTA login-only; hero trial-first~~ **DONE** | Floater = trial primary + login chip; demo ayrı rol |
+| P2 | Visual residue | ~~HomeCTA cyan uç `#00b4d8`; dual-hero~~ **DONE** | HomeCTA/avatars blue-only; orphans deleted · [`visual-scrub.md`](./visual-scrub.md) |
 | P2 | Copy debt | ~~`/fiyatlandirma` + orphan ASCII; hero “tenant”~~ **DONE** | Dil QA: `/urun` `/fiyatlandirma` diyakritik; home/EN jargon scrub (tenant/RLS/slot); claim EN |
-| P2 | Code hygiene | Dual hero (CoverFlow canlı; marketing Hero ölü) | Sil veya archive |
-| P1 | Innovation proof | Ölçülen outcome yok | 2–3 KKTC case (no-show / tek ajanda) |
+| P2 | Code hygiene | ~~Dual hero (CoverFlow canlı; marketing Hero ölü)~~ **DONE** | LandingPage + marketing/sections + animated-hero silindi |
+| P1 | Innovation proof | ~~Ölçülen outcome yok~~ **DONE (process)** | 3 anonim KKTC case + `/sonuclar`; signed %/NPS şablon draft |
 | P1 | Social depth | LinkedIn yok; repo’da ads kit yok | LI: yayınla veya bilinçli yok; 1 paid kit |
 
 ---
@@ -82,8 +82,8 @@ Kaynak: [`masterbrand.md`](./masterbrand.md) · `lib/brand/masterbrand.ts`
 
 | Rol | Sahip | Durum |
 |-----|-------|-------|
-| Trial | Hero primary + header | Sağlıklı |
-| Login | Header + **FloatingCTA** | Floater aşırı ağır |
+| Trial | Hero primary + header + **FloatingCTA** | Sağlıklı |
+| Login | Header + FloatingCTA secondary chip | Dengeli |
 | Demo / sales | Pricing / contact | Home’da zayıf |
 | Patient book | HomeCTA outline | Net (`/client`) |
 
@@ -91,11 +91,11 @@ Kaynak: [`masterbrand.md`](./masterbrand.md) · `lib/brand/masterbrand.ts`
 
 ## 90 günlük odak
 
-1. FloatingCTA → trial-first  
-2. Cyan residue scrub (HomeCTA + avatar)  
+1. ~~FloatingCTA → trial-first~~ **DONE**  
+2. ~~Cyan residue scrub (HomeCTA + avatar)~~ **DONE**  
 3. ASCII scrub (`/fiyatlandirma`, orphan marketing)  
-4. Dead hero / LandingPage cleanup  
-5. 2–3 ölçülebilir KKTC proof  
+4. ~~Dead hero / LandingPage cleanup~~ **DONE**  
+5. ~~2–3 ölçülebilir KKTC proof~~ **DONE** (process pilots; signed % bekliyor)  
 6. LinkedIn kararı + opsiyonel paid creative  
 
 ---
@@ -133,6 +133,9 @@ Kaynak: [`regional-hubs.md`](./regional-hubs.md) · `openInternationalGate()`
 |---------|--------|
 | Masterbrand | `lib/brand/masterbrand.ts` |
 | Claims / stage | `lib/brand/claim-bank.ts` · [`claim-bank.md`](./claim-bank.md) |
+| Outcome proof | `lib/brand/outcome-cases.ts` · [`outcome-cases.md`](./outcome-cases.md) · `/sonuclar` |
+| Product boundary | `lib/brand/product-boundary.ts` · [`product-boundary.md`](./product-boundary.md) |
+| Visual scrub | [`visual-scrub.md`](./visual-scrub.md) |
 | Klinik dili | `lib/brand/clinic-copy.ts` |
 | Tipografi | `lib/brand/typography.ts` · [`typography.md`](./typography.md) |
 | Hubs | `lib/brand/regional-hubs.ts` · [`regional-hubs.md`](./regional-hubs.md) |

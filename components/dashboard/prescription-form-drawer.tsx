@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createPrescription, getPrescriptionDraft } from '@/lib/actions/prescriptions'
 import type { PrescriptionLineInput } from '@/lib/prescriptions/schema'
+import { prescriptionUiCopy } from '@/lib/prescriptions/ui-copy'
 
 type DoctorOption = {
   id: string
@@ -80,7 +81,7 @@ export function PrescriptionFormDrawer({
     getPrescriptionDraft(patientId)
       .then((result) => {
         if (!result.ok || !result.data) {
-          toast.error(result.ok ? 'Taslak olusturulamadi' : result.error)
+          toast.error(result.ok ? prescriptionUiCopy.draftFailed : result.error)
           return
         }
         const next = result.data as DraftState
@@ -112,7 +113,7 @@ export function PrescriptionFormDrawer({
 
   function submit() {
     if (!draft || !selectedDoctor) {
-      toast.error('Doktor secimi zorunludur')
+      toast.error('Doktor seçimi zorunludur')
       return
     }
 
@@ -149,7 +150,7 @@ export function PrescriptionFormDrawer({
         return
       }
 
-      toast.success(`E-recete olusturuldu (${result.data.protocolNo})`)
+      toast.success(prescriptionUiCopy.createSuccess(result.data.protocolNo))
       onOpenChange(false)
       router.push(`/dashboard/hastalar/${patientId}/receteler/${result.data.id}`)
       router.refresh()
@@ -160,11 +161,11 @@ export function PrescriptionFormDrawer({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>KKTC E-Reçete Oluştur</DialogTitle>
+          <DialogTitle>{prescriptionUiCopy.createTitle}</DialogTitle>
         </DialogHeader>
 
         {loading || !draft ? (
-          <p className="text-sm text-muted-foreground">Hasta ve doktor bilgileri yukleniyor...</p>
+          <p className="text-sm text-muted-foreground">Hasta ve doktor bilgileri yükleniyor…</p>
         ) : (
           <div className="grid gap-5">
             {draft.missingFields.length > 0 && (
@@ -176,19 +177,19 @@ export function PrescriptionFormDrawer({
 
             {draft.allergyWarning && (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                <p className="font-semibold">Alerji uyarisi</p>
+                <p className="font-semibold">Alerji uyarısı</p>
                 <p className="mt-1">{draft.allergyWarning}</p>
               </div>
             )}
 
             <section className="grid gap-3 sm:grid-cols-2">
-              <Field label="Hasta adi">
+              <Field label="Hasta adı">
                 <Input
                   value={draft.patient.fullName}
                   onChange={(e) => setDraft({ ...draft, patient: { ...draft.patient, fullName: e.target.value } })}
                 />
               </Field>
-              <Field label="KKTC kimlik no *">
+              <Field label="KKTC kimlik no *" required>
                 <Input
                   value={draft.patient.identityNumber}
                   onChange={(e) =>
@@ -196,7 +197,7 @@ export function PrescriptionFormDrawer({
                   }
                 />
               </Field>
-              <Field label="Dogum tarihi">
+              <Field label="Doğum tarihi">
                 <Input
                   type="date"
                   value={draft.patient.birthDate}
@@ -215,7 +216,7 @@ export function PrescriptionFormDrawer({
                   onChange={(e) => setDraft({ ...draft, patient: { ...draft.patient, address: e.target.value } })}
                 />
               </Field>
-              <Field label="Sehir">
+              <Field label="Şehir">
                 <Input
                   value={draft.patient.city}
                   onChange={(e) => setDraft({ ...draft, patient: { ...draft.patient, city: e.target.value } })}
@@ -224,10 +225,10 @@ export function PrescriptionFormDrawer({
             </section>
 
             <section className="grid gap-3 sm:grid-cols-2">
-              <Field label="Recete yazan doktor *">
+              <Field label="Reçete yazan doktor *" required>
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Doktor secin" />
+                    <SelectValue placeholder="Doktor seçin" />
                   </SelectTrigger>
                   <SelectContent>
                     {doctors.map((doctor) => (
@@ -238,7 +239,7 @@ export function PrescriptionFormDrawer({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Gecerlilik tarihi">
+              <Field label="Geçerlilik tarihi">
                 <Input
                   type="date"
                   value={draft.validUntil}
@@ -254,61 +255,61 @@ export function PrescriptionFormDrawer({
               <Field label="Diploma no">
                 <Input value={selectedDoctor?.diplomaNo ?? ''} disabled />
               </Field>
-              <Field label="Uzmanlik">
+              <Field label="Uzmanlık">
                 <Input value={selectedDoctor?.specialty ?? ''} disabled />
               </Field>
             </section>
 
             <section className="grid gap-3">
-              <Field label="Tani *">
+              <Field label="Tanı *" required>
                 <Textarea
                   value={draft.diagnosis}
                   onChange={(e) => setDraft({ ...draft, diagnosis: e.target.value })}
                   rows={2}
                 />
               </Field>
-              <Field label="Recete notu">
+              <Field label="Reçete notu">
                 <Textarea value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} rows={2} />
               </Field>
             </section>
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-brand-ink">Ilac satirlari</p>
+                <p className="text-sm font-semibold text-brand-ink">İlaç satırları</p>
                 <Button type="button" variant="outline" size="sm" onClick={addLine}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Satir ekle
+                  Satır ekle
                 </Button>
               </div>
 
               {draft.lines.map((line, index) => (
                 <div key={`line-${index}`} className="rounded-xl border border-border/70 p-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-muted-foreground">Ilac {index + 1}</p>
+                    <p className="text-xs font-semibold text-muted-foreground">İlaç {index + 1}</p>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => removeLine(index)}
-                      aria-label={`Ilac ${index + 1} satirini sil`}
+                      aria-label={`İlaç ${index + 1} satırını sil`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Ilac adi *">
+                    <Field label="İlaç adı *" required>
                       <Input value={line.drugName} onChange={(e) => updateLine(index, { drugName: e.target.value })} />
                     </Field>
                     <Field label="Doz">
                       <Input value={line.dosage ?? ''} onChange={(e) => updateLine(index, { dosage: e.target.value })} />
                     </Field>
-                    <Field label="Kullanim">
+                    <Field label="Kullanım">
                       <Input
                         value={line.frequency ?? ''}
                         onChange={(e) => updateLine(index, { frequency: e.target.value })}
                       />
                     </Field>
-                    <Field label="Sure (gun)">
+                    <Field label="Süre (gün)">
                       <Input
                         type="number"
                         value={line.durationDays ?? ''}
@@ -326,7 +327,7 @@ export function PrescriptionFormDrawer({
                         }
                       />
                     </Field>
-                    <Field label="Kullanim sekli">
+                    <Field label="Kullanım şekli">
                       <Input
                         value={line.instructions ?? ''}
                         onChange={(e) => updateLine(index, { instructions: e.target.value })}
@@ -339,7 +340,7 @@ export function PrescriptionFormDrawer({
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Vazgec
+                Vazgeç
               </Button>
               <Button
                 type="button"
@@ -348,7 +349,7 @@ export function PrescriptionFormDrawer({
                 onClick={submit}
               >
                 <Printer className="mr-2 h-4 w-4" />
-                {pending ? 'Olusturuluyor...' : 'E-receteyi olustur'}
+                {pending ? prescriptionUiCopy.createPending : prescriptionUiCopy.createSubmit}
               </Button>
             </div>
           </div>
@@ -358,9 +359,22 @@ export function PrescriptionFormDrawer({
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactElement }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: React.ReactElement
+}) {
   return (
-    <AccessibleField label={label} labelClassName="text-xs text-muted-foreground" className="grid gap-1.5">
+    <AccessibleField
+      label={label}
+      required={required ?? label.includes('*')}
+      labelClassName="text-xs text-muted-foreground"
+      className="grid gap-1.5"
+    >
       {children}
     </AccessibleField>
   )

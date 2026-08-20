@@ -2,6 +2,14 @@ import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
 
+import { listRequiredRlsTableNames } from '../lib/security/rls-inventory'
+import {
+  listBusinessIdScopedTables,
+  listDenyPostgrestTables,
+  policyLooksBusinessScoped,
+  policyLooksDenyAll,
+} from '../lib/security/rls-policy-inventory'
+
 config({ path: '.env.local' })
 config({ path: '.env' })
 
@@ -24,31 +32,69 @@ function fail(name: string, detail?: string): Check {
 async function main() {
   const checks: Check[] = []
 
-  const requiredRlsTables = [
-    'Business',
-    'User',
-    'Patient',
-    'Appointment',
-    'PatientFile',
-    'PatientNote',
-    'Medication',
-    'Allergy',
-    'Treatment',
-    'TreatmentPlanItem',
-    'LabResult',
-    'Service',
-    'TeamMember',
-    'TimelineEvent',
-    'Notification',
-    'NotificationAction',
-    'PushSubscription',
-    'Reminder',
-    'Conversation',
-    'ConversationParticipant',
-    'Message',
-    'MessageAttachment',
-    'MessageReaction',
-  ]
+  const pepper = process.env.PERSON_IDENTITY_PEPPER?.trim()
+  checks.push(
+    pepper && pepper.length >= 16
+      ? ok('PERSON_IDENTITY_PEPPER', 'guest book identity hashing ready')
+      : fail(
+          'PERSON_IDENTITY_PEPPER',
+          'required (≥16 chars) — public/client booking hashes kimlik/pasaport; missing pepper → BOOKING_FAILED'
+        )
+  )
+
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  checks.push(
+    cronSecret && cronSecret.length >= 16
+      ? ok('CRON_SECRET', 'protects /api/cron/* (fail-closed)')
+      : fail(
+          'CRON_SECRET',
+          'missing or short (<16) — /api/cron/appointment-reminders returns 503'
+        )
+  )
+
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
+  checks.push(
+    upstashUrl && upstashToken
+      ? ok('Rate limit backend (Upstash)', 'shared Redis preferred for multi-instance')
+      : ok(
+          'Rate limit backend (memory)',
+          'WARN: UPSTASH unset — single-node EC2 memory limiter OK; set Upstash before multi-instance'
+        )
+  )
+
+  const appUrl = process.env.APP_URL?.trim()
+  if (appUrl) {
+    try {
+      const healthRes = await fetch(`${appUrl.replace(/\/$/, '')}/api/health`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      })
+      const healthJson = (await healthRes.json()) as {
+        ok?: boolean
+        checks?: { catalog?: string; database?: string }
+      }
+      const catalogOk = healthJson.checks?.catalog === 'healthy'
+      const dbOk = healthJson.checks?.database === 'healthy'
+      checks.push(
+        healthRes.ok && healthJson.ok && catalogOk && dbOk
+          ? ok('Live health catalog', `${appUrl} database+catalog healthy`)
+          : fail(
+              'Live health catalog',
+              `APP_URL health failed status=${healthRes.status} db=${healthJson.checks?.database} catalog=${healthJson.checks?.catalog}`
+            )
+      )
+    } catch (error) {
+      checks.push(
+        fail(
+          'Live health catalog',
+          error instanceof Error ? error.message : 'APP_URL /api/health unreachable'
+        )
+      )
+    }
+  }
+
+  const requiredRlsTables = listRequiredRlsTableNames()
 
   const rlsRows = await prisma.$queryRawUnsafe<Array<{ relname: string; relrowsecurity: boolean }>>(
     `
@@ -182,6 +228,10 @@ async function main() {
   const findPolicy = (table: string, name: string) =>
     policies.find((policy) => policy.tablename === table && policy.policyname === name)
 
+  // Matches `"userId" = auth.uid()` and Prisma-text form `"userId" = (auth.uid())::text`
+  const selfMatch = (text: string | null | undefined, column = 'userId') =>
+    !!text && new RegExp(`"${column}" = \\(?auth\\.uid\\(\\)\\)?(::text)?`).test(text)
+
   const patientSelect = findPolicy('Patient', 'patient_select')
   checks.push(
     patientSelect?.qual?.includes('patient.view') && patientSelect.qual.includes('businessId')
@@ -291,8 +341,8 @@ async function main() {
 
   const reactionManage = findPolicy('MessageReaction', 'message_reaction_self_manage')
   checks.push(
-    reactionManage?.qual?.includes('"userId" = auth.uid()') &&
-      reactionManage.qual.includes('is_conversation_participant')
+    selfMatch(reactionManage?.qual) &&
+      reactionManage?.qual?.includes('is_conversation_participant')
       ? ok('Emoji reaction self/manage RLS')
       : fail('Emoji reaction self/manage RLS', reactionManage?.qual ?? 'missing')
   )
@@ -300,13 +350,12 @@ async function main() {
   const reminderSelect = findPolicy('Reminder', 'reminder_self_select')
   const reminderUpdate = findPolicy('Reminder', 'reminder_self_update')
   checks.push(
-    reminderSelect?.qual?.includes('"userId" = auth.uid()') && reminderSelect.qual.includes('is_business_member')
+    selfMatch(reminderSelect?.qual) && reminderSelect?.qual?.includes('is_business_member')
       ? ok('Reminder self/business select RLS')
       : fail('Reminder self/business select RLS', reminderSelect?.qual ?? 'missing')
   )
   checks.push(
-    reminderUpdate?.qual?.includes('"userId" = auth.uid()') &&
-      reminderUpdate.with_check?.includes('"userId" = auth.uid()')
+    selfMatch(reminderUpdate?.qual) && selfMatch(reminderUpdate?.with_check)
       ? ok('Reminder self update RLS')
       : fail('Reminder self update RLS', reminderUpdate?.with_check ?? reminderUpdate?.qual ?? 'missing')
   )
@@ -314,15 +363,44 @@ async function main() {
   const pushInsert = findPolicy('PushSubscription', 'push_subscription_self_insert')
   const pushDelete = findPolicy('PushSubscription', 'push_subscription_self_delete')
   checks.push(
-    pushInsert?.with_check?.includes('"userId" = auth.uid()') && pushInsert.with_check.includes('is_business_member')
+    selfMatch(pushInsert?.with_check) && pushInsert?.with_check?.includes('is_business_member')
       ? ok('Push subscription self insert RLS')
       : fail('Push subscription self insert RLS', pushInsert?.with_check ?? 'missing')
   )
   checks.push(
-    pushDelete?.qual?.includes('"userId" = auth.uid()') && pushDelete.qual.includes('is_business_member')
+    selfMatch(pushDelete?.qual) && pushDelete?.qual?.includes('is_business_member')
       ? ok('Push subscription self delete RLS')
       : fail('Push subscription self delete RLS', pushDelete?.qual ?? 'missing')
   )
+
+  const policiesByTable = new Map<string, typeof policies>()
+  for (const policy of policies) {
+    const list = policiesByTable.get(policy.tablename) ?? []
+    list.push(policy)
+    policiesByTable.set(policy.tablename, list)
+  }
+
+  for (const table of listBusinessIdScopedTables()) {
+    const tablePolicies = policiesByTable.get(table) ?? []
+    const scoped = tablePolicies.some((p) =>
+      policyLooksBusinessScoped(p.qual, p.with_check)
+    )
+    checks.push(
+      scoped
+        ? ok(`RLS businessId policy: ${table}`)
+        : fail(`RLS businessId policy: ${table}`, 'no is_business_member/has_business_permission policy')
+    )
+  }
+
+  for (const table of listDenyPostgrestTables()) {
+    const tablePolicies = policiesByTable.get(table) ?? []
+    const denied = tablePolicies.some((p) => policyLooksDenyAll(p.qual, p.with_check))
+    checks.push(
+      denied
+        ? ok(`RLS PostgREST deny: ${table}`)
+        : fail(`RLS PostgREST deny: ${table}`, 'missing explicit deny policy')
+    )
+  }
 
   const buckets = await prisma.$queryRawUnsafe<Array<{ id: string; public: boolean }>>(
     `
@@ -395,6 +473,27 @@ async function main() {
     }
   } else {
     checks.push(fail('message-media signed URL smoke test', 'missing Supabase service role env'))
+  }
+
+  // S2 Dilim-C: asistan_app role readiness (warn-level fail when missing in production intent)
+  const appRoles = await prisma.$queryRawUnsafe<Array<{ rolname: string; rolbypassrls: boolean }>>(
+    `SELECT rolname, rolbypassrls FROM pg_roles WHERE rolname IN ('asistan_app', 'asistan_identity')`
+  )
+  const roleMap = new Map(appRoles.map((r) => [r.rolname, r]))
+  for (const name of ['asistan_app', 'asistan_identity']) {
+    const row = roleMap.get(name)
+    if (!row) {
+      checks.push(
+        fail(
+          `DB role ${name}`,
+          'missing — apply 20260720000200_prisma_guc_rls.sql then pnpm smoke:asistan-app-rls'
+        )
+      )
+    } else if (row.rolbypassrls) {
+      checks.push(fail(`DB role ${name} NOBYPASSRLS`, 'BYPASSRLS still enabled'))
+    } else {
+      checks.push(ok(`DB role ${name} NOBYPASSRLS`))
+    }
   }
 
   const failed = checks.filter((check) => !check.pass)

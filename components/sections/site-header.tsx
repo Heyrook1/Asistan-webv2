@@ -1,185 +1,352 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
-import { AnimatePresence } from 'framer-motion'
-import { Menu, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { ChevronDown, Menu, X } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLanguage } from '@/hooks/useLanguage'
 import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
-import { ENTRY_CTA, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
+import { DEMO_CONTACT_PATH, ENTRY_CTA, PATIENT_BOOK_PATH } from '@/lib/entry-routes'
 import { Button } from '@/components/ui/button'
 import { FocusTrapPanel } from '@/components/a11y/focus-trap-panel'
 import { cn } from '@/lib/utils'
 
-/** Canonical primary IA — same on home and inner marketing pages (no #anchor-only nav). */
-const PRIMARY_NAV = [
-  { href: '/urun', label: { tr: 'Özellikler', en: 'Features' } },
-  { href: '/cozumler', label: { tr: 'Çözümler', en: 'Solutions' } },
+type NavChild = {
+  href: string
+  label: { tr: string; en: string }
+}
+
+type NavItem = {
+  href: string
+  label: { tr: string; en: string }
+  /** When set, click opens animated sub-bar instead of navigating immediately. */
+  children?: readonly NavChild[]
+}
+
+const PRIMARY_NAV: readonly NavItem[] = [
+  {
+    href: '/urun',
+    label: { tr: 'Özellikler', en: 'Features' },
+    children: [
+      { href: '/#why', label: { tr: 'Neden', en: 'Why' } },
+      { href: '/#product', label: { tr: 'Ürün ekranları', en: 'Product screens' } },
+      { href: '/#security', label: { tr: 'Güvenlik', en: 'Security' } },
+      { href: '/#pricing', label: { tr: 'Fiyat özeti', en: 'Pricing' } },
+      { href: '/#faq', label: { tr: 'SSS', en: 'FAQ' } },
+      { href: '/#cta', label: { tr: 'Demo', en: 'Demo' } },
+      { href: '/urun', label: { tr: 'Tüm özellikler', en: 'All features' } },
+    ],
+  },
+  {
+    href: '/cozumler',
+    label: { tr: 'Çözümler', en: 'Solutions' },
+    children: [
+      { href: '/cozumler/health', label: { tr: 'Sağlık', en: 'Health' } },
+      { href: '/cozumler/beauty', label: { tr: 'Güzellik', en: 'Beauty' } },
+      { href: '/cozumler/legal', label: { tr: 'Hukuk', en: 'Legal' } },
+      { href: '/cozumler/pro', label: { tr: 'Emlak', en: 'Real estate' } },
+      { href: '/cozumler', label: { tr: 'Tüm çözümler', en: 'All solutions' } },
+    ],
+  },
   { href: '/fiyatlandirma', label: { tr: 'Fiyatlandırma', en: 'Pricing' } },
+  { href: '/sonuclar', label: { tr: 'Sonuçlar', en: 'Outcomes' } },
   { href: '/guven', label: { tr: 'Güven', en: 'Trust' } },
   { href: '/kaynaklar', label: { tr: 'Kaynaklar', en: 'Resources' } },
   { href: '/hakkimizda', label: { tr: 'Hakkımızda', en: 'About' } },
 ] as const
 
+const CORE_NAV_HREFS = new Set(['/urun', '/cozumler', '/fiyatlandirma', '/sonuclar', '/guven'])
+
 const HEADER_COPY = {
   tr: {
     joinPatient: ENTRY_CTA.patientBook.short.tr,
-    startTrial: ENTRY_CTA.clinicTrial.short.tr,
     startTrialShort: ENTRY_CTA.clinicTrial.short.tr,
+    demo: ENTRY_CTA.demoRequest.short.tr,
+    demoFull: ENTRY_CTA.demoRequest.tr,
     openMenu: 'Gezinme menüsünü aç',
     closeMenu: 'Gezinme menüsünü kapat',
     login: ENTRY_CTA.clinicLogin.tr,
+    loginShort: 'Giriş',
+    more: 'Daha fazla',
+    submenu: 'Alt menü',
   },
   en: {
     joinPatient: ENTRY_CTA.patientBook.short.en,
-    startTrial: ENTRY_CTA.clinicTrial.short.en,
     startTrialShort: ENTRY_CTA.clinicTrial.short.en,
+    demo: ENTRY_CTA.demoRequest.short.en,
+    demoFull: ENTRY_CTA.demoRequest.en,
     openMenu: 'Open navigation menu',
     closeMenu: 'Close navigation menu',
     login: ENTRY_CTA.clinicLogin.en,
+    loginShort: 'Sign in',
+    more: 'More',
+    submenu: 'Submenu',
   },
 } as const
 
 type SiteHeaderProps = {
-  /** Kept for callers; primary nav is identical on home and site. */
   variant?: 'home' | 'site'
 }
 
 export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
-  const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  const isHome = pathname === '/'
+  const reduceMotion = useReducedMotion()
+  const submenuId = useId()
+  const headerRef = useRef<HTMLElement>(null)
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileMenuWasOpen = useRef(false)
+  const previousPathnameRef = useRef(pathname)
+
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [activeParent, setActiveParent] = useState<string | null>(null)
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null)
+  const [spacerPx, setSpacerPx] = useState(72)
+
   const { language, setLanguage } = useLanguage()
   const copy = HEADER_COPY[language]
-  const navLinks = PRIMARY_NAV.map((item) => ({
-    href: item.href,
-    label: item.label[language],
-  }))
+
+  const activeItem = PRIMARY_NAV.find((item) => item.href === activeParent)
+  const submenuOpen = Boolean(activeItem?.children?.length)
+
+  const coreItems = PRIMARY_NAV.filter((item) => CORE_NAV_HREFS.has(item.href))
+  const overflowItems = PRIMARY_NAV.filter((item) => !CORE_NAV_HREFS.has(item.href))
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [language])
+  }, [])
+
+  useEffect(() => {
+    if (previousPathnameRef.current === pathname) return
+
+    previousPathnameRef.current = pathname
+    setActiveParent(null)
+    setMoreOpen(false)
+    setMobileOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (mobileOpen) {
+      mobileMenuWasOpen.current = true
+      return
+    }
+
+    if (!mobileMenuWasOpen.current) return
+
+    mobileMenuTriggerRef.current?.focus()
+    mobileMenuWasOpen.current = false
+  }, [mobileOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+
+    const inertTargets = [
+      document.getElementById('main-content'),
+      document.querySelector<HTMLElement>('footer'),
+      document.querySelector<HTMLElement>('[data-testid="floating-cta"]'),
+    ].filter((target): target is HTMLElement => target instanceof HTMLElement)
+
+    inertTargets.forEach((target) => target.setAttribute('inert', ''))
+    return () => inertTargets.forEach((target) => target.removeAttribute('inert'))
+  }, [mobileOpen])
+
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const measure = () => setSpacerPx(Math.ceil(el.getBoundingClientRect().height))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [submenuOpen, scrolled, mobileOpen])
+
+  useEffect(() => {
+    if (!submenuOpen && !moreOpen) return
+    const onPointer = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-site-header]')) return
+      setActiveParent(null)
+      setMoreOpen(false)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveParent(null)
+        setMoreOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [submenuOpen, moreOpen])
 
   const loginUrl = getLoginPath(language)
   const registerUrl = getRegisterPath(language)
 
-  return (
-    <header
-      className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-        scrolled ? 'pt-3' : 'pt-4',
-      )}
-    >
-      <div className="mx-auto flex h-14 w-[min(1200px,92vw)] items-center gap-3 rounded-2xl border border-black/8 bg-white/76 px-4 shadow-glass-soft backdrop-blur-xl md:gap-4 md:px-6">
-        <Link
-          href="/"
-          aria-label="Asistan home"
-          className="inline-flex h-10 shrink-0 items-center -translate-y-0.5"
-        >
-          <AsistanLogo variant="dark" size="md" priority className="h-8 w-auto" />
-        </Link>
+  const toggleParent = (item: NavItem) => {
+    if (!item.children?.length) {
+      setActiveParent(null)
+      return
+    }
+    setActiveParent((prev) => (prev === item.href ? null : item.href))
+    setMoreOpen(false)
+  }
 
-        <nav
-          className="hidden h-10 flex-1 items-center justify-center gap-3 lg:gap-4 xl:gap-5 md:flex"
-          aria-label="Ana menü"
-        >
-          {navLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="inline-flex h-10 items-center text-sm font-medium leading-none tracking-[-0.01em] text-[#1D1D1F]/80 transition hover:text-[#1D1D1F]"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+  const renderDesktopItem = (item: NavItem, opts?: { className?: string }) => {
+    const hasChildren = Boolean(item.children?.length)
+    const isOpen = activeParent === item.href
+    const isCurrentRoute =
+      pathname === item.href ||
+      (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+    const isActive = isOpen || isCurrentRoute
+    const baseClass = cn(
+      'relative inline-flex h-10 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 text-[13px] font-medium leading-none tracking-[-0.01em] transition-colors duration-200 2xl:px-3 2xl:text-sm',
+      isActive
+        ? 'bg-[#0071E3]/[0.07] text-[#0063C8] after:absolute after:inset-x-2.5 after:-bottom-0.5 after:h-px after:rounded-full after:bg-[#0071E3]'
+        : 'text-[#1D1D1F]/80 hover:bg-black/[0.03] hover:text-[#1D1D1F]',
+      opts?.className,
+    )
 
-        <div className="ml-auto hidden h-10 items-center gap-2 md:flex">
-          <div className="inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold backdrop-blur-md">
-            <button
-              type="button"
-              aria-pressed={language === 'tr'}
-              aria-label="Türkçe dilini seç"
-              className={cn(
-                'inline-flex h-8 items-center rounded-lg px-2.5 leading-none transition cursor-pointer',
-                language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
-              )}
-              onClick={() => setLanguage('tr')}
-            >
-              TR
-            </button>
-            <button
-              type="button"
-              aria-pressed={language === 'en'}
-              aria-label="İngilizce dilini seç"
-              className={cn(
-                'inline-flex h-8 items-center rounded-lg px-2.5 leading-none transition cursor-pointer',
-                language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
-              )}
-              onClick={() => setLanguage('en')}
-            >
-              EN
-            </button>
-          </div>
-
-          <Button
-            asChild
-            variant="ghost"
-            className="h-10 rounded-xl px-3 text-sm font-semibold leading-none text-[#5D6068] hover:bg-black/5 hover:text-[#1D1D1F]"
-          >
-            <Link href={PATIENT_BOOK_PATH}>{copy.joinPatient}</Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="h-10 rounded-xl border-black/10 bg-white/75 px-4 text-sm font-semibold leading-none text-[#1D1D1F] backdrop-blur-md hover:bg-slate-50"
-          >
-            <Link href={loginUrl}>{copy.login}</Link>
-          </Button>
-          <Button
-            asChild
-            className="h-10 rounded-xl bg-[#0071E3] px-4 text-sm font-semibold leading-none text-white hover:bg-[#0063C8]"
-          >
-            <Link href={registerUrl}>{copy.startTrial}</Link>
-          </Button>
-        </div>
-
+    if (hasChildren) {
+      return (
         <button
+          key={item.href}
           type="button"
-          aria-label={open ? copy.closeMenu : copy.openMenu}
-          aria-expanded={open}
-          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/75 md:hidden"
-          onClick={() => setOpen((state) => !state)}
+          className={baseClass}
+          aria-expanded={isOpen}
+          aria-controls={submenuId}
+          onClick={() => toggleParent(item)}
         >
-          {open ? <X className="h-5 w-5 text-[#1D1D1F]" /> : <Menu className="h-5 w-5 text-[#1D1D1F]" />}
+          {item.label[language]}
+          <ChevronDown
+            className={cn('size-3.5 opacity-60 transition-transform duration-200', isOpen && 'rotate-180')}
+            aria-hidden
+          />
         </button>
-      </div>
+      )
+    }
 
-      <AnimatePresence>
-        {open && (
-          <FocusTrapPanel
-            role="dialog"
-            label="Mobil menü"
-            onEscape={() => setOpen(false)}
-            className="mx-auto mt-2 w-[min(1200px,92vw)] rounded-2xl border border-black/8 bg-white/84 p-3 shadow-glass backdrop-blur-xl md:hidden"
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={baseClass}
+        onClick={() => setActiveParent(null)}
+      >
+        {item.label[language]}
+      </Link>
+    )
+  }
+
+  return (
+    <>
+      <header
+        ref={headerRef}
+        data-site-header
+        className={cn(
+          'fixed inset-x-0 top-0 z-50 transition-[padding] duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]',
+          scrolled ? 'pt-2' : 'pt-3',
+        )}
+      >
+        <div className="mx-auto flex h-[52px] w-[min(1180px,calc(100vw-1.25rem))] items-center gap-2 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/88 px-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.24)] backdrop-blur-sm sm:px-4 xl:overflow-visible xl:gap-3 xl:px-5">
+          <div className="contents" inert={mobileOpen}>
+            <Link
+              href="/"
+              aria-label="Asistan home"
+              className="inline-flex h-10 shrink-0 items-center -translate-y-0.5"
+              onClick={() => setActiveParent(null)}
+            >
+              <AsistanLogo
+                variant="dark"
+                size="sm"
+                priority
+                className="!h-auto !w-[104px] sm:!w-[120px] xl:!w-[132px]"
+              />
+            </Link>
+
+          <nav
+            className="hidden min-w-0 flex-1 items-center justify-center xl:flex"
+            aria-label="Ana menü"
           >
-            <div className="mb-2 inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold">
+            <div className="flex max-w-full items-center gap-1 2xl:gap-2">
+              {coreItems.map((item) => renderDesktopItem(item))}
+
+              <div className="relative 2xl:hidden" data-header-more>
+                <button
+                  type="button"
+                  aria-expanded={moreOpen}
+                  aria-haspopup="menu"
+                  className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-[13px] font-medium leading-none text-[#1D1D1F]/80 transition hover:bg-black/[0.03] hover:text-[#1D1D1F]"
+                  onClick={() => {
+                    setMoreOpen((state) => !state)
+                    setActiveParent(null)
+                  }}
+                >
+                  {copy.more}
+                </button>
+                {moreOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[12rem] rounded-2xl border border-[#E6EAF0] bg-white/95 p-1.5 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.32)] backdrop-blur-md"
+                  >
+                    {overflowItems.map((item) =>
+                      item.children?.length ? (
+                        <button
+                          key={`more-${item.href}`}
+                          type="button"
+                          role="menuitem"
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                          onClick={() => {
+                            setMoreOpen(false)
+                            toggleParent(item)
+                          }}
+                        >
+                          {item.label[language]}
+                          <ChevronDown className="size-3.5 opacity-50" aria-hidden />
+                        </button>
+                      ) : (
+                        <Link
+                          key={`more-${item.href}`}
+                          role="menuitem"
+                          href={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className="block rounded-lg px-3 py-2.5 text-sm font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                        >
+                          {item.label[language]}
+                        </Link>
+                      ),
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {overflowItems.map((item) =>
+                renderDesktopItem(item, { className: 'hidden 2xl:inline-flex' }),
+              )}
+            </div>
+          </nav>
+
+          <div className="ml-auto hidden shrink-0 items-center gap-1.5 xl:flex 2xl:gap-2">
+            <div className="inline-flex h-9 items-center rounded-xl border border-[#E6EAF0] bg-white/90 p-0.5 text-xs font-semibold backdrop-blur-sm">
               <button
                 type="button"
                 aria-pressed={language === 'tr'}
                 aria-label="Türkçe dilini seç"
                 className={cn(
-                  'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                  'inline-flex h-8 cursor-pointer items-center rounded-lg px-2 leading-none transition',
                   language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
                 )}
-                onClick={() => {
-                  setLanguage('tr')
-                  setOpen(false)
-                }}
+                onClick={() => setLanguage('tr')}
               >
                 TR
               </button>
@@ -188,53 +355,276 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
                 aria-pressed={language === 'en'}
                 aria-label="İngilizce dilini seç"
                 className={cn(
-                  'rounded-lg px-2.5 py-1 transition cursor-pointer',
+                  'inline-flex h-8 cursor-pointer items-center rounded-lg px-2 leading-none transition',
                   language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
                 )}
-                onClick={() => {
-                  setLanguage('en')
-                  setOpen(false)
-                }}
+                onClick={() => setLanguage('en')}
               >
                 EN
               </button>
             </div>
-            <div className="grid gap-1">
-              {navLinks.map((item) => (
-                <Link
-                  key={`mobile-${item.href}`}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-2 border-t border-black/8 pt-3">
-              <Button
-                asChild
-                variant="ghost"
-                className="h-10 rounded-xl text-sm font-semibold text-[#1D1D1F] hover:bg-black/5"
-              >
-                <Link href={PATIENT_BOOK_PATH} onClick={() => setOpen(false)}>{copy.joinPatient}</Link>
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-10 rounded-xl border-black/10 bg-white text-sm font-semibold text-[#1D1D1F]"
-                >
-                  <Link href={loginUrl} onClick={() => setOpen(false)}>{copy.login}</Link>
-                </Button>
-                <Button asChild className="h-10 rounded-xl bg-[#0071E3] text-sm font-semibold text-white hover:bg-[#0063C8]">
-                  <Link href={registerUrl} onClick={() => setOpen(false)}>{copy.startTrialShort}</Link>
-                </Button>
+
+            <Button
+              asChild
+              variant="ghost"
+              className="hidden h-9 rounded-xl px-2.5 text-[13px] font-semibold leading-none text-[#5D6068] hover:bg-black/5 hover:text-[#1D1D1F] 2xl:inline-flex"
+            >
+              <Link href={PATIENT_BOOK_PATH}>{copy.joinPatient}</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-9 shrink-0 rounded-xl border-[#E6EAF0] bg-white/90 px-2.5 text-[13px] font-semibold leading-none text-[#1D1D1F] backdrop-blur-sm hover:bg-slate-50 2xl:px-3 2xl:text-sm"
+            >
+              <Link href={loginUrl}>
+                <span className="2xl:hidden">{copy.loginShort}</span>
+                <span className="hidden 2xl:inline">{copy.login}</span>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ctaPrimary"
+              className="h-9 shrink-0 rounded-xl px-3 text-[13px] font-semibold leading-none 2xl:text-sm"
+            >
+              <Link href={registerUrl} data-cta-priority="primary">
+                {copy.startTrialShort}
+              </Link>
+            </Button>
+          </div>
+
+          </div>
+
+          <button
+            ref={mobileMenuTriggerRef}
+            type="button"
+            aria-label={mobileOpen ? copy.closeMenu : copy.openMenu}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation-menu"
+            className="ml-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white/75 xl:hidden"
+            onClick={() => {
+              setMobileOpen((state) => !state)
+              setActiveParent(null)
+            }}
+          >
+            {mobileOpen ? (
+              <X className="h-5 w-5 text-[#1D1D1F]" />
+            ) : (
+              <Menu className="h-5 w-5 text-[#1D1D1F]" />
+            )}
+          </button>
+        </div>
+
+        {/* Animated secondary menu — only when active parent has children */}
+        <AnimatePresence initial={false}>
+          {submenuOpen && activeItem?.children ? (
+            <motion.div
+              id={submenuId}
+              key={activeItem.href}
+              role="navigation"
+              aria-label={`${activeItem.label[language]} — ${copy.submenu}`}
+              initial={
+                reduceMotion
+                  ? { opacity: 1, height: 'auto' }
+                  : { opacity: 0, height: 0, y: -6 }
+              }
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={
+                reduceMotion
+                  ? { opacity: 0, height: 0 }
+                  : { opacity: 0, height: 0, y: -4 }
+              }
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="mx-auto mt-2 w-[min(1180px,calc(100vw-1.25rem))] overflow-hidden"
+            >
+              <div className="rounded-2xl border border-[#E6EAF0] bg-white/95 shadow-[0_12px_30px_-22px_rgba(15,23,42,0.3)] backdrop-blur-md">
+                <ul className="flex gap-1 overflow-x-auto px-2 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-3">
+                  {activeItem.children.map((child) => (
+                    <li key={child.href} className="shrink-0">
+                      <Link
+                        href={child.href}
+                        onClick={() => setActiveParent(null)}
+                        className="inline-flex min-h-10 items-center rounded-xl px-3 text-[13px] font-semibold text-[#5D6068] transition hover:bg-[#EEF6FF] hover:text-[#0071E3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]/35"
+                      >
+                        {child.label[language]}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          </FocusTrapPanel>
-        )}
-      </AnimatePresence>
-    </header>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {mobileOpen && (
+            <FocusTrapPanel
+              id="mobile-navigation-menu"
+              role="dialog"
+              label="Mobil menü"
+              onEscape={() => setMobileOpen(false)}
+              className="mx-auto mt-2 w-[min(1180px,calc(100vw-1.25rem))] rounded-2xl border border-[#E6EAF0] bg-white/94 p-3 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.32)] backdrop-blur-md xl:hidden"
+            >
+              <div className="mb-2 inline-flex h-10 items-center rounded-xl border border-[#E6EAF0] bg-white/90 p-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  aria-pressed={language === 'tr'}
+                  className={cn(
+                    'cursor-pointer rounded-lg px-2.5 py-1 transition',
+                    language === 'tr' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
+                  )}
+                  onClick={() => {
+                    setLanguage('tr')
+                    setMobileOpen(false)
+                  }}
+                >
+                  TR
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={language === 'en'}
+                  className={cn(
+                    'cursor-pointer rounded-lg px-2.5 py-1 transition',
+                    language === 'en' ? 'bg-[#0071E3] text-white' : 'text-[#5F6370] hover:bg-black/5',
+                  )}
+                  onClick={() => {
+                    setLanguage('en')
+                    setMobileOpen(false)
+                  }}
+                >
+                  EN
+                </button>
+              </div>
+
+              <div className="grid gap-1">
+                {PRIMARY_NAV.map((item) => {
+                  const expanded = mobileExpanded === item.href
+                  if (item.children?.length) {
+                    return (
+                      <div key={`m-${item.href}`} className="rounded-xl">
+                        <button
+                          type="button"
+                          aria-expanded={expanded}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                          onClick={() =>
+                            setMobileExpanded((prev) => (prev === item.href ? null : item.href))
+                          }
+                        >
+                          {item.label[language]}
+                          <ChevronDown
+                            className={cn(
+                              'size-4 opacity-50 transition-transform',
+                              expanded && 'rotate-180',
+                            )}
+                          />
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {expanded ? (
+                            <motion.ul
+                              initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                              transition={{ duration: 0.22 }}
+                              className="overflow-hidden pl-2"
+                            >
+                              {item.children.map((child) => (
+                                <li key={child.href}>
+                                  <Link
+                                    href={child.href}
+                                    onClick={() => setMobileOpen(false)}
+                                    className="block rounded-lg px-3 py-2 text-sm font-medium text-[#5D6068] hover:bg-[#EEF6FF] hover:text-[#0071E3]"
+                                  >
+                                    {child.label[language]}
+                                  </Link>
+                                </li>
+                              ))}
+                            </motion.ul>
+                          ) : null}
+                        </AnimatePresence>
+                      </div>
+                    )
+                  }
+                  return (
+                    <Link
+                      key={`m-${item.href}`}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className="tap-target rounded-xl px-3 py-2.5 text-[15px] font-medium text-[#1D1D1F]/85 hover:bg-black/5"
+                    >
+                      {item.label[language]}
+                    </Link>
+                  )
+                })}
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-2 border-t border-black/8 pt-3">
+                <Button asChild variant="ghost" className="h-10 rounded-xl text-sm font-semibold">
+                  <Link href={PATIENT_BOOK_PATH} onClick={() => setMobileOpen(false)}>
+                    {copy.joinPatient}
+                  </Link>
+                </Button>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button asChild variant="outline" className="h-10 rounded-xl text-sm font-semibold">
+                    <Link href={loginUrl} onClick={() => setMobileOpen(false)}>
+                      {copy.login}
+                    </Link>
+                  </Button>
+                  {isHome ? (
+                    <>
+                      <Button
+                        asChild
+                        variant="ctaPrimary"
+                        className="h-10 rounded-xl text-sm font-semibold sm:col-span-2"
+                      >
+                        <Link
+                          href={registerUrl}
+                          data-cta-priority="primary"
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {copy.startTrialShort}
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="ctaSecondary"
+                        className="h-10 rounded-xl text-sm font-semibold"
+                      >
+                        <Link
+                          href={DEMO_CONTACT_PATH}
+                          data-cta-priority="secondary"
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {copy.demoFull}
+                        </Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      asChild
+                      variant="ctaPrimary"
+                      className="h-10 rounded-xl text-sm font-semibold"
+                    >
+                      <Link
+                        href={registerUrl}
+                        data-cta-priority="primary"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {copy.startTrialShort}
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </FocusTrapPanel>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* Pushes hero/content down as submenu opens */}
+      <div
+        aria-hidden
+        className="transition-[height] duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]"
+        style={{ height: spacerPx }}
+      />
+    </>
   )
 }

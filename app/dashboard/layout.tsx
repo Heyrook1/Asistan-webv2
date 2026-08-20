@@ -2,7 +2,7 @@ import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'
 import { MobileTopbar } from '@/components/dashboard/mobile-topbar'
 import { MobileShell } from '@/components/dashboard/mobile-shell'
-import { GlobalCommandPalette } from '@/components/dashboard/global-command-palette'
+import { GlobalCommandPaletteLazy } from '@/components/dashboard/global-command-palette-lazy'
 import { requireSession, isSuperAdmin, isSystemAdmin } from '@/lib/session'
 import {
   getNotificationsList,
@@ -11,18 +11,21 @@ import {
   getUnreadNotificationCount,
   serializeNotification,
 } from '@/lib/queries'
-import { prisma } from '@/lib/prisma'
+import { sessionPrisma } from '@/lib/prisma-owner'
 import {
   getMembershipUrgency,
   getVendorPlanName,
   normalizeVendorPlanCode,
 } from '@/lib/vendor-membership'
 import { canViewAppointmentSchedule } from '@/lib/rbac'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import { MembershipExpiryBanner } from '@/components/dashboard/membership-expiry-banner'
 import { AnnouncementBanner } from '@/components/dashboard/announcement-banner'
 import { SupportModeBanner } from '@/components/dashboard/support-mode-banner'
 import { getActiveAnnouncements } from '@/lib/announcements'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import { isTeamMessagingEnabled } from '@/lib/messaging/policy'
+import { isClinicAnalyticsEnabled } from '@/lib/analytics/policy'
 import type { Metadata } from 'next'
 
 /** Klinik paneli bilinçli olarak Türkçe-only (KKTC operasyon dili). */
@@ -39,11 +42,17 @@ export default async function DashboardLayout({
   const showPlatformAdmin = isSystemAdmin(session)
   const showSuperAdmin = isSuperAdmin(session)
 
+  const teamMessagingEnabled = isTeamMessagingEnabled()
+  const clinicAnalyticsEnabled = isClinicAnalyticsEnabled()
+
   const [unreadCount, unreadMessages, recentNotifications, vendorAccount, pendingAppointments] = await Promise.all([
     getUnreadNotificationCount(session.businessId, session.userId),
-    getUnreadMessageCount(session.businessId, session.userId),
+    teamMessagingEnabled
+      ? getUnreadMessageCount(session.businessId, session.userId)
+      : Promise.resolve(0),
     getNotificationsList(session.businessId, session.userId, 10),
-    prisma.vendorAccount.findUnique({
+    // Owner/migrate client — VendorAccount is empty under asistan_app without GUC.
+    sessionPrisma().vendorAccount.findUnique({
       where: { businessId: session.businessId },
       select: {
         plan: true,
@@ -86,6 +95,8 @@ export default async function DashboardLayout({
         session={session}
         showPlatformAdmin={showPlatformAdmin}
         showSuperAdmin={showSuperAdmin}
+        teamMessagingEnabled={teamMessagingEnabled}
+        clinicAnalyticsEnabled={clinicAnalyticsEnabled}
       />
       <div className="lg:pl-64">
         <MobileTopbar
@@ -94,6 +105,7 @@ export default async function DashboardLayout({
           unreadMessages={unreadMessages}
           notifications={notificationPreview}
           membership={membership}
+          teamMessagingEnabled={teamMessagingEnabled}
         />
         <DashboardHeader
           session={session}
@@ -101,13 +113,16 @@ export default async function DashboardLayout({
           unreadMessages={unreadMessages}
           notifications={notificationPreview}
           membership={membership}
+          teamMessagingEnabled={teamMessagingEnabled}
         />
-        <GlobalCommandPalette
+        <GlobalCommandPaletteLazy
           session={session}
           showPlatformAdmin={showPlatformAdmin}
           showSuperAdmin={showSuperAdmin}
+          teamMessagingEnabled={teamMessagingEnabled}
+          clinicAnalyticsEnabled={clinicAnalyticsEnabled}
         />
-        <main id="main-content" tabIndex={-1} lang="tr" className="mx-auto max-w-[1720px] px-4 pb-28 pt-3 lg:px-6 lg:pb-8 lg:pt-6">
+        <main id="main-content" tabIndex={-1} lang="tr" className="mx-auto max-w-[1720px] px-4 pb-36 pt-3 lg:px-6 lg:pb-8 lg:pt-6">
           {session.supportMode ? (
             <SupportModeBanner businessName={session.supportMode.businessName} />
           ) : null}
@@ -117,7 +132,10 @@ export default async function DashboardLayout({
             </div>
           ) : null}
           {showExpiryBanner ? (
-            <MembershipExpiryBanner membership={membership} isOwner={session.isOwner} />
+            <MembershipExpiryBanner
+              membership={membership}
+              canManage={canManageClinicSettings(session)}
+            />
           ) : null}
           {children}
         </main>
@@ -128,6 +146,8 @@ export default async function DashboardLayout({
         unreadMessages={unreadMessages}
         pendingAppointments={pendingAppointments}
         showSuperAdmin={showSuperAdmin}
+        teamMessagingEnabled={teamMessagingEnabled}
+        clinicAnalyticsEnabled={clinicAnalyticsEnabled}
       />
     </div>
   )

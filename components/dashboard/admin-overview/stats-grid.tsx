@@ -10,10 +10,11 @@ import type { OverviewStats } from './types'
 
 export function StatsGrid({
   stats,
-  canViewAnalytics,
+  canViewFinance,
 }: {
   stats: OverviewStats
-  canViewAnalytics: boolean
+  /** Product: ciro card — must match Analitik `canViewFinance` (not analytics.view). */
+  canViewFinance: boolean
 }) {
   const statCards = [
     {
@@ -44,7 +45,7 @@ export function StatsGrid({
       tone: 'amber' as const,
       hint: 'Tüm zamanlar',
     },
-    canViewAnalytics
+    canViewFinance
       ? {
           title: 'Aylık Ciro',
           value: trMoney.format(stats.monthlyRevenue),

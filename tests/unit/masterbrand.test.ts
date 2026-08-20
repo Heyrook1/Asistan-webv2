@@ -4,7 +4,10 @@ import {
   BRAND_PRODUCTS,
   FORBIDDEN_PRODUCT_ALIASES,
   MASTERBRAND,
+  brandTagline,
+  bookingProductFullName,
   copyrightLine,
+  patientChromeName,
   productName,
   productRole,
   socialLinks,
@@ -19,11 +22,29 @@ describe('lib/brand/masterbrand', () => {
     expect(Object.keys(BRAND_PRODUCTS)).toHaveLength(3)
   })
 
+  it('uses Asistan for patient chrome; full booking name for about/onboarding', () => {
+    expect(patientChromeName('tr')).toBe('Asistan')
+    expect(patientChromeName('en')).toBe('Asistan')
+    expect(bookingProductFullName('tr')).toBe('Asistan Rezervasyon')
+    expect(bookingProductFullName('en')).toBe('Asistan Booking')
+  })
+
+  it('locks patient hero copy', () => {
+    expect(brandTagline('bookingHero', 'tr')).toBe(
+      'Doğru kliniği bulun. Randevunuzu kolayca alın.',
+    )
+    expect(brandTagline('booking', 'tr')).toMatch(/KKTC/)
+    expect(brandTagline('booking', 'tr')).toMatch(/müsaitli/)
+    expect(brandTagline('booking', 'tr')).toMatch(/karşılaştırın/)
+  })
+
   it('keeps Health as clinic B2B and Booking as patient surface', () => {
     expect(productRole('health', 'tr')).toMatch(/Klinik B2B/i)
     expect(productRole('booking', 'tr')).toMatch(/Hasta/i)
     expect(BRAND_PRODUCTS.health.surfaces).toContain('/dashboard')
     expect(BRAND_PRODUCTS.booking.surfaces).toContain('/client')
+    expect(BRAND_PRODUCTS.booking.surfaces).toContain('web-mobile')
+    expect(BRAND_PRODUCTS.booking.surfaces).toContain('/r')
   })
 
   it('lists forbidden alias names', () => {
@@ -32,14 +53,15 @@ describe('lib/brand/masterbrand', () => {
     expect(copyrightLine(2026, 'tr')).toContain('Asistan Health')
   })
 
-  it('exposes real Instagram handle, not generic social roots', () => {
-    expect(MASTERBRAND.social.instagram).toContain('instagram.com/asistan.kktc')
+  it('exposes the configured social profiles, not generic social roots', () => {
+    expect(MASTERBRAND.social.facebook).toBe('https://www.facebook.com/AsistanHealth')
+    expect(MASTERBRAND.social.instagram).toContain('instagram.com/asistan.health')
+    expect(MASTERBRAND.social.linkedin).toBe('https://www.linkedin.com/company/asistan-health')
     expect(MASTERBRAND.social.instagram).not.toBe('https://instagram.com')
     expect(MASTERBRAND.regionalHost).toBe('kktc.asistan.online')
     expect(MASTERBRAND.og.width).toBe(1200)
     expect(MASTERBRAND.og.height).toBe(630)
-    expect(socialLinks().every((l) => !l.href.endsWith('instagram.com') && !l.href.endsWith('linkedin.com'))).toBe(
-      true,
-    )
+    expect(socialLinks()).toHaveLength(3)
+    expect(socialLinks().every((link) => !/\/(facebook|instagram|linkedin)\.com\/?$/.test(link.href))).toBe(true)
   })
 })

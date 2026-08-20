@@ -1,52 +1,60 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { apiError } from '@/lib/api-response'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getTransporter, MAIL_FROM, DEMO_NOTIFY_TO } from '@/lib/email'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { escapeHtml } from '@/lib/html-escape'
 
 const demoBookingSchema = z.object({
-  name: z.string().min(2, 'İsim en az 2 karakter olmalı'),
-  clinic: z.string().min(2, 'Klinik adı en az 2 karakter olmalı'),
-  email: z.string().email('Geçersiz e-posta adresi'),
-  date: z.string().min(1, 'Tarih seçilmeli'),
-  time: z.string().min(1, 'Saat seçilmeli'),
+  name: z.string().min(2, 'İsim en az 2 karakter olmalı').max(120),
+  clinic: z.string().min(2, 'Klinik adı en az 2 karakter olmalı').max(160),
+  email: z.string().email('Geçersiz e-posta adresi').max(160),
+  date: z.string().min(1, 'Tarih seçilmeli').max(40),
+  time: z.string().min(1, 'Saat seçilmeli').max(40),
 })
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon'
+    const allowed = await checkRateLimit(
+      `demo-booking:${ip}`,
+      RATE_LIMITS.public.limit,
+      RATE_LIMITS.public.window
+    )
+    if (!allowed) {
+      return apiError('Çok fazla istek gönderildi. Lütfen biraz sonra tekrar deneyin.', 429)
+    }
+
     const body = await request.json()
     const result = demoBookingSchema.safeParse(body)
 
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors
       const firstError = Object.values(fieldErrors).flat()[0] ?? 'Geçersiz form verisi'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError, 400)
     }
 
     const { name, clinic, email, date, time } = result.data
 
     // ── 1. Veritabanına kaydet ──────────────────────────────────────────────
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "DemoBooking" (
-        "id"        TEXT PRIMARY KEY,
-        "name"      TEXT NOT NULL,
-        "clinic"    TEXT NOT NULL,
-        "email"     TEXT NOT NULL,
-        "date"      TEXT NOT NULL,
-        "time"      TEXT NOT NULL,
-        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `)
+    await prisma.demoBooking.create({
+      data: { name, clinic, email, date, time },
+    })
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "DemoBooking" ("id", "name", "clinic", "email", "date", "time", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
-      crypto.randomUUID(),
-      name,
-      clinic,
-      email,
-      date,
-      time,
-    )
+    // User-supplied values are escaped before HTML interpolation (email body XSS).
+    const safe = {
+      name: escapeHtml(name),
+      clinic: escapeHtml(clinic),
+      email: escapeHtml(email),
+      date: escapeHtml(date),
+      time: escapeHtml(time),
+    }
+    const mailtoReply = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(
+      'Asistan Demo Randevu Onayı'
+    )}&body=${encodeURIComponent(
+      `Merhaba ${name},\n\nDemo talebinizi aldık. ${date} tarihinde ${time} saatinde görüşmek üzere sizi bekliyoruz.`
+    )}`
 
     // ── 2. Bildirim e-postası gönder ────────────────────────────────────────
     const submittedAt = new Date().toLocaleString('tr-TR', {
@@ -89,12 +97,12 @@ export async function POST(request: Request) {
                       <table width="100%" cellpadding="0" cellspacing="0"
                         style="border:1px solid #E0E2E7;border-radius:12px;overflow:hidden">
                         ${[
-                          ['👤 Ad Soyad', name],
-                          ['🏥 Klinik / Kurum', clinic],
-                          ['📧 E-posta', email],
-                          ['📅 Tercih Edilen Tarih', date],
-                          ['🕐 Tercih Edilen Saat', time],
-                          ['🕓 Talep Zamanı', submittedAt],
+                          ['👤 Ad Soyad', safe.name],
+                          ['🏥 Klinik / Kurum', safe.clinic],
+                          ['📧 E-posta', safe.email],
+                          ['📅 Tercih Edilen Tarih', safe.date],
+                          ['🕐 Tercih Edilen Saat', safe.time],
+                          ['🕓 Talep Zamanı', escapeHtml(submittedAt)],
                         ]
                           .map(
                             ([label, value], idx) => `
@@ -112,7 +120,7 @@ export async function POST(request: Request) {
 
                       <!-- CTA -->
                       <div style="margin:28px 0 0;text-align:center">
-                        <a href="mailto:${email}?subject=Asistan Demo Randevu Onayı&body=Merhaba ${name},%0A%0ADemo talebinizi aldık. ${date} tarihinde ${time} saatinde görüşmek üzere sizi bekliyoruz."
+                        <a href="${escapeHtml(mailtoReply)}"
                           style="display:inline-block;background:#0071E3;color:#ffffff;text-decoration:none;
                                  padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;
                                  letter-spacing:-0.2px">
@@ -190,7 +198,7 @@ export async function POST(request: Request) {
                   <tr>
                     <td style="padding:32px 36px">
                       <p style="margin:0 0 8px;color:#1D1D1F;font-size:16px;font-weight:700">
-                        Merhaba ${name},
+                        Merhaba ${safe.name},
                       </p>
                       <p style="margin:0 0 24px;color:#5D6068;font-size:14px;line-height:1.7">
                         Demo talebinizi başarıyla aldık. Ekibimiz en kısa sürede sizinle iletişime geçerek
@@ -201,9 +209,9 @@ export async function POST(request: Request) {
                       <table width="100%" cellpadding="0" cellspacing="0"
                         style="border:1px solid #E0E2E7;border-radius:12px;overflow:hidden;margin-bottom:24px">
                         ${[
-                          ['🏥 Klinik / Kurum', clinic],
-                          ['📅 Tercih Edilen Tarih', date],
-                          ['🕐 Tercih Edilen Saat', time],
+                          ['🏥 Klinik / Kurum', safe.clinic],
+                          ['📅 Tercih Edilen Tarih', safe.date],
+                          ['🕐 Tercih Edilen Saat', safe.time],
                         ]
                           .map(
                             ([label, value], idx) => `
@@ -272,6 +280,6 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Sunucu hatası'
     console.error('[demo-booking] error:', error)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return apiError(message, 500)
   }
 }

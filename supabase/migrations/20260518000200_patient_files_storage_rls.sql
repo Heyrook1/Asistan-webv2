@@ -31,27 +31,27 @@ set public = false,
     allowed_mime_types = excluded.allowed_mime_types;
 
 create or replace function public.current_business_ids()
-returns uuid[]
+returns text[]
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select coalesce(array_agg(distinct b.id), array[]::uuid[])
+  select coalesce(array_agg(distinct b.id), array[]::text[])
   from "Business" b
   left join "TeamMember" tm on tm."businessId" = b.id
-  left join "User" u on u.id = auth.uid()
-  where b."ownerUserId" = auth.uid()
+  left join "User" u on u.id = auth.uid()::text
+  where b."ownerUserId" = auth.uid()::text
      or (
        tm."isActive" = true
        and (
-         tm."userId" = auth.uid()
+         tm."userId" = auth.uid()::text
          or lower(tm.email) = lower(coalesce(u.email, auth.jwt() ->> 'email'))
        )
      );
 $$;
 
-create or replace function public.is_business_member(target_business_id uuid)
+create or replace function public.is_business_member(target_business_id text)
 returns boolean
 language sql
 stable
@@ -62,7 +62,7 @@ as $$
 $$;
 
 create or replace function public.has_business_permission(
-  target_business_id uuid,
+  target_business_id text,
   required_permission text default null
 )
 returns boolean
@@ -75,16 +75,16 @@ as $$
     select 1
     from "Business" b
     where b.id = target_business_id
-      and b."ownerUserId" = auth.uid()
+      and b."ownerUserId" = auth.uid()::text
   )
   or exists (
     select 1
     from "TeamMember" tm
-    left join "User" u on u.id = auth.uid()
+    left join "User" u on u.id = auth.uid()::text
     where tm."businessId" = target_business_id
       and tm."isActive" = true
       and (
-        tm."userId" = auth.uid()
+        tm."userId" = auth.uid()::text
         or lower(tm.email) = lower(coalesce(u.email, auth.jwt() ->> 'email'))
       )
       and (
@@ -96,22 +96,22 @@ as $$
 $$;
 
 create or replace function public.storage_business_id(object_name text)
-returns uuid
+returns text
 language sql
 stable
 as $$
-  select nullif((storage.foldername(object_name))[1], '')::uuid;
+  select nullif((storage.foldername(object_name))[1], '');
 $$;
 
 create or replace function public.storage_patient_id(object_name text)
-returns uuid
+returns text
 language sql
 stable
 as $$
-  select nullif((storage.foldername(object_name))[2], '')::uuid;
+  select nullif((storage.foldername(object_name))[2], '');
 $$;
 
-create or replace function public.patient_belongs_to_business(target_patient_id uuid, target_business_id uuid)
+create or replace function public.patient_belongs_to_business(target_patient_id text, target_business_id text)
 returns boolean
 language sql
 stable
@@ -144,11 +144,11 @@ alter table "Notification" enable row level security;
 
 drop policy if exists "user_self_select" on "User";
 create policy "user_self_select" on "User"
-  for select using (id = auth.uid());
+  for select using (id = auth.uid()::text);
 
 drop policy if exists "user_self_update" on "User";
 create policy "user_self_update" on "User"
-  for update using (id = auth.uid()) with check (id = auth.uid());
+  for update using (id = auth.uid()::text) with check (id = auth.uid()::text);
 
 drop policy if exists "user_business_member_select" on "User";
 create policy "user_business_member_select" on "User"
@@ -160,7 +160,7 @@ create policy "user_business_member_select" on "User"
       where target."userId" = "User".id
         and viewer."isActive" = true
         and (
-          viewer."userId" = auth.uid()
+          viewer."userId" = auth.uid()::text
           or lower(viewer.email) = lower(auth.jwt() ->> 'email')
         )
     )
@@ -172,11 +172,11 @@ create policy "business_member_select" on "Business"
 
 drop policy if exists "business_owner_insert" on "Business";
 create policy "business_owner_insert" on "Business"
-  for insert with check ("ownerUserId" = auth.uid());
+  for insert with check ("ownerUserId" = auth.uid()::text);
 
 drop policy if exists "business_owner_update" on "Business";
 create policy "business_owner_update" on "Business"
-  for update using ("ownerUserId" = auth.uid()) with check ("ownerUserId" = auth.uid());
+  for update using ("ownerUserId" = auth.uid()::text) with check ("ownerUserId" = auth.uid()::text);
 
 drop policy if exists "team_member_select" on "TeamMember";
 create policy "team_member_select" on "TeamMember"
@@ -349,7 +349,7 @@ drop policy if exists "notification_select" on "Notification";
 create policy "notification_select" on "Notification"
   for select using (
     public.is_business_member("businessId")
-    and ("userId" is null or "userId" = auth.uid())
+    and ("userId" is null or "userId" = auth.uid()::text)
   );
 
 drop policy if exists "notification_manage" on "Notification";

@@ -62,11 +62,11 @@ export function PatientMetaEditor({
         type="button"
         variant="ghost"
         size="icon"
-        className="h-6 w-6 text-muted-foreground hover:text-brand-teal"
+        className="min-h-11 min-w-11 text-muted-foreground hover:text-brand-teal"
         onClick={() => setOpen(true)}
         aria-label="Hasta özetini düzenle"
       >
-        <Pencil className="h-3.5 w-3.5" />
+        <Pencil className="h-4 w-4" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

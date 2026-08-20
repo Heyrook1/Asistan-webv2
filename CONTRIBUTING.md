@@ -117,6 +117,32 @@ Then on GitHub:
 - Keep commits clean and organized
 - Rebase before merging (no merge commits)
 
+## CI / Branch Protection
+
+Every PR runs `.github/workflows/ci.yml` as an ordered pipeline:
+
+```
+pnpm install → ESLint (lint) → Vitest (test) → Build (build) → CI passed (ci-gate)
+```
+
+- `e2e` (Playwright) runs after `build`.
+- `staging-deploy` runs only on push to `develop` (host-agnostic SSH rsync; skips if staging secrets are unset).
+- `production-readiness` (live RLS + `check:production`) runs only on push to `main`.
+
+**To block merges to the default branch (`master` / `main`) on test failure**, protect the branch with required status check **`CI passed`** (the `ci-gate` job aggregates lint + test + build). Prefer applying this via `gh` / API; UI path: GitHub → Settings → Branches → Add rule.
+
+The `CI passed` gate fails if lint, unit tests, or build fail, which blocks the merge.
+
+### Required GitHub secrets
+
+| Secret | Used by | Required |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | build, e2e, production-readiness | yes |
+| `DATABASE_URL`, `DIRECT_URL` | production-readiness | main only |
+| `SUPABASE_SERVICE_ROLE_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | production-readiness | main only |
+| `STAGING_SSH_HOST`, `STAGING_SSH_USER`, `STAGING_SSH_KEY`, `STAGING_PATH` | staging-deploy | develop only |
+| `STAGING_SERVICE_NAME`, `STAGING_DATABASE_URL`, `STAGING_DIRECT_URL` | staging-deploy | optional |
+
 ## PR Template
 
 ```markdown
@@ -201,7 +227,7 @@ export function PatientList({ businessId, onSelect }: PatientListProps) {
 
 - Always validate input with Zod
 - Return standardized response format (use `apiSuccess`, `apiError`)
-- Add rate limiting to public endpoints
+- Add rate limiting to public endpoints via `lib/rate-limit.ts` (Upstash when configured; see `docs/security-ops.md`)
 - Log errors to Sentry
 - Add API documentation
 
@@ -321,6 +347,7 @@ Files to update:
 ```bash
 # Run everything before pushing
 pnpm lint && pnpm test && pnpm build
+pnpm check:action-validation   # every server action must Zod-validate before DB
 
 # Format code
 pnpm lint --fix

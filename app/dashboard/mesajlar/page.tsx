@@ -1,8 +1,11 @@
-import { redirect } from 'next/navigation'
 import { requireSession } from '@/lib/session'
 import { getConversationThread, getMyConversations } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
+import { isTeamMessagingEnabled } from '@/lib/messaging/policy'
+import { MesajlarDeprecatedPanel } from '@/components/dashboard/mesajlar-deprecated-panel'
 import { MesajlarBoard } from './mesajlar-board'
+import { redirect } from 'next/navigation'
+import { clinicAssignableStaffWhere } from '@/lib/security/platform-roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,16 +13,20 @@ type SearchParams = Promise<{ conversation?: string; with?: string }>
 
 export default async function MesajlarPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await requireSession()
+
+  if (!isTeamMessagingEnabled()) {
+    return <MesajlarDeprecatedPanel />
+  }
+
   const params = await searchParams
 
   // Existing conversations for the rail.
   const conversations = await getMyConversations(session.businessId, session.userId)
 
-  // Team members the caller can start a chat with.
+  // Team members the caller can start a chat with (clinic roles only — never SUPER_ADMIN).
   const teammates = await prisma.teamMember.findMany({
     where: {
-      businessId: session.businessId,
-      isActive: true,
+      ...clinicAssignableStaffWhere(session.businessId),
       userId: { not: null },
       NOT: { userId: session.userId },
     },

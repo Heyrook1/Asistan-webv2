@@ -86,10 +86,10 @@ pnpm db:seed
 ```
 
 Bu komut:
-- `demo@asistan.health` kullanıcısı
-- "Asistan Demo Kliniği"
-- 3 takım üyesi, 4 hizmet, 4 hasta
-- Notlar, ilaç, alerji, tedavi, tahlil, dosya ve randevular
+- `demo.owner@example.com` kullanıcısı (sentetik PII — gerçek kişi görünümü yok)
+- "Lefkoşa Sağlık Polikliniği (TEST Demo)"
+- 3 takım üyesi, hizmetler, 4 TEST hastası (`example.com` + `+90 555 010 xxxx`)
+- Notlar, ilaç, alerji, tedavi, tahlil, dosya, klinik reçete ve randevular
 oluşturur.
 
 İlk kez giriş yapan bir kullanıcı için sistem otomatik olarak yeni bir

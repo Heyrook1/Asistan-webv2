@@ -1,18 +1,20 @@
-# Asistan Client Mobile
+# Asistan Rezervasyon — Mobile (Expo)
 
-Bu klasor, Asistan Health ile ayni veritabanini kullanan hasta-facing mobil
-uygulamadir.
+Bu klasor, Asistan Rezervasyon hasta mobil uygulamasidir (Expo).
+Ayni backend ve `/api/client/*` API'lerini kullanir — Flutter yoktur.
 
 ## 1) Ortam Degiskenleri
 
 `mobile/.env` dosyasi olusturun:
 
 ```bash
-EXPO_PUBLIC_API_BASE_URL=http://<WEB_SERVER_IP>:3000
+EXPO_PUBLIC_API_BASE_URL=https://kktc.asistan.online
 EXPO_PUBLIC_API_BASE_URL_WEB=http://localhost:3000
 EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<supabase-anon-key>
 ```
+
+Yerel gelistirmede API icin `http://<WEB_SERVER_IP>:3000` kullanin.
 
 Not:
 - Web (Expo Web) testinde `EXPO_PUBLIC_API_BASE_URL_WEB` kullanin.
@@ -56,12 +58,13 @@ ayaga kaldirir; `ERR_CONNECTION_REFUSED` hatasini engeller.
 
 ## Rotalar
 
-- `/client`
-- `/client/onboarding`
+- `/client` → Keşfet (`search`)
 - `/client/search`
+- `/client/appointments` — randevu listesi / iptal / erteleme
+- `/client/health` — Asistan pasaportu
+- `/client/profile`
+- `/client/notifications` (profil üzerinden)
+- `/client/onboarding`
 - `/client/clinics/[id]`
 - `/client/doctors/[id]`
-- `/client/book/[doctorId]`
-- `/client/appointments`
-- `/client/notifications`
-- `/client/profile`
+- `/client/book/[doctorId]` — ≤3 adım randevu

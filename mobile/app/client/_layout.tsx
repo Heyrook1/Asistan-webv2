@@ -1,8 +1,8 @@
 import { Redirect, Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { Platform } from 'react-native'
 import { useSessionContext } from '@/lib/session-context'
 import { useAppTheme } from '@/lib/use-app-theme'
-import { Platform } from 'react-native'
 
 export default function ClientLayout() {
   const { loading, isAuthenticated } = useSessionContext()
@@ -44,12 +44,22 @@ export default function ClientLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
+      {/* Canonical patient IA (parity with web): Home · Discover · Appointments · Health · Profile */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Ana Sayfa',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Kesfet',
+          title: 'Keşfet',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'search' : 'search-outline'} color={color} size={size} />
+            <Ionicons name={focused ? 'compass' : 'compass-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -63,11 +73,11 @@ export default function ClientLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="health"
         options={{
-          title: 'Bildirimler',
+          title: 'Sağlık',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} color={color} size={size} />
+            <Ionicons name={focused ? 'heart' : 'heart-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -81,8 +91,11 @@ export default function ClientLayout() {
         }}
       />
 
-      <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="onboarding" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="health/medications" options={{ href: null }} />
+      <Tabs.Screen name="health/allergies" options={{ href: null }} />
+      <Tabs.Screen name="health/documents" options={{ href: null }} />
       <Tabs.Screen name="clinics/[id]" options={{ href: null }} />
       <Tabs.Screen name="doctors/[id]" options={{ href: null }} />
       <Tabs.Screen name="book/[doctorId]" options={{ href: null }} />

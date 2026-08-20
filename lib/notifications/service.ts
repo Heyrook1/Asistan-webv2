@@ -3,6 +3,7 @@ import 'server-only'
 import type { TeamRole, NotificationActionType } from '@prisma/client'
 import { NotificationType, NotificationPriority, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
 import type { NotificationActionDraft, NotificationSubtype } from './types'
 import { dispatchPush } from './push'
 
@@ -38,13 +39,16 @@ export type CreateNotificationInput = {
  * timeline events or push delivery.
  */
 export async function createNotification(input: CreateNotificationInput): Promise<{ ids: string[] }> {
+  const businessId = input.businessId.trim()
+  if (!businessId) return { ids: [] }
+
   const recipients = await resolveRecipients(input)
   if (recipients.length === 0) {
     return { ids: [] }
   }
 
   const baseData = {
-    businessId: input.businessId,
+    businessId,
     actorUserId: input.actorUserId ?? null,
     type: input.type,
     subtype: input.subtype ?? null,
@@ -61,6 +65,8 @@ export async function createNotification(input: CreateNotificationInput): Promis
   } satisfies Omit<Prisma.NotificationUncheckedCreateInput, 'id' | 'userId'>
 
   const created = await prisma.$transaction(async (tx) => {
+    // asistan_app RLS: Notification INSERT requires app.business_id GUC.
+    await setTenantBusinessId(tx, businessId)
     const ids: string[] = []
     for (const userId of recipients) {
       const row = await tx.notification.create({
@@ -112,14 +118,18 @@ async function resolveRecipients(input: CreateNotificationInput): Promise<string
 
   const wantsRoleFanout = input.roles && input.roles.length > 0
   if (wantsRoleFanout) {
-    const members = await prisma.teamMember.findMany({
-      where: {
-        businessId: input.businessId,
-        isActive: true,
-        userId: { not: null },
-        role: { in: input.roles! },
-      },
-      select: { userId: true },
+    // Role fanout under asistan_app needs tenant GUC for TeamMember reads.
+    const members = await prisma.$transaction(async (tx) => {
+      await setTenantBusinessId(tx, input.businessId)
+      return tx.teamMember.findMany({
+        where: {
+          businessId: input.businessId,
+          isActive: true,
+          userId: { not: null },
+          role: { in: input.roles! },
+        },
+        select: { userId: true },
+      })
     })
     for (const m of members) if (m.userId) ids.add(m.userId)
   }

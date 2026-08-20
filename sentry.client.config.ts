@@ -1,10 +1,19 @@
 import * as Sentry from '@sentry/nextjs'
+import { scrubSentryEvent } from './lib/security/sentry-scrub'
+import {
+  productionReplayOnErrorSampleRate,
+  productionTracesSampleRate,
+} from './lib/security/sentry-sample'
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 1,
-
-  // Replay everything in development
-  replaysSessionSampleRate: process.env.NODE_ENV === 'development' ? 1 : 0.1,
-  replaysOnErrorSampleRate: 1,
+  tracesSampleRate: productionTracesSampleRate(),
+  sendDefaultPii: false,
+  beforeSend: scrubSentryEvent,
+  beforeSendTransaction: scrubSentryEvent,
+  environment: process.env.NODE_ENV,
+  release: process.env.NEXT_PUBLIC_APP_VERSION,
+  // Healthcare: no background replay; small error-only sample (≤0.2).
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: productionReplayOnErrorSampleRate(),
 })

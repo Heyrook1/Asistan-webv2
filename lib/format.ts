@@ -20,12 +20,18 @@ const dfDateTime = new Intl.DateTimeFormat('tr-TR', {
 })
 
 export function formatCurrency(amount: number, currency = 'TRY') {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount)
+  // Pure ASCII formatting — Intl group/currency separators differ Node vs browser (React #418).
+  const negative = amount < 0
+  const abs = Math.abs(Number(amount))
+  if (!Number.isFinite(abs)) return '—'
+  const fixed = abs.toFixed(2)
+  const [intRaw, frac] = fixed.split('.')
+  const intWithDots = intRaw.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const number = frac === '00' ? intWithDots : `${intWithDots},${frac}`
+  const body = negative ? `-${number}` : number
+  const code = currency.trim().toUpperCase()
+  if (code === 'TRY' || code === 'TL') return `${body} TL`
+  return `${body} ${code}`
 }
 
 export function formatDuration(minutes: number) {
@@ -129,11 +135,11 @@ export function ageFromBirthDate(date: Date | string | null | undefined) {
 }
 
 export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: 'Planlandı',
+  SCHEDULED: 'Onay bekliyor',
   CONFIRMED: 'Onaylandı',
   COMPLETED: 'Tamamlandı',
   CANCELLED: 'İptal',
-  NO_SHOW: 'Gelmedi',
+  NO_SHOW: 'Gelinmedi',
 }
 
 export const APPOINTMENT_STATUS_COLORS: Record<string, string> = {
@@ -167,3 +173,18 @@ export const FILE_CATEGORY_LABELS: Record<string, string> = {
   KIMLIK: 'Kimlik',
   DIGER: 'Diğer',
 }
+
+export {
+  ALLERGY_SEVERITY_LABELS,
+  labelAllergySeverity,
+  INTAKE_FIELD_TYPE_LABELS,
+  labelIntakeFieldType,
+  labelIdentityMatchMethod,
+  labelInvoiceStatus,
+  labelAuditSeverity,
+  labelIntakeInviteStatus,
+  labelDataDeletionStatus,
+  labelComplianceDocStatus,
+  labelPrescriptionStatus,
+  labelTimelineEventType,
+} from '@/lib/ui-labels'

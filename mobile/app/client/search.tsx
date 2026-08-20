@@ -45,9 +45,9 @@ function formatPrice(price: number | null) {
 }
 
 function formatDateLabel(value: string | null) {
-  if (!value) return 'Musait saat bilgisi yok'
+  if (!value) return 'Müsait saat bilgisi yok'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Musait saat bilgisi yok'
+  if (Number.isNaN(date.getTime())) return 'Müsait saat bilgisi yok'
   return date.toLocaleString('tr-TR', {
     day: '2-digit',
     month: '2-digit',
@@ -66,7 +66,7 @@ export default function ClientSearchScreen() {
   const router = useRouter()
   const theme = useAppTheme()
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'>('nearest')
+  const [sort, setSort] = useState<'nearest' | 'highest-rated' | 'earliest-available' | 'most-reviewed'>('highest-rated')
   const [availableToday, setAvailableToday] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [prefsReady, setPrefsReady] = useState(false)
@@ -178,10 +178,11 @@ export default function ClientSearchScreen() {
               <BrandLogo variant="light" height={28} />
               <Badge label={now} tone="info" />
               <AppText variant="hero" color={theme.colors.textInverse}>
-                Merhaba, sağlık asistanı hazır.
+                Asistan
               </AppText>
               <AppText variant="body" color="#BCD1EF">
-                Hizli arama, guvenilir uzmanlar ve bugun icin uygun saatler tek ekranda.
+                Doğru kliniği bulun. Randevunuzu kolayca alın — KKTC’de klinik, hizmet ve gerçek
+                müsaitlik.
               </AppText>
             </View>
 
@@ -189,7 +190,7 @@ export default function ClientSearchScreen() {
               <SearchField
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Doktor, klinik veya uzmanlik ara"
+                placeholder="Doktor, klinik veya uzmanlık ara"
                 onSubmit={() => load()}
               />
 
@@ -199,8 +200,7 @@ export default function ClientSearchScreen() {
               </View>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-                <Chip label="En yakin" selected={sort === 'nearest'} onPress={() => setSort('nearest')} />
-                <Chip label="En iyi puan" selected={sort === 'highest-rated'} onPress={() => setSort('highest-rated')} />
+                <Chip label="Onerilen" selected={sort === 'highest-rated'} onPress={() => setSort('highest-rated')} />
                 <Chip label="Erken saat" selected={sort === 'earliest-available'} onPress={() => setSort('earliest-available')} />
                 <Chip label="Cok yorum" selected={sort === 'most-reviewed'} onPress={() => setSort('most-reviewed')} />
                 <Chip label="Bugun musait" selected={availableToday} onPress={() => setAvailableToday((v) => !v)} />
@@ -349,19 +349,19 @@ export default function ClientSearchScreen() {
           ) : viewMode === 'map' ? (
             <EmptyState
               icon="map-outline"
-              title="Harita gorunumu yakinda"
-              description="Premium harita deneyimi bir sonraki surumde aktif olacak. Simdilik liste gorunumu ile devam edebilirsin."
-              primaryActionLabel="Listeye don"
+              title="Harita görünümü henüz yok"
+              description="Harita bir sonraki sürümde gelecek. Şimdilik liste görünümüyle klinik arayabilirsiniz."
+              primaryActionLabel="Listeye dön"
               onPrimaryAction={() => setViewMode('list')}
             />
           ) : (
             <EmptyState
               icon="search-outline"
-              title="Sonuc bulunamadi"
-              description="Filtreleri sadeleştirip tekrar dene. Alternatif olarak en yakin siralama ile goruntule."
-              primaryActionLabel="Filtreleri sifirla"
+              title="Sonuç bulunamadı"
+              description="Filtreleri sadeleştirip tekrar deneyin. Önerilen sıralama ile tüm klinikleri yeniden listeleyin."
+              primaryActionLabel="Filtreleri sıfırla"
               onPrimaryAction={() => {
-                setSort('nearest')
+                setSort('highest-rated')
                 setAvailableToday(false)
                 setQuery('')
               }}

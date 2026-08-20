@@ -27,12 +27,12 @@ function bannerClass(urgency: MembershipUrgency) {
 
 export function MembershipExpiryBanner({
   membership,
-  isOwner,
+  canManage,
 }: {
   membership: DashboardMembership | null
-  isOwner: boolean
+  canManage: boolean
 }) {
-  if (!isOwner || !membership) return null
+  if (!canManage || !membership) return null
 
   const urgency = getMembershipUrgency({
     accessEndAt: membership.accessEndAt,

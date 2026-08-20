@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, Loader2, Plus, Trash2, UserPlus, CheckCircle
 import { toast } from 'sonner'
 import { createPatient } from '@/lib/actions/patients'
 import { cn } from '@/lib/utils'
+import { ALLERGY_SEVERITY_LABELS } from '@/lib/ui-labels'
 
 const STEPS = [
   { id: 'temel', label: 'Temel Bilgiler', description: 'Kimlik ve İletişim' },
@@ -246,8 +247,17 @@ export function PatientFormDrawer({
                     className={errors.fullName ? "border-red-500 ring-red-500" : ""}
                   />
                 </Field>
-                <Field label="TC Kimlik No">
-                  <Input value={identity.identityNumber} onChange={(e) => setIdentity({ ...identity, identityNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })} placeholder="11 haneli" inputMode="numeric" />
+                <Field label="Kimlik / pasaport no">
+                  <Input
+                    value={identity.identityNumber}
+                    onChange={(e) =>
+                      setIdentity({
+                        ...identity,
+                        identityNumber: e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40),
+                      })
+                    }
+                    placeholder="Kimlik veya pasaport no"
+                  />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Doğum Tarihi">
@@ -342,9 +352,9 @@ export function PatientFormDrawer({
                         <Select value={item.severity} onValueChange={(v) => set({ ...item, severity: v as AllergyDraft['severity'] })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="HAFIF">Hafif</SelectItem>
-                            <SelectItem value="ORTA">Orta</SelectItem>
-                            <SelectItem value="SIDDETLI">Şiddetli</SelectItem>
+                            <SelectItem value="HAFIF">{ALLERGY_SEVERITY_LABELS.HAFIF}</SelectItem>
+                            <SelectItem value="ORTA">{ALLERGY_SEVERITY_LABELS.ORTA}</SelectItem>
+                            <SelectItem value="SIDDETLI">{ALLERGY_SEVERITY_LABELS.SIDDETLI}</SelectItem>
                           </SelectContent>
                         </Select>
                       </Field>
@@ -463,14 +473,14 @@ export function PatientFormDrawer({
                     <Field label="Not *">
                       <Textarea value={item.note} onChange={(e) => set({ ...item, note: e.target.value })} rows={3} />
                     </Field>
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
                       <input
                         id={`note-pinned-${idx}`}
                         name={`notes[${idx}].isPinned`}
                         type="checkbox"
                         checked={item.isPinned}
                         onChange={(e) => set({ ...item, isPinned: e.target.checked })}
-                        className="rounded text-brand-teal focus:ring-brand-teal"
+                        className="size-4 shrink-0 rounded text-brand-teal focus:ring-brand-teal"
                       />
                       Bu notu hasta profilinde üste sabitle
                     </label>

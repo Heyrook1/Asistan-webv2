@@ -2,56 +2,80 @@ import Image from 'next/image'
 
 interface AsistanLogoProps {
   className?: string
-  /** Kept for backwards compatibility: the full image already contains the wordmark. */
+  /** Kept for backwards compatibility. */
   showText?: boolean
-  /** Kept for backwards compatibility: tagline is no longer part of the bundled logo image. */
+  /** Kept for backwards compatibility. */
   showTagline?: boolean
-  /** 'dark' = navy wordmark for light backgrounds, 'light' = white wordmark for dark backgrounds. */
+  /**
+   * `light` = assets for dark shells (sidebar, navy).
+   * `dark` = assets for light shells (white headers).
+   */
   variant?: 'light' | 'dark'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'sidebar'
   priority?: boolean
+  /**
+   * `wordmark` = mark + “asistan”.
+   * `mark` = icon only.
+   */
+  lockup?: 'wordmark' | 'mark'
 }
 
-const HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
-  sm: 24,
-  md: 32,
-  lg: 56,
+const MARK_HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, number> = {
+  sm: 28,
+  md: 36,
+  lg: 44,
+  sidebar: 40,
 }
 
-const LOGO_ASPECT: Record<NonNullable<AsistanLogoProps['variant']>, number> = {
-  dark: 1210 / 334,
-  light: 2172 / 724,
+/** Full lockup aspect ≈ 978×239 */
+const WORDMARK_HEIGHTS: Record<NonNullable<AsistanLogoProps['size']>, { w: number; h: number }> = {
+  sm: { w: 128, h: 31 },
+  md: { w: 168, h: 41 },
+  lg: { w: 220, h: 54 },
+  sidebar: { w: 168, h: 41 },
 }
 
-const VARIANT_SRC: Record<NonNullable<AsistanLogoProps['variant']>, string> = {
-  dark: '/images/asistan-full-logo.png',
-  light: '/images/asistan-full-logo-light.png',
-}
+const MARK_SRC = '/images/asistan-icon.png'
+const WORDMARK_ON_LIGHT = '/images/asistan-full-logo.png'
+const WORDMARK_ON_DARK = '/images/asistan-full-logo-light.png'
 
 export function AsistanLogo({
   className = '',
-  variant = 'dark',
   size = 'md',
   priority = false,
+  lockup = 'wordmark',
+  variant = 'dark',
 }: AsistanLogoProps) {
-  const height = HEIGHTS[size]
-  const width = Math.round(height * LOGO_ASPECT[variant])
-  const hasExplicitHeightClass = /\bh-\S+/.test(className)
+  if (lockup === 'mark') {
+    const side = MARK_HEIGHTS[size]
+    return (
+      <Image
+        src={MARK_SRC}
+        alt="Asistan"
+        width={side}
+        height={side}
+        priority={priority}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        className={`block h-auto w-auto select-none object-contain ${className}`}
+        style={{ width: side, height: side }}
+      />
+    )
+  }
 
+  const { w, h } = WORDMARK_HEIGHTS[size]
+  const src = variant === 'light' ? WORDMARK_ON_DARK : WORDMARK_ON_LIGHT
   return (
     <Image
-      src={VARIANT_SRC[variant]}
+      src={src}
       alt="Asistan"
-      width={width}
-      height={height}
+      width={w}
+      height={h}
       priority={priority}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      className={`block max-w-full select-none object-contain object-left ${className}`}
-      style={{
-        width: 'auto',
-        ...(hasExplicitHeightClass ? {} : { height }),
-      }}
+      className={`block h-auto w-auto max-w-full select-none object-contain object-left ${className}`}
+      style={{ width: w, height: h }}
     />
   )
 }
@@ -67,13 +91,14 @@ export function AsistanIcon({
 }) {
   return (
     <Image
-      src="/images/asistan-mark.svg"
+      src={MARK_SRC}
       alt="Asistan"
       width={size}
       height={size}
       priority={priority}
-      unoptimized
-      className={`block select-none ${className}`}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
+      className={`block h-auto w-auto select-none object-contain ${className}`}
     />
   )
 }

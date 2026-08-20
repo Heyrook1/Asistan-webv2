@@ -30,7 +30,7 @@ describe('lib/brand/regional-hubs', () => {
 
   it('keeps international gate closed until proofs and EN exist', () => {
     expect(INTERNATIONAL_GATE.verifiedClinicProofs).toBe(false)
-    expect(INTERNATIONAL_GATE.enMarketingSurface).toBe(false)
+    expect(INTERNATIONAL_GATE.enMarketingSurface).toBe(true)
     expect(INTERNATIONAL_GATE.billingStoryForNewMarket).toBe(false)
     expect(openInternationalGate()).toBe(false)
     expect(REGIONAL_HUBS.apex.seoRole).toBe('company-apex')

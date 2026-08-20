@@ -9,6 +9,12 @@ import {
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications/service'
+import { notifyPatientChannels } from '@/lib/notifications/patient-channels'
+import {
+  canCancelOrRescheduleByPolicy,
+  cancelPolicyUserMessage,
+  getCancelMinHoursBefore,
+} from '@/lib/client-marketplace/cancel-policy'
 import { getAvailableSlots } from './availability'
 import { createClientNotification } from './notifications'
 import { addMinutesToTime } from './time'
@@ -39,13 +45,22 @@ async function loadOwnedAppointment(clientUserId: string, appointmentId: string)
       deletedAt: null,
     },
     include: {
-      patient: { select: { fullName: true } },
+      patient: { select: { fullName: true, phone: true, email: true } },
       service: { select: { name: true, durationMin: true } },
       business: { select: { ownerUserId: true, name: true } },
       staff: { select: { id: true, userId: true, fullName: true } },
       location: { select: { id: true, name: true } },
     },
   })
+}
+
+function assertPolicy(dateIso: string, startTime: string): ClientLifecycleResult | null {
+  const minHours = getCancelMinHoursBefore()
+  const policy = canCancelOrRescheduleByPolicy(dateIso, startTime, minHours)
+  if (!policy.ok) {
+    return { ok: false, error: cancelPolicyUserMessage(minHours) }
+  }
+  return null
 }
 
 export async function cancelClientAppointment(input: {
@@ -63,18 +78,22 @@ export async function cancelClientAppointment(input: {
   }
 
   const dateStr = existing.date.toISOString().slice(0, 10)
+  const policyBlock = assertPolicy(dateStr, existing.startTime)
+  if (policyBlock) return policyBlock
+
   const cancellationNote = parsed.data.reason
     ? [existing.notes, `Hasta iptali: ${parsed.data.reason}`].filter(Boolean).join('\n')
     : existing.notes
 
   await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: existing.id },
+    const updated = await tx.appointment.updateMany({
+      where: { id: existing.id, clientUserId: input.clientUserId },
       data: {
         status: AppointmentStatus.CANCELLED,
         notes: cancellationNote,
       },
     })
+    if (updated.count === 0) throw new Error('Randevu bulunamadi')
 
     await tx.timelineEvent.create({
       data: {
@@ -84,6 +103,7 @@ export async function cancelClientAppointment(input: {
         title: 'Hasta randevuyu iptal etti',
         description: parsed.data.reason ?? `${dateStr} ${existing.startTime}`,
         actorName: existing.patient.fullName,
+        metadata: { appointmentId: existing.id, source: 'client' },
       },
     })
   })
@@ -126,6 +146,19 @@ export async function cancelClientAppointment(input: {
     },
   })
 
+  await notifyPatientChannels({
+    businessId: existing.businessId,
+    appointmentId: existing.id,
+    patientId: existing.patientId,
+    patientName: existing.patient.fullName,
+    patientPhone: existing.patient.phone,
+    patientEmail: existing.patient.email,
+    serviceName: existing.service.name,
+    startsAt: `${dateStr}T${existing.startTime}`,
+    clinicName: existing.business.name,
+    kind: 'cancel',
+  })
+
   return { ok: true }
 }
 
@@ -146,6 +179,9 @@ export async function rescheduleClientAppointment(input: {
   if (!existing.staffId) return { ok: false, error: 'Doktor atanmamis randevu ertelenemez' }
 
   const currentDate = existing.date.toISOString().slice(0, 10)
+  const policyBlock = assertPolicy(currentDate, existing.startTime)
+  if (policyBlock) return policyBlock
+
   const unchanged = currentDate === parsed.data.date && existing.startTime === parsed.data.startTime
   if (unchanged) return { ok: true }
 
@@ -164,8 +200,8 @@ export async function rescheduleClientAppointment(input: {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.appointment.update({
-      where: { id: existing.id },
+    const updated = await tx.appointment.updateMany({
+      where: { id: existing.id, clientUserId: input.clientUserId },
       data: {
         date: new Date(parsed.data.date),
         startTime: parsed.data.startTime,
@@ -173,6 +209,7 @@ export async function rescheduleClientAppointment(input: {
         status: AppointmentStatus.SCHEDULED,
       },
     })
+    if (updated.count === 0) throw new Error('Randevu bulunamadi')
 
     await tx.timelineEvent.create({
       data: {
@@ -182,6 +219,7 @@ export async function rescheduleClientAppointment(input: {
         title: 'Hasta randevuyu erteledi',
         description: `${parsed.data.date} ${parsed.data.startTime}`,
         actorName: existing.patient.fullName,
+        metadata: { appointmentId: existing.id, source: 'client' },
       },
     })
   })

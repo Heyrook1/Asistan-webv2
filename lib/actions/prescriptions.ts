@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { PrescriptionStatus, TimelineEventType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
 import { requirePermission, requireSession } from '@/lib/session'
 import { ok, err, type ActionResult } from '@/lib/actions/result'
 import { buildPrescriptionDraft } from '@/lib/prescriptions/build-draft'
@@ -10,36 +11,26 @@ import {
   createPrescriptionInput,
   doctorPrescriptionProfileInput,
 } from '@/lib/prescriptions/schema'
-
-async function nextProtocolNo(businessId: string) {
-  const year = new Date().getFullYear()
-  const count = await prisma.prescription.count({
-    where: {
-      businessId,
-      issuedAt: {
-        gte: new Date(`${year}-01-01T00:00:00.000Z`),
-        lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
-      },
-    },
-  })
-  return `RX-${year}-${String(count + 1).padStart(5, '0')}`
-}
+import { entityIdSchema } from '@/lib/actions/validation'
+import { prescriptionUiCopy } from '@/lib/prescriptions/ui-copy'
 
 export async function getPrescriptionDraft(patientId: string) {
+  const parsed = entityIdSchema.safeParse(patientId)
+  if (!parsed.success) return err('Geçersiz hasta kimliği', parsed.error.issues)
   const session = await requirePermission('patient.view')
   const draft = await buildPrescriptionDraft({
     businessId: session.businessId,
-    patientId,
+    patientId: parsed.data,
     preferredDoctorId: null,
     sessionStaffMemberId: session.staffMemberId,
   })
-  if (!draft) return err('Hasta bulunamadi')
+  if (!draft) return err('Hasta bulunamadı')
   return ok(draft)
 }
 
 export async function createPrescription(rawInput: unknown): Promise<ActionResult<{ id: string; protocolNo: string }>> {
   const parsed = createPrescriptionInput.safeParse(rawInput)
-  if (!parsed.success) return err('Form hatali', parsed.error.issues)
+  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
 
   const session = await requirePermission('patient.edit')
   const data = parsed.data
@@ -48,22 +39,38 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
     where: { id: data.patientId, businessId: session.businessId },
     include: { allergies: { select: { name: true } } },
   })
-  if (!patient) return err('Hasta bulunamadi')
+  if (!patient) return err('Hasta bulunamadı')
 
   const doctor = await prisma.teamMember.findFirst({
     where: { id: data.doctorId, businessId: session.businessId, isActive: true, role: 'DOKTOR' },
   })
-  if (!doctor) return err('Doktor bulunamadi')
+  if (!doctor) return err('Doktor bulunamadı')
 
   if (!data.patientIdentityNumber) {
-    return err('E-recete icin hasta KKTC kimlik numarasi zorunludur')
+    return err(prescriptionUiCopy.patientIdentityRequired)
   }
 
-  const protocolNo = await nextProtocolNo(session.businessId)
   const allergyWarning =
     patient.allergies.length > 0 ? patient.allergies.map((item) => item.name).join(', ') : null
 
-  const created = await prisma.$transaction(async (tx) => {
+  const year = new Date().getFullYear()
+
+  const created = await tenantTransaction(session.businessId, async (tx) => {
+    // Serialize protocolNo allocation per business+year inside the same tx.
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${session.businessId}), ${year})
+    `
+    const count = await tx.prescription.count({
+      where: {
+        businessId: session.businessId,
+        issuedAt: {
+          gte: new Date(`${year}-01-01T00:00:00.000Z`),
+          lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+        },
+      },
+    })
+    const protocolNo = `RX-${year}-${String(count + 1).padStart(5, '0')}`
+
     const prescription = await tx.prescription.create({
       data: {
         businessId: session.businessId,
@@ -110,8 +117,8 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
       select: { id: true, protocolNo: true },
     })
 
-    await tx.patient.update({
-      where: { id: data.patientId },
+    await tx.patient.updateMany({
+      where: { id: data.patientId, businessId: session.businessId },
       data: {
         identityNumber: data.patientIdentityNumber,
         birthDate: data.patientBirthDate ? new Date(data.patientBirthDate) : patient.birthDate,
@@ -127,10 +134,11 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
         businessId: session.businessId,
         patientId: data.patientId,
         type: TimelineEventType.PATIENT_UPDATED,
-        title: 'E-recete olusturuldu',
-        description: `${protocolNo} • ${data.diagnosis}`,
+        title: prescriptionUiCopy.timelineTitle,
+        description: `${protocolNo} ? ${data.diagnosis}`,
         actorName: session.fullName,
         actorId: session.userId,
+        metadata: { prescriptionId: prescription.id },
       },
     })
 
@@ -143,24 +151,24 @@ export async function createPrescription(rawInput: unknown): Promise<ActionResul
 
 export async function updateDoctorPrescriptionProfile(rawInput: unknown): Promise<ActionResult> {
   const parsed = doctorPrescriptionProfileInput.safeParse(rawInput)
-  if (!parsed.success) return err('Form hatali', parsed.error.issues)
+  if (!parsed.success) return err('Form hatalı', parsed.error.issues)
 
   const session = await requireSession()
   const targetId = parsed.data.teamMemberId ?? session.staffMemberId
-  if (!targetId) return err('Doktor profili bulunamadi')
+  if (!targetId) return err('Doktor profili bulunamadı')
 
   const member = await prisma.teamMember.findFirst({
     where: { id: targetId, businessId: session.businessId },
   })
-  if (!member) return err('Ekip uyesi bulunamadi')
+  if (!member) return err('Ekip üyesi bulunamadı')
 
   const isSelf = member.id === session.staffMemberId
   if (!isSelf && !session.permissions.includes('team.manage')) {
-    return err('Baska doktorun recete profilini duzenleme yetkiniz yok')
+    return err(prescriptionUiCopy.otherDoctorProfileForbidden)
   }
 
-  await prisma.teamMember.update({
-    where: { id: member.id },
+  await prisma.teamMember.updateMany({
+    where: { id: member.id, businessId: session.businessId },
     data: {
       prescriptionTitle: parsed.data.prescriptionTitle ?? member.prescriptionTitle,
       specialty: parsed.data.specialty ?? member.specialty,
@@ -178,9 +186,11 @@ export async function updateDoctorPrescriptionProfile(rawInput: unknown): Promis
 }
 
 export async function listPatientPrescriptions(patientId: string) {
+  const parsed = entityIdSchema.safeParse(patientId)
+  if (!parsed.success) return []
   const session = await requirePermission('patient.view')
   const rows = await prisma.prescription.findMany({
-    where: { businessId: session.businessId, patientId },
+    where: { businessId: session.businessId, patientId: parsed.data },
     orderBy: { issuedAt: 'desc' },
     take: 20,
     select: {

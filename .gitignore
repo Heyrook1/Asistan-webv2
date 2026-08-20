@@ -32,19 +32,27 @@ next-env.d.ts
 # Claude Code workspace
 .claude/
 
-# v0.dev generated drafts/injection helpers
-.v0/
+# other local AI/editor workspaces
+.cursor/
+.abacusai/
+
+# throwaway probe scripts (scripts/tmp-check-*.mjs)
+scripts/tmp-check-*.mjs
 
 # test artifacts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/.lighthouseci/
 
 # temp log/pid files
 *.err.log
 *.out.log
 *.pid
 tmp-*.log
+
+# local debug dumps (screenshots, 404 HTML, CI logs)
+/artifacts/
 
 .vercel
 

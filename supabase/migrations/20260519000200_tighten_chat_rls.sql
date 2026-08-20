@@ -4,8 +4,8 @@
 -- ============================================================================
 
 create or replace function public.user_belongs_to_business(
-  target_user_id uuid,
-  target_business_id uuid
+  target_user_id text,
+  target_business_id text
 )
 returns boolean
 language sql

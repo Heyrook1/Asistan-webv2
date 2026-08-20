@@ -10,8 +10,13 @@ export const baseSpring = {
   mass: 0.9,
 } as const
 
+/**
+ * Entrance variants never use opacity:0.
+ * On live, failed hydrate / whileInView miss used to leave product tabs & mocks invisible
+ * (local HMR looked fine). Keep content painted; only nudge position.
+ */
 export const pageEnter: Variants = {
-  hidden: { opacity: 0, scale: 0.988 },
+  hidden: { opacity: 1, scale: 0.988 },
   visible: {
     opacity: 1,
     scale: 1,
@@ -20,7 +25,7 @@ export const pageEnter: Variants = {
 }
 
 export const revealUp: Variants = {
-  hidden: { opacity: 0, y: 26 },
+  hidden: { opacity: 1, y: 26 },
   visible: {
     opacity: 1,
     y: 0,
@@ -29,7 +34,7 @@ export const revealUp: Variants = {
 }
 
 export const revealSoft: Variants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 1, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
@@ -39,7 +44,7 @@ export const revealSoft: Variants = {
 
 export function staggerContainer(staggerChildren = 0.08, delayChildren = 0): Variants {
   return {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 },
     visible: {
       opacity: 1,
       transition: {

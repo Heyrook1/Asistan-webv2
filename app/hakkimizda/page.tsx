@@ -62,7 +62,7 @@ export default function AboutPage() {
   return (
     <MarketingPageShell>
       {/* Hero — brand + story promise */}
-      <section className="relative overflow-hidden pb-16 pt-28 md:pb-24 md:pt-32">
+      <section className="relative overflow-hidden pb-16 pt-10 md:pb-24 md:pt-12">
         <div className="marketing-hero-bg absolute inset-0" />
         <div className="soft-grid absolute inset-0 opacity-50" />
         <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[48%] lg:block">
@@ -82,19 +82,20 @@ export default function AboutPage() {
             <p className="text-sm font-semibold tracking-[0.14em] text-brand-blue uppercase">
               Asistan
             </p>
-            <h1 className="mt-5 font-heading text-4xl font-black leading-[1.1] text-brand-navy sm:text-5xl md:text-[3.25rem]">
+            <h1 className="mt-4 font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy sm:text-5xl md:text-[3.25rem]">
               Klinik gününü sakinleştirmek için kurulduk.
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
+            <p className="mt-6 max-w-xl text-lg leading-8 text-[#6B7280]">
               Asistan Health, KKTC’deki sağlık işletmelerinin randevu, hasta ve ekip
               işlerini tek panelde toplamasına yardım eden erken erişim bir
               operasyon ürünüdür. Hasta yüzeyi Asistan Rezervasyon’dur. Büyük vaat
               değil; net iş.
             </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
                 asChild
-                className="min-h-11 rounded-xl bg-brand-blue px-6 text-white hover:bg-brand-blue/90"
+                variant="ctaPrimary"
+                className="min-h-11 rounded-xl px-6"
               >
                 <Link href={getClinicTrialPath('tr')}>
                   {ENTRY_CTA.clinicTrial.tr}
@@ -103,8 +104,8 @@ export default function AboutPage() {
               </Button>
               <Button
                 asChild
-                variant="outline"
-                className="min-h-11 rounded-xl border-slate-300 bg-white/80 text-brand-navy hover:bg-white"
+                variant="ctaSecondary"
+                className="min-h-11 rounded-xl bg-white/80 text-brand-navy"
               >
                 <Link href={DEMO_CONTACT_PATH}>{ENTRY_CTA.demoRequest.tr}</Link>
               </Button>
@@ -317,7 +318,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button asChild className="min-h-11 rounded-xl bg-white text-brand-navy hover:bg-white/90">
+              <Button asChild className="min-h-11 rounded-xl bg-white text-brand-navy shadow-[0_10px_22px_-14px_rgba(15,23,42,0.5)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-px hover:bg-white/90 hover:shadow-[0_16px_28px_-14px_rgba(15,23,42,0.58)] active:translate-y-0">
                 <Link href={getClinicTrialPath('tr')}>{ENTRY_CTA.clinicTrial.short.tr}</Link>
               </Button>
               <Button

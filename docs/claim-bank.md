@@ -21,7 +21,15 @@ Kaynak kod: `lib/brand/claim-bank.ts`
 - GDPR compliant, ISO …, HIPAA
 - “%99.9 uptime”
 - “Yapay zeka / AI-powered” (ürün AI değil)
+- AI klinik not / ambient scribe / gerçek zamanlı SOAP üretimi — şimdilik yalnızca yapılandırılmış SOAP şablonu ([`ai-clinical-notes-boundary.md`](./ai-clinical-notes-boundary.md))
+- “Revenue Intelligence” / uydurma doluluk yüzdesi (“bu slot %78 dolar”) — kural tabanlı boş slot + dönen hasta listesi var ([`fill-the-gap-ops.md`](./fill-the-gap-ops.md)); dürüst operasyon raporu ölçülen sayıları gösterir ([`clinic-analytics-deprecation.md`](./clinic-analytics-deprecation.md))
 - “Sertifikalı güvenlik” (belge yoksa)
+- Resmi e-reçete entegrasyonu / LIS / telehealth / hastane HIS–EMR (ürün sınırı: [`product-boundary.md`](./product-boundary.md))
+- Apple Health / HealthKit senkronu, FHIR pasaportu, “tıbbi pasaport / health passport” (şimdiki zaman) — **Asistan pasaportu** = ziyaret + klinik üyelik özeti ([`patient-passport.md`](./patient-passport.md)); chart PHI paylaşılmaz
+
+## Derinlik (outpatient SMB)
+
+Ürün odağı: poliklinik / muayenehane. Yazdırılabilir klinik reçete var; resmi e-reçete ağı yok. Hastane katmanı ertelenmiştir.
 
 ## Stage honesty (aspiration ≠ present tense)
 

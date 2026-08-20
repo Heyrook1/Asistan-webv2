@@ -2,8 +2,9 @@ import type { MetadataRoute } from 'next'
 
 import { GUIDES } from '@/lib/resources/guides'
 import { absoluteUrl, PUBLIC_SITEMAP_PATHS } from '@/lib/seo'
+import { listIndexableClinicSitemapEntries } from '@/lib/seo/list-indexable-clinics'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 
   const staticEntries: MetadataRoute.Sitemap = PUBLIC_SITEMAP_PATHS.map((path) => ({
@@ -20,5 +21,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }))
 
-  return [...staticEntries, ...guideEntries]
+  let clinicEntries: MetadataRoute.Sitemap = []
+  try {
+    const clinics = await listIndexableClinicSitemapEntries()
+    clinicEntries = clinics.map((clinic) => ({
+      url: absoluteUrl(clinic.path),
+      lastModified: clinic.lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    }))
+  } catch (error) {
+    console.error('[sitemap] clinic entries failed', error)
+  }
+
+  return [...staticEntries, ...guideEntries, ...clinicEntries]
 }

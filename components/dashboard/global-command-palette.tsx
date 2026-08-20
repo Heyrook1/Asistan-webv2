@@ -2,23 +2,7 @@
 
 import { type ComponentType, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  Calendar,
-  CalendarDays,
-  CreditCard,
-  HelpCircle,
-  LayoutDashboard,
-  MessageCircle,
-  ScrollText,
-  Search,
-  Settings,
-  Shield,
-  UserCog,
-  Users,
-} from 'lucide-react'
+import { Calendar, CalendarDays, Search, Shield, Users } from 'lucide-react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -32,11 +16,14 @@ import {
 import { cn } from '@/lib/utils'
 import { APPOINTMENT_STATUS_LABELS, formatPhone, formatShortDate, formatTime } from '@/lib/format'
 import { searchGlobalPalette, type GlobalSearchPayload } from '@/lib/actions/global-search'
-import type { Permission, SessionContext } from '@/lib/rbac'
+import type { SessionContext } from '@/lib/rbac'
+import { appointmentScheduleNavLabels, canViewAppointmentSchedule } from '@/lib/rbac'
 import {
-  appointmentScheduleNavLabels,
-  canViewAppointmentSchedule,
-} from '@/lib/rbac'
+  DASHBOARD_NAV_ITEMS,
+  NAV_GROUP_LABELS,
+  filterDashboardNavItems,
+  groupDashboardNavItems,
+} from '@/lib/dashboard/nav'
 
 const DASHBOARD_COMMAND_OPEN_EVENT = 'dashboard:command-open'
 
@@ -45,17 +32,21 @@ type PageEntry = {
   href: string
   icon: ComponentType<{ className?: string }>
   keywords: string
-  visible: boolean
+  groupLabel?: string
 }
 
 export function GlobalCommandPalette({
   session,
   showPlatformAdmin = false,
   showSuperAdmin = false,
+  teamMessagingEnabled = false,
+  clinicAnalyticsEnabled = false,
 }: {
   session: SessionContext
   showPlatformAdmin?: boolean
   showSuperAdmin?: boolean
+  teamMessagingEnabled?: boolean
+  clinicAnalyticsEnabled?: boolean
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -63,139 +54,56 @@ export function GlobalCommandPalette({
   const [results, setResults] = useState<GlobalSearchPayload>({ patients: [], appointments: [] })
   const [isPending, startTransition] = useTransition()
 
-  const hasPermission = (permission: Permission) => session.permissions.includes(permission)
-  const canSeePatients = hasPermission('patient.view') || hasPermission('patient.edit') || hasPermission('patient.create')
-  const canSeeAppointments = canViewAppointmentSchedule(session)
   const scheduleLabels = appointmentScheduleNavLabels(session)
+  const canSeeAppointments = canViewAppointmentSchedule(session)
 
-  const pages: PageEntry[] = [
-    {
-      title: 'Genel Bakış',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-      keywords: 'anasayfa overview dashboard',
-      visible: true,
-    },
-    {
-      title: scheduleLabels.agenda,
-      href: '/dashboard/ajanda',
-      icon: CalendarDays,
-      keywords: 'appointment randevu ajanda takvim liste benim',
-      visible: canSeeAppointments,
-    },
+  const navPages: PageEntry[] = groupDashboardNavItems(
+    filterDashboardNavItems(DASHBOARD_NAV_ITEMS, {
+      session,
+      showPlatformAdmin,
+      showSuperAdmin,
+      teamMessagingEnabled,
+      clinicAnalyticsEnabled,
+    }),
+  ).flatMap((section) =>
+    section.items.map((item) => ({
+      title: item.id === 'agenda' ? scheduleLabels.agenda : item.name,
+      href: item.href,
+      icon: item.icon,
+      keywords: `${item.keywords ?? ''} ${NAV_GROUP_LABELS[item.group]}`,
+      groupLabel: section.label,
+    })),
+  )
+
+  const extraPages: PageEntry[] = [
     {
       title: `${scheduleLabels.agenda} · Liste`,
       href: '/dashboard/ajanda?mode=liste',
       icon: Calendar,
       keywords: 'liste kuyruk onay randevu',
-      visible: canSeeAppointments,
+      groupLabel: NAV_GROUP_LABELS.operasyon,
     },
     {
       title: `${scheduleLabels.agenda} · Takvim`,
       href: '/dashboard/ajanda?mode=takvim',
       icon: CalendarDays,
       keywords: 'calendar gunluk haftalik aylik takvim',
-      visible: canSeeAppointments,
-    },
-    {
-      title: 'Hastalar',
-      href: '/dashboard/hastalar',
-      icon: Users,
-      keywords: 'patient hasta musteri kart',
-      visible: canSeePatients,
-    },
-    {
-      title: 'Hizmetler',
-      href: '/dashboard/hizmetler',
-      icon: Briefcase,
-      keywords: 'service hizmet fiyat sure',
-      visible: hasPermission('service.manage'),
-    },
-    {
-      title: 'Takım',
-      href: '/dashboard/takim',
-      icon: UserCog,
-      keywords: 'team calisan personel doktor',
-      visible: hasPermission('team.manage'),
-    },
-    {
-      title: 'Mesajlar',
-      href: '/dashboard/mesajlar',
-      icon: MessageCircle,
-      keywords: 'chat mesaj konusma',
-      visible: true,
-    },
-    {
-      title: 'Bildirimler',
-      href: '/dashboard/bildirimler',
-      icon: Bell,
-      keywords: 'notification uyari hatirlatma',
-      visible: true,
-    },
-    {
-      title: 'Analitik',
-      href: '/dashboard/analitik',
-      icon: BarChart3,
-      keywords: 'analytics rapor ciro',
-      visible: hasPermission('analytics.view'),
-    },
-    {
-      title: 'Yönetişim',
-      href: '/dashboard/yonetisim',
-      icon: Shield,
-      keywords: 'denetim audit kvkk uyumluluk silme riza',
-      visible: showSuperAdmin,
-    },
-    {
-      title: 'Denetim',
-      href: '/dashboard/denetim',
-      icon: ScrollText,
-      keywords: 'denetim audit log guvenlik',
-      visible: hasPermission('audit.view'),
-    },
-    {
-      title: 'Yardım Merkezi',
-      href: '/dashboard/yardim',
-      icon: HelpCircle,
-      keywords: 'yardim destek help faq dokumantasyon rehber iletisim',
-      visible: true,
-    },
-    {
-      title: 'Profilim',
-      href: '/dashboard/ayarlar?tab=hesap',
-      icon: Settings,
-      keywords: 'settings profil hesap',
-      visible: true,
-    },
-    {
-      title: 'İşletme Ayarları',
-      href: '/dashboard/ayarlar?tab=isletme',
-      icon: Settings,
-      keywords: 'settings isletme marka para birimi',
-      visible: session.isOwner,
-    },
-    {
-      title: 'Abonelik / Paket',
-      href: '/dashboard/ayarlar?tab=abonelik',
-      icon: CreditCard,
-      keywords: 'abonelik paket billing yenileme trial',
-      visible: session.isOwner,
+      groupLabel: NAV_GROUP_LABELS.operasyon,
     },
     {
       title: 'Sistem Admin',
       href: '/dashboard/sistem-admin',
       icon: Shield,
       keywords: 'platform admin sistem',
-      visible: showPlatformAdmin,
+      groupLabel: NAV_GROUP_LABELS.yonetim,
     },
-    {
-      title: 'Super Admin',
-      href: '/dashboard/super-admin',
-      icon: Shield,
-      keywords: 'super admin',
-      visible: showSuperAdmin,
-    },
-  ].filter((item) => item.visible)
+  ].filter((page) => {
+    if (page.href.startsWith('/dashboard/ajanda')) return canSeeAppointments
+    if (page.href === '/dashboard/sistem-admin') return showPlatformAdmin
+    return true
+  })
+
+  const pages = [...navPages, ...extraPages]
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -273,12 +181,15 @@ export function GlobalCommandPalette({
         <CommandGroup heading="Sayfalar">
           {pages.map((page) => (
             <CommandItem
-              key={page.href}
-              value={`${page.title} ${page.keywords}`}
+              key={`${page.href}-${page.title}`}
+              value={`${page.title} ${page.keywords} ${page.groupLabel ?? ''}`}
               onSelect={() => go(page.href)}
             >
               <page.icon className="h-4 w-4" />
-              <span>{page.title}</span>
+              <span className="min-w-0 flex-1 truncate">{page.title}</span>
+              {page.groupLabel ? (
+                <span className="hidden text-[10px] text-muted-foreground sm:inline">{page.groupLabel}</span>
+              ) : null}
               <CommandShortcut>Git</CommandShortcut>
             </CommandItem>
           ))}

@@ -2,14 +2,20 @@ import 'server-only'
 
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { catalogPrisma } from '@/lib/prisma-owner'
+import { withTenantDb } from '@/lib/security/tenant-db-context'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
 import type { AvailabilitySlot } from './types'
 import {
-  addMinutesToTime,
   getCurrentDateAndTimeForTimezone,
   getWeekdayFromDateString,
-  parseTimeToMinutes,
-  rangesOverlap,
 } from './time'
+import {
+  computeAvailableSlotsResult,
+  type AvailabilityEmptyReason,
+  type AvailabilityRuleRow,
+  type BusyInterval,
+} from './availability-compute'
 
 type DbClient = Prisma.TransactionClient | typeof prisma
 
@@ -20,6 +26,11 @@ export type GetAvailableSlotsInput = {
   businessId: string
   locationId?: string | null
   excludeAppointmentId?: string
+}
+
+export type AvailabilityQueryResult = {
+  slots: AvailabilitySlot[]
+  emptyReason: AvailabilityEmptyReason
 }
 
 async function isDoctorAssignedToService(
@@ -49,18 +60,16 @@ async function isDoctorAssignedToService(
   return Boolean(linked)
 }
 
-function deDupeSlots(slots: AvailabilitySlot[]) {
-  const map = new Map<string, AvailabilitySlot>()
-  for (const slot of slots) {
-    map.set(`${slot.startTime}-${slot.endTime}`, slot)
-  }
-  return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime))
+function appointmentDateOnly(isoDate: string): Date {
+  // Prisma @db.Date — UTC noon keeps the calendar day stable across TZ.
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
 }
 
 async function getAvailableSlotsWithDb(
   db: DbClient,
   input: GetAvailableSlotsInput
-): Promise<AvailabilitySlot[]> {
+): Promise<AvailabilityQueryResult> {
   const [business, service, doctor] = await Promise.all([
     db.business.findFirst({
       where: { id: input.businessId, isActive: true },
@@ -81,14 +90,18 @@ async function getAvailableSlotsWithDb(
     }),
   ])
 
-  if (!business || !service || !doctor || !doctor.isBookable) return []
+  if (!business || !service || !doctor || !doctor.isBookable) {
+    return { slots: [], emptyReason: 'NOT_BOOKABLE' }
+  }
 
   const allowedForService = await isDoctorAssignedToService(db, {
     businessId: input.businessId,
     doctorId: input.doctorId,
     serviceId: input.serviceId,
   })
-  if (!allowedForService) return []
+  if (!allowedForService) {
+    return { slots: [], emptyReason: 'NOT_BOOKABLE' }
+  }
 
   const weekday = getWeekdayFromDateString(input.date)
   const allRules = await db.teamMemberAvailability.findMany({
@@ -106,22 +119,17 @@ async function getAvailableSlotsWithDb(
     },
     orderBy: [{ startTime: 'asc' }],
   })
-  if (allRules.length === 0) return []
+  if (allRules.length === 0) {
+    return { slots: [], emptyReason: 'NO_RULES' }
+  }
 
-  const locationRules =
-    input.locationId != null
-      ? allRules.filter((rule) => rule.locationId === input.locationId)
-      : []
-  const globalRules = allRules.filter((rule) => rule.locationId == null)
-  const activeRules = locationRules.length > 0 ? locationRules : globalRules
-  if (activeRules.length === 0) return []
-
+  const day = appointmentDateOnly(input.date)
   const [appointments, blocks] = await Promise.all([
     db.appointment.findMany({
       where: {
         businessId: input.businessId,
         staffId: input.doctorId,
-        date: new Date(input.date),
+        date: day,
         status: { in: ['SCHEDULED', 'CONFIRMED'] },
         ...(input.excludeAppointmentId ? { id: { not: input.excludeAppointmentId } } : {}),
       },
@@ -131,60 +139,103 @@ async function getAvailableSlotsWithDb(
       where: {
         businessId: input.businessId,
         staffId: input.doctorId,
-        date: new Date(input.date),
+        date: day,
         ...(input.locationId ? { OR: [{ locationId: input.locationId }, { locationId: null }] } : {}),
       },
       select: { startTime: true, endTime: true },
     }),
   ])
 
-  const now = getCurrentDateAndTimeForTimezone(business.timezone || 'Europe/Istanbul')
-  const isPastDate = input.date < now.date
-  if (isPastDate) return []
-
-  const candidateSlots: AvailabilitySlot[] = []
-
-  for (const rule of activeRules) {
-    const step = Math.max(5, rule.slotIntervalMin || 15)
-    const startMin = parseTimeToMinutes(rule.startTime)
-    const endMin = parseTimeToMinutes(rule.endTime)
-    const duration = service.durationMin
-    const lastStart = endMin - duration
-    if (lastStart < startMin) continue
-
-    for (let current = startMin; current <= lastStart; current += step) {
-      const startTime = addMinutesToTime('00:00', current)
-      const endTime = addMinutesToTime(startTime, duration)
-
-      if (input.date === now.date && startTime <= now.time) {
-        continue
-      }
-
-      const collidesAppointment = appointments.some((item) =>
-        rangesOverlap(startTime, endTime, item.startTime, item.endTime)
-      )
-      if (collidesAppointment) continue
-
-      const collidesBlock = blocks.some((item) =>
-        rangesOverlap(startTime, endTime, item.startTime, item.endTime)
-      )
-      if (collidesBlock) continue
-
-      candidateSlots.push({ startTime, endTime })
-    }
+  // Wall-clock HH:mm in Business.timezone; empty → KKTC ops TZ (Asia/Nicosia).
+  const timezone = business.timezone?.trim() || 'Asia/Nicosia'
+  let now: { date: string; time: string }
+  try {
+    now = getCurrentDateAndTimeForTimezone(timezone)
+  } catch {
+    now = getCurrentDateAndTimeForTimezone('Asia/Nicosia')
   }
 
-  return deDupeSlots(candidateSlots)
+  return computeAvailableSlotsResult({
+    durationMin: service.durationMin,
+    rules: allRules as AvailabilityRuleRow[],
+    appointments: appointments as BusyInterval[],
+    blocks: blocks as BusyInterval[],
+    date: input.date,
+    nowDate: now.date,
+    nowTime: now.time === '24:00' ? '00:00' : now.time,
+    locationId: input.locationId,
+  })
 }
 
+function preferConfigReason(
+  primary: AvailabilityQueryResult | null,
+  secondary: AvailabilityQueryResult
+): AvailabilityQueryResult {
+  if (secondary.slots.length > 0) return secondary
+  if (!primary) return secondary
+  // Prefer concrete schedule reasons over NOT_BOOKABLE from a possibly RLS-empty catalog read.
+  if (
+    primary.emptyReason === 'NOT_BOOKABLE' &&
+    secondary.emptyReason !== 'NOT_BOOKABLE' &&
+    secondary.emptyReason !== 'INFRA'
+  ) {
+    return secondary
+  }
+  if (primary.slots.length === 0 && secondary.emptyReason === 'NOT_BOOKABLE') {
+    return primary.emptyReason !== 'INFRA' ? primary : secondary
+  }
+  return secondary
+}
+
+/**
+ * Public slot query with emptyReason — catalog/owner first, then tenant GUC.
+ * Never throws — INFRA on total failure.
+ */
+export async function getAvailableSlotsDetailed(
+  input: GetAvailableSlotsInput
+): Promise<AvailabilityQueryResult> {
+  try {
+    return await runWithTenantBypassAsync('marketplace:availability', async () => {
+      let catalogResult: AvailabilityQueryResult | null = null
+      try {
+        catalogResult = await getAvailableSlotsWithDb(catalogPrisma(), input)
+      } catch (catalogError) {
+        console.error('[availability] catalogPrisma failed, trying tenant GUC', catalogError)
+      }
+
+      if (catalogResult && catalogResult.slots.length > 0) return catalogResult
+
+      try {
+        const tenantResult = await withTenantDb(input.businessId, (tx) =>
+          getAvailableSlotsWithDb(tx, input)
+        )
+        return preferConfigReason(catalogResult, tenantResult)
+      } catch (tenantError) {
+        console.error('[availability] tenant path also failed', tenantError)
+        return catalogResult ?? { slots: [], emptyReason: 'INFRA' }
+      }
+    })
+  } catch (fatal) {
+    console.error('[availability] fatal', fatal)
+    return { slots: [], emptyReason: 'INFRA' }
+  }
+}
+
+/**
+ * Public slot query — catalog/owner first (cross-tenant, no GUC).
+ * If catalog returns empty (RLS-empty owner role) or throws, try tenant GUC.
+ * Never throws — empty list on total failure.
+ */
 export async function getAvailableSlots(input: GetAvailableSlotsInput): Promise<AvailabilitySlot[]> {
-  return getAvailableSlotsWithDb(prisma, input)
+  return (await getAvailableSlotsDetailed(input)).slots
 }
 
 export async function getAvailableSlotsTx(
   tx: Prisma.TransactionClient,
   input: GetAvailableSlotsInput
 ): Promise<AvailabilitySlot[]> {
-  return getAvailableSlotsWithDb(tx, input)
+  return (await getAvailableSlotsWithDb(tx, input)).slots
 }
 
+export { computeAvailableSlots, computeAvailableSlotsResult, deDupeSlots } from './availability-compute'
+export type { AvailabilityEmptyReason }

@@ -23,3 +23,50 @@ export type AvailabilitySlot = {
   endTime: string
 }
 
+export type ClientPassportClinic = {
+  businessId: string
+  name: string
+  slug: string | null
+  city: string | null
+  patientNumber: string | null
+}
+
+export type ClientPassportVisit = {
+  id: string
+  status: string
+  date: string
+  startTime: string
+  clinic: { id: string; name: string; slug?: string | null }
+  doctor: { id: string; fullName: string; specialty: string | null } | null
+  service: { id: string; name: string }
+  location: { id: string; name: string; address: string | null } | null
+}
+
+export type ClientPassportTimelineItem = {
+  id: string
+  kind: string
+  occurredAt: string
+  title: string
+  subtitle?: string | null
+  status?: string | null
+  clinicName?: string | null
+}
+
+export type ClientPassport = {
+  gpiDisplay: string | null
+  personLinked: boolean
+  fullName: string
+  clinics: ClientPassportClinic[]
+  visits: ClientPassportVisit[]
+  timeline: ClientPassportTimelineItem[]
+  counts?: {
+    activeMedications: number
+    allergies: number
+    documents: number
+  }
+  honesty: {
+    titleTr: string
+    disclaimerTr: string
+  }
+}
+

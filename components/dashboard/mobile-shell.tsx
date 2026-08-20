@@ -4,35 +4,32 @@ import { useEffect, useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  CalendarDays,
   CalendarPlus,
-  HelpCircle,
-  Home,
   Loader2,
   LogOut,
   Menu,
-  MessageCircle,
   Plus,
   Search,
-  Settings,
-  Shield,
   StickyNote,
   Upload,
-  UserCog,
   UserPlus,
-  Users,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
+import { DashboardBrandLockup } from '@/components/dashboard/dashboard-brand-lockup'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
-import { ROLE_LABELS, canViewAppointmentSchedule, appointmentScheduleNavLabels } from '@/lib/rbac'
+import {
+  DASHBOARD_NAV_ITEMS,
+  filterDashboardNavItems,
+  groupDashboardNavItems,
+  isDashboardNavActive,
+  mobilePrimaryNavItems,
+} from '@/lib/dashboard/nav'
+import { ROLE_LABELS, can as sessionCan, appointmentScheduleNavLabels } from '@/lib/rbac'
 import type { SessionContext, Permission } from '@/lib/rbac'
 import {
   searchGlobalPalette,
@@ -40,61 +37,22 @@ import {
 } from '@/lib/actions/global-search'
 import { cn } from '@/lib/utils'
 
-type PrimaryNav = {
-  name: string
-  href: string
-  icon: typeof Home
-  permission?: Permission
-  anyOfPermissions?: Permission[]
-  match?: (path: string) => boolean
-  badge?: 'notifications' | 'messages' | 'pendingAppointments'
-}
-
-type SecondaryNav = PrimaryNav & {
-  superAdminOnly?: boolean
-}
-
-const PRIMARY_NAV: PrimaryNav[] = [
-  { name: 'Ana Sayfa', href: '/dashboard', icon: Home, match: (p) => p === '/dashboard' },
-  {
-    name: 'Ajanda',
-    href: '/dashboard/ajanda',
-    icon: CalendarDays,
-    anyOfPermissions: ['appointment.manage', 'appointment.view', 'appointment.own.view'],
-    badge: 'pendingAppointments',
-    match: (p) =>
-      p === '/dashboard/ajanda' ||
-      p.startsWith('/dashboard/ajanda/') ||
-      p === '/dashboard/randevular' ||
-      p.startsWith('/dashboard/randevular/') ||
-      p === '/dashboard/takvim' ||
-      p.startsWith('/dashboard/takvim/'),
-  },
-  { name: 'Hastalar', href: '/dashboard/hastalar', icon: Users, permission: 'patient.view' },
-]
-
-const SECONDARY_NAV: SecondaryNav[] = [
-  { name: 'Mesajlar', href: '/dashboard/mesajlar', icon: MessageCircle, badge: 'messages' },
-  { name: 'Hizmetler', href: '/dashboard/hizmetler', icon: Briefcase, permission: 'service.manage' },
-  { name: 'Takım', href: '/dashboard/takim', icon: UserCog, permission: 'team.manage' },
-  { name: 'Bildirimler', href: '/dashboard/bildirimler', icon: Bell, badge: 'notifications' },
-  { name: 'Analitik', href: '/dashboard/analitik', icon: BarChart3, permission: 'analytics.view' },
-  { name: 'Yönetişim', href: '/dashboard/yonetisim', icon: Shield, superAdminOnly: true },
-  { name: 'Ayarlar', href: '/dashboard/ayarlar?tab=hesap', icon: Settings },
-]
-
 export function MobileShell({
   session,
   unreadCount,
   unreadMessages = 0,
   pendingAppointments = 0,
   showSuperAdmin = false,
+  teamMessagingEnabled = false,
+  clinicAnalyticsEnabled = false,
 }: {
   session: SessionContext
   unreadCount: number
   unreadMessages?: number
   pendingAppointments?: number
   showSuperAdmin?: boolean
+  teamMessagingEnabled?: boolean
+  clinicAnalyticsEnabled?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -107,39 +65,29 @@ export function MobileShell({
   const [pickerPending, startPickerSearch] = useTransition()
   const scheduleLabels = appointmentScheduleNavLabels(session)
 
-  const can = (perm?: Permission) => !perm || session.permissions.includes(perm)
-  const canAny = (perms?: Permission[]) =>
-    !perms?.length || perms.some((permission) => session.permissions.includes(permission))
+  const can = (perm?: Permission) => !perm || sessionCan(session, perm)
 
-  const primaryItems = PRIMARY_NAV.filter((item) => {
-    if (item.href === '/dashboard/ajanda') {
-      return canViewAppointmentSchedule(session)
-    }
-    if (item.anyOfPermissions) return canAny(item.anyOfPermissions)
-    return can(item.permission)
+  const visibleNav = filterDashboardNavItems(DASHBOARD_NAV_ITEMS, {
+    session,
+    showSuperAdmin,
+    teamMessagingEnabled,
+    clinicAnalyticsEnabled,
   })
-  const secondaryItems = SECONDARY_NAV.filter((i) => {
-    if (i.superAdminOnly && !showSuperAdmin) return false
-    return can(i.permission)
-  })
-  if (showSuperAdmin) {
-    secondaryItems.splice(secondaryItems.length - 1, 0, {
-      name: 'Super Admin',
-      href: '/dashboard/super-admin',
-      icon: Shield,
-    })
-  }
+  const primaryItems = mobilePrimaryNavItems(visibleNav)
+  const menuSections = groupDashboardNavItems(
+    visibleNav.filter((item) => !item.mobilePrimary),
+  )
 
-  function primaryLabel(item: PrimaryNav) {
-    if (item.href === '/dashboard/ajanda') return scheduleLabels.agendaShort
+  function primaryLabel(item: (typeof primaryItems)[number]) {
+    if (item.id === 'agenda') return scheduleLabels.agendaShort
+    if (item.id === 'overview') return 'Ana'
     return item.name
   }
 
-  const isSecondaryActive = secondaryItems.some((item) => {
-    const path = item.href.split('?')[0]
-    return pathname === path || pathname.startsWith(`${path}/`)
-  })
-  const menuBadgeCount = unreadCount + unreadMessages
+  const isSecondaryActive = menuSections.some((section) =>
+    section.items.some((item) => isDashboardNavActive(pathname, item.href)),
+  )
+  const menuBadgeCount = unreadCount + (teamMessagingEnabled ? unreadMessages : 0)
 
   async function handleLogout() {
     const supabase = createClient()
@@ -182,7 +130,7 @@ export function MobileShell({
         const result = await searchGlobalPalette(q)
         setPickerResults(result.patients)
       })
-    }, 220)
+    }, 300)
     return () => window.clearTimeout(timer)
   }, [patientPicker, pickerQuery])
 
@@ -192,59 +140,77 @@ export function MobileShell({
     router.push(`/dashboard/hastalar/${patientId}?action=${action}`)
   }
 
+  const tabCount = primaryItems.length + 1 // primary tabs + Menü
+
   return (
     <>
+      {/*
+        Mobile bottom nav: one equal-width row (never wrap). FAB sits above this bar
+        via --dashboard-mobile-nav-h so it never covers tab hit targets.
+      */}
       <nav
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-white/90 backdrop-blur-xl pb-safe lg:hidden"
         aria-label="Alt gezinme"
       >
-        <div className="grid grid-cols-4">
+        <div
+          className="mx-auto grid w-full max-w-lg min-h-[3.5rem] items-stretch px-1"
+          style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}
+        >
           {primaryItems.map((item) => {
-            const active = item.match
-              ? item.match(pathname)
-              : pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const href =
+              item.badge === 'pendingAppointments' && pendingAppointments > 0
+                ? '/dashboard/ajanda?mode=liste&status=SCHEDULED'
+                : item.href
+            const active = isDashboardNavActive(pathname, item.href)
+            const label = primaryLabel(item)
+            const a11yLabel = item.id === 'overview' ? 'Ana Sayfa' : label
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.id}
+                href={href}
+                title={a11yLabel}
+                aria-label={a11yLabel}
                 className={cn(
-                  'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
+                  'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] font-medium leading-tight transition-colors sm:text-[11px]',
                   active ? 'text-brand-blue' : 'text-muted-foreground',
                 )}
                 aria-current={active ? 'page' : undefined}
               >
-                <span className="relative">
-                  <item.icon className="h-[22px] w-[22px]" />
-                  {active && <span className="absolute -top-3 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-brand-blue" />}
+                <span className="relative shrink-0">
+                  <item.icon className="h-5 w-5 sm:h-[22px] sm:w-[22px]" aria-hidden />
+                  {active && (
+                    <span className="absolute -top-2.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-brand-blue sm:w-6" />
+                  )}
                   {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
                     <span className="absolute -right-2.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold leading-none text-amber-950 ring-2 ring-white">
                       {pendingAppointments > 9 ? '9+' : pendingAppointments}
                     </span>
                   )}
                 </span>
-                {primaryLabel(item)}
+                <span className="w-full truncate text-center">{label}</span>
               </Link>
             )
           })}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
+            title="Menü"
             className={cn(
-              'tap-target flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors',
+              'flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] font-medium leading-tight transition-colors sm:text-[11px]',
               menuOpen || isSecondaryActive ? 'text-brand-blue' : 'text-muted-foreground',
             )}
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
           >
-            <span className="relative">
-              <Menu className="h-[22px] w-[22px]" />
+            <span className="relative shrink-0">
+              <Menu className="h-5 w-5 sm:h-[22px] sm:w-[22px]" aria-hidden />
               {menuBadgeCount > 0 && !isSecondaryActive && (
                 <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-blue px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
                   {menuBadgeCount > 9 ? '9+' : menuBadgeCount}
                 </span>
               )}
             </span>
-            Menü
+            <span className="w-full truncate text-center">Menü</span>
           </button>
         </div>
       </nav>
@@ -253,10 +219,14 @@ export function MobileShell({
         type="button"
         onClick={() => setFabOpen(true)}
         aria-label="Hızlı işlemler"
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-blue text-white shadow-xl shadow-blue-500/40 transition-transform active:scale-95 lg:hidden"
-        style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
+        className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-blue text-white shadow-xl shadow-blue-500/40 transition-transform active:scale-95 lg:hidden"
+        style={{
+          // Clear the nav bar + safe area; never sit on top of tab labels/icons.
+          bottom:
+            'calc(var(--dashboard-mobile-nav-h, 3.5rem) + env(safe-area-inset-bottom, 0px) + 0.75rem)',
+        }}
       >
-        <Plus className="h-7 w-7" />
+        <Plus className="h-7 w-7" aria-hidden />
       </button>
 
       <Sheet open={fabOpen} onOpenChange={setFabOpen}>
@@ -379,75 +349,78 @@ export function MobileShell({
       </Sheet>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="right" className="w-full max-w-full border-0 bg-sidebar p-0 text-white sm:max-w-sm">
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-full max-w-full border-0 bg-sidebar p-0 text-white sm:max-w-sm"
+        >
           <SheetTitle className="sr-only">Menü</SheetTitle>
           <div className="flex h-full flex-col pt-safe">
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="min-w-0">
-                <p className="truncate text-base font-bold">{session.businessName}</p>
-                <p className="text-[11px] text-white/55">{ROLE_LABELS[session.role]} · {session.fullName}</p>
+            <div className="border-b border-white/[0.08] px-5 py-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <DashboardBrandLockup />
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  className="tap-target flex shrink-0 items-center justify-center rounded-xl text-white/70 hover:bg-white/5"
+                  aria-label="Menüyü kapat"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="tap-target flex items-center justify-center rounded-xl text-white/70 hover:bg-white/5"
-                aria-label="Menüyü kapat"
-              >
-                <X className="h-6 w-6" />
-              </button>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white/90">{session.businessName}</p>
+                <p className="text-[11px] text-white/50">{ROLE_LABELS[session.role]} · {session.fullName}</p>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-3">
-              <ul className="space-y-1">
-                {secondaryItems.map((item) => {
-                  const path = item.href.split('?')[0]
-                  const active = pathname === path || pathname.startsWith(`${path}/`)
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setMenuOpen(false)}
-                        className={cn(
-                          'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
-                          active ? 'bg-brand-blue/15 text-white' : 'text-white/70 hover:bg-white/5',
-                        )}
-                      >
-                        <item.icon className={cn('h-5 w-5 shrink-0', active ? 'text-brand-blue' : 'text-white/55')} />
-                        <span className="flex-1">{item.name}</span>
-                        {item.badge === 'notifications' && unreadCount > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                          </span>
-                        )}
-                        {item.badge === 'messages' && unreadMessages > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
-                            {unreadMessages > 9 ? '9+' : unreadMessages}
-                          </span>
-                        )}
-                        {item.badge === 'pendingAppointments' && pendingAppointments > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold leading-none text-amber-950">
-                            {pendingAppointments > 9 ? '9+' : pendingAppointments}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+              <div className="space-y-4">
+                {menuSections.map((section) => (
+                  <div key={section.group}>
+                    <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+                      {section.label}
+                    </p>
+                    <ul className="space-y-1">
+                      {section.items.map((item) => {
+                        const active = isDashboardNavActive(pathname, item.href)
+                        const label = item.id === 'agenda' ? scheduleLabels.agenda : item.name
+                        return (
+                          <li key={item.id}>
+                            <Link
+                              href={item.href}
+                              onClick={() => setMenuOpen(false)}
+                              className={cn(
+                                'tap-target flex items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
+                                active ? 'bg-brand-blue/15 text-white' : 'text-white/70 hover:bg-white/5',
+                              )}
+                            >
+                              <item.icon
+                                className={cn('h-5 w-5 shrink-0', active ? 'text-brand-blue' : 'text-white/55')}
+                              />
+                              <span className="flex-1">{label}</span>
+                              {item.badge === 'notifications' && unreadCount > 0 && (
+                                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
+                                  {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                              )}
+                              {item.badge === 'messages' && unreadMessages > 0 && (
+                                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-blue px-1.5 text-[11px] font-bold leading-none text-white">
+                                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                                </span>
+                              )}
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
 
               <div className="my-4 h-px bg-white/10" />
 
               <ul className="space-y-1">
-                <li>
-                  <Link
-                    href="/dashboard/yardim"
-                    onClick={() => setMenuOpen(false)}
-                    className="tap-target flex w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-white/70 hover:bg-white/5"
-                  >
-                    <HelpCircle className="h-5 w-5 text-white/55" />
-                    <span className="flex-1 text-left">Yardım Merkezi</span>
-                  </Link>
-                </li>
                 <li>
                   <button
                     type="button"

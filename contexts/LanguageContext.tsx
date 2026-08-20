@@ -12,15 +12,41 @@ interface LanguageContextProps {
   t: <T>(translations: { tr: T; en: T }) => T
 }
 
-const LanguageContext = createContext<LanguageContextProps | undefined>(undefined)
+/** Singleton context only — never store request language on globalThis (nested providers raced). */
+type LangBridge = {
+  context: React.Context<LanguageContextProps | undefined>
+}
+
+function getLangBridge(): LangBridge {
+  const g = globalThis as typeof globalThis & { __asistanLangBridge?: LangBridge }
+  if (!g.__asistanLangBridge) {
+    g.__asistanLangBridge = {
+      context: createContext<LanguageContextProps | undefined>(undefined),
+    }
+  }
+  return g.__asistanLangBridge
+}
 
 const COOKIE_NAME = 'asistan-lang'
 const LOCAL_STORAGE_KEY = 'asistan-lang'
+const LanguageContext = getLangBridge().context
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('tr')
+function pickTranslation<T>(translations: { tr: T; en: T }, lang: Language): T {
+  return translations[lang] ?? translations.tr
+}
 
-  // Get cookie helper
+export function LanguageProvider({
+  children,
+  initialLanguage = 'tr',
+}: {
+  children: React.ReactNode
+  /** From server cookie so SSR matches first client paint. */
+  initialLanguage?: Language
+}) {
+  const [language, setLanguageState] = useState<Language>(initialLanguage)
+  // Until mount sync finishes, always expose initialLanguage so hydrate matches SSR.
+  const [hydrated, setHydrated] = useState(false)
+
   const getCookie = (name: string): string | null => {
     if (typeof document === 'undefined') return null
     const nameEQ = name + '='
@@ -33,7 +59,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  // Set cookie helper
   const setCookie = (name: string, value: string, days = 365) => {
     if (typeof document === 'undefined') return
     const date = new Date()
@@ -43,10 +68,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Explicit preference only — KKTC product is TR-first; do not flip UI to EN from browser locale.
     const cookieLang = getCookie(COOKIE_NAME)
     if (cookieLang === 'tr' || cookieLang === 'en') {
       setLanguageState(cookieLang)
+      setHydrated(true)
       return
     }
 
@@ -54,18 +79,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (localLang === 'tr' || localLang === 'en') {
       setLanguageState(localLang)
       setCookie(COOKIE_NAME, localLang)
+      setHydrated(true)
       return
     }
 
     setLanguageState('tr')
     localStorage.setItem(LOCAL_STORAGE_KEY, 'tr')
     setCookie(COOKIE_NAME, 'tr')
+    setHydrated(true)
   }, [])
+
+  const activeLanguage = hydrated ? language : initialLanguage
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    document.documentElement.lang = language
-  }, [language])
+    document.documentElement.lang = activeLanguage
+  }, [activeLanguage])
 
   const setLanguage = (newLang: Language) => {
     setLanguageState(newLang)
@@ -74,11 +103,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }
 
   const t = <T,>(translations: { tr: T; en: T }): T => {
-    return translations[language]
+    return pickTranslation(translations, activeLanguage)
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language: activeLanguage, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   )
@@ -87,7 +116,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext)
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider')
+    // Split-chunk fallback: stable TR (never read mutable global request lang).
+    return {
+      language: 'tr' as Language,
+      setLanguage: (_lang: Language) => undefined,
+      t: <T,>(translations: { tr: T; en: T }): T => pickTranslation(translations, 'tr'),
+    }
   }
   return context
 }

@@ -31,6 +31,9 @@ export type ClientDiscoveryItem = {
   businessDistanceKm: number | null
   doctorId: string
   doctorName: string
+  doctorAvatarUrl: string | null
+  /** True when license / KKTC ID / diploma is on the doctor profile. */
+  doctorVerified: boolean
   specialty: string | null
   ratingAverage: number | null
   reviewCount: number
@@ -38,6 +41,13 @@ export type ClientDiscoveryItem = {
   nextAvailableAt: string | null
   minPrice: number | null
   maxPrice: number | null
+  /** Service name that owns `minPrice` — never show bare TL without context. */
+  fromPriceServiceName: string | null
   openNow: boolean
+  /**
+   * Paid/sponsored placement. Always false until sponsorship ships —
+   * UI must label sponsored rows when this is true.
+   */
+  isSponsored: boolean
 }
 

@@ -9,18 +9,18 @@ import { isFeatureEnabled } from '@/lib/feature-flags'
 import { SUPPORT_BUSINESS_COOKIE } from '@/lib/support-mode'
 import { writeAuditLog } from '@/lib/audit'
 import { err, ok, type ActionResult } from '@/lib/actions/result'
+import { entityIdSchema } from '@/lib/actions/validation'
 
 export async function startSupportMode(
   businessId: string,
 ): Promise<ActionResult<{ businessId: string; businessName: string }>> {
   if (!isFeatureEnabled('supportMode')) return err('Support mode kapalı')
   const session = await requireSuperAdminSession()
-  if (!/^[0-9a-f-]{36}$/i.test(businessId)) {
-    return err('Geçersiz klinik kimliği')
-  }
+  const parsed = entityIdSchema.safeParse(businessId)
+  if (!parsed.success) return err('Geçersiz klinik kimliği', parsed.error.issues)
 
   const business = await prisma.business.findUnique({
-    where: { id: businessId },
+    where: { id: parsed.data },
     select: { id: true, name: true },
   })
   if (!business) return err('Klinik bulunamadı')

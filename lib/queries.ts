@@ -2,7 +2,8 @@ import 'server-only'
 
 import type { PatientFile, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { tenantTransaction } from '@/lib/security/tenant-db-context'
+import { batchSignStorageKeys } from '@/lib/storage-sign'
 import {
   MESSAGE_MEDIA_BUCKET,
   MESSAGE_MEDIA_SIGNED_URL_TTL_SECONDS,
@@ -16,6 +17,8 @@ import {
   parseAnalyticsMonthRange,
   type AnalyticsMonthRange,
 } from '@/lib/analytics-range'
+import { logPhiAccess } from '@/lib/observability/phi-access'
+import { withPerfSpan } from '@/lib/observability/logger'
 
 export type { AnalyticsMonthRange }
 export { parseAnalyticsMonthRange }
@@ -61,7 +64,6 @@ export async function getDashboardStats(businessId: string) {
     monthlyAppointments,
     completedAppointments,
     cancelledAppointments,
-    upcomingAppointments,
   ] = await Promise.all([
     prisma.appointment.count({ where: { businessId, date: today, status: { in: ['CONFIRMED', 'COMPLETED'] } } }),
     prisma.appointment.count({ where: { businessId, status: 'SCHEDULED' } }),
@@ -76,16 +78,6 @@ export async function getDashboardStats(businessId: string) {
     }),
     prisma.appointment.count({ where: { businessId, status: 'COMPLETED' } }),
     prisma.appointment.count({ where: { businessId, status: { in: ['CANCELLED', 'NO_SHOW'] } } }),
-    prisma.appointment.findMany({
-      where: { businessId, date: { gte: today }, status: 'CONFIRMED' },
-      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-      take: 6,
-      include: {
-        patient: { select: { fullName: true } },
-        service: { select: { name: true, color: true } },
-        staff: { select: { fullName: true, color: true } },
-      },
-    }),
   ])
 
   const totalAppointments = completedAppointments + cancelledAppointments + pendingAppointments
@@ -101,7 +93,6 @@ export async function getDashboardStats(businessId: string) {
     monthlyRevenue,
     completedAppointments,
     cancellationRate: totalAppointments > 0 ? cancelledAppointments / totalAppointments : 0,
-    upcomingAppointments,
   }
 }
 
@@ -117,7 +108,13 @@ export async function getPendingAppointmentCount(businessId: string, viewer: Ses
 
 export async function getPatientsList(
   businessId: string,
-  options: { query?: string; tag?: string; archived?: boolean; take?: number } = {}
+  options: {
+    query?: string
+    tag?: string
+    archived?: boolean
+    take?: number
+    actorUserId?: string
+  } = {}
 ) {
   const where: Prisma.PatientWhereInput = {
     businessId,
@@ -134,94 +131,153 @@ export async function getPatientsList(
   }
   if (options.tag) where.tags = { has: options.tag }
 
-  return prisma.patient.findMany({
-    where,
-    take: options.take ?? 100,
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      patientNumber: true,
-      fullName: true,
-      phone: true,
-      email: true,
-      gender: true,
-      birthDate: true,
-      tags: true,
-      riskNote: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: { select: { appointments: true, files: true, notes: true, allergies: true } },
-    },
-  })
+  const rows = await withPerfSpan(
+    'patients.list',
+    'db.query',
+    () =>
+      prisma.patient.findMany({
+        where,
+        take: options.take ?? 100,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          patientNumber: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          gender: true,
+          birthDate: true,
+          tags: true,
+          riskNote: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              appointments: { where: { deletedAt: null } },
+              files: { where: { deletedAt: null } },
+              notes: { where: { deletedAt: null } },
+              allergies: { where: { deletedAt: null } },
+            },
+          },
+        },
+      }),
+    { hasQuery: Boolean(options.query) }
+  )
+
+  if (options.query && options.actorUserId) {
+    logPhiAccess({
+      businessId,
+      actorUserId: options.actorUserId,
+      action: 'patient.search',
+      summary: 'Hasta listesi araması',
+      metadata: {
+        hitCount: rows.length,
+        queryLen: options.query.trim().length,
+        source: 'patients.list',
+      },
+    })
+  }
+
+  return rows
 }
 
 export async function getPatientDetail(
   businessId: string,
   patientId: string,
-  options: { includeMedicalNotes?: boolean; includeFiles?: boolean } = {}
+  options: {
+    includeMedicalNotes?: boolean
+    includeFiles?: boolean
+    actorUserId?: string
+  } = {}
 ) {
-  const patient = await prisma.patient.findFirst({
-    where: { id: patientId, businessId },
-    include: {
-      assignedDoctor: { select: { id: true, fullName: true, color: true } },
-      notes: {
-        orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
-        include: { creator: { select: { fullName: true, email: true } } },
-      },
-      medications: { orderBy: { createdAt: 'desc' } },
-      allergies: { orderBy: { createdAt: 'desc' } },
-      treatments: { orderBy: { createdAt: 'desc' } },
-      treatmentPlan: { orderBy: { order: 'asc' } },
-      labResults: { orderBy: { resultDate: 'desc' } },
-      files: { orderBy: { uploadedAt: 'desc' } },
-      appointments: {
-        orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+  return withPerfSpan(
+    'patients.detail',
+    'db.query',
+    async () => {
+      const patient = await prisma.patient.findFirst({
+        where: { id: patientId, businessId },
         include: {
-          service: { select: { name: true, color: true } },
-          staff: { select: { fullName: true } },
-          location: { select: { name: true } },
+          assignedDoctor: { select: { id: true, fullName: true, color: true } },
+          notes: {
+            orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+            include: { creator: { select: { fullName: true, email: true } } },
+          },
+          medications: { orderBy: { createdAt: 'desc' } },
+          allergies: { orderBy: { createdAt: 'desc' } },
+          treatments: { orderBy: { createdAt: 'desc' } },
+          treatmentPlan: { orderBy: { order: 'asc' } },
+          labResults: { orderBy: { resultDate: 'desc' } },
+          files: { orderBy: { uploadedAt: 'desc' } },
+          appointments: {
+            where: { deletedAt: null },
+            orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+            include: {
+              service: { select: { name: true, color: true } },
+              staff: { select: { fullName: true } },
+              location: { select: { name: true } },
+            },
+          },
+          timeline: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+          },
         },
-      },
-      timeline: { orderBy: { createdAt: 'desc' }, take: 50 },
+      })
+
+      if (!patient) return null
+
+      const includeMedicalNotes = options.includeMedicalNotes ?? true
+      const includeFiles = options.includeFiles ?? true
+      const files = includeFiles ? await signPatientFiles(patient.files) : []
+
+      if (options.actorUserId) {
+        logPhiAccess({
+          businessId,
+          actorUserId: options.actorUserId,
+          action: 'patient.view',
+          entityId: patientId,
+          summary: 'Hasta kartı görüntülendi',
+          metadata: {
+            includeNotes: includeMedicalNotes,
+            includeFiles,
+            fileCount: files.length,
+            source: 'patients.detail',
+          },
+        })
+        if (includeFiles && files.length > 0) {
+          logPhiAccess({
+            businessId,
+            actorUserId: options.actorUserId,
+            action: 'patient.file.view',
+            entityId: patientId,
+            summary: 'Hasta dosyaları için imzalı URL üretildi',
+            metadata: {
+              fileCount: files.length,
+              source: 'patients.detail.sign',
+            },
+          })
+        }
+      }
+
+      return {
+        ...patient,
+        riskNote: includeMedicalNotes ? patient.riskNote : null,
+        summary: includeMedicalNotes ? patient.summary : null,
+        patientStory: includeMedicalNotes ? patient.patientStory : null,
+        familyHistory: includeMedicalNotes ? patient.familyHistory : null,
+        notes: includeMedicalNotes ? patient.notes : [],
+        aiSuggestions: includeMedicalNotes ? patient.aiSuggestions : null,
+        timeline: includeMedicalNotes
+          ? patient.timeline
+          : patient.timeline
+              .filter((event) => event.type !== 'NOTE_ADDED')
+              .map((event) => ({ ...event, description: null })),
+        files,
+      }
     },
-  })
-
-  if (!patient) return null
-
-  const includeMedicalNotes = options.includeMedicalNotes ?? true
-  const includeFiles = options.includeFiles ?? true
-
-  return {
-    ...patient,
-    riskNote: includeMedicalNotes ? patient.riskNote : null,
-    summary: includeMedicalNotes ? patient.summary : null,
-    patientStory: includeMedicalNotes ? patient.patientStory : null,
-    familyHistory: includeMedicalNotes ? patient.familyHistory : null,
-    notes: includeMedicalNotes ? patient.notes : [],
-    aiSuggestions: includeMedicalNotes ? patient.aiSuggestions : null,
-    timeline: includeMedicalNotes
-      ? patient.timeline
-      : patient.timeline.filter((event) => event.type !== 'NOTE_ADDED').map((event) => ({ ...event, description: null })),
-    files: includeFiles ? await signPatientFiles(patient.files) : [],
-  }
-}
-
-async function batchSignStorageKeys(
-  bucket: string,
-  storageKeys: string[],
-  ttlSeconds: number
-): Promise<Map<string, string>> {
-  if (storageKeys.length === 0) return new Map()
-  const supabase = await createClient()
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(storageKeys, ttlSeconds)
-  if (error || !data) return new Map()
-  const result = new Map<string, string>()
-  for (const item of data) {
-    if (item.path && !item.error && item.signedUrl) {
-      result.set(item.path, item.signedUrl)
-    }
-  }
-  return result
+    { includeFiles: options.includeFiles !== false }
+  )
 }
 
 async function signPatientFiles(files: PatientFile[]) {
@@ -248,10 +304,13 @@ export async function getServicesList(businessId: string) {
 }
 
 export async function getTeamList(businessId: string) {
-  return prisma.teamMember.findMany({
-    where: { businessId },
-    orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
-  })
+  // asistan_app FORCE RLS — TeamMember reads need app.business_id GUC.
+  return tenantTransaction(businessId, (tx) =>
+    tx.teamMember.findMany({
+      where: { businessId },
+      orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
+    }),
+  )
 }
 
 export async function getAppointmentsRange(
@@ -270,6 +329,7 @@ export async function getAppointmentsRange(
   return prisma.appointment.findMany({
     where,
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    take: 2500,
     include: {
       patient: { select: { id: true, fullName: true, phone: true } },
       service: { select: { id: true, name: true, color: true, durationMin: true } },
@@ -278,6 +338,13 @@ export async function getAppointmentsRange(
     },
   })
 }
+
+const appointmentBoardInclude = {
+  patient: { select: { id: true, fullName: true, phone: true } },
+  service: { select: { id: true, name: true, color: true, durationMin: true } },
+  staff: { select: { id: true, fullName: true, color: true } },
+  location: { select: { id: true, name: true } },
+} as const
 
 export async function getAppointmentsList(
   businessId: string,
@@ -297,43 +364,57 @@ export async function getAppointmentsList(
     where,
     orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
     take: 200,
-    include: {
-      patient: { select: { id: true, fullName: true, phone: true } },
-      service: { select: { id: true, name: true, color: true, durationMin: true } },
-      staff: { select: { id: true, fullName: true, color: true } },
-      location: { select: { id: true, name: true } },
-    },
+    include: appointmentBoardInclude,
+  })
+}
+
+/** Deep-link rescue when the row is outside the list `take: 200` window. */
+export async function getAppointmentForBoard(
+  businessId: string,
+  appointmentId: string,
+  viewer: SessionContext,
+) {
+  const where: Prisma.AppointmentWhereInput = { id: appointmentId, businessId }
+  applyAppointmentViewScope(where, viewer)
+  return prisma.appointment.findFirst({
+    where,
+    include: appointmentBoardInclude,
   })
 }
 
 export async function getNotificationsList(businessId: string, userId: string, take = 100) {
-  return prisma.notification.findMany({
-    where: {
-      businessId,
-      OR: [{ userId }, { userId: null }],
-      archivedAt: null,
-    },
-    orderBy: { createdAt: 'desc' },
-    take,
-    include: {
-      actor: { select: { id: true, fullName: true } },
-      actions: { orderBy: { createdAt: 'asc' } },
-    },
-  })
+  // asistan_app FORCE RLS — Notification reads need app.business_id GUC.
+  return tenantTransaction(businessId, (tx) =>
+    tx.notification.findMany({
+      where: {
+        businessId,
+        OR: [{ userId }, { userId: null }],
+        archivedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        actor: { select: { id: true, fullName: true } },
+        actions: { orderBy: { createdAt: 'asc' } },
+      },
+    }),
+  )
 }
 
 export async function getNotificationById(notificationId: string, businessId: string, userId: string) {
-  return prisma.notification.findFirst({
-    where: {
-      id: notificationId,
-      businessId,
-      OR: [{ userId }, { userId: null }],
-    },
-    include: {
-      actor: { select: { id: true, fullName: true } },
-      actions: { orderBy: { createdAt: 'asc' } },
-    },
-  })
+  return tenantTransaction(businessId, (tx) =>
+    tx.notification.findFirst({
+      where: {
+        id: notificationId,
+        businessId,
+        OR: [{ userId }, { userId: null }],
+      },
+      include: {
+        actor: { select: { id: true, fullName: true } },
+        actions: { orderBy: { createdAt: 'asc' } },
+      },
+    }),
+  )
 }
 
 /**
@@ -373,14 +454,16 @@ export function serializeNotification(
 }
 
 export async function getUnreadNotificationCount(businessId: string, userId: string) {
-  return prisma.notification.count({
-    where: {
-      businessId,
-      OR: [{ userId }, { userId: null }],
-      isRead: false,
-      archivedAt: null,
-    },
-  })
+  return tenantTransaction(businessId, (tx) =>
+    tx.notification.count({
+      where: {
+        businessId,
+        OR: [{ userId }, { userId: null }],
+        isRead: false,
+        archivedAt: null,
+      },
+    }),
+  )
 }
 
 export async function getAnalyticsSnapshot(

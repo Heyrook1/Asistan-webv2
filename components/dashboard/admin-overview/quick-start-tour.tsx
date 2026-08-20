@@ -61,17 +61,35 @@ export function QuickStartTour({
                 <source src={source} type="video/mp4" />
               </video>
             ) : (
-              <div className="flex aspect-video items-center justify-center rounded-xl border border-white/10 bg-black/40 p-4 text-center text-sm text-white/80">
-                30 sn rehber videosu bulunamadi. Videoyu <code className="mx-1">public/videos/ilk-randevu-30sn.mp4</code> konumuna ekleyin.
+              <div className="flex aspect-video flex-col justify-center gap-3 rounded-xl border border-white/10 bg-black/40 p-5 text-left text-sm text-white/90">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
+                  3 adımda ilk gün
+                </p>
+                <ol className="space-y-2 text-sm leading-5">
+                  <li>
+                    <span className="font-semibold text-white">1.</span> Hasta kartı oluşturun veya mevcut hastayı seçin.
+                  </li>
+                  <li>
+                    <span className="font-semibold text-white">2.</span> Ajandada uygun saati açın.
+                  </li>
+                  <li>
+                    <span className="font-semibold text-white">3.</span> Randevuyu kaydedin — panel güncellenir.
+                  </li>
+                </ol>
+                <p className="text-xs text-white/55">
+                  Video yoksa sağdaki butonlarla aynı akışı başlatın. Opsiyonel: <code className="text-white/70">public/videos/ilk-randevu-30sn.mp4</code>
+                </p>
               </div>
             )}
           </div>
 
           <div className="p-5">
             <DialogHeader className="text-left">
-              <DialogTitle className="text-base font-semibold text-brand-ink">Hızlı başlangıç turu</DialogTitle>
+              <DialogTitle className="text-base font-semibold text-brand-ink">
+                İlk gün: 3 adımda ilk randevu
+              </DialogTitle>
               <DialogDescription>
-                İlk randevunuzu 3 adımda tamamlayın. Adımlardan biri ile hemen başlayabilirsiniz.
+                Kayıt sonrası trial paneli açıldı. Aşağıdaki adımlardan biriyle hemen başlayın — kredi kartı gerekmez.
               </DialogDescription>
             </DialogHeader>
 

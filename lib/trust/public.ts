@@ -1,11 +1,26 @@
-import { prisma } from '@/lib/prisma'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
+import type { PublicTrustStats } from '@/lib/trust/publish-policy'
 
-export type PublicTrustStats = {
-  activeClinics: number
-  verifiedDoctors: number
-  completedAppointments: number
-  reviewCount: number
-  averageRating: number | null
+export type { PublicTrustStats } from '@/lib/trust/publish-policy'
+export {
+  PUBLIC_TRUST_STATS_MIN_COMPLETED,
+  shouldPublishPublicTrustStats,
+} from '@/lib/trust/publish-policy'
+
+const EMPTY_TRUST_STATS: PublicTrustStats = {
+  activeClinics: 0,
+  verifiedDoctors: 0,
+  completedAppointments: 0,
+  reviewCount: 0,
+  averageRating: null,
+}
+
+/** Public marketing pages must not 500 when CI/placeholder DB is unreachable. */
+function shouldSkipPublicTrustDb(): boolean {
+  if (process.env.ASISTAN_PUBLIC_TRUST_SKIP_DB === '1') return true
+  if (process.env.CI === 'true') return true
+  const dbUrl = process.env.DATABASE_URL ?? ''
+  return /@localhost:5432\/ci(?:\?|$)/.test(dbUrl)
 }
 
 export type DoctorVerification = {
@@ -64,78 +79,88 @@ export function getDoctorVerification(input: {
 }
 
 export async function getPublicTrustStats(): Promise<PublicTrustStats> {
-  try {
-    const [activeClinics, verifiedDoctors, completedAppointments, reviewAgg] = await Promise.all([
-      prisma.business.count({ where: { isActive: true, deletedAt: null } }),
-      prisma.teamMember.count({
-        where: {
-          isActive: true,
-          role: { in: ['DOKTOR', 'ISLETME_SAHIBI'] },
-          OR: [
-            { medicalLicenseNo: { not: null } },
-            { diplomaNo: { not: null } },
-            { kktcIdentityNo: { not: null } },
-          ],
-        },
-      }),
-      prisma.appointment.count({
-        where: { status: 'COMPLETED', deletedAt: null },
-      }),
-      prisma.review.aggregate({
-        where: { deletedAt: null },
-        _count: { _all: true },
-        _avg: { rating: true },
-      }),
-    ])
+  if (shouldSkipPublicTrustDb()) {
+    return EMPTY_TRUST_STATS
+  }
 
-    return {
-      activeClinics,
-      verifiedDoctors,
-      completedAppointments,
-      reviewCount: reviewAgg._count._all,
-      averageRating: reviewAgg._avg.rating ? Number(reviewAgg._avg.rating.toFixed(1)) : null,
-    }
+  try {
+    // Lazy import so CI skip path never loads @prisma/client (broken across .next artifacts).
+    const { prisma } = await import('@/lib/prisma')
+    // Platform-wide marketing aggregates — intentional cross-tenant read.
+    return await runWithTenantBypassAsync('trust:public-stats', async () => {
+      const [activeClinics, verifiedDoctors, completedAppointments, reviewAgg] = await Promise.all([
+        prisma.business.count({ where: { isActive: true, deletedAt: null } }),
+        prisma.teamMember.count({
+          where: {
+            isActive: true,
+            role: { in: ['DOKTOR', 'ISLETME_SAHIBI'] },
+            OR: [
+              { medicalLicenseNo: { not: null } },
+              { diplomaNo: { not: null } },
+              { kktcIdentityNo: { not: null } },
+            ],
+          },
+        }),
+        prisma.appointment.count({
+          where: { status: 'COMPLETED', deletedAt: null },
+        }),
+        prisma.review.aggregate({
+          where: { deletedAt: null },
+          _count: { _all: true },
+          _avg: { rating: true },
+        }),
+      ])
+
+      return {
+        activeClinics,
+        verifiedDoctors,
+        completedAppointments,
+        reviewCount: reviewAgg._count._all,
+        averageRating: reviewAgg._avg.rating ? Number(reviewAgg._avg.rating.toFixed(1)) : null,
+      }
+    })
   } catch {
-    return {
-      activeClinics: 0,
-      verifiedDoctors: 0,
-      completedAppointments: 0,
-      reviewCount: 0,
-      averageRating: null,
-    }
+    return EMPTY_TRUST_STATS
   }
 }
 
 export async function getPublicVerifiedReviews(limit = 6) {
-  try {
-    const rows = await prisma.review.findMany({
-      where: {
-        deletedAt: null,
-        comment: { not: null },
-        rating: { gte: 4 },
-        appointment: { status: 'COMPLETED' },
-      },
-      include: {
-        business: { select: { name: true, city: true } },
-        staff: { select: { fullName: true } },
-        clientUser: { select: { fullName: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    })
+  if (shouldSkipPublicTrustDb()) {
+    return []
+  }
 
-    return rows
-      .filter((row) => Boolean(row.comment?.trim()))
-      .map((row) => ({
-        id: row.id,
-        rating: row.rating,
-        comment: row.comment!.trim(),
-        clinicName: row.business.name,
-        city: row.business.city,
-        doctorName: row.staff?.fullName ?? null,
-        authorName: maskName(row.clientUser.fullName),
-        createdAt: row.createdAt.toISOString(),
-      }))
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    return await runWithTenantBypassAsync('trust:public-reviews', async () => {
+      const rows = await prisma.review.findMany({
+        where: {
+          deletedAt: null,
+          comment: { not: null },
+          rating: { gte: 4 },
+          appointment: { status: 'COMPLETED' },
+        },
+        include: {
+          business: { select: { name: true, city: true } },
+          staff: { select: { fullName: true } },
+          clientUser: { select: { fullName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
+
+      return rows
+        .filter((row) => Boolean(row.comment?.trim()))
+        .map((row) => ({
+          id: row.id,
+          rating: row.rating,
+          comment: row.comment!.trim(),
+          clinicName: row.business.name,
+          city: row.business.city,
+          doctorName: row.staff?.fullName ?? null,
+          authorName: maskName(row.clientUser.fullName),
+          createdAt: row.createdAt.toISOString(),
+        }))
+    })
   } catch {
     return []
   }

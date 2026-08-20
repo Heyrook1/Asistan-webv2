@@ -29,7 +29,11 @@ export default async function HastalarPage({
   const sp = await searchParams
   const session = await requirePagePermission('patient.view')
   const archived = sp.archived === '1'
-  const patients = await getPatientsList(session.businessId, { query: sp.q, archived })
+  const patients = await getPatientsList(session.businessId, {
+    query: sp.q,
+    archived,
+    actorUserId: session.userId,
+  })
   const exportRows: PatientExportRow[] = patients.map((p) => ({
     patientNumber: p.patientNumber,
     fullName: p.fullName,
@@ -49,13 +53,13 @@ export default async function HastalarPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-brand-ink lg:text-2xl">Hastalar</h1>
-          <p className="text-[12px] text-muted-foreground lg:text-sm">{listLabel}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground lg:text-sm">{listLabel}</p>
         </div>
         <PatientsExportMenu patients={exportRows} label={listLabel} />
       </div>
 
       <PatientsToolbar
-        canCreate={can(session, 'patient.edit')}
+        canCreate={can(session, 'patient.create')}
         initialCreateOpen={sp.create === '1'}
       />
 
@@ -71,29 +75,29 @@ export default async function HastalarPage({
           description={
             sp.q || archived
               ? 'Filtreyi temizleyerek tüm aktif hastaları görebilirsiniz.'
-              : can(session, 'patient.edit')
-                ? 'İlk hastayı kaydederek randevu, takip ve raporlama akışını başlatın.'
+              : can(session, 'patient.create')
+                ? 'CSV ile mevcut listenizi aktarın veya ilk hastayı elle ekleyin.'
                 : 'Yetkiniz dahilinde gösterilecek hasta kaydı yok.'
           }
           ctaLabel={
             sp.q || archived
               ? 'Filtreyi temizle'
-              : can(session, 'patient.edit')
+              : can(session, 'patient.create')
                 ? 'Hasta ekle'
                 : undefined
           }
           ctaHref={
             sp.q || archived
               ? '/dashboard/hastalar'
-              : can(session, 'patient.edit')
+              : can(session, 'patient.create')
                 ? '/dashboard/hastalar?create=1'
                 : undefined
           }
           secondaryCtaLabel={
-            (sp.q || archived) && can(session, 'patient.edit') ? 'Hasta ekle' : undefined
+            (sp.q || archived) && can(session, 'patient.create') ? 'Hasta ekle' : undefined
           }
           secondaryCtaHref={
-            (sp.q || archived) && can(session, 'patient.edit')
+            (sp.q || archived) && can(session, 'patient.create')
               ? '/dashboard/hastalar?create=1'
               : undefined
           }
@@ -112,7 +116,7 @@ export default async function HastalarPage({
                     href={`/dashboard/hastalar/${p.id}`}
                     className="flex items-center gap-3 rounded-2xl border bg-white p-3 shadow-sm active:bg-slate-50"
                   >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-teal/15 to-brand-cyan/15 text-sm font-bold text-brand-ink">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-blue/15 to-brand-blue-hover/15 text-sm font-bold text-brand-ink">
                       {initials(p.fullName)}
                     </span>
                     <span className="min-w-0 flex-1">

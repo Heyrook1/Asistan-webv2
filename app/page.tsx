@@ -1,82 +1,87 @@
-import dynamic from 'next/dynamic'
 import type { Metadata } from 'next'
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 
-import { HeroCoverFlow } from '@/components/sections/HeroCoverFlow'
 import { LandingLocaleProvider } from '@/components/sections/landing-locale'
 import { PageTransition } from '@/components/sections/page-transition'
 import { SectionSkeleton } from '@/components/sections/section-skeleton'
-import { SiteFooter } from '@/components/sections/site-footer'
-import { SiteHeader } from '@/components/sections/site-header'
 import { FloatingCTA } from '@/components/ui/FloatingCTA'
 import { withCanonical } from '@/lib/seo'
 
 export const metadata: Metadata = withCanonical('/', {
   title: {
-    absolute: 'KKTC Randevu Sistemi | Asistan Health',
+    absolute: 'Asistan Health | KKTC klinik randevu ve operasyon paneli',
   },
-  description: 'KKTC klinikleri için randevu, hasta takibi ve ekip yönetimi platformu.',
+  description:
+    'Randevu, hasta ve ekibi tek panelde yönetin. Demo rezerve edin — kredi kartı gerekmez.',
 })
 
-const MobileAppShowcaseSection = dynamic(
-  () =>
-    import('@/components/sections/MobileAppShowcase').then(
-      (mod) => mod.MobileAppShowcaseSection,
-    ),
-  {
-    loading: () => <SectionSkeleton lines={4} />,
-  },
+/** Shell (framer-motion) split from the critical hero path. */
+const SiteHeader = dynamic(
+  () => import('@/components/sections/site-header').then((mod) => mod.SiteHeader),
+  { loading: () => <div className="h-16 border-b border-black/5 bg-[#F6F7F9]" aria-hidden /> },
 )
 
-const EcosystemFlowSection = dynamic(
-  () =>
-    import('@/components/sections/ecosystem-flow-section').then(
-      (mod) => mod.EcosystemFlowSection,
-    ),
-  {
-    loading: () => <SectionSkeleton lines={3} />,
-  },
+const SiteFooter = dynamic(
+  () => import('@/components/sections/site-footer').then((mod) => mod.SiteFooter),
 )
 
-const ForWhomSection = dynamic(
-  () =>
-    import('@/components/sections/for-whom-section').then(
-      (mod) => mod.ForWhomSection,
-    ),
-  {
-    loading: () => <SectionSkeleton lines={3} />,
-  },
+const HeroEcosystem = dynamic(
+  () => import('@/components/sections/hero-ecosystem').then((mod) => mod.HeroEcosystem),
+  { loading: () => <SectionSkeleton lines={5} className="min-h-[70vh]" /> },
 )
 
-const FeaturesSection = dynamic(
+const TrustedBySection = dynamic(
   () =>
-    import('@/components/sections/features-section').then(
-      (mod) => mod.FeaturesSection,
-    ),
-  {
-    loading: () => <SectionSkeleton lines={3} />,
-  },
+    import('@/components/sections/trusted-by-section').then((mod) => mod.TrustedBySection),
+  { loading: () => <SectionSkeleton lines={2} /> },
 )
 
-const PricingSection = dynamic(
+const WhyOutcomesSection = dynamic(
   () =>
-    import('@/components/sections/pricing-section').then(
-      (mod) => mod.PricingSection,
-    ),
-  {
-    loading: () => <SectionSkeleton lines={4} />,
-  },
+    import('@/components/sections/why-outcomes-section').then((mod) => mod.WhyOutcomesSection),
+  { loading: () => <SectionSkeleton lines={3} /> },
 )
 
-const TrustSection = dynamic(
+const ProductGallerySection = dynamic(
   () =>
-    import('@/components/sections/trust-section-server').then(
-      (mod) => mod.TrustSectionServer,
+    import('@/components/sections/product-gallery-section').then(
+      (mod) => mod.ProductGallerySection,
     ),
-  {
-    loading: () => <SectionSkeleton lines={3} />,
-  },
+  { loading: () => <SectionSkeleton lines={3} /> },
 )
 
+const SecurityGridSection = dynamic(
+  () =>
+    import('@/components/sections/security-grid-section').then(
+      (mod) => mod.SecurityGridSection,
+    ),
+  { loading: () => <SectionSkeleton lines={3} /> },
+)
+
+const HomePricingSummary = dynamic(
+  () =>
+    import('@/components/sections/home-pricing-summary').then((mod) => mod.HomePricingSummary),
+  { loading: () => <SectionSkeleton lines={2} /> },
+)
+
+const LandingFaqSection = dynamic(
+  () =>
+    import('@/components/sections/landing-faq-section').then((mod) => mod.LandingFaqSection),
+  { loading: () => <SectionSkeleton lines={3} /> },
+)
+
+const FinalCtaBand = dynamic(
+  () => import('@/components/sections/final-cta-band').then((mod) => mod.FinalCtaBand),
+  { loading: () => <SectionSkeleton lines={2} /> },
+)
+
+/**
+ * B2B landing — short conversion path (audit 2026-08):
+ * Hero → kimler için → 3 sonuç → ürün ekranları → güven → fiyat özeti → SSS → final CTA.
+ * Dropped from home: modules bento, roadmap, compare, patient journey, difference, outcome cases
+ * (still reachable via /urun, /guven, /sonuclar, /fiyatlandirma).
+ */
 export default function HomePage() {
   return (
     <PageTransition>
@@ -85,16 +90,19 @@ export default function HomePage() {
           <div className="noise-overlay pointer-events-none fixed inset-0 opacity-[0.18]" />
           <SiteHeader />
           <main id="main-content" tabIndex={-1}>
-            <HeroCoverFlow />
-            <MobileAppShowcaseSection />
-            <EcosystemFlowSection />
-            <PricingSection />
-            <ForWhomSection />
-            <FeaturesSection />
-            <TrustSection />
+            <Suspense fallback={<SectionSkeleton lines={5} className="min-h-[70vh]" />}>
+              <HeroEcosystem />
+            </Suspense>
+            <TrustedBySection />
+            <WhyOutcomesSection />
+            <ProductGallerySection />
+            <SecurityGridSection />
+            <HomePricingSummary />
+            <LandingFaqSection />
+            <FinalCtaBand />
           </main>
           <SiteFooter />
-          <FloatingCTA />
+          <FloatingCTA variant="b2b" />
         </div>
       </LandingLocaleProvider>
     </PageTransition>

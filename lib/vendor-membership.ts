@@ -17,8 +17,8 @@ export type VendorPlanCode = (typeof VENDOR_PLAN_CODES)[number]
 export type VendorPlanDefinition = {
   code: VendorPlanCode
   name: string
-  monthlyPriceEur: number | null
-  yearlyPriceEur: number | null
+  monthlyPriceTry: number | null
+  yearlyPriceTry: number | null
   userLimit: number | null
   description: string
   features: string[]
@@ -29,8 +29,8 @@ const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
   DEMO_14_DAYS: {
     code: 'DEMO_14_DAYS',
     name: 'Demo 14 Gün',
-    monthlyPriceEur: 0,
-    yearlyPriceEur: 0,
+    monthlyPriceTry: 0,
+    yearlyPriceTry: 0,
     userLimit: 1,
     description: 'Kayıt ol ile açılan deneme hesabı',
     features: ['1 kullanıcı', 'Temel randevu', 'Hasta kartı', 'Hatırlatma akışı'],
@@ -39,8 +39,8 @@ const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
   STARTER: {
     code: 'STARTER',
     name: 'Başlangıç',
-    monthlyPriceEur: 149,
-    yearlyPriceEur: 119,
+    monthlyPriceTry: 1000,
+    yearlyPriceTry: 1000,
     userLimit: 1,
     description: 'Tek hekimli ekipler ve küçük klinikler için.',
     features: ['1 kullanıcı', 'Temel randevu', 'Hasta kartı', 'Hatırlatma akışı'],
@@ -48,8 +48,8 @@ const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
   PROFESSIONAL: {
     code: 'PROFESSIONAL',
     name: 'Profesyonel',
-    monthlyPriceEur: 249,
-    yearlyPriceEur: 199,
+    monthlyPriceTry: 2500,
+    yearlyPriceTry: 2500,
     userLimit: 5,
     description: 'Büyüyen klinikler için en dengeli paket.',
     features: ['5 kullanıcı', 'Operasyon önerileri', 'Ekip rolleri', 'Öncelikli destek', 'Analitik görünüm'],
@@ -57,8 +57,8 @@ const VENDOR_PLANS: Record<VendorPlanCode, VendorPlanDefinition> = {
   ENTERPRISE: {
     code: 'ENTERPRISE',
     name: 'Kurumsal',
-    monthlyPriceEur: 499,
-    yearlyPriceEur: 399,
+    monthlyPriceTry: null,
+    yearlyPriceTry: null,
     userLimit: null,
     description: 'Çoklu ekip ve özel süreçler için.',
     features: ['Sınırsız kullanıcı', 'Özel entegrasyonlar', 'Kurulum danışmanlığı', 'Gelişmiş yetkiler'],
@@ -172,4 +172,29 @@ export function addDays(date: Date, days: number) {
   const next = new Date(date)
   next.setDate(next.getDate() + days)
   return next
+}
+
+export const MEMBERSHIP_BILLING_PERIODS = ['MONTHLY', 'YEARLY'] as const
+export type MembershipBillingPeriodValue = (typeof MEMBERSHIP_BILLING_PERIODS)[number]
+
+export const PAID_VENDOR_PLAN_CODES = ['STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const
+export type PaidVendorPlanCode = (typeof PAID_VENDOR_PLAN_CODES)[number]
+
+export function isPaidVendorPlanCode(code: string): code is PaidVendorPlanCode {
+  return (PAID_VENDOR_PLAN_CODES as readonly string[]).includes(code)
+}
+
+/** Monthly catalog amount; yearly = monthly rate × 12 (no annual discount). */
+export function getVendorPlanPrice(
+  plan: string | null | undefined,
+  period: MembershipBillingPeriodValue
+): { amount: number; currency: 'TRY'; durationDays: number } | null {
+  const def = getVendorPlanDefinition(plan)
+  if (def.demoOnly) return null
+  if (period === 'MONTHLY') {
+    if (def.monthlyPriceTry == null || def.monthlyPriceTry <= 0) return null
+    return { amount: def.monthlyPriceTry, currency: 'TRY', durationDays: 30 }
+  }
+  if (def.yearlyPriceTry == null || def.yearlyPriceTry <= 0) return null
+  return { amount: def.yearlyPriceTry * 12, currency: 'TRY', durationDays: 365 }
 }

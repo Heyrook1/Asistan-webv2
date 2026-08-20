@@ -2,13 +2,7 @@ import 'server-only'
 
 import { env } from '@/lib/env'
 
-type RateLimitInput = {
-  action: string
-  userId: string
-  businessId?: string | null
-  limit: number
-  windowMs: number
-}
+export type RateLimitSource = 'upstash' | 'memory'
 
 export type RateLimitResult = {
   allowed: boolean
@@ -16,7 +10,15 @@ export type RateLimitResult = {
   remaining: number
   retryAfterMs: number
   resetAt: Date
-  source: 'upstash' | 'memory'
+  source: RateLimitSource
+}
+
+type RateLimitIdentityInput = {
+  action: string
+  userId: string
+  businessId?: string | null
+  limit: number
+  windowMs: number
 }
 
 type MemoryBucket = {
@@ -28,10 +30,11 @@ type RateLimitGlobalState = {
   buckets: Map<string, MemoryBucket>
   ops: number
   hasLoggedRedisFailure: boolean
+  hasLoggedMemoryOnlyProd: boolean
 }
 
 const memoryStateKey = '__asistanRateLimitState__'
-const redisReady = Boolean(env.upstashRedisRestUrl && env.upstashRedisRestToken)
+const redisConfigured = Boolean(env.upstashRedisRestUrl && env.upstashRedisRestToken)
 
 function getMemoryState(): RateLimitGlobalState {
   const globalState = globalThis as typeof globalThis & {
@@ -43,22 +46,28 @@ function getMemoryState(): RateLimitGlobalState {
       buckets: new Map<string, MemoryBucket>(),
       ops: 0,
       hasLoggedRedisFailure: false,
+      hasLoggedMemoryOnlyProd: false,
     }
   }
 
   return globalState[memoryStateKey]
 }
 
-function buildRateKey(input: Pick<RateLimitInput, 'action' | 'userId' | 'businessId'>) {
-  const businessId = input.businessId ?? 'global'
-  return `rl:${input.action}:${businessId}:${input.userId}`
+function warnMemoryOnlyInProduction() {
+  if (process.env.NODE_ENV !== 'production') return
+  const state = getMemoryState()
+  if (state.hasLoggedMemoryOnlyProd) return
+  state.hasLoggedMemoryOnlyProd = true
+  console.error(
+    '[rate-limit] Upstash Redis is not configured. Falling back to in-process memory — limits are NOT shared across instances and will under-enforce under load. Set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN.'
+  )
 }
 
 function computeResult(params: {
   count: number
   limit: number
   retryAfterMs: number
-  source: RateLimitResult['source']
+  source: RateLimitSource
 }): RateLimitResult {
   const remaining = Math.max(0, params.limit - params.count)
   const retryAfterMs = Math.max(0, params.retryAfterMs)
@@ -72,19 +81,18 @@ function computeResult(params: {
   }
 }
 
-function checkInMemory(input: RateLimitInput): RateLimitResult {
+function checkInMemory(key: string, limit: number, windowMs: number): RateLimitResult {
+  warnMemoryOnlyInProduction()
   const state = getMemoryState()
-  const key = buildRateKey(input)
   const now = Date.now()
 
   const existing = state.buckets.get(key)
-  const resetAtMs = !existing || existing.resetAtMs <= now ? now + input.windowMs : existing.resetAtMs
+  const resetAtMs = !existing || existing.resetAtMs <= now ? now + windowMs : existing.resetAtMs
   const count = !existing || existing.resetAtMs <= now ? 1 : existing.count + 1
 
   state.buckets.set(key, { count, resetAtMs })
   state.ops += 1
 
-  // Lightweight cleanup so the fallback map does not grow forever in long-lived processes.
   if (state.ops % 100 === 0) {
     for (const [bucketKey, bucket] of state.buckets.entries()) {
       if (bucket.resetAtMs <= now) state.buckets.delete(bucketKey)
@@ -93,7 +101,7 @@ function checkInMemory(input: RateLimitInput): RateLimitResult {
 
   return computeResult({
     count,
-    limit: input.limit,
+    limit,
     retryAfterMs: Math.max(0, resetAtMs - now),
     source: 'memory',
   })
@@ -126,8 +134,7 @@ async function runRedisCommand(parts: string[]): Promise<unknown> {
   return payload.result
 }
 
-async function checkWithUpstash(input: RateLimitInput): Promise<RateLimitResult> {
-  const key = buildRateKey(input)
+async function checkWithUpstash(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
   const incrRaw = await runRedisCommand(['INCR', key])
   const count = Number(incrRaw)
   if (!Number.isFinite(count)) {
@@ -135,40 +142,81 @@ async function checkWithUpstash(input: RateLimitInput): Promise<RateLimitResult>
   }
 
   if (count === 1) {
-    await runRedisCommand(['PEXPIRE', key, String(input.windowMs)])
+    await runRedisCommand(['PEXPIRE', key, String(windowMs)])
   }
 
   let ttl = Number(await runRedisCommand(['PTTL', key]))
   if (!Number.isFinite(ttl) || ttl < 0) {
-    await runRedisCommand(['PEXPIRE', key, String(input.windowMs)])
-    ttl = input.windowMs
+    await runRedisCommand(['PEXPIRE', key, String(windowMs)])
+    ttl = windowMs
   }
 
   return computeResult({
     count,
-    limit: input.limit,
+    limit,
     retryAfterMs: ttl,
     source: 'upstash',
   })
 }
 
-export async function checkRateLimit(input: RateLimitInput): Promise<RateLimitResult> {
-  if (input.limit <= 0 || input.windowMs <= 0) {
+/** Shared primitive — all public + session rate limits must go through here. */
+export async function consumeRateLimit(params: {
+  key: string
+  limit: number
+  windowMs: number
+}): Promise<RateLimitResult> {
+  const { key, limit, windowMs } = params
+  if (limit <= 0 || windowMs <= 0) {
     throw new Error('Rate limit configuration must be positive')
   }
 
-  if (!redisReady) {
-    return checkInMemory(input)
+  if (!redisConfigured) {
+    // Single-node EC2 (systemd) is the current production shape — memory limiting
+    // still protects that host. Throwing here emptied every public route (health 500,
+    // availability degraded:true / slots:[]) whenever Upstash env was unset.
+    // Multi-instance deploys should set UPSTASH_REDIS_REST_URL + TOKEN.
+    return checkInMemory(key, limit, windowMs)
   }
 
   try {
-    return await checkWithUpstash(input)
+    return await checkWithUpstash(key, limit, windowMs)
   } catch (error) {
     const state = getMemoryState()
     if (!state.hasLoggedRedisFailure) {
       state.hasLoggedRedisFailure = true
-      console.error('Rate limit fallback to memory store due to Upstash error:', error)
+      console.error('[rate-limit] Upstash error:', error)
     }
-    return checkInMemory(input)
+    // Production: fail closed (deny) — memory fallback under-enforces across instances.
+    if (process.env.NODE_ENV === 'production') {
+      return computeResult({
+        count: limit + 1,
+        limit,
+        retryAfterMs: 30_000,
+        source: 'upstash',
+      })
+    }
+    return checkInMemory(key, limit, windowMs)
   }
+}
+
+function buildIdentityKey(input: Pick<RateLimitIdentityInput, 'action' | 'userId' | 'businessId'>) {
+  const businessId = input.businessId ?? 'global'
+  return `rl:${input.action}:${businessId}:${input.userId}`
+}
+
+/** Session / action based limiter (dashboard server actions). */
+export async function checkRateLimit(input: RateLimitIdentityInput): Promise<RateLimitResult> {
+  return consumeRateLimit({
+    key: buildIdentityKey(input),
+    limit: input.limit,
+    windowMs: input.windowMs,
+  })
+}
+
+export function isUpstashRateLimitConfigured() {
+  return redisConfigured
+}
+
+export function getRateLimitBackendPreference(): RateLimitSource {
+  return redisConfigured ? 'upstash' : 'memory'
 }

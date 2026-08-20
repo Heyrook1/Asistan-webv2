@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'expo-router'
+import { type Href, useRouter } from 'expo-router'
 import { ScrollView, View } from 'react-native'
 import { BrandLogo } from '@/components/brand-logo'
 import {
@@ -117,21 +117,21 @@ export default function ClientProfileScreen() {
             Profil
           </AppText>
           <AppText variant="caption" color="#BCD1EF">
-            Hesap ve iletisim bilgilerini yonetin
+            Hesap, iletişim ve bildirimler
           </AppText>
         </View>
 
         <AppCard>
-          <SectionHeader title="Kisisel Bilgiler" />
+          <SectionHeader title="Kişisel bilgiler" />
           <AppInput label="Ad Soyad" value={fullName} onChangeText={setFullName} />
           <AppInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           <AppInput label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" />
         </AppCard>
 
         <AppCard>
-          <SectionHeader title="Adres Bilgileri" />
+          <SectionHeader title="Adres bilgileri" />
           <AppInput label="Adres" value={address} onChangeText={setAddress} />
-          <AppInput label="Sehir" value={city} onChangeText={setCity} />
+          <AppInput label="Şehir" value={city} onChangeText={setCity} />
         </AppCard>
 
         {error ? (
@@ -141,13 +141,15 @@ export default function ClientProfileScreen() {
         ) : null}
         {saved ? (
           <AppText variant="caption" color={theme.colors.success}>
-            Profil kaydedildi.
+            Profil kaydedildi — bir sonraki randevuda bu bilgiler kullanılır.
           </AppText>
         ) : null}
 
         <AppButton label="Kaydet" loading={saving} onPress={saveProfile} />
-        <AppButton label="Konum Ayari" variant="secondary" onPress={() => router.push('/client/onboarding')} />
-        <AppButton label="Cikis Yap" variant="ghost" onPress={handleSignOut} />
+        <AppButton label="Bildirimler" variant="secondary" onPress={() => router.push('/client/notifications' as Href)} />
+        <AppButton label="Asistan pasaportu" variant="secondary" onPress={() => router.push('/client/health' as Href)} />
+        <AppButton label="Konum ayarı" variant="secondary" onPress={() => router.push('/client/onboarding' as Href)} />
+        <AppButton label="Çıkış yap" variant="ghost" onPress={handleSignOut} />
       </ScrollView>
     </Screen>
   )

@@ -36,6 +36,51 @@ enum VendorAccountSource {
   ADMIN_CREATED
 }
 
+enum MembershipPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum MembershipBillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum MembershipPaymentProvider {
+  MANUAL
+  STRIPE
+}
+
+enum AppointmentDepositStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  WAIVED
+  REFUNDED
+}
+
+enum AppointmentDepositProvider {
+  MANUAL
+  STRIPE
+}
+
+enum ClinicInvoiceStatus {
+  DRAFT
+  READY
+  SUBMITTED
+  FAILED
+  VOID
+}
+
+enum ClinicInvoiceKind {
+  SERVICE
+  SMM_TR
+}
+
 enum AppointmentStatus {
   SCHEDULED
   CONFIRMED
@@ -47,6 +92,17 @@ enum AppointmentStatus {
 enum AppointmentSource {
   DASHBOARD
   CLIENT_APP
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+}
+
+enum UnavailableBlockSource {
+  MANUAL
+  GOOGLE_CALENDAR
+  OUTLOOK
 }
 
 enum TreatmentStatus {
@@ -70,6 +126,45 @@ enum FileCategory {
   RAPOR
   KIMLIK
   DIGER
+}
+
+// ── Patient-owned (Person-scoped) health records ────────────────────────────
+/// Provenance of a Person-scoped health record. "verified" chrome is only shown
+/// when provenance can genuinely be verified (never for PATIENT_ENTERED).
+enum HealthRecordSource {
+  PATIENT_ENTERED
+  CLINIC_ENTERED
+  PROVIDER_ENTERED
+  SYSTEM_IMPORTED
+}
+
+enum PersonMedicationStatus {
+  ACTIVE
+  ENDED
+  ARCHIVED
+}
+
+enum PersonAllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+  UNKNOWN
+}
+
+enum PersonDocumentCategory {
+  LAB_RESULT
+  MEDICAL_REPORT
+  IMAGING
+  PRESCRIPTION
+  VISIT_DOCUMENT
+  REFERRAL
+  OTHER
+}
+
+/// Record visibility baseline — always PRIVATE until the patient shares via Passport.
+enum HealthRecordVisibility {
+  PRIVATE
+  SHAREABLE
 }
 
 enum NotificationType {
@@ -137,6 +232,23 @@ enum TimelineEventType {
   APPOINTMENT_UPDATED
   APPOINTMENT_COMPLETED
   APPOINTMENT_CANCELLED
+  INTAKE_SUBMITTED
+}
+
+enum IntakeFieldType {
+  TEXT
+  TEXTAREA
+  SELECT
+  CHECKBOX
+  PHONE
+  DATE
+}
+
+enum IntakeInviteStatus {
+  PENDING
+  SUBMITTED
+  EXPIRED
+  REVOKED
 }
 
 enum AuditSeverity {
@@ -210,8 +322,25 @@ model Business {
   logoUrl      String?
   primaryColor String   @default("#12C8AD")
   currency     String   @default("TRY")
-  timezone     String   @default("Europe/Istanbul")
+  timezone     String   @default("Asia/Nicosia")
   autoConfirmClientAppointments Boolean @default(false)
+  /// When true, public /book requires KKTC/TC/passport. Default false (P0.6 minimization).
+  requireGuestIdentity Boolean @default(false)
+  /// Public book deposit policy (Q3). Amount required when depositEnabled.
+  depositEnabled Boolean @default(false)
+  depositAmount  Decimal? @db.Decimal(10, 2)
+  /// No-show fee policy — shown to patients; collection may be manual/later.
+  noShowFeeEnabled Boolean @default(false)
+  noShowFeeAmount  Decimal? @db.Decimal(10, 2)
+  noShowFeeNote    String?
+  /// KKTC e-Fatura drafts (not TR GİB e-SMM).
+  invoiceEnabled Boolean @default(false)
+  taxVkn         String?
+  taxOffice      String?
+  invoiceTitle   String?
+  invoiceAddress String?
+  /// WhatsApp front-desk booking agent (rules; not “AI-powered” claim).
+  whatsappAgentEnabled Boolean @default(false)
   isActive     Boolean  @default(true)
   deletedAt    DateTime?
   createdAt    DateTime @default(now())
@@ -219,6 +348,12 @@ model Business {
 
   owner             User                @relation("BusinessOwner", fields: [ownerUserId], references: [id])
   vendorAccount     VendorAccount?
+  membershipPayments MembershipPayment[]
+  appointmentDeposits AppointmentDeposit[]
+  clinicInvoices    ClinicInvoice[]
+  frontDeskSessions FrontDeskSession[]
+  patientChannelAttempts PatientChannelAttempt[]
+  notificationOutboxes NotificationOutbox[]
   members           TeamMember[]
   patients          Patient[]
   services          Service[]
@@ -239,6 +374,10 @@ model Business {
   serviceStaff      ServiceStaff[]
   staffAvailabilities TeamMemberAvailability[]
   staffUnavailableBlocks TeamMemberUnavailableBlock[]
+  calendarConnections CalendarConnection[]
+  intakeForms         IntakeForm[]
+  intakeInvites       IntakeInvite[]
+  intakeResponses     IntakeResponse[]
   reviews           Review[]
   clientNotifications ClientNotification[]
   prescriptions       Prescription[]
@@ -294,6 +433,163 @@ model VendorAccount {
   @@index([isDemo, accessEndAt])
 }
 
+/// Self-serve plan upgrade / renewal payment intent (manual invoice or Stripe).
+model MembershipPayment {
+  id                  String                     @id @default(uuid())
+  businessId          String
+  planCode            String
+  billingPeriod       MembershipBillingPeriod
+  amount              Decimal                    @db.Decimal(12, 2)
+  currency            String                     @default("EUR")
+  status              MembershipPaymentStatus    @default(PENDING)
+  provider            MembershipPaymentProvider  @default(MANUAL)
+  providerRef         String?
+  checkoutUrl         String?
+  packageDurationDays Int
+  requestedByUserId   String?
+  paidAt              DateTime?
+  expiresAt           DateTime?
+  notes               String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([providerRef])
+  @@index([status, createdAt])
+}
+
+/// Patient appointment deposit intent (manual / Stripe). Separate from MembershipPayment.
+model AppointmentDeposit {
+  id            String                     @id @default(uuid())
+  businessId    String
+  appointmentId String                     @unique
+  amount        Decimal                    @db.Decimal(10, 2)
+  currency      String                     @default("TRY")
+  status        AppointmentDepositStatus   @default(PENDING)
+  provider      AppointmentDepositProvider @default(MANUAL)
+  providerRef   String?
+  checkoutUrl   String?
+  instructions  String?
+  paidAt        DateTime?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([providerRef])
+}
+
+/// Patient SMS / WhatsApp / email send attempts (no contact PII) — ops delivery %.
+model PatientChannelAttempt {
+  id            String   @id @default(uuid())
+  businessId    String
+  appointmentId String?
+  channel       String
+  status        String
+  provider      String?
+  kind          String?
+  createdAt     DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, status, createdAt])
+}
+
+/// Durable patient outbound queue — failed sends retry with backoff (Faz 4).
+model NotificationOutbox {
+  id            String   @id @default(uuid())
+  businessId    String
+  appointmentId String?
+  patientId     String?
+  channel       String
+  kind          String
+  /// Full ReminderPayload JSON (includes `to` — not shown in patient UI).
+  payload       Json
+  status        String   @default("pending") // pending | sent | dead
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([businessId, createdAt])
+}
+
+/// Clinic service invoice draft (KKTC e-Fatura path). Not TR GİB e-SMM submission.
+model ClinicInvoice {
+  id               String              @id @default(uuid())
+  businessId       String
+  appointmentId    String?
+  patientId        String?
+  kind             ClinicInvoiceKind   @default(SERVICE)
+  status           ClinicInvoiceStatus @default(DRAFT)
+  number           String?
+  currency         String              @default("TRY")
+  subtotal         Decimal             @db.Decimal(12, 2)
+  taxRate          Decimal             @db.Decimal(5, 2)
+  taxAmount        Decimal             @db.Decimal(12, 2)
+  total            Decimal             @db.Decimal(12, 2)
+  buyerName        String?
+  buyerTaxId       String?
+  lineItems        Json                @default("[]")
+  notes            String?
+  provider         String?
+  providerRef      String?
+  ublPayload       Json?
+  lastError        String?
+  issuedAt         DateTime?
+  submittedAt      DateTime?
+  createdByUserId  String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patient     Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+  @@index([appointmentId])
+}
+
+/// WhatsApp / channel front-desk conversation draft (slot-engine booking).
+model FrontDeskSession {
+  id            String   @id @default(uuid())
+  businessId    String
+  channel       String   @default("whatsapp")
+  peerKey       String
+  step          String   @default("idle")
+  draft         Json     @default("{}")
+  lastInboundId String?
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, channel, peerKey])
+  @@index([expiresAt])
+}
+
+/// Public booking double-submit protection (Idempotency-Key).
+model BookingIdempotency {
+  id        String   @id @default(uuid())
+  keyHash   String   @unique
+  response  Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 model TeamMember {
   id          String    @id @default(uuid())
   businessId  String
@@ -324,6 +620,7 @@ model TeamMember {
   serviceAssignments ServiceStaff[]
   availabilityRules TeamMemberAvailability[]
   unavailableBlocks TeamMemberUnavailableBlock[]
+  calendarConnections CalendarConnection[]
   reviews          Review[]
   prescriptions    Prescription[] @relation("PrescribingDoctor")
 
@@ -337,6 +634,8 @@ model TeamMember {
 model ClientUser {
   id           String    @id @default(uuid())
   authUserId   String?   @unique
+  /// Ecosystem Person link — patient-facing Asistan passport (GPI).
+  personId     String?
   fullName     String
   phone        String?
   email        String?   @unique
@@ -348,21 +647,179 @@ model ClientUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  person             Person?              @relation(fields: [personId], references: [id], onDelete: SetNull)
   appointments       Appointment[]
   reviews            Review[]
   notifications      ClientNotification[]
 
   @@index([fullName])
   @@index([city])
+  @@index([personId])
 }
 
 // ────────────────────────────────────────────────────────────────────────────
 // Clinical
 // ────────────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────────────
+// Global Person Identity (ecosystem) — clinics hold Patient charts linked via personId
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Ecosystem-scoped person. Clinics never "own" this row; Patient is the clinic chart.
+model Person {
+  id            String    @id @default(uuid())
+  /// Opaque display code e.g. GPI-A1B2C3D4E5 — not sequential / enumerable
+  gpiDisplay    String    @unique
+  phoneE164     String?   @unique
+  emailNorm     String?   @unique
+  /// HMAC of national ID / passport — never log raw identifiers
+  identityHash  String?   @unique
+  birthDate     DateTime?
+  fullNameCanon String
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  patients       Patient[]
+  clientUsers    ClientUser[]
+  matchesAsLeft  PersonIdentityMatch[] @relation("PersonMatchLeft")
+  matchesAsRight PersonIdentityMatch[] @relation("PersonMatchRight")
+  medications    PersonMedication[]
+  allergies      PersonAllergy[]
+  documents      PersonDocument[]
+
+  @@index([fullNameCanon])
+  @@index([deletedAt])
+}
+
+model PersonIdentityMatch {
+  id            String   @id @default(uuid())
+  leftPersonId  String
+  rightPersonId String
+  score         Decimal  @db.Decimal(4, 3)
+  method        String
+  decidedBy     String?
+  decidedAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  leftPerson  Person @relation("PersonMatchLeft", fields: [leftPersonId], references: [id], onDelete: Cascade)
+  rightPerson Person @relation("PersonMatchRight", fields: [rightPersonId], references: [id], onDelete: Cascade)
+
+  @@index([leftPersonId, rightPersonId])
+  @@index([score])
+}
+
+/// Clinic-scoped merge ledger — supports undo of patient re-point after accept.
+model PersonIdentityMergeLedger {
+  id               String    @id @default(uuid())
+  businessId       String
+  matchId          String
+  leftPersonId     String
+  rightPersonId    String
+  score            Decimal   @db.Decimal(4, 3)
+  patientIdsMoved  String[]
+  summary          Json?
+  acceptedBy       String
+  acceptedAt       DateTime  @default(now())
+  undoneAt         DateTime?
+  undoneBy         String?
+  createdAt        DateTime  @default(now())
+
+  @@index([businessId, acceptedAt])
+  @@index([matchId])
+  @@index([undoneAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Patient-owned health records (ecosystem, Person-scoped) — the patient's own
+// longitudinal record under Asistan Passport. NOT businessId-scoped: access is
+// gated by the app.person_id GUC + RLS (mirrors passport reads), never by a
+// clinic tenant. Clinic-authored records keep their own clinic-scoped models.
+// ────────────────────────────────────────────────────────────────────────────
+
+model PersonMedication {
+  id                    String                 @id @default(uuid())
+  personId              String
+  name                  String
+  strength              String?
+  form                  String?
+  frequency             String?
+  startDate             DateTime?
+  endDate               DateTime?
+  instructions          String?                @db.Text
+  notes                 String?                @db.Text
+  status                PersonMedicationStatus @default(ACTIVE)
+  stoppedAt             DateTime?
+  sourceType            HealthRecordSource     @default(PATIENT_ENTERED)
+  sourceClinicId        String?
+  sourceProviderId      String?
+  createdByClientUserId String?
+  visibility            HealthRecordVisibility @default(PRIVATE)
+  deletedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, status])
+  @@index([personId, deletedAt])
+}
+
+model PersonAllergy {
+  id                    String                 @id @default(uuid())
+  personId              String
+  name                  String
+  reaction              String?
+  severity              PersonAllergySeverity  @default(UNKNOWN)
+  firstObservedAt       DateTime?
+  notes                 String?                @db.Text
+  sourceType            HealthRecordSource     @default(PATIENT_ENTERED)
+  sourceClinicId        String?
+  sourceProviderId      String?
+  createdByClientUserId String?
+  visibility            HealthRecordVisibility @default(PRIVATE)
+  deletedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([personId, deletedAt])
+}
+
+model PersonDocument {
+  id                     String                 @id @default(uuid())
+  personId               String
+  title                  String
+  category               PersonDocumentCategory @default(OTHER)
+  /// Object path inside the private `person-documents` bucket — never a public/signed URL.
+  storageKey             String                 @unique
+  mimeType               String
+  fileSize               Int
+  documentDate           DateTime?
+  notes                  String?                @db.Text
+  sourceType             HealthRecordSource     @default(PATIENT_ENTERED)
+  sourceClinicId         String?
+  sourceProviderId       String?
+  uploadedByClientUserId String?
+  visibility             HealthRecordVisibility @default(PRIVATE)
+  deletedAt              DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, category])
+  @@index([personId, deletedAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 model Patient {
   id                    String    @id @default(uuid())
   businessId            String
+  personId              String?
   patientNumber         String
   fullName              String
   identityNumber        String?
@@ -394,6 +851,7 @@ model Patient {
   updatedAt             DateTime  @updatedAt
 
   business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  person         Person?             @relation(fields: [personId], references: [id], onDelete: SetNull)
   assignedDoctor TeamMember?         @relation("PatientAssignedDoctor", fields: [assignedDoctorId], references: [id], onDelete: SetNull)
   notes          PatientNote[]
   medications    Medication[]
@@ -405,6 +863,9 @@ model Patient {
   appointments   Appointment[]
   timeline       TimelineEvent[]
   prescriptions  Prescription[]
+  intakeInvites  IntakeInvite[]
+  intakeResponses IntakeResponse[]
+  invoices       ClinicInvoice[]
 
   @@unique([businessId, patientNumber])
   @@index([businessId, fullName])
@@ -412,6 +873,9 @@ model Patient {
   @@index([businessId, email])
   @@index([businessId, identityNumber])
   @@index([businessId, isArchived])
+  @@index([businessId, isArchived, updatedAt])
+  @@index([personId])
+  @@index([businessId, personId])
 }
 
 model PatientNote {
@@ -589,6 +1053,9 @@ model Prescription {
   clinicCity            String?
   clinicPhone           String?
   createdByUserId       String?
+  /// SHA-256 (peppered) of the patient/pharmacy share token; raw token never stored
+  shareTokenHash        String?            @unique
+  sharedAt              DateTime?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
@@ -624,26 +1091,29 @@ model PrescriptionLine {
 // ────────────────────────────────────────────────────────────────────────────
 
 model Service {
-  id          String   @id @default(uuid())
-  businessId  String
-  name        String
-  description String?
-  category    String?
-  durationMin Int      @default(30)
-  price       Decimal  @default(0) @db.Decimal(10, 2)
-  currency    String   @default("TRY")
-  color       String   @default("#12C8AD")
-  isActive    Boolean  @default(true)
-  deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  businessId   String
+  name         String
+  description  String?
+  category     String?
+  durationMin  Int      @default(30)
+  price        Decimal  @default(0) @db.Decimal(10, 2)
+  currency     String   @default("TRY")
+  color        String   @default("#12C8AD")
+  isActive     Boolean  @default(true)
+  intakeFormId String?
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  intakeForm   IntakeForm?   @relation(fields: [intakeFormId], references: [id], onDelete: SetNull)
   appointments Appointment[]
   staffAssignments ServiceStaff[]
   reviews      Review[]
 
   @@index([businessId, isActive])
+  @@index([intakeFormId])
 }
 
 model ServiceStaff {
@@ -688,24 +1158,59 @@ model TeamMemberAvailability {
 }
 
 model TeamMemberUnavailableBlock {
-  id         String   @id @default(uuid())
-  businessId String
-  staffId    String
-  locationId String?
-  date       DateTime @db.Date
-  startTime  String // HH:mm
-  endTime    String // HH:mm
-  reason     String?
-  deletedAt  DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                   String                 @id @default(uuid())
+  businessId           String
+  staffId              String
+  locationId           String?
+  date                 DateTime               @db.Date
+  startTime            String // HH:mm
+  endTime              String // HH:mm
+  reason               String?
+  source               UnavailableBlockSource @default(MANUAL)
+  externalEventId      String?
+  calendarConnectionId String?
+  syncedAt             DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 
-  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  staff    TeamMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  location Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  business           Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff              TeamMember         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location           Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  calendarConnection CalendarConnection? @relation(fields: [calendarConnectionId], references: [id], onDelete: Cascade)
 
   @@index([businessId, staffId, date])
   @@index([businessId, locationId, date])
+  @@index([calendarConnectionId, source, deletedAt])
+  @@index([calendarConnectionId, externalEventId])
+}
+
+/// OAuth connection for importing clinician busy time (FreeBusy). Write-back deferred.
+model CalendarConnection {
+  id                    String           @id @default(uuid())
+  businessId            String
+  staffId               String
+  provider              CalendarProvider
+  calendarId            String           @default("primary")
+  accountEmail          String?
+  accessTokenEncrypted  String
+  refreshTokenEncrypted String
+  tokenExpiresAt        DateTime?
+  syncEnabled           Boolean          @default(true)
+  lastSyncAt            DateTime?
+  lastError             String?
+  connectedByUserId     String?
+  deletedAt             DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  business Business                     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff    TeamMember                   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  blocks   TeamMemberUnavailableBlock[]
+
+  @@unique([businessId, staffId, provider])
+  @@index([businessId, syncEnabled])
+  @@index([provider, syncEnabled, lastSyncAt])
 }
 
 model Appointment {
@@ -735,6 +1240,10 @@ model Appointment {
   clientUser ClientUser? @relation(fields: [clientUserId], references: [id], onDelete: SetNull)
   review   Review?
   clientNotifications ClientNotification[]
+  intakeInvite IntakeInvite?
+  intakeResponse IntakeResponse?
+  deposit AppointmentDeposit?
+  invoices ClinicInvoice[]
 
   @@index([businessId, date])
   @@index([businessId, status])
@@ -742,6 +1251,77 @@ model Appointment {
   @@index([businessId, staffId])
   @@index([businessId, clientUserId, date])
   @@index([businessId, locationId, date])
+  @@index([businessId, staffId, date, status])
+  @@index([businessId, status, date, startTime])
+  @@index([businessId, serviceId, date])
+  @@index([businessId, patientId, date])
+  @@index([businessId, deletedAt, date])
+}
+
+/// Clinic-defined pre-visit questionnaire. fields = [{ id, type, label, required, options?, placeholder? }]
+model IntakeForm {
+  id          String   @id @default(uuid())
+  businessId  String
+  name        String
+  description String?
+  fields      Json
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business  Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  services  Service[]
+  invites   IntakeInvite[]
+  responses IntakeResponse[]
+
+  @@index([businessId, isActive])
+  @@index([businessId, isDefault])
+}
+
+model IntakeInvite {
+  id            String             @id @default(uuid())
+  businessId    String
+  formId        String
+  appointmentId String             @unique
+  patientId     String
+  tokenHash     String             @unique
+  status        IntakeInviteStatus @default(PENDING)
+  expiresAt     DateTime
+  submittedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  form        IntakeForm      @relation(fields: [formId], references: [id], onDelete: Cascade)
+  appointment Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patient     Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  response    IntakeResponse?
+
+  @@index([businessId, status])
+  @@index([patientId, status])
+  @@index([formId])
+}
+
+model IntakeResponse {
+  id            String   @id @default(uuid())
+  businessId    String
+  formId        String
+  inviteId      String   @unique
+  appointmentId String   @unique
+  patientId     String
+  answers       Json
+  formSnapshot  Json
+  submittedAt   DateTime @default(now())
+
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  form        IntakeForm  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  invite      IntakeInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patient     Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, patientId, submittedAt])
 }
 
 model Review {
@@ -826,6 +1406,8 @@ model Notification {
   @@index([userId, isRead, createdAt])
   @@index([businessId, entityType, entityId])
   @@index([businessId, archivedAt])
+  @@index([businessId, userId, archivedAt, createdAt])
+  @@index([businessId, archivedAt, createdAt])
 }
 
 model NotificationAction {
@@ -903,6 +1485,7 @@ model ClientNotification {
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([clientUserId, isRead, createdAt])
+  @@index([clientUserId, createdAt])
   @@index([businessId, createdAt])
 }
 
@@ -1089,4 +1672,84 @@ model Waitlist {
   id        String   @id @default(uuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Marketing capture (landing page forms)
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Newsletter opt-ins from the public landing page.
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+/// Guest demo requests submitted from the marketing site.
+model DemoBooking {
+  id        String   @id @default(uuid())
+  name      String
+  clinic    String
+  email     String
+  date      String
+  time      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// Marketing contact / demo request form leads (general inquiry — not calendar booking).
+model ContactLead {
+  id                    String   @id @default(uuid())
+  name                  String
+  email                 String
+  phone                 String
+  company               String?
+  serviceType           String?
+  message               String   @db.Text
+  privacyAcceptedAt     DateTime
+  privacyNoticeVersion  String
+  source                String   @default("contact")
+  status                String   @default("NEW")
+  createdAt             DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([email])
+}
+
+/// KKTC medical-tourism inbound leads (visit-cyprus). Not travel/visa/hotel booking.
+model TourismLead {
+  id                 String   @id @default(uuid())
+  fullName           String
+  phone              String
+  email              String?
+  preferredLang      String   @default("en")
+  procedureInterest  String
+  travelDates        String?
+  clinicSlug         String?
+  notes              String?
+  source             String   @default("visit-cyprus")
+  status             String   @default("NEW")
+  createdAt          DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([preferredLang])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Webhook idempotency (provider event de-duplication)
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Records processed inbound webhook events so duplicates are skipped.
+model ProcessedWebhookEvent {
+  id          String   @id @default(uuid())
+  provider    String
+  eventId     String
+  eventType   String?
+  processedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processedAt])
 }

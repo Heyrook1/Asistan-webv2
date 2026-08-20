@@ -92,9 +92,59 @@ export type SessionContext = {
   supportMode?: { businessId: string; businessName: string } | null
 }
 
+/** Clinic admins — full capability matrix regardless of stale TeamMember.permissions JSON. */
+export function isPrivilegedClinicAdmin(session: SessionContext | null): boolean {
+  if (!session) return false
+  return (
+    session.isOwner ||
+    session.role === 'SUPER_ADMIN' ||
+    session.role === 'ISLETME_SAHIBI'
+  )
+}
+
+/**
+ * Single capability source for menu, route guards, and server actions.
+ * Prefer this over raw `session.permissions.includes(...)`.
+ */
 export function can(session: SessionContext | null, permission: Permission) {
-  if (session?.isOwner || session?.role === 'SUPER_ADMIN') return true
-  return Boolean(session && session.permissions.includes(permission))
+  if (!session) return false
+  if (isPrivilegedClinicAdmin(session)) return true
+  return session.permissions.includes(permission)
+}
+
+export function canAny(session: SessionContext | null, permissions: readonly Permission[]) {
+  if (!session) return false
+  if (isPrivilegedClinicAdmin(session)) return true
+  if (permissions.length === 0) return true
+  return permissions.some((permission) => session.permissions.includes(permission))
+}
+
+/** Team module — list / invite / roles (nav + page + actions share this). */
+export const TEAM_ACCESS_PERMISSIONS = ['team.view', 'team.manage'] as const satisfies readonly Permission[]
+
+export function canAccessTeam(session: SessionContext | null) {
+  return canAny(session, TEAM_ACCESS_PERMISSIONS)
+}
+
+/**
+ * Product decision: finance (ciro) visibility.
+ * - Clinic owner (`isOwner`), `ISLETME_SAHIBI`, and `SUPER_ADMIN` always have access.
+ * - Other roles need explicit `analytics.revenue.view`.
+ * Dashboard + Analitik MUST use this helper — never `analytics.view` for money.
+ */
+export const FINANCE_VIEW_PERMISSION = 'analytics.revenue.view' as const satisfies Permission
+
+export function canViewFinance(session: SessionContext | null): boolean {
+  return can(session, FINANCE_VIEW_PERMISSION)
+}
+
+/** Effective finance access for a stored team member row (role matrix + explicit grants). */
+export function memberHasFinanceAccess(input: {
+  role: TeamRole
+  permissions: readonly string[] | null | undefined
+}): boolean {
+  if (input.role === 'ISLETME_SAHIBI' || input.role === 'SUPER_ADMIN') return true
+  return Array.isArray(input.permissions) && input.permissions.includes(FINANCE_VIEW_PERMISSION)
 }
 
 /** Matches page gates on /dashboard/ajanda (and legacy randevular/takvim redirects). */
@@ -106,14 +156,14 @@ export const APPOINTMENT_SCHEDULE_PERMISSIONS: Permission[] = [
 
 export function canViewAppointmentSchedule(session: SessionContext | null) {
   if (!session) return false
-  if (session.isOwner || session.role === 'SUPER_ADMIN') return true
+  if (isPrivilegedClinicAdmin(session)) return true
   return APPOINTMENT_SCHEDULE_PERMISSIONS.some((permission) => session.permissions.includes(permission))
 }
 
 /** True when the user may only see their own appointments (e.g. PERSONEL). */
 export function isOwnAppointmentsOnly(session: SessionContext | null) {
   if (!session) return false
-  if (session.isOwner || session.role === 'SUPER_ADMIN') return false
+  if (isPrivilegedClinicAdmin(session)) return false
   if (session.permissions.includes('appointment.manage') || session.permissions.includes('appointment.view')) {
     return false
   }

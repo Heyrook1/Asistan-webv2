@@ -9,7 +9,7 @@ process.env.DATABASE_URL =
   process.env.POSTGRES_URL_NON_POOLING
 
 if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL or a Vercel Postgres URL is required for prisma generate')
+  console.error('DATABASE_URL is required for prisma generate')
   process.exit(1)
 }
 

@@ -5,6 +5,7 @@ import { Activity, AlertTriangle, Building2, CalendarCheck2, MessageSquareText, 
 import { toast } from 'sonner'
 import { updateVendorMembership } from '@/lib/actions/system-admin'
 import { setPlatformUserActive } from '@/lib/actions/super-admin'
+import { MembershipPaymentsAdmin } from '@/components/dashboard/membership-payments-admin'
 import {
   VENDOR_MEMBERSHIP_LABELS,
   getVendorPlanDefinition,
@@ -98,6 +99,18 @@ type Props = {
   vendors: VendorRow[]
   users: UserRow[]
   recentActivity: ActivityRow[]
+  pendingMembershipPayments?: Array<{
+    id: string
+    businessId: string
+    businessName: string
+    planCode: string
+    planName: string
+    billingPeriod: string
+    amount: number
+    currency: string
+    provider: string
+    createdAt: string
+  }>
 }
 
 type VendorDraft = {
@@ -120,6 +133,7 @@ export function SuperAdminBoard({
   vendors,
   users,
   recentActivity,
+  pendingMembershipPayments = [],
 }: Props) {
   const planOptions = useMemo(() => listVendorPlans({ includeDemo: true }), [])
   const [isPending, startTransition] = useTransition()
@@ -229,6 +243,14 @@ export function SuperAdminBoard({
             <p className="mt-1 text-xs text-muted-foreground">{metric.hint}</p>
           </article>
         ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-bold text-brand-ink">Self-serve paket ödemeleri</h2>
+        <p className="text-sm text-muted-foreground">
+          Klinikler Ayarlar → Abonelik üzerinden talep oluşturur. Elden/havale tahsilatını burada onaylayın.
+        </p>
+        <MembershipPaymentsAdmin payments={pendingMembershipPayments} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">

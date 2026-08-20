@@ -1,4 +1,4 @@
-import { requirePagePermission, can } from '@/lib/session'
+import { requirePageAnyPermission, can, TEAM_ACCESS_PERMISSIONS } from '@/lib/session'
 import { getTeamList } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 import { getVendorPlanName, getVendorPlanUserLimit } from '@/lib/vendor-membership'
@@ -7,7 +7,7 @@ import { TeamBoard } from './team-board'
 export const dynamic = 'force-dynamic'
 
 export default async function TakimPage() {
-  const session = await requirePagePermission('team.view')
+  const session = await requirePageAnyPermission(...TEAM_ACCESS_PERMISSIONS)
   const [team, vendorAccount] = await Promise.all([
     getTeamList(session.businessId),
     prisma.vendorAccount.findUnique({

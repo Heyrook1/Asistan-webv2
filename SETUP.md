@@ -56,7 +56,9 @@ Get these from Supabase Dashboard → Settings → API.
 ```bash
 # Set environment-specific values
 NODE_ENV=production
-NEXT_PUBLIC_SENTRY_DSN=https://...
+NEXT_PUBLIC_SENTRY_DSN=https://...   # browser
+SENTRY_DSN=https://...               # server/edge (optional; falls back to public DSN)
+NEXT_PUBLIC_APP_VERSION=1.0.0        # Sentry release tag
 ```
 
 ## Step 4: Database Setup

@@ -25,7 +25,7 @@ export function withCanonical(path: string, metadata: Metadata = {}): Metadata {
     },
     openGraph: {
       ...metadata.openGraph,
-      url: canonical,
+      url: absoluteUrl(canonical),
     },
   }
 }
@@ -40,9 +40,11 @@ export const PUBLIC_SITEMAP_PATHS = [
   '/cozumler/legal',
   '/cozumler/pro',
   '/fiyatlandirma',
+  '/sonuclar',
   '/guven',
   '/kaynaklar',
   '/hakkimizda',
+  '/visit-cyprus',
   '/contact',
   '/privacy',
   '/terms',

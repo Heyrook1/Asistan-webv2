@@ -1,23 +1,35 @@
+/**
+ * Appointment reminder cron — fail-closed.
+ *
+ *   curl -fsS -H "Authorization: Bearer $CRON_SECRET" \
+ *     "$APP_URL/api/cron/appointment-reminders"
+ *
+ * Missing `CRON_SECRET` → 503. Wrong Bearer → 401.
+ * Scans all clinics under `runWithTenantBypassAsync('cron:appointment-reminders')`.
+ *
+ * @see docs/security-ops.md (privilege ladder)
+ * @see .github/workflows/cron.example.yml
+ */
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiError } from '@/lib/api-response'
 import * as Sentry from '@sentry/nextjs'
 import { processAppointmentReminders } from '@/lib/client-marketplace/reminders'
+import { authorizeCronRequest } from '@/lib/security/cron-auth'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-function authorize(request: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (!secret) {
-    // Allow local/dev runs without a secret; require it when configured.
-    return process.env.NODE_ENV !== 'production'
-  }
-  const header = request.headers.get('authorization')
-  return header === `Bearer ${secret}`
-}
-
 export async function GET(request: NextRequest) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = authorizeCronRequest(request)
+  if (!auth.ok) {
+    return apiError(auth.message, auth.status)
+  }
+
+  // Auth'd but still bound — prevents accidental double-fire / scheduler storms.
+  const allowed = await checkRateLimit('cron:appointment-reminders', 6, '1 m')
+  if (!allowed) {
+    return apiError('Too many requests', 429)
   }
 
   try {
@@ -25,9 +37,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, ...result })
   } catch (error) {
     Sentry.captureException(error)
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Reminder job failed' },
-      { status: 500 }
+    return apiError(
+      error instanceof Error ? error.message : 'Reminder job failed',
+      500
     )
   }
 }

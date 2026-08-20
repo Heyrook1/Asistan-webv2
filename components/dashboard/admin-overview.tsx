@@ -26,11 +26,13 @@ import { QuickStartTour } from '@/components/dashboard/admin-overview/quick-star
 import { StatsGrid } from '@/components/dashboard/admin-overview/stats-grid'
 import type { CalendarEvent, OverviewStats, PriorityItem } from '@/components/dashboard/admin-overview/types'
 import { UpcomingAppointmentsTable } from '@/components/dashboard/admin-overview/upcoming-appointments-table'
+import { FillGapPanel } from '@/components/dashboard/fill-gap-panel'
 import { RemindersCard, type ReminderItem } from '@/components/dashboard/reminders-card'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { consumeForceQuickStart } from '@/lib/onboarding/quick-start-handoff'
 import { cn } from '@/lib/utils'
 
 type LookupData = {
@@ -52,6 +54,11 @@ type Modal = 'appointment' | 'patient' | 'service' | 'share' | null
 const DASHBOARD_REFRESH_INTERVAL_MS = 120_000
 const QUICK_START_TOUR_KEY_PREFIX = 'asistan.quick-start-tour.v1.dismissed.'
 
+/**
+ * Owner / işletme sahibi home only.
+ * Secretary, doctor, and staff render {@link RoleOpsHome} from `app/dashboard/page.tsx`
+ * so stats, fill-gap, setup, mini-calendar, and priority cards never mount for those roles.
+ */
 export function AdminOverview({
   businessName,
   stats,
@@ -65,7 +72,11 @@ export function AdminOverview({
   canCreateAppointment,
   canManageService,
   canViewAnalytics,
+  canViewFinance,
   defaultStaffId,
+  teamMessagingEnabled = false,
+  clinicAnalyticsEnabled = false,
+  fillGap = null,
 }: {
   businessName: string
   stats: OverviewStats
@@ -79,7 +90,31 @@ export function AdminOverview({
   canCreateAppointment: boolean
   canManageService: boolean
   canViewAnalytics: boolean
+  /** Same source as Analitik — never show ₺0 as a stand-in for missing finance permission. */
+  canViewFinance: boolean
   defaultStaffId?: string
+  teamMessagingEnabled?: boolean
+  clinicAnalyticsEnabled?: boolean
+  fillGap?: {
+    headline: string
+    detail: string | null
+    ajandaHref: string
+    clusters: Array<{
+      date: string
+      weekdayLabel: string
+      doctorName: string
+      serviceName: string
+      slotCount: number
+      sampleTimes: string[]
+    }>
+    patients: Array<{
+      id: string
+      fullName: string
+      phone: string | null
+      lastVisitDate: string
+      lastServiceName: string | null
+    }>
+  } | null
 }) {
   const router = useRouter()
   const [modal, setModal] = useState<Modal>(null)
@@ -122,8 +157,8 @@ export function AdminOverview({
   }, [router])
 
   const bookingLink = useMemo(() => {
-    if (typeof window === 'undefined') return `/randevu/${lookups.bookingSlug}`
-    return `${window.location.origin}/randevu/${lookups.bookingSlug}`
+    if (typeof window === 'undefined') return `/book/${lookups.bookingSlug}`
+    return `${window.location.origin}/book/${lookups.bookingSlug}`
   }, [lookups.bookingSlug])
 
   const quickStartStorageKey = useMemo(() => `${QUICK_START_TOUR_KEY_PREFIX}${lookups.bookingSlug}`, [lookups.bookingSlug])
@@ -138,9 +173,15 @@ export function AdminOverview({
     canCreateAppointment
 
   useEffect(() => {
-    if (!isFirstDayCandidate) return
-    const alreadyDismissed = window.localStorage.getItem(quickStartStorageKey)
-    if (alreadyDismissed === '1') return
+    const forced = consumeForceQuickStart()
+    if (!forced && !isFirstDayCandidate) return
+    if (!forced) {
+      const alreadyDismissed = window.localStorage.getItem(quickStartStorageKey)
+      if (alreadyDismissed === '1') return
+    } else {
+      // Fresh signup: clear dismiss so tour always shows once after email confirm.
+      window.localStorage.removeItem(quickStartStorageKey)
+    }
     const timer = window.setTimeout(() => setQuickStartOpen(true), 350)
     return () => window.clearTimeout(timer)
   }, [isFirstDayCandidate, quickStartStorageKey])
@@ -220,14 +261,23 @@ export function AdminOverview({
               )}
               <Button variant="outline" onClick={() => setModal('share')} className="h-11 gap-2 rounded-xl border-slate-200 bg-white">
                 <Share2 className="h-4 w-4" />
-                Takvimi Paylaş
+                Randevu linkini paylaş
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <StatsGrid stats={stats} canViewAnalytics={canViewAnalytics} />
+      <StatsGrid stats={stats} canViewFinance={canViewFinance} />
+      {fillGap && (
+        <FillGapPanel
+          headline={fillGap.headline}
+          detail={fillGap.detail}
+          ajandaHref={fillGap.ajandaHref}
+          clusters={fillGap.clusters}
+          patients={fillGap.patients}
+        />
+      )}
       <RemindersCard initialReminders={reminders} />
 
       <div className={cn('grid gap-4', setupComplete ? 'xl:grid-cols-[1.25fr_1.55fr]' : 'xl:grid-cols-[1fr_1.25fr_1.55fr]')}>
@@ -310,8 +360,12 @@ export function AdminOverview({
               {canCreatePatient && <QuickAction icon={<UserPlus />} label="Hasta Ekle" onClick={() => setModal('patient')} />}
               {canManageService && <QuickAction icon={<Scissors />} label="Hizmet Ekle" onClick={() => setModal('service')} />}
               <QuickAction icon={<Clock />} label="Müsaitlik Düzenle" href="/dashboard/ajanda?mode=takvim" />
-              <QuickAction icon={<Send />} label="Mesajlar" href="/dashboard/mesajlar" />
-              {canViewAnalytics && <QuickAction icon={<BarChart3 />} label="Rapor Oluştur" href="/dashboard/analitik" />}
+              {teamMessagingEnabled ? (
+                <QuickAction icon={<Send />} label="Mesajlar" href="/dashboard/mesajlar" />
+              ) : null}
+              {clinicAnalyticsEnabled && canViewAnalytics ? (
+                <QuickAction icon={<BarChart3 />} label="Operasyon raporu" href="/dashboard/analitik" />
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -332,7 +386,7 @@ export function AdminOverview({
       <Dialog open={modal === 'share'} onOpenChange={(open) => !open && setModal(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Takvimi Paylaş</DialogTitle>
+            <DialogTitle>Randevu linkini paylaş</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <Input readOnly value={bookingLink} />

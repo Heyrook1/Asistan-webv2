@@ -12,6 +12,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatTimeAgo } from '@/lib/format'
+import { labelTimelineEventType } from '@/lib/ui-labels'
 import { cn } from '@/lib/utils'
 
 type TimelineItem = {
@@ -76,7 +77,9 @@ export function PatientSecondaryPanel({ timeline }: { timeline: TimelineItem[] }
                     >
                       {timelineIcon(ev.type)}
                     </span>
-                    <p className="text-[11px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatTimeAgo(ev.createdAt)} · {labelTimelineEventType(ev.type)}
+                    </p>
                     <p className="text-sm text-brand-ink">{ev.title}</p>
                     {ev.description ? (
                       <p className="text-[11px] text-muted-foreground">{ev.description}</p>

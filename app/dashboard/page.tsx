@@ -1,6 +1,6 @@
 import { AdminOverview } from '@/components/dashboard/admin-overview'
 import { RoleOpsHome, type RoleHomeFocus } from '@/components/dashboard/role-ops-home'
-import { can, requireSession } from '@/lib/session'
+import { can, canViewFinance, requireSession } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import {
   getAppointmentsList,
@@ -11,6 +11,11 @@ import {
 } from '@/lib/queries'
 import { buildPriorityItems } from '@/lib/priority-engine'
 import type { SessionContext } from '@/lib/rbac'
+import { isTeamMessagingEnabled } from '@/lib/messaging/policy'
+import { isClinicAnalyticsEnabled } from '@/lib/analytics/policy'
+import { isFillTheGapEnabled } from '@/lib/ops/policy'
+import { getFillTheGapSnapshot } from '@/lib/ops/fill-the-gap'
+import { listClinicAssignableStaff } from '@/lib/team/clinic-staff'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +27,7 @@ function toIsoDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+/** Owner/super-admin → AdminOverview; all other clinic roles → RoleOpsHome (no owner cards). */
 function resolveHomeFocus(session: SessionContext): RoleHomeFocus | 'owner' {
   if (session.isOwner || session.role === 'ISLETME_SAHIBI' || session.role === 'SUPER_ADMIN') {
     return 'owner'
@@ -71,11 +77,7 @@ async function loadLookups(businessId: string) {
       orderBy: { name: 'asc' },
       select: { id: true, name: true, durationMin: true },
     }),
-    prisma.teamMember.findMany({
-      where: { businessId, isActive: true },
-      orderBy: { fullName: 'asc' },
-      select: { id: true, fullName: true },
-    }),
+    listClinicAssignableStaff(businessId),
     prisma.location.findMany({
       where: { businessId, isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -124,13 +126,18 @@ export default async function DashboardPage() {
   const now = new Date()
   const today = dateOnly(now)
 
+  // Non-owner: RoleOpsHome only — never mount AdminOverview (stats / fill-gap / setup / mini-cal).
+  // Doctor → bugün; secretary → onay kuyruğu; staff → ajandam (+ optional reminders).
   if (focus !== 'owner') {
     const agendaTo = new Date(today)
     agendaTo.setDate(agendaTo.getDate() + 7)
+    const showReminders = focus === 'staff'
 
     const [lookupsBundle, reminders, roleAppointments, pendingCount] = await Promise.all([
       loadLookups(session.businessId),
-      getReminders(session.businessId, session.userId),
+      showReminders
+        ? getReminders(session.businessId, session.userId)
+        : Promise.resolve([] as Awaited<ReturnType<typeof getReminders>>),
       focus === 'secretary'
         ? getAppointmentsList(session.businessId, { status: 'SCHEDULED' }, session).then((rows) =>
             rows
@@ -204,6 +211,7 @@ export default async function DashboardPage() {
     reminders,
     todayPending,
     recentNoShows,
+    fillGap,
   ] = await Promise.all([
     getDashboardStats(session.businessId),
     loadLookups(session.businessId),
@@ -248,6 +256,9 @@ export default async function DashboardPage() {
         date: { gte: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7) },
       },
     }),
+    isFillTheGapEnabled()
+      ? getFillTheGapSnapshot(session.businessId)
+      : Promise.resolve(null),
   ])
 
   const { services, staff, business, lookups } = lookupsBundle
@@ -317,7 +328,34 @@ export default async function DashboardPage() {
       canCreateAppointment={can(session, 'appointment.manage')}
       canManageService={can(session, 'service.manage')}
       canViewAnalytics={can(session, 'analytics.view')}
+      canViewFinance={canViewFinance(session)}
       defaultStaffId={session.staffMemberId ?? undefined}
+      teamMessagingEnabled={isTeamMessagingEnabled()}
+      clinicAnalyticsEnabled={isClinicAnalyticsEnabled()}
+      fillGap={
+        fillGap?.headline
+          ? {
+              headline: fillGap.headline,
+              detail: fillGap.detail,
+              ajandaHref: fillGap.ajandaHref,
+              clusters: fillGap.clusters.map((c) => ({
+                date: c.date,
+                weekdayLabel: c.weekdayLabel,
+                doctorName: c.doctorName,
+                serviceName: c.serviceName,
+                slotCount: c.slotCount,
+                sampleTimes: c.sampleTimes,
+              })),
+              patients: fillGap.patients.map((p) => ({
+                id: p.id,
+                fullName: p.fullName,
+                phone: p.phone,
+                lastVisitDate: p.lastVisitDate,
+                lastServiceName: p.lastServiceName,
+              })),
+            }
+          : null
+      }
     />
   )
 }

@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 
-import { Toaster } from '@/components/ui/sonner'
-
 import './globals.css'
 
 import { SITE_URL } from '@/lib/seo'
@@ -85,9 +83,9 @@ export const viewport: Viewport = {
 
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { QueryProvider } from '@/lib/query-provider'
 import { SkipToContent } from '@/components/skip-to-content'
 import { RegisterServiceWorker } from '@/components/pwa/register-sw'
+import { ClientToaster } from '@/components/ui/client-toaster'
 import { cookies } from 'next/headers'
 import { normalizeAuthLanguage } from '@/lib/auth-routes'
 
@@ -100,18 +98,22 @@ export default async function RootLayout({
   const lang = normalizeAuthLanguage(cookieStore.get('asistan-lang')?.value)
 
   return (
-    <html lang={lang} translate="no" data-scroll-behavior="smooth" className="bg-background text-foreground">
-      <body className="font-sans antialiased">
+    <html
+      lang={lang}
+      translate="no"
+      data-scroll-behavior="smooth"
+      className="bg-background text-foreground"
+      suppressHydrationWarning
+    >
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <SkipToContent />
         <ErrorBoundary>
-          <QueryProvider>
-            <LanguageProvider>
-              <div className="min-h-screen">
-                {children}
-              </div>
-            </LanguageProvider>
-          </QueryProvider>
-          <Toaster position="top-right" richColors duration={4000} />
+          <LanguageProvider initialLanguage={lang}>
+            <div className="min-h-screen">
+              {children}
+            </div>
+          </LanguageProvider>
+          <ClientToaster position="top-right" richColors duration={4000} />
           <RegisterServiceWorker />
           {/* Vercel Web Analytics: Vercel Dashboard > Analytics > Enable to re-activate */}
         </ErrorBoundary>

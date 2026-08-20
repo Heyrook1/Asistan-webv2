@@ -1,8 +1,12 @@
 import 'server-only'
 
 import { env } from '@/lib/env'
+import type {
+  ChannelDeliveryStatus,
+  ReminderChannel,
+} from '@/lib/notifications/channel-delivery'
 
-export type ReminderChannel = 'email' | 'sms' | 'whatsapp'
+export type { ReminderChannel }
 
 export type ReminderPayload = {
   businessId: string
@@ -13,11 +17,26 @@ export type ReminderPayload = {
   serviceName: string
   startsAt: string
   locale?: string
+  /** confirm | cancel | reminder_* — provider templates may branch on this */
+  kind?: string
+  clinicName?: string
 }
 
 export type ReminderResult =
-  | { ok: true; provider: string; channel: ReminderChannel; externalId?: string }
-  | { ok: false; provider: string; channel: ReminderChannel; error: string }
+  | {
+      ok: true
+      status: 'sent'
+      provider: string
+      channel: ReminderChannel
+      externalId?: string
+    }
+  | {
+      ok: false
+      status: 'not_configured' | 'error'
+      provider: string
+      channel: ReminderChannel
+      error: string
+    }
 
 type ProviderConfig = {
   name: string
@@ -35,6 +54,18 @@ function providerFor(channel: ReminderChannel): ProviderConfig {
   }
 }
 
+export function getPatientOutboundChannelConfig(): {
+  sms: boolean
+  whatsapp: boolean
+  email: boolean
+  anyConfigured: boolean
+} {
+  const sms = Boolean(env.SMS_PROVIDER_WEBHOOK_URL)
+  const whatsapp = Boolean(env.WHATSAPP_PROVIDER_WEBHOOK_URL)
+  const email = Boolean(env.EMAIL_PROVIDER_WEBHOOK_URL)
+  return { sms, whatsapp, email, anyConfigured: sms || whatsapp || email }
+}
+
 export async function sendAppointmentReminder(
   channel: ReminderChannel,
   payload: ReminderPayload
@@ -43,37 +74,53 @@ export async function sendAppointmentReminder(
   if (!provider.webhookUrl) {
     return {
       ok: false,
+      status: 'not_configured',
       provider: provider.name,
       channel,
       error: `${channel} reminder provider is not configured`,
     }
   }
 
-  const response = await fetch(provider.webhookUrl, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(env.NOTIFICATION_PROVIDER_TOKEN
-        ? { authorization: `Bearer ${env.NOTIFICATION_PROVIDER_TOKEN}` }
-        : {}),
-    },
-    body: JSON.stringify({ channel, payload }),
-  })
+  try {
+    const response = await fetch(provider.webhookUrl, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(env.NOTIFICATION_PROVIDER_TOKEN
+          ? { authorization: `Bearer ${env.NOTIFICATION_PROVIDER_TOKEN}` }
+          : {}),
+      },
+      body: JSON.stringify({ channel, payload }),
+    })
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: 'error' satisfies ChannelDeliveryStatus,
+        provider: provider.name,
+        channel,
+        error: `Provider responded with ${response.status}`,
+      }
+    }
+
+    const data = (await response.json().catch(() => ({}))) as {
+      id?: string
+      externalId?: string
+    }
     return {
-      ok: false,
+      ok: true,
+      status: 'sent',
       provider: provider.name,
       channel,
-      error: `Provider responded with ${response.status}`,
+      externalId: data.externalId ?? data.id,
     }
-  }
-
-  const data = (await response.json().catch(() => ({}))) as { id?: string; externalId?: string }
-  return {
-    ok: true,
-    provider: provider.name,
-    channel,
-    externalId: data.externalId ?? data.id,
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'error',
+      provider: provider.name,
+      channel,
+      error: error instanceof Error ? error.message : 'channel send failed',
+    }
   }
 }

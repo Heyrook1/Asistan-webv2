@@ -203,7 +203,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ indus
 
   return (
     <MarketingPageShell>
-      <section className="relative overflow-hidden pb-16 pt-28 md:pt-32">
+      <section className="relative overflow-hidden pb-16 pt-10 md:pt-12">
         <div className="marketing-hero-bg absolute inset-0" />
         <div className="soft-grid absolute inset-0 opacity-60" />
         <div className="marketing-container relative z-10">
@@ -215,16 +215,16 @@ export default async function IndustryPage({ params }: { params: Promise<{ indus
           <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <FadeUp>
               <Badge className={`mb-5 border-0 ${current.accentSoft} ${current.accentText}`}>{current.subtitle}</Badge>
-              <h1 className="font-heading text-4xl font-black leading-[1.08] text-brand-navy md:text-5xl">{current.title}</h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">{current.longDescription}</p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Button asChild className={`h-11 rounded-lg px-5 text-sm font-semibold text-white ${current.accent}`}>
-                  <Link href={getClinicTrialPath('tr')}>
+              <h1 className="font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy md:text-5xl">{current.title}</h1>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-[#6B7280] md:text-lg">{current.longDescription}</p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild variant="ctaPrimary" className="h-11 rounded-lg px-5 text-sm font-semibold">
+                  <Link href={getClinicTrialPath('tr')} data-cta-priority="primary">
                     {ENTRY_CTA.clinicTrial.tr}
                     <ArrowRight className="ml-1.5 size-4" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="h-11 rounded-lg border-brand-blue/20 px-5 text-sm font-semibold text-brand-navy">
+                <Button asChild variant="ctaSecondary" className="h-11 rounded-lg px-5 text-sm font-semibold">
                   <Link href="/fiyatlandirma">Fiyatları incele</Link>
                 </Button>
               </div>

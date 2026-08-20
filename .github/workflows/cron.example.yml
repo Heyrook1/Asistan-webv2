@@ -1,0 +1,51 @@
+# Copy to cron.yml and set repository secrets:
+#   APP_URL          — e.g. https://rezervasyon.example.com
+#   CRON_SECRET      — same value as production CRON_SECRET
+#
+# Disable or delete if you use system crontab on the app server instead.
+
+name: Scheduled cron jobs
+
+on:
+  schedule:
+    - cron: '0 * * * *'    # appointment reminders — top of each hour
+    - cron: '15 * * * *'   # google calendar sync — :15 past each hour
+    - cron: '*/10 * * * *' # notification outbox + booking canary — every 10 minutes
+  workflow_dispatch:
+
+jobs:
+  appointment-reminders:
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger appointment reminders
+        run: |
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/appointment-reminders"
+
+  google-calendar-sync:
+    if: github.event.schedule == '15 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Google Calendar sync
+        run: |
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/google-calendar-sync"
+
+  notification-outbox:
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drain patient notification outbox
+        run: |
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/notification-outbox"
+
+  booking-canary:
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe live booking availability (clinic rotation)
+        run: |
+          curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/booking-canary"

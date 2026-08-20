@@ -1,107 +1,26 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type KeyboardEvent } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, ShieldCheck } from 'lucide-react'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { DEMO_CONTACT_PATH, ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
-
-type BillingMode = 'monthly' | 'yearly'
-
-type Plan = {
-  name: string
-  eyebrow: string
-  description: string
-  monthlyPrice: number | null
-  cta: string
-  href: string
-  highlighted?: boolean
-  features: string[]
-  matrix: {
-    users: string
-    patients: string
-    reminders: boolean
-    analytics: boolean
-    api: boolean
-    onboarding: boolean
-  }
-}
+import {
+  formatPublicPlanPrice,
+  listPublicMarketingPlanCards,
+  publicPlanAnnualPrepaidAmount,
+  publicPlanDisplayName,
+  publicPlanMonthlyAmount,
+  PUBLIC_PRICING_BILLING_DISCLOSURE,
+  PUBLIC_PRICING_PROOF_GATE,
+  PUBLIC_PRICING_MATRIX_ROWS,
+  type PublicBillingCycle,
+} from '@/lib/pricing/public-catalog'
+import { cn } from '@/lib/utils'
 
 const clinicTrialHref = getClinicTrialPath('tr')
-
-const plans: Plan[] = [
-  {
-    name: 'Başlangıç',
-    eyebrow: 'Küçük klinikler',
-    description: 'Tek hekim veya küçük ekipler için sade randevu ve hasta yönetimi.',
-    monthlyPrice: 1290,
-    cta: ENTRY_CTA.clinicTrial.tr,
-    href: clinicTrialHref,
-    features: ['1 kullanıcı', '500 hasta', 'Randevu yönetimi', 'Temel raporlama'],
-    matrix: {
-      users: '1',
-      patients: '500',
-      reminders: true,
-      analytics: false,
-      api: false,
-      onboarding: false,
-    },
-  },
-  {
-    name: 'Standart',
-    eyebrow: 'Büyüyen ekipler',
-    description: 'Sekreter + doktor yapısında ekip koordinasyonunu güçlendirir.',
-    monthlyPrice: 2490,
-    cta: ENTRY_CTA.clinicTrial.tr,
-    href: clinicTrialHref,
-    features: ['5 kullanıcı', '2.000 hasta', 'Gelişmiş raporlama', 'Panel + e-posta hatırlatma'],
-    matrix: {
-      users: '5',
-      patients: '2.000',
-      reminders: true,
-      analytics: true,
-      api: false,
-      onboarding: false,
-    },
-  },
-  {
-    name: 'Profesyonel',
-    eyebrow: 'Popüler plan',
-    description: 'Operasyon otomasyonu ve ileri panel ihtiyacı olan klinikler için.',
-    monthlyPrice: 4890,
-    cta: ENTRY_CTA.clinicTrial.tr,
-    href: clinicTrialHref,
-    highlighted: true,
-    features: ['Sınırsız kullanıcı', 'Sınırsız hasta', 'Otomasyon akışları', 'API erişimi'],
-    matrix: {
-      users: 'Sınırsız',
-      patients: 'Sınırsız',
-      reminders: true,
-      analytics: true,
-      api: true,
-      onboarding: true,
-    },
-  },
-  {
-    name: 'Kurumsal',
-    eyebrow: 'Özel kurulum',
-    description: 'Çok şubeli yapılar ve özel güvenlik / entegrasyon talepleri.',
-    monthlyPrice: null,
-    cta: ENTRY_CTA.demoRequest.tr,
-    href: DEMO_CONTACT_PATH,
-    features: ['Özel entegrasyonlar', 'KVKK odaklı destek', 'Eğitim + danışmanlık', 'Özel raporlama'],
-    matrix: {
-      users: 'Sınırsız',
-      patients: 'Sınırsız',
-      reminders: true,
-      analytics: true,
-      api: true,
-      onboarding: true,
-    },
-  },
-]
 
 const trustItems = [
   'KVKK odaklı kontroller',
@@ -113,125 +32,310 @@ const trustItems = [
 
 const faqs = [
   {
+    question: 'Neden önce demo veya deneme?',
+    answer:
+      'Liste fiyatı, ürün ve destek uyumunu denemeden önce tek başına karar vermek için yeterli olmayabilir. Önce randevu akışını ve desteği görün; uyum netleşince plan seçin.',
+  },
+  {
     question: 'Planımı istediğim zaman değiştirebilir miyim?',
     answer:
       'Evet. Paket geçişleri dönem sonunda veya ihtiyaç anında planlı şekilde yapılabilir.',
   },
   {
-    question: 'Yıllık ödemede indirim var mı?',
-    answer: 'Yıllık mod seçildiğinde aylık liste fiyatına göre %20 avantaj uygulanır.',
+    question: 'Yıllık ödemede ne kadar peşin öderim?',
+    answer:
+      'Yıllık seçimde aylık tutarın 12 katı peşin gösterilir. Şu anda yıllık indirim uygulanmaz.',
   },
   {
-    question: 'Kurumsal fiyat nasıl belirleniyor?',
+    question: 'Fiyatlara KDV dahil mi? Hangi para biriminde öderim?',
     answer:
-      'Şube sayısı, entegrasyon ihtiyacı ve güvenlik kapsamıyla birlikte özel teklif çıkarılır.',
+      'Listelenen tutarlar TRY ve vergi hariçtir (faturada aksi yazılmadıkça). Başlangıç ve Profesyonel paket tahsilatı TRY üzerinden planlanır; Kurumsal paket tekliflendirilir.',
+  },
+  {
+    question: 'Kurumsal plan ne zaman gerekir?',
+    answer:
+      'Çoklu şube, özel entegrasyon veya gelişmiş yetki ihtiyacında Kurumsal yalnızca demo ile başlar; liste fiyatı tek başına sipariş değildir.',
   },
   {
     question: 'Hasta verileri nasıl korunuyor?',
     answer:
-      'Rol bazlı erişim, işletme bazlı veri ayrımı ve denetim izleriyle güvenli veri modeli uygulanır.',
+      'İşletme bazlı veri ayrımı, temel rol güvenliği ve zorunlu gizlilik / ürün içi denetim günlüğü tüm planlarda standarttır. Gelişmiş denetim dışa aktarma veya özel yönetişim Kurumsal pakette yer alabilir — temel güvenlik paket farkı değildir.',
   },
 ]
 
-function formatPrice(value: number | null, mode: BillingMode) {
-  if (value === null) return 'İletişime Geçin'
-  if (mode === 'monthly') return `TL ${value.toLocaleString('tr-TR')}`
-  const yearly = Math.round(value * 12 * 0.8)
-  return `TL ${yearly.toLocaleString('tr-TR')}`
-}
-
-function valueOrDash(enabled: boolean) {
-  return enabled ? (
-    <Check className="mx-auto h-4 w-4 text-brand-teal" aria-hidden="true" />
-  ) : (
-    <span className="mx-auto block h-4 w-4 text-slate-300">-</span>
-  )
-}
-
 export function PricingPageSections() {
-  const [mode, setMode] = useState<BillingMode>('monthly')
+  const [cycle, setCycle] = useState<PublicBillingCycle>('monthly')
+  const plans = useMemo(() => listPublicMarketingPlanCards(), [])
+  const billingDisclosure = PUBLIC_PRICING_BILLING_DISCLOSURE.tr
+  const proofGate = PUBLIC_PRICING_PROOF_GATE.tr
 
-  const modeLabel = useMemo(
-    () => (mode === 'monthly' ? 'Aylık faturalandırma' : 'Yıllık faturalandırma (%20 avantaj)'),
-    [mode],
-  )
+  const modeLabel =
+    cycle === 'monthly' ? 'Aylık faturalandırma' : 'Yıllık faturalandırma — peşin yıllık tutar gösterilir'
+
+  function handleCycleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    const nextCycle =
+      event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'End'
+        ? 'annual'
+        : event.key === 'ArrowLeft' || event.key === 'ArrowUp' || event.key === 'Home'
+          ? 'monthly'
+          : null
+
+    if (!nextCycle) return
+
+    event.preventDefault()
+    setCycle(nextCycle)
+    document.getElementById(`pricing-cycle-${nextCycle}`)?.focus()
+  }
 
   return (
     <>
-      <section id="sss" className="bg-white py-20">
+      <section id="plans" className="bg-white pb-12 pt-8 md:pb-14 md:pt-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 flex flex-col items-center gap-3">
-            <div className="inline-flex rounded-xl border border-brand-blue/15 bg-white p-1">
-              <button
-                type="button"
-                onClick={() => setMode('monthly')}
-                className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${mode === 'monthly' ? 'bg-brand-blue text-white' : 'text-slate-600'}`}
-              >
-                Aylık
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('yearly')}
-                className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${mode === 'yearly' ? 'bg-brand-blue text-white' : 'text-slate-600'}`}
-              >
-                Yıllık
-              </button>
-            </div>
-            <p className="text-xs font-semibold text-brand-blue">{modeLabel}</p>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-4">
-            {plans.map((plan) => (
-              <article
-                key={plan.name}
-                className={`relative h-full rounded-2xl border bg-white p-6 transition-shadow hover:shadow-lg ${plan.highlighted ? 'border-brand-blue shadow-lg shadow-brand-blue/10' : 'border-slate-200'}`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-brand-blue px-4 py-1.5 text-xs font-semibold text-white">
-                    Popüler plan
-                  </div>
-                )}
-                <p className="text-sm font-semibold text-brand-teal">{plan.eyebrow}</p>
-                <h2 className="mt-2 text-2xl font-bold text-brand-navy">{plan.name}</h2>
-                <p className="mt-3 min-h-16 text-sm leading-relaxed text-slate-500">
-                  {plan.description}
-                </p>
-
-                <div className="mb-6 mt-6 rounded-2xl bg-dashboard-surface p-5">
-                  <p className="text-3xl font-black text-brand-navy">
-                    {formatPrice(plan.monthlyPrice, mode)}
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">
-                    {plan.monthlyPrice === null
-                      ? 'Kuruma özel fiyatlandırma'
-                      : mode === 'monthly'
-                        ? '/ ay'
-                        : '/ yıl'}
-                  </p>
-                </div>
-
-                <ul className="mb-8 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex gap-3 text-sm text-slate-600">
-                      <Check className="mt-0.5 h-5 w-5 shrink-0 text-brand-teal" aria-hidden="true" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  asChild
-                  className={`mt-auto min-h-11 w-full rounded-xl ${plan.highlighted ? 'bg-brand-teal text-white hover:bg-brand-teal-hover' : 'border-slate-300 bg-white text-brand-navy hover:bg-dashboard-surface'}`}
-                  variant={plan.highlighted ? 'default' : 'outline'}
+          <div className="mb-6 flex flex-col items-center gap-3">
+            <div
+              role="radiogroup"
+              aria-label="Faturalandırma dönemi"
+              aria-describedby="pricing-cycle-status"
+              className="inline-flex rounded-xl border border-brand-blue/15 bg-white p-1"
+            >
+              <div className="rounded-lg focus-within:ring-2 focus-within:ring-brand-blue/40 focus-within:ring-offset-1">
+                <input
+                  id="pricing-cycle-monthly"
+                  className="sr-only"
+                  type="radio"
+                  name="pricing-cycle"
+                  value="monthly"
+                  checked={cycle === 'monthly'}
+                  onChange={() => setCycle('monthly')}
+                  onKeyDown={handleCycleKeyDown}
+                />
+                <label
+                  htmlFor="pricing-cycle-monthly"
+                  className={cn(
+                    'inline-flex min-h-10 cursor-pointer items-center rounded-lg px-4 text-sm font-semibold',
+                    cycle === 'monthly' ? 'bg-brand-blue text-white' : 'text-slate-600'
+                  )}
                 >
-                  <Link href={plan.href} aria-label={`${plan.name} için ${plan.cta}`}>
-                    {plan.cta}
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
-              </article>
-            ))}
+                  Aylık
+                </label>
+              </div>
+              <div className="rounded-lg focus-within:ring-2 focus-within:ring-brand-blue/40 focus-within:ring-offset-1">
+                <input
+                  id="pricing-cycle-annual"
+                  className="sr-only"
+                  type="radio"
+                  name="pricing-cycle"
+                  value="annual"
+                  checked={cycle === 'annual'}
+                  onChange={() => setCycle('annual')}
+                  onKeyDown={handleCycleKeyDown}
+                />
+                <label
+                  htmlFor="pricing-cycle-annual"
+                  className={cn(
+                    'inline-flex min-h-10 cursor-pointer items-center rounded-lg px-4 text-sm font-semibold',
+                    cycle === 'annual' ? 'bg-brand-blue text-white' : 'text-slate-600'
+                  )}
+                >
+                  Yıllık
+                </label>
+              </div>
+            </div>
+            <p id="pricing-cycle-status" aria-live="polite" className="text-xs font-semibold text-brand-blue">
+              {modeLabel}
+            </p>
           </div>
+
+          <div data-testid="pricing-plan-grid" className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-3">
+            {plans.map((plan) => {
+              const monthlyEquivalent = publicPlanMonthlyAmount(plan, cycle)
+              const annualPrepaid =
+                cycle === 'annual' ? publicPlanAnnualPrepaidAmount(plan) : null
+              const href = plan.marketing.ctaKind === 'demo' ? DEMO_CONTACT_PATH : clinicTrialHref
+              const cta =
+                plan.marketing.ctaKind === 'demo'
+                  ? ENTRY_CTA.demoRequest.tr
+                  : ENTRY_CTA.clinicTrial.tr
+
+              return (
+                <article
+                  key={plan.code}
+                  data-testid="pricing-plan-card"
+                  className={cn(
+                    'relative h-full min-w-0 rounded-2xl border bg-white p-6 shadow-[0_12px_30px_-22px_rgba(15,23,42,0.3)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_18px_38px_-26px_rgba(15,23,42,0.34)]',
+                    plan.marketing.popular
+                      ? 'border-[#D6E6F7] border-t-2 border-t-[#0071E3] bg-[#F8FBFF] shadow-[0_14px_30px_-24px_rgba(0,113,227,0.24)]'
+                      : 'border-[#E6EAF0]'
+                  )}
+                >
+                  <p className="text-sm font-semibold text-brand-teal">{plan.marketing.note.tr}</p>
+                  <h2 className="mt-2 text-2xl font-bold text-brand-navy">
+                    {publicPlanDisplayName(plan, 'tr')}
+                  </h2>
+                  <p className="mt-3 min-h-16 text-sm leading-relaxed text-slate-500">
+                    {plan.description}
+                  </p>
+
+                  <div
+                    className={cn(
+                      'mb-6 mt-6 rounded-2xl border p-5',
+                      plan.marketing.popular
+                        ? 'border-[#D6E6F7] bg-white/95'
+                        : 'border-slate-100 bg-dashboard-surface/70'
+                    )}
+                  >
+                    {cycle === 'annual' && annualPrepaid != null && monthlyEquivalent != null ? (
+                      <>
+                        <p
+                          className={cn(
+                            'font-black tracking-[-0.03em] text-brand-navy',
+                            plan.marketing.popular ? 'text-[2.15rem]' : 'text-3xl'
+                          )}
+                        >
+                          {formatPublicPlanPrice(monthlyEquivalent, 'tr')}
+                          <span className="ml-1 text-base font-semibold text-slate-500">/ ay</span>
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          eşdeğeri · yıllık faturalandırılır
+                        </p>
+                        <p className="mt-3 text-sm font-bold text-brand-navy">
+                          {formatPublicPlanPrice(annualPrepaid, 'tr')}{' '}
+                          <span className="font-semibold text-slate-600">
+                            yıllık peşin faturalandırılır
+                          </span>
+                        </p>
+                        <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                          Karttan / faturadan çekilecek tutar (KDV hariç, TRY). Liste fiyatı —
+                          erken erişimde önce demo/deneme.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p
+                          className={cn(
+                            'font-black tracking-[-0.03em] text-brand-navy',
+                            monthlyEquivalent == null
+                              ? 'text-2xl tracking-tight'
+                              : plan.marketing.popular
+                                ? 'text-[2.15rem]'
+                                : 'text-3xl'
+                          )}
+                        >
+                          {formatPublicPlanPrice(monthlyEquivalent, 'tr')}
+                        </p>
+                        {monthlyEquivalent == null ? (
+                          <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-500">
+                            Çoklu şube, özel entegrasyon ve kurulum ihtiyacınıza göre teklif hazırlanır.
+                          </p>
+                        ) : (
+                          <>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {plan.demoOnly ? '14 gün deneme' : '/ ay · aylık faturalandırılır'}
+                            </p>
+                            <p className="mt-2 text-[11px] leading-snug text-slate-500">
+                              KDV/vergi hariç · TRY · erken erişim liste fiyatı
+                            </p>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <ul className="mb-8 space-y-3">
+                    {plan.marketing.features.tr.map((feature) => (
+                      <li key={feature} className="flex gap-3 text-sm text-slate-600">
+                        <Check className="mt-0.5 h-5 w-5 shrink-0 text-brand-teal" aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    asChild
+                    className={cn(
+                      'mt-auto min-h-11 w-full rounded-xl',
+                      plan.marketing.popular
+                        ? 'font-semibold'
+                        : 'text-brand-navy'
+                    )}
+                    variant={plan.marketing.popular ? 'ctaPrimary' : 'ctaSecondary'}
+                  >
+                    <Link href={href} aria-label={`${publicPlanDisplayName(plan, 'tr')} için ${cta}`}>
+                      {cta}
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </article>
+              )
+            })}
+          </div>
+
+          <div
+            data-testid="pricing-conversion-ctas"
+            className="mt-8 rounded-2xl border border-brand-blue/15 bg-brand-blue/5 px-5 py-5 text-center"
+          >
+            <p className="text-sm font-semibold text-brand-navy">
+              Önce 14 gün ücretsiz deneyin; ihtiyaç olursa ekiple demo planlayın — kredi kartı gerekmez.
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              Liste fiyatları planlama içindir; ücretli abonelik uyum netleşince.
+            </p>
+            <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+              <Button asChild variant="ctaPrimary" className="min-h-10 rounded-xl">
+                <Link href={clinicTrialHref} data-cta-priority="primary">
+                  {ENTRY_CTA.clinicTrial.tr}
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="ctaSecondary"
+                className="min-h-10 rounded-xl text-brand-navy"
+              >
+                <Link href={DEMO_CONTACT_PATH} data-cta-priority="secondary">
+                  {ENTRY_CTA.demoRequest.tr}
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          <aside
+            data-testid="pricing-transparency"
+            className="mt-8 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-5 py-5 sm:px-6"
+            aria-labelledby="pricing-proof-gate-title"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-amber-800">
+              Şeffaflık
+            </p>
+            <h2 id="pricing-proof-gate-title" className="mt-1 text-base font-bold text-brand-navy">
+              {proofGate.title}
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-700">{proofGate.body}</p>
+            <ul className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-slate-600">
+              {proofGate.bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-700" aria-hidden />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+          </aside>
+
+          <aside
+            className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 sm:px-6"
+            aria-labelledby="billing-disclosure-title"
+          >
+            <h3 id="billing-disclosure-title" className="text-sm font-bold text-brand-navy">
+              {billingDisclosure.title}
+            </h3>
+            <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-slate-600">
+              {billingDisclosure.bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-blue" aria-hidden />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+          </aside>
         </div>
       </section>
 
@@ -240,7 +344,8 @@ export function PricingPageSections() {
           <div className="mb-6 rounded-2xl border border-brand-blue/10 bg-white p-4">
             <h3 className="text-lg font-bold text-brand-navy">Plan karşılaştırması</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Kliniğinizin ölçeğine göre hangi planın uygun olduğunu hızlıca karşılaştırın.
+              Temel güvenlik (veri ayrımı, rol erişimi, gizlilik / ürün içi denetim) tüm planlarda
+              standarttır. Gelişmiş denetim dışa aktarma yalnızca Kurumsal’da farklılaşır.
             </p>
           </div>
 
@@ -251,69 +356,31 @@ export function PricingPageSections() {
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Özellik</th>
                   {plans.map((plan) => (
                     <th
-                      key={`head-${plan.name}`}
+                      key={`head-${plan.code}`}
                       className="px-4 py-3 text-center font-semibold text-brand-navy"
                     >
-                      {plan.name}
+                      {publicPlanDisplayName(plan, 'tr')}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">Kullanıcı</td>
-                  {plans.map((plan) => (
-                    <td
-                      key={`users-${plan.name}`}
-                      className="px-4 py-3 text-center text-brand-navy"
-                    >
-                      {plan.matrix.users}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">Hasta kapasitesi</td>
-                  {plans.map((plan) => (
-                    <td
-                      key={`patients-${plan.name}`}
-                      className="px-4 py-3 text-center text-brand-navy"
-                    >
-                      {plan.matrix.patients}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">Panel / e-posta hatırlatma</td>
-                  {plans.map((plan) => (
-                    <td key={`reminders-${plan.name}`} className="px-4 py-3 text-center">
-                      {valueOrDash(plan.matrix.reminders)}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">Gelişmiş analitik</td>
-                  {plans.map((plan) => (
-                    <td key={`analytics-${plan.name}`} className="px-4 py-3 text-center">
-                      {valueOrDash(plan.matrix.analytics)}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">API erişimi</td>
-                  {plans.map((plan) => (
-                    <td key={`api-${plan.name}`} className="px-4 py-3 text-center">
-                      {valueOrDash(plan.matrix.api)}
-                    </td>
-                  ))}
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3 font-medium text-slate-600">Öncelikli kurulum</td>
-                  {plans.map((plan) => (
-                    <td key={`onboarding-${plan.name}`} className="px-4 py-3 text-center">
-                      {valueOrDash(plan.matrix.onboarding)}
-                    </td>
-                  ))}
-                </tr>
+                {PUBLIC_PRICING_MATRIX_ROWS.map((row) => (
+                  <tr key={row.id} className="border-t">
+                    <td className="px-4 py-3 font-medium text-slate-600">{row.label.tr}</td>
+                    {plans.map((plan) => (
+                      <td key={`${row.id}-${plan.code}`} className="px-4 py-3 text-center text-brand-navy">
+                        {row.kind === 'users' ? (
+                          plan.marketing.matrix.users.tr
+                        ) : plan.marketing.matrix[row.key] ? (
+                          <Check className="mx-auto h-4 w-4 text-brand-teal" aria-hidden="true" />
+                        ) : (
+                          <span className="mx-auto block h-4 w-4 text-slate-300">-</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -329,22 +396,34 @@ export function PricingPageSections() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
+      <section id="sss" className="bg-white py-20">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
             <h2 className="font-heading text-3xl font-black text-brand-navy">Sık sorulanlar</h2>
             <p className="mt-4 leading-relaxed text-slate-500">
               Satın alma öncesi en kritik konuları tek ekranda cevapladık.
             </p>
-            <Button
-              asChild
-              className="mt-8 min-h-11 rounded-xl bg-brand-teal text-white hover:bg-brand-teal-hover"
-            >
-              <Link href={DEMO_CONTACT_PATH}>
-                {ENTRY_CTA.demoRequest.tr}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            <div data-testid="pricing-faq-conversion-ctas" className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                variant="ctaPrimary"
+                className="min-h-11 rounded-xl"
+              >
+                <Link href={clinicTrialHref} data-cta-priority="primary">
+                  {ENTRY_CTA.clinicTrial.tr}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="ctaSecondary"
+                className="min-h-11 rounded-xl text-brand-navy"
+              >
+                <Link href={DEMO_CONTACT_PATH} data-cta-priority="secondary">
+                  {ENTRY_CTA.demoRequest.tr}
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <Accordion type="single" collapsible className="rounded-2xl border border-slate-200 px-5">

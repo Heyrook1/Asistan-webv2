@@ -167,7 +167,12 @@ export async function runNotificationAction(
         if (!res.ok) return res
         await completeActionRow(action.id, session.userId)
         await closePeerActions(action.notificationId, action.id)
-        return ok({ message: 'Randevu onaylandı' })
+        const channelNote = res.data.channelDelivery?.label
+        return ok({
+          message: channelNote
+            ? `Randevu onaylandı. ${channelNote}`
+            : 'Randevu onaylandı',
+        })
       }
       case NotificationActionType.APPOINTMENT_CANCEL: {
         if (!payload.appointmentId) return err('Randevu bulunamadı')
@@ -178,7 +183,12 @@ export async function runNotificationAction(
         if (!res.ok) return res
         await completeActionRow(action.id, session.userId)
         await closePeerActions(action.notificationId, action.id)
-        return ok({ message: 'Randevu iptal edildi' })
+        const channelNote = res.data.channelDelivery?.label
+        return ok({
+          message: channelNote
+            ? `Randevu iptal edildi. ${channelNote}`
+            : 'Randevu iptal edildi',
+        })
       }
       case NotificationActionType.APPOINTMENT_RESCHEDULE: {
         if (!payload.appointmentId) return err('Randevu bulunamadı')

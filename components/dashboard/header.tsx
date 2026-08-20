@@ -36,6 +36,7 @@ import { can, ROLE_LABELS, type SessionContext } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/client'
 import type { NotificationListItem } from '@/lib/notifications/types'
 import { getMembershipUrgency } from '@/lib/vendor-membership'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import { cn } from '@/lib/utils'
 import type { DashboardMembership } from '@/components/dashboard/membership-expiry-banner'
 
@@ -47,12 +48,14 @@ export function DashboardHeader({
   unreadMessages,
   notifications,
   membership,
+  teamMessagingEnabled = false,
 }: {
   session: SessionContext
   unreadCount: number
   unreadMessages: number
   notifications: NotificationListItem[]
   membership: DashboardMembership | null
+  teamMessagingEnabled?: boolean
 }) {
   const router = useRouter()
   const initials = session.fullName
@@ -90,8 +93,10 @@ export function DashboardHeader({
     window.dispatchEvent(new Event(DASHBOARD_COMMAND_OPEN_EVENT))
   }
 
+  const canManageSettings = canManageClinicSettings(session)
+
   const membershipChip = membership ? (
-    session.isOwner ? (
+    canManageSettings ? (
       <Link
         href="/dashboard/ayarlar?tab=abonelik"
         className={cn(
@@ -170,18 +175,20 @@ export function DashboardHeader({
 
         {membershipChip}
 
-        <Link
-          href="/dashboard/mesajlar"
-          aria-label="Mesajlar"
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 transition hover:bg-dashboard-hover"
-        >
-          <MessageCircle className="h-[18px] w-[18px]" />
-          {unreadMessages > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-danger px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
-              {unreadMessages > 9 ? '9+' : unreadMessages}
-            </span>
-          )}
-        </Link>
+        {teamMessagingEnabled ? (
+          <Link
+            href="/dashboard/mesajlar"
+            aria-label="Mesajlar"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 transition hover:bg-dashboard-hover"
+          >
+            <MessageCircle className="h-[18px] w-[18px]" />
+            {unreadMessages > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-danger px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
+                {unreadMessages > 9 ? '9+' : unreadMessages}
+              </span>
+            )}
+          </Link>
+        ) : null}
 
         <NotificationBell
           businessId={session.businessId}
@@ -200,7 +207,7 @@ export function DashboardHeader({
               <Avatar className="h-8 w-8">
                 <AvatarFallback
                   className="text-xs font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-cyan))' }}
+                  style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-hover))' }}
                 >
                   {initials || 'AS'}
                 </AvatarFallback>
@@ -224,7 +231,7 @@ export function DashboardHeader({
                 Profilim
               </Link>
             </DropdownMenuItem>
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=isletme" className="flex cursor-pointer items-center gap-2.5">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -232,7 +239,7 @@ export function DashboardHeader({
                 </Link>
               </DropdownMenuItem>
             )}
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=abonelik" className="flex cursor-pointer items-center gap-2.5">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />

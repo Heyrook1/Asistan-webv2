@@ -2,12 +2,16 @@
 
 import { useEffect, useState, useTransition, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Loader2, Search, Upload, UserPlus, X, Users, Archive } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Archive, Search, UserPlus, X, Users } from 'lucide-react'
 import { PatientFormDrawer } from '@/components/dashboard/patient-form-drawer'
+import { PatientImportDialog } from '@/components/dashboard/patient-import-dialog'
 import { readUiPreference, UI_PREF_KEYS, writeUiPreference, type PatientsToolbarPref } from '@/lib/ui-preferences'
 import { cn } from '@/lib/utils'
+
+/** P1-10: live search without relying on undocumented Enter. */
+const SEARCH_DEBOUNCE_MS = 300
 
 type Chip = { key: 'active' | 'archived'; label: string; icon: typeof Users }
 
@@ -26,10 +30,12 @@ export function PatientsToolbar({
   const router = useRouter()
   const params = useSearchParams()
   const [drawer, setDrawer] = useState(initialCreateOpen)
+  const [importOpen, setImportOpen] = useState(false)
   const [query, setQuery] = useState(params.get('q') ?? '')
   const archived = params.get('archived') === '1'
-  const [, startTransition] = useTransition()
+  const [pending, startTransition] = useTransition()
   const prefsApplied = useRef(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (prefsApplied.current) return
@@ -59,6 +65,12 @@ export function PatientsToolbar({
     startTransition(() => router.replace(href, { scroll: false }))
   }, [initialCreateOpen, params, router, startTransition])
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
   function pushParams(next: URLSearchParams) {
     writeUiPreference<PatientsToolbarPref>(UI_PREF_KEYS.patientsToolbar, {
       archived: next.get('archived') === '1',
@@ -70,10 +82,29 @@ export function PatientsToolbar({
   }
 
   function applyQuery(value: string) {
+    const trimmed = value.trim()
+    const current = params.get('q') ?? ''
+    if (trimmed === current) return
     const next = new URLSearchParams(params.toString())
-    if (value.trim()) next.set('q', value.trim())
+    if (trimmed) next.set('q', trimmed)
     else next.delete('q')
     pushParams(next)
+  }
+
+  function scheduleQuery(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => applyQuery(value), SEARCH_DEBOUNCE_MS)
+  }
+
+  function submitNow() {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    applyQuery(query)
+  }
+
+  function clearQuery() {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setQuery('')
+    applyQuery('')
   }
 
   function selectChip(key: Chip['key']) {
@@ -87,48 +118,83 @@ export function PatientsToolbar({
     <div className="-mx-4 sticky top-14 z-20 bg-dashboard-bg/95 px-4 pt-1 pb-3 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
         <form
+          role="search"
           onSubmit={(e) => {
             e.preventDefault()
-            applyQuery(query)
+            submitNow()
           }}
-          className="relative flex-1 lg:flex-none"
+          className="flex flex-1 items-center gap-2 lg:flex-none"
+          aria-busy={pending || undefined}
         >
-          <label htmlFor="patients-search" className="sr-only">
-            Hasta ara
-          </label>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden="true" />
-          <Input
-            id="patients-search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="İsim, telefon, no..."
-            className="h-11 w-full bg-white pl-9 pr-9 lg:h-10 lg:w-64"
-            inputMode="search"
-            aria-label="Hasta ara"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery('')
-                applyQuery('')
+          <div className="relative min-w-0 flex-1 lg:w-64 lg:flex-none">
+            <label htmlFor="patients-search" className="sr-only">
+              Hasta ara
+            </label>
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60"
+              aria-hidden="true"
+            />
+            <Input
+              id="patients-search"
+              value={query}
+              onChange={(e) => {
+                const next = e.target.value
+                setQuery(next)
+                scheduleQuery(next)
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-slate-100"
-              aria-label="Aramayı temizle"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+              placeholder="İsim, telefon, no…"
+              className="h-11 w-full bg-white pl-9 pr-9 lg:h-10"
+              inputMode="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              aria-label="Hasta ara"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={clearQuery}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-slate-100"
+                aria-label="Aramayı temizle"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={pending}
+            className="h-11 shrink-0 gap-1.5 px-3 lg:h-10"
+            aria-label="Ara"
+          >
+            {pending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Search className="h-4 w-4" aria-hidden />
+            )}
+            <span>Ara</span>
+            {pending ? <span className="sr-only">Aranıyor…</span> : null}
+          </Button>
         </form>
 
         {canCreate && (
-          <Button
-            type="button"
-            onClick={() => setDrawer(true)}
-            className="hidden h-10 bg-brand-teal text-white hover:bg-brand-teal-hover lg:inline-flex"
-          >
-            <UserPlus className="mr-2 h-4 w-4" /> Hasta Ekle
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              className="h-11 flex-1 gap-2 lg:h-10 lg:flex-none"
+            >
+              <Upload className="h-4 w-4" /> CSV İçe Aktar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setDrawer(true)}
+              className="hidden h-10 bg-brand-teal text-white hover:bg-brand-teal-hover lg:inline-flex"
+            >
+              <UserPlus className="mr-2 h-4 w-4" /> Hasta Ekle
+            </Button>
+          </div>
         )}
       </div>
 
@@ -144,7 +210,7 @@ export function PatientsToolbar({
                 'tap-target inline-flex items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors',
                 active
                   ? 'border-brand-teal bg-brand-teal text-white'
-                  : 'border-border bg-white text-muted-foreground hover:border-brand-teal/40'
+                  : 'border-border bg-white text-muted-foreground hover:border-brand-teal/40',
               )}
               aria-pressed={active}
             >
@@ -156,6 +222,7 @@ export function PatientsToolbar({
       </div>
 
       <PatientFormDrawer open={drawer} onOpenChange={setDrawer} />
+      <PatientImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   )
 }

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useFocusEffect, type Href, useRouter } from 'expo-router'
 import { Alert, FlatList, Pressable, RefreshControl, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -14,6 +15,7 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { apiGet, apiPost } from '@/lib/api'
+import { appointmentStatusLabel } from '@/lib/status-labels'
 import { useAppTheme } from '@/lib/use-app-theme'
 import type { AvailabilitySlot } from '@/lib/types'
 
@@ -36,14 +38,6 @@ type AppointmentRow = {
 type ListResponse = { appointments: AppointmentRow[] }
 type SlotsResponse = { slots: AvailabilitySlot[] }
 
-const STATUS_LABELS: Record<AppointmentRow['status'], string> = {
-  SCHEDULED: 'Onay Bekliyor',
-  CONFIRMED: 'Onaylandi',
-  COMPLETED: 'Tamamlandi',
-  CANCELLED: 'Iptal',
-  NO_SHOW: 'Gelinmedi',
-}
-
 const STATUS_TONE: Record<AppointmentRow['status'], 'warning' | 'info' | 'success' | 'danger'> = {
   SCHEDULED: 'warning',
   CONFIRMED: 'info',
@@ -58,6 +52,7 @@ function isActive(status: AppointmentRow['status']) {
 
 export default function ClientAppointmentsScreen() {
   const theme = useAppTheme()
+  const router = useRouter()
   const [rows, setRows] = useState<AppointmentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -73,15 +68,29 @@ export default function ClientAppointmentsScreen() {
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [lifecycleSaving, setLifecycleSaving] = useState(false)
 
-  const load = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
+  const dateOptions = useMemo(() => {
+    const today = new Date()
+    return Array.from({ length: 14 }).map((_, index) => {
+      const value = new Date(today)
+      value.setDate(today.getDate() + index)
+      return {
+        iso: value.toISOString().slice(0, 10),
+        label: value.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: '2-digit' }),
+      }
+    })
+  }, [])
+
+  const load = useCallback(async (mode: 'initial' | 'refresh' | 'soft' = 'initial') => {
     if (mode === 'initial') setLoading(true)
     if (mode === 'refresh') setRefreshing(true)
-    setError(null)
+    if (mode !== 'soft') setError(null)
     try {
       const response = await apiGet<ListResponse>('/api/client/appointments')
       setRows(response.appointments)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Randevular yuklenemedi')
+      if (mode !== 'soft') {
+        setError(e instanceof Error ? e.message : 'Randevular yüklenemedi')
+      }
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -89,8 +98,18 @@ export default function ClientAppointmentsScreen() {
   }, [])
 
   useEffect(() => {
-    load()
+    void load('initial')
   }, [load])
+
+  useFocusEffect(
+    useCallback(() => {
+      void load('soft')
+      const timer = setInterval(() => {
+        void load('soft')
+      }, 30_000)
+      return () => clearInterval(timer)
+    }, [load])
+  )
 
   const activeReschedule = rows.find((row) => row.id === rescheduleId) ?? null
 
@@ -164,17 +183,17 @@ export default function ClientAppointmentsScreen() {
   function confirmCancel(appointmentId: string) {
     Alert.alert(
       'Randevuyu iptal et',
-      'Bu randevuyu iptal etmek istediginize emin misiniz?',
+      'Bu randevuyu iptal etmek istiyor musunuz?',
       [
-        { text: 'Vazgec', style: 'cancel' },
-        { text: 'Iptal Et', style: 'destructive', onPress: () => cancelAppointment(appointmentId) },
+        { text: 'Hayır, geri dön', style: 'cancel' },
+        { text: 'Evet, iptal et', style: 'destructive', onPress: () => cancelAppointment(appointmentId) },
       ]
     )
   }
 
   async function submitReschedule(appointmentId: string) {
     if (!rescheduleDate || !rescheduleStart) {
-      setError('Lutfen yeni tarih ve saat secin')
+      setError('Lütfen yeni tarih ve saat seçin')
       return
     }
 
@@ -208,6 +227,7 @@ export default function ClientAppointmentsScreen() {
       setReviewOpenId(null)
       setComment('')
       setRating(5)
+      await load('refresh')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Yorum kaydedilemedi')
     } finally {
@@ -217,7 +237,7 @@ export default function ClientAppointmentsScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Randevularim" subtitle="Iptal, erteleme ve geri bildirim" />
+      <ScreenHeader title="Randevularım" subtitle="İptal, erteleme ve geri bildirim" />
 
       {loading ? (
         <View style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}>
@@ -232,9 +252,9 @@ export default function ClientAppointmentsScreen() {
       ) : error ? (
         <EmptyState
           icon="warning-outline"
-          title="Randevular yuklenemedi"
+          title="Randevular yüklenemedi"
           description={error}
-          primaryActionLabel="Tekrar Dene"
+          primaryActionLabel="Tekrar dene"
           onPrimaryAction={() => load()}
         />
       ) : (
@@ -248,8 +268,10 @@ export default function ClientAppointmentsScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="calendar-outline"
-              title="Henuz randevunuz yok"
-              description="Kesfet sekmesinden doktor secip randevu olusturun."
+              title="Henüz randevunuz yok"
+              description="Keşfet sekmesinden klinik veya doktor seçip randevu oluşturun."
+              primaryActionLabel="Klinik keşfet"
+              onPrimaryAction={() => router.push('/client/search' as Href)}
             />
           }
           renderItem={({ item }) => (
@@ -272,14 +294,14 @@ export default function ClientAppointmentsScreen() {
                     {item.date} {item.startTime}
                   </AppText>
                   <AppText variant="caption" color={theme.colors.textMuted}>
-                    {item.clinic.name} - {item.doctor?.fullName ?? 'Doktor atanmamis'}
+                    {item.clinic.name} · {item.doctor?.fullName ?? 'Doktor atanmamış'}
                   </AppText>
                 </View>
-                <Badge label={STATUS_LABELS[item.status]} tone={STATUS_TONE[item.status]} />
+                <Badge label={appointmentStatusLabel(item.status)} tone={STATUS_TONE[item.status]} />
               </View>
 
               <AppText variant="caption" style={{ marginTop: theme.spacing.xs }}>
-                {item.service.name}
+                {item.service?.name ?? 'Hizmet'}
               </AppText>
 
               {isActive(item.status) ? (
@@ -291,7 +313,7 @@ export default function ClientAppointmentsScreen() {
                     style={{ flex: 1 }}
                   />
                   <AppButton
-                    label="Iptal Et"
+                    label="İptal et"
                     variant="ghost"
                     onPress={() => confirmCancel(item.id)}
                     style={{ flex: 1 }}
@@ -303,17 +325,21 @@ export default function ClientAppointmentsScreen() {
               {rescheduleId === item.id ? (
                 <View style={{ marginTop: theme.spacing.sm, gap: theme.spacing.sm }}>
                   <AppText variant="subtitle">Yeni tarih ve saat</AppText>
-                  <AppInput
-                    value={rescheduleDate}
-                    onChangeText={setRescheduleDate}
-                    placeholder="YYYY-MM-DD"
-                    autoCapitalize="none"
-                  />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {dateOptions.map((option) => (
+                      <Chip
+                        key={option.iso}
+                        label={option.label}
+                        selected={rescheduleDate === option.iso}
+                        onPress={() => setRescheduleDate(option.iso)}
+                      />
+                    ))}
+                  </View>
                   {slotsLoading ? (
                     <Skeleton height={36} width="100%" />
                   ) : rescheduleSlots.length === 0 ? (
                     <AppText variant="caption" color={theme.colors.textMuted}>
-                      Bu tarihte uygun saat bulunamadi.
+                      Bu tarihte uygun saat bulunamadı.
                     </AppText>
                   ) : (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -328,9 +354,9 @@ export default function ClientAppointmentsScreen() {
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                    <AppButton label="Vazgec" variant="ghost" onPress={closeReschedule} style={{ flex: 1 }} />
+                    <AppButton label="Vazgeç" variant="ghost" onPress={closeReschedule} style={{ flex: 1 }} />
                     <AppButton
-                      label="Ertelemeyi Kaydet"
+                      label="Ertelemeyi kaydet"
                       loading={lifecycleSaving}
                       onPress={() => submitReschedule(item.id)}
                       style={{ flex: 1 }}
@@ -342,7 +368,7 @@ export default function ClientAppointmentsScreen() {
               {item.status === 'COMPLETED' && !item.hasReview ? (
                 <>
                   <AppButton
-                    label="Bu randevuyu degerlendir"
+                    label="Bu randevuyu değerlendir"
                     variant="secondary"
                     onPress={() => {
                       setReviewOpenId((prev) => (prev === item.id ? null : item.id))
@@ -358,11 +384,11 @@ export default function ClientAppointmentsScreen() {
                           <Pressable
                             key={star}
                             accessibilityRole="button"
-                            accessibilityLabel={`${star} yildiz`}
+                            accessibilityLabel={`${star} yıldız`}
                             onPress={() => setRating(star)}
                             style={{
-                              width: 36,
-                              height: 36,
+                              width: 44,
+                              height: 44,
                               borderRadius: theme.radii.sm,
                               borderWidth: 1,
                               borderColor: rating >= star ? theme.colors.warning : theme.colors.border,
@@ -389,7 +415,7 @@ export default function ClientAppointmentsScreen() {
                       />
 
                       <AppButton
-                        label="Yorumu Gonder"
+                        label="Yorumu gönder"
                         loading={reviewSaving}
                         onPress={() => submitReview(item.id)}
                       />

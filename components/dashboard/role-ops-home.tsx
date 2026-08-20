@@ -30,6 +30,9 @@ type LookupData = {
 
 const DASHBOARD_REFRESH_INTERVAL_MS = 120_000
 
+const SHARE_BOOKING_HREF = '/dashboard/ayarlar?tab=isletme'
+const SHARE_BOOKING_LABEL = 'Randevu linkini paylaş'
+
 const FOCUS_COPY: Record<
   RoleHomeFocus,
   {
@@ -40,6 +43,8 @@ const FOCUS_COPY: Record<
     allLabel: string
     emptyTitle: string
     emptyDescription: string
+    emptyActionHref: string
+    emptyActionLabel: string
     calendarHref: string
     calendarLabel: string
   }
@@ -52,7 +57,10 @@ const FOCUS_COPY: Record<
     allHref: '/dashboard/ajanda?mode=liste&status=SCHEDULED',
     allLabel: 'Kuyruk',
     emptyTitle: 'Onay bekleyen randevu yok',
-    emptyDescription: 'Yeni talepler geldiğinde burada listelenir.',
+    emptyDescription:
+      'Yeni talepler geldiğinde burada listelenir. Ajandadan planlayın veya randevu linkinizi paylaşın.',
+    emptyActionHref: '/dashboard/ajanda?mode=takvim',
+    emptyActionLabel: 'Ajanda',
     calendarHref: '/dashboard/ajanda?mode=takvim',
     calendarLabel: 'Takvim modu',
   },
@@ -64,7 +72,9 @@ const FOCUS_COPY: Record<
     allHref: '/dashboard/ajanda?mode=takvim',
     allLabel: 'Ajanda',
     emptyTitle: 'Bugün randevu yok',
-    emptyDescription: 'Takvimden gününüzün doluluğunu kontrol edebilirsiniz.',
+    emptyDescription: 'Ajandanızı kontrol edin veya genel randevu linkini paylaşarak talep toplayın.',
+    emptyActionHref: '/dashboard/ajanda?mode=takvim',
+    emptyActionLabel: 'Ajanda',
     calendarHref: '/dashboard/ajanda?mode=takvim',
     calendarLabel: 'Ajandam',
   },
@@ -76,7 +86,9 @@ const FOCUS_COPY: Record<
     allHref: '/dashboard/ajanda?mode=takvim',
     allLabel: 'Ajanda',
     emptyTitle: 'Ajandanız boş',
-    emptyDescription: 'Size atanmış yaklaşan randevu bulunmuyor.',
+    emptyDescription: 'Size atanmış yaklaşan randevu bulunmuyor. Ajandaya bakın veya linki paylaşın.',
+    emptyActionHref: '/dashboard/ajanda?mode=takvim',
+    emptyActionLabel: 'Ajanda',
     calendarHref: '/dashboard/ajanda?mode=takvim',
     calendarLabel: 'Ajandam',
   },
@@ -222,7 +234,8 @@ export function RoleOpsHome({
         </CardContent>
       </Card>
 
-      <RemindersCard initialReminders={reminders} />
+      {/* Doctor/secretary: focus list only (bugün / onay kuyruğu). Staff may keep personal reminders. */}
+      {focus === 'staff' ? <RemindersCard initialReminders={reminders} /> : null}
 
       <UpcomingAppointmentsTable
         upcomingAppointments={appointments}
@@ -235,6 +248,10 @@ export function RoleOpsHome({
         allLabel={copy.allLabel}
         emptyTitle={copy.emptyTitle}
         emptyDescription={copy.emptyDescription}
+        emptyActionHref={copy.emptyActionHref}
+        emptyActionLabel={copy.emptyActionLabel}
+        emptySecondaryHref={SHARE_BOOKING_HREF}
+        emptySecondaryLabel={SHARE_BOOKING_LABEL}
         showShare={false}
         showQuickStart={false}
       />

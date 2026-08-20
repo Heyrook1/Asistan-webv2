@@ -26,7 +26,8 @@ export default defineConfig({
   webServer: process.env.E2E_SKIP_WEB_SERVER
     ? undefined
     : {
-        command: 'pnpm dev',
+        // CI reuses the Next build artifact from the Build job — `pnpm dev` is flaky/slow there.
+        command: process.env.CI ? 'pnpm start' : 'pnpm dev',
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

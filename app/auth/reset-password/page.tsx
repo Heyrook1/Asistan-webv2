@@ -9,7 +9,10 @@ import { AuthShell } from '@/components/marketing/auth-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { passwordFlowCopy } from '@/lib/auth/password-flow-copy'
 import { createClient } from '@/lib/supabase/client'
+
+const copy = passwordFlowCopy.reset
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -49,23 +52,21 @@ export default function ResetPasswordPage() {
   if (success) {
     return (
       <AuthShell
-        badge="Şifre güncellendi"
-        title="Yeni şifreniz hazır."
-        description="Artık panelinize yeni şifrenizle güvenli şekilde giriş yapabilirsiniz."
+        badge={copy.successBadge}
+        title={copy.successTitle}
+        description={copy.successDescription}
       >
         <div className="text-center">
           <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
             <CheckCircle2 className="size-7" />
           </div>
-          <h2 className="text-2xl font-black text-brand-navy">Şifre değişimi tamamlandı</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            Giriş ekranına dönerek devam edebilirsiniz.
-          </p>
+          <h2 className="text-2xl font-black text-brand-navy">{copy.successHeading}</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-500">{copy.successBody}</p>
           <Button
             asChild
             className="mt-6 h-11 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90"
           >
-            <Link href="/auth/login">Giriş Yap</Link>
+            <Link href="/auth/login">{copy.successCta}</Link>
           </Button>
         </div>
       </AuthShell>
@@ -73,19 +74,15 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <AuthShell
-      badge="Yeni şifre"
-      title="Hesabınız için yeni şifre belirleyin."
-      description="Güçlü bir şifre seçin ve eski şifrenizin yerine kaydedin."
-    >
+    <AuthShell badge={copy.badge} title={copy.title} description={copy.description}>
       <div className="mb-6">
-        <h2 className="text-2xl font-black text-brand-navy">Yeni şifre</h2>
-        <p className="mt-2 text-sm text-slate-500">İki alana da aynı şifreyi girin.</p>
+        <h2 className="text-2xl font-black text-brand-navy">{copy.heading}</h2>
+        <p className="mt-2 text-sm text-slate-500">{copy.hint}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="reset-password">Yeni şifre</Label>
+          <Label htmlFor="reset-password">{copy.passwordLabel}</Label>
           <Input
             id="reset-password"
             name="password"
@@ -96,11 +93,11 @@ export default function ResetPasswordPage() {
             onChange={(event) => setPassword(event.target.value)}
             required
             disabled={loading}
-            className="h-11 rounded-lg"
+            className="h-11 rounded-lg text-base md:text-sm"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reset-password-confirm">Şifre tekrar</Label>
+          <Label htmlFor="reset-password-confirm">{copy.confirmLabel}</Label>
           <Input
             id="reset-password-confirm"
             name="confirm_password"
@@ -111,7 +108,7 @@ export default function ResetPasswordPage() {
             onChange={(event) => setConfirmPassword(event.target.value)}
             required
             disabled={loading}
-            className="h-11 rounded-lg"
+            className="h-11 rounded-lg text-base md:text-sm"
           />
         </div>
 
@@ -128,7 +125,7 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <Lock className="mr-2 size-4" />
-              Şifreyi güncelle
+              {copy.submit}
             </>
           )}
         </Button>

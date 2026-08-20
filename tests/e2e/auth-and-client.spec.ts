@@ -19,7 +19,13 @@ test.describe('Auth gate & client discovery', () => {
   test('client discovery home loads in Turkish by default', async ({ page }) => {
     await page.goto('/client', { waitUntil: 'domcontentloaded' })
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByRole('button', { name: /klinik ara|search clinics/i })).toBeVisible()
+    // RezervasyonHomeHub primary CTA (TR default) + search affordance
+    await expect(page.getByRole('button', { name: /randevu al|book now/i })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(
+      page.getByRole('button', { name: /doktor, klinik|search doctor/i }),
+    ).toBeVisible()
   })
 
   test('client clinics page shows filters', async ({ page }) => {

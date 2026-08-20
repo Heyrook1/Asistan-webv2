@@ -1,9 +1,16 @@
 import { requirePageAnyPermission, can } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import { getAppointmentsList, getAppointmentsRange } from '@/lib/queries'
+import {
+  getAppointmentForBoard,
+  getAppointmentsList,
+  getAppointmentsRange,
+} from '@/lib/queries'
 import { AppointmentsBoard } from '@/app/dashboard/randevular/appointments-board'
 import { CalendarBoard } from '@/app/dashboard/takvim/calendar-board'
 import type { AjandaMode } from '@/components/dashboard/ajanda-mode-switch'
+import { isFillTheGapEnabled } from '@/lib/ops/policy'
+import { getFillTheGapSnapshot } from '@/lib/ops/fill-the-gap'
+import { listClinicAssignableStaff } from '@/lib/team/clinic-staff'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +38,7 @@ export default async function AjandaPage({
   )
 
   if (mode === 'liste') {
-    const [appointments, patients, services, staff, locations] = await Promise.all([
+    const [listRows, patients, services, staff, locations] = await Promise.all([
       getAppointmentsList(session.businessId, { status: sp.status }, session),
       prisma.patient.findMany({
         where: { businessId: session.businessId, isArchived: false },
@@ -44,17 +51,19 @@ export default async function AjandaPage({
         orderBy: { name: 'asc' },
         select: { id: true, name: true, durationMin: true },
       }),
-      prisma.teamMember.findMany({
-        where: { businessId: session.businessId, isActive: true },
-        orderBy: { fullName: 'asc' },
-        select: { id: true, fullName: true },
-      }),
+      listClinicAssignableStaff(session.businessId),
       prisma.location.findMany({
         where: { businessId: session.businessId, isActive: true },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         select: { id: true, name: true },
       }),
     ])
+
+    let appointments = listRows
+    if (sp.id && !listRows.some((row) => row.id === sp.id)) {
+      const focused = await getAppointmentForBoard(session.businessId, sp.id, session)
+      if (focused) appointments = [focused, ...listRows]
+    }
 
     return (
       <AppointmentsBoard
@@ -88,10 +97,11 @@ export default async function AjandaPage({
   }
 
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - 12, 1)
-  const to = new Date(now.getFullYear(), now.getMonth() + 13, 0)
+  // Visible calendar window: current month ± 2 months (was ~25 months).
+  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+  const to = new Date(now.getFullYear(), now.getMonth() + 3, 0)
 
-  const [appointments, patients, services, staff, business, locations] = await Promise.all([
+  const [appointments, patients, services, staff, business, locations, fillGap] = await Promise.all([
     getAppointmentsRange(session.businessId, { from, to }, session),
     prisma.patient.findMany({
       where: { businessId: session.businessId, isArchived: false },
@@ -104,11 +114,7 @@ export default async function AjandaPage({
       orderBy: { name: 'asc' },
       select: { id: true, name: true, durationMin: true, color: true },
     }),
-    prisma.teamMember.findMany({
-      where: { businessId: session.businessId, isActive: true },
-      orderBy: { fullName: 'asc' },
-      select: { id: true, fullName: true, color: true },
-    }),
+    listClinicAssignableStaff(session.businessId),
     prisma.business.findUnique({
       where: { id: session.businessId },
       select: { slug: true },
@@ -118,6 +124,9 @@ export default async function AjandaPage({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
     }),
+    isFillTheGapEnabled()
+      ? getFillTheGapSnapshot(session.businessId)
+      : Promise.resolve(null),
   ])
 
   return (
@@ -143,10 +152,13 @@ export default async function AjandaPage({
       staff={staff.map((s) => ({ id: s.id, name: s.fullName, color: s.color }))}
       locations={locations.map((l) => ({ id: l.id, label: l.name }))}
       canCreate={can(session, 'appointment.manage')}
+      canManage={can(session, 'appointment.manage')}
       bookingSlug={business?.slug ?? 'klinik'}
       defaultStaffId={session.staffMemberId ?? undefined}
       pendingCount={appointments.filter((a) => a.status === 'SCHEDULED').length}
       initialDate={sp.date}
+      fillGapClusters={fillGap?.clusters ?? []}
+      fillGapPatients={fillGap?.patients ?? []}
     />
   )
 }

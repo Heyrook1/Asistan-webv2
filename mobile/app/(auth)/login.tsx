@@ -15,7 +15,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { BrandLogo } from '@/components/brand-logo'
 import { useSessionContext } from '@/lib/session-context'
-import { palette, radii, shadows, spacing } from '@/lib/theme'
+import { palette, shadows, spacing } from '@/lib/theme'
 
 function toLoginErrorMessage(error: unknown) {
   if (!error || typeof error !== 'object') return 'Giriş başarısız'

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Building2, CreditCard, LogOut, MessageCircle, User } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { AsistanLogo } from '@/components/asistan-logo'
+import { DashboardBrandLockup } from '@/components/dashboard/dashboard-brand-lockup'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import { NotificationBell } from '@/components/dashboard/notification-bell'
 import { createClient } from '@/lib/supabase/client'
 import type { SessionContext } from '@/lib/rbac'
 import type { NotificationListItem } from '@/lib/notifications/types'
+import { canManageClinicSettings } from '@/lib/settings/tabs'
 import type { DashboardMembership } from '@/components/dashboard/membership-expiry-banner'
 
 export function MobileTopbar({
@@ -27,14 +28,17 @@ export function MobileTopbar({
   unreadMessages,
   notifications,
   membership,
+  teamMessagingEnabled = false,
 }: {
   session: SessionContext
   unreadCount: number
   unreadMessages: number
   notifications: NotificationListItem[]
   membership: DashboardMembership | null
+  teamMessagingEnabled?: boolean
 }) {
   const router = useRouter()
+  const canManageSettings = canManageClinicSettings(session)
   const initials = session.fullName
     .split(' ')
     .map((n) => n[0])
@@ -56,28 +60,25 @@ export function MobileTopbar({
 
   return (
     <header className="sticky top-0 z-30 flex h-15 items-center gap-2 border-b border-border/60 bg-white/85 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 lg:hidden">
-      <Link href="/dashboard" className="inline-flex min-w-0 flex-col items-start" aria-label="Asistan Health paneli">
-        <AsistanLogo variant="dark" size="sm" priority />
-        <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-brand-blue/65">
-          Asistan Health
-        </span>
-      </Link>
+      <DashboardBrandLockup compact />
 
       <div className="ml-auto flex items-center gap-1">
         <GlobalCommandTrigger variant="icon" />
 
-        <Link
-          href="/dashboard/mesajlar"
-          aria-label="Mesajlar"
-          className="tap-target relative flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 hover:bg-dashboard-hover"
-        >
-          <MessageCircle className="h-5 w-5" />
-          {unreadMessages > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-danger px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
-              {unreadMessages > 9 ? '9+' : unreadMessages}
-            </span>
-          )}
-        </Link>
+        {teamMessagingEnabled ? (
+          <Link
+            href="/dashboard/mesajlar"
+            aria-label="Mesajlar"
+            className="tap-target relative flex h-10 w-10 items-center justify-center rounded-xl text-foreground/70 hover:bg-dashboard-hover"
+          >
+            <MessageCircle className="h-5 w-5" />
+            {unreadMessages > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-danger px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
+                {unreadMessages > 9 ? '9+' : unreadMessages}
+              </span>
+            )}
+          </Link>
+        ) : null}
 
         <NotificationBell
           businessId={session.businessId}
@@ -92,7 +93,7 @@ export function MobileTopbar({
             <Avatar className="h-9 w-9">
               <AvatarFallback
                 className="text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-cyan))' }}
+                style={{ background: 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-hover))' }}
               >
                 {initials || 'AS'}
               </AvatarFallback>
@@ -115,7 +116,7 @@ export function MobileTopbar({
                 Profilim
               </Link>
             </DropdownMenuItem>
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=isletme" className="flex items-center gap-2.5">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -123,7 +124,7 @@ export function MobileTopbar({
                 </Link>
               </DropdownMenuItem>
             )}
-            {session.isOwner && (
+            {canManageSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/ayarlar?tab=abonelik" className="flex items-center gap-2.5">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />

@@ -16,6 +16,18 @@ vi.mock('@/lib/session', () => ({
 vi.mock('@/lib/notifications/service', () => ({
   createNotification: vi.fn(),
 }))
+vi.mock('@/lib/notifications/patient-channels', () => ({
+  notifyPatientChannels: vi.fn(async () => []),
+  summarizeNotifyResults: vi.fn(() => ({
+    attempts: 0,
+    sent: 0,
+    notConfigured: 0,
+    errors: 0,
+    outcome: 'skipped',
+    label: 'Hasta bildirimi: iletişim bilgisi yok',
+    byChannel: [],
+  })),
+}))
 vi.mock('@/lib/client-marketplace/notifications', () => ({
   createClientNotification: vi.fn(),
 }))

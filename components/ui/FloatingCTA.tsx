@@ -4,20 +4,26 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { LogIn, LayoutDashboard } from 'lucide-react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { ArrowRight, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/hooks/useLanguage'
-import { getLoginPath } from '@/lib/auth-routes'
-import { ENTRY_CTA } from '@/lib/entry-routes'
+import { productName } from '@/lib/brand/masterbrand'
+import { ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 /** Defense in depth if mounted outside marketing shells. */
 function isAppShellPath(pathname: string | null) {
-  if (!pathname) return true
+  if (!pathname) return false
+  if (pathname === '/contact' || pathname.startsWith('/contact/')) {
+    return true
+  }
   if (
     pathname.startsWith('/client') ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/auth') ||
+    pathname.startsWith('/book') ||
+    pathname.startsWith('/intake') ||
+    pathname.startsWith('/randevu') ||
     pathname.startsWith('/api')
   ) {
     return true
@@ -25,72 +31,110 @@ function isAppShellPath(pathname: string | null) {
   return /^\/(tr|en)\/(giris|kayit|login|register|auth)(\/|$)/.test(pathname)
 }
 
-export function FloatingCTA() {
+type FloatingCTAProps = {
+  /** B2B landing: demo-only chip — no patient PWA dual CTA competing with hero. */
+  variant?: 'default' | 'b2b'
+}
+
+export function FloatingCTA({ variant = 'default' }: FloatingCTAProps) {
   const pathname = usePathname()
   const { t, language } = useLanguage()
+  const reduceMotion = useReducedMotion()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
-  const supabase = createClient()
+  const [mounted, setMounted] = useState(false)
+  const [atPageEnd, setAtPageEnd] = useState(false)
+  const [hasClearedIntro, setHasClearedIntro] = useState(false)
 
   const blocked = isAppShellPath(pathname)
+  const brandName =
+    variant === 'b2b'
+      ? productName('health', language === 'en' ? 'en' : 'tr')
+      : productName('booking', language === 'en' ? 'en' : 'tr')
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (blocked) return
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session)
-    })
+    let subscription: { unsubscribe: () => void } | undefined
+    try {
+      const supabase = createClient()
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsLoggedIn(!!session)
+      })
+      subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsLoggedIn(!!session)
+      }).data.subscription
+    } catch {
+      // Missing/invalid public Supabase env — keep CTA visible without session state.
+    }
 
     const handleScroll = () => {
-      setIsVisible(window.scrollY > 200)
+      const vh = window.innerHeight
+      const doc = document.documentElement
+      const nearBottom = window.scrollY + vh > doc.scrollHeight - 120
+      const clearedIntro = window.scrollY > Math.min(vh * 0.5, 480)
+      setAtPageEnd(nearBottom)
+      setHasClearedIntro(clearedIntro)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
     handleScroll()
 
     return () => {
-      subscription.unsubscribe()
+      subscription?.unsubscribe()
       window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
     }
-  }, [blocked, supabase.auth])
+  }, [blocked])
 
-  if (blocked) return null
+  if (blocked || !mounted) return null
 
-  const text = t({
-    tr: isLoggedIn ? 'Klinik paneli' : ENTRY_CTA.clinicLogin.tr,
-    en: isLoggedIn ? 'Clinic dashboard' : ENTRY_CTA.clinicLogin.en,
+  // Surface the persistent CTA only after the first decision area is out of view.
+  const show = hasClearedIntro && !atPageEnd
+  const trialLabel = t(ENTRY_CTA.clinicTrial.short)
+  const dashboardLabel = t({
+    tr: 'Klinik paneli',
+    en: 'Clinic dashboard',
   })
-
-  const href = isLoggedIn ? '/dashboard' : getLoginPath(language)
 
   return (
     <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 20 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-          className="fixed bottom-6 right-6 z-50 pointer-events-auto"
+      {show ? (
+        <motion.aside
+          key="floating-b2b-cta"
+          data-testid="floating-cta"
+          role="complementary"
+          aria-label={brandName}
+          initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
+          transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+          className="pointer-events-auto fixed bottom-5 right-4 z-[90] sm:bottom-6 sm:right-6"
         >
-          <Link href={href} className="no-underline">
-            <div className="flex h-12 items-center gap-2 rounded-full border border-white/20 bg-brand-navy/90 px-5 text-sm font-semibold text-white shadow-xl backdrop-blur-md transition hover:bg-brand-navy hover:scale-105 active:scale-95 md:h-14 md:px-6 md:text-base">
-              {isLoggedIn ? (
-                <LayoutDashboard className="size-4 md:size-5 text-brand-cyan" />
-              ) : (
-                <LogIn className="size-4 md:size-5 text-brand-cyan" />
-              )}
-              <span>{text}</span>
-            </div>
-          </Link>
-        </motion.div>
-      )}
+          {isLoggedIn ? (
+            <Link
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0B1220] px-4 text-sm font-semibold text-white no-underline shadow-lg"
+            >
+              <LayoutDashboard className="size-3.5 text-[#0071E3]" aria-hidden />
+              {dashboardLabel}
+            </Link>
+          ) : (
+            <Link
+              href={getClinicTrialPath(language)}
+              data-cta-priority="primary"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0071E3] px-4 text-sm font-bold text-white no-underline shadow-[0_10px_22px_-14px_rgba(0,113,227,0.5)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-px hover:bg-[#0063C8] hover:shadow-[0_16px_28px_-14px_rgba(0,113,227,0.58)] active:translate-y-0"
+            >
+              {trialLabel}
+              <ArrowRight className="size-3.5 opacity-90" aria-hidden />
+            </Link>
+          )}
+        </motion.aside>
+      ) : null}
     </AnimatePresence>
   )
 }
