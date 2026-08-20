@@ -97,6 +97,9 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
   const reduceMotion = useReducedMotion()
   const submenuId = useId()
   const headerRef = useRef<HTMLElement>(null)
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileMenuWasOpen = useRef(false)
+  const previousPathnameRef = useRef(pathname)
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -122,10 +125,38 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
   }, [])
 
   useEffect(() => {
+    if (previousPathnameRef.current === pathname) return
+
+    previousPathnameRef.current = pathname
     setActiveParent(null)
     setMoreOpen(false)
     setMobileOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    if (mobileOpen) {
+      mobileMenuWasOpen.current = true
+      return
+    }
+
+    if (!mobileMenuWasOpen.current) return
+
+    mobileMenuTriggerRef.current?.focus()
+    mobileMenuWasOpen.current = false
+  }, [mobileOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+
+    const inertTargets = [
+      document.getElementById('main-content'),
+      document.querySelector<HTMLElement>('footer'),
+      document.querySelector<HTMLElement>('[data-testid="floating-cta"]'),
+    ].filter((target): target is HTMLElement => target instanceof HTMLElement)
+
+    inertTargets.forEach((target) => target.setAttribute('inert', ''))
+    return () => inertTargets.forEach((target) => target.removeAttribute('inert'))
+  }, [mobileOpen])
 
   useEffect(() => {
     const el = headerRef.current
@@ -173,11 +204,15 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
 
   const renderDesktopItem = (item: NavItem, opts?: { className?: string }) => {
     const hasChildren = Boolean(item.children?.length)
-    const isActive = activeParent === item.href
+    const isOpen = activeParent === item.href
+    const isCurrentRoute =
+      pathname === item.href ||
+      (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+    const isActive = isOpen || isCurrentRoute
     const baseClass = cn(
-      'inline-flex h-10 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 text-[13px] font-medium leading-none tracking-[-0.01em] transition 2xl:px-2.5 2xl:text-sm',
+      'relative inline-flex h-10 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 text-[13px] font-medium leading-none tracking-[-0.01em] transition-colors duration-200 2xl:px-3 2xl:text-sm',
       isActive
-        ? 'bg-[#0071E3]/10 text-[#0071E3]'
+        ? 'bg-[#0071E3]/[0.07] text-[#0063C8] after:absolute after:inset-x-2.5 after:-bottom-0.5 after:h-px after:rounded-full after:bg-[#0071E3]'
         : 'text-[#1D1D1F]/80 hover:bg-black/[0.03] hover:text-[#1D1D1F]',
       opts?.className,
     )
@@ -188,13 +223,13 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
           key={item.href}
           type="button"
           className={baseClass}
-          aria-expanded={isActive}
+          aria-expanded={isOpen}
           aria-controls={submenuId}
           onClick={() => toggleParent(item)}
         >
           {item.label[language]}
           <ChevronDown
-            className={cn('size-3.5 opacity-60 transition-transform duration-200', isActive && 'rotate-180')}
+            className={cn('size-3.5 opacity-60 transition-transform duration-200', isOpen && 'rotate-180')}
             aria-hidden
           />
         </button>
@@ -219,19 +254,25 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
         ref={headerRef}
         data-site-header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-          scrolled ? 'pt-3' : 'pt-4',
+          'fixed inset-x-0 top-0 z-50 transition-[padding] duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]',
+          scrolled ? 'pt-2' : 'pt-3',
         )}
       >
-        <div className="mx-auto flex h-14 w-[min(1180px,calc(100vw-1.25rem))] items-center gap-2 overflow-hidden rounded-2xl border border-black/8 bg-white/76 px-3 shadow-glass-soft backdrop-blur-xl sm:px-4 xl:gap-3 xl:px-5">
-          <Link
-            href="/"
-            aria-label="Asistan home"
-            className="inline-flex h-10 shrink-0 items-center -translate-y-0.5"
-            onClick={() => setActiveParent(null)}
-          >
-            <AsistanLogo variant="dark" size="md" priority />
-          </Link>
+        <div className="mx-auto flex h-[52px] w-[min(1180px,calc(100vw-1.25rem))] items-center gap-2 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/88 px-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.24)] backdrop-blur-sm sm:px-4 xl:overflow-visible xl:gap-3 xl:px-5">
+          <div className="contents" inert={mobileOpen}>
+            <Link
+              href="/"
+              aria-label="Asistan home"
+              className="inline-flex h-10 shrink-0 items-center -translate-y-0.5"
+              onClick={() => setActiveParent(null)}
+            >
+              <AsistanLogo
+                variant="dark"
+                size="sm"
+                priority
+                className="!h-auto !w-[104px] sm:!w-[120px] xl:!w-[132px]"
+              />
+            </Link>
 
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center xl:flex"
@@ -256,7 +297,7 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
                 {moreOpen ? (
                   <div
                     role="menu"
-                    className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[12rem] rounded-xl border border-black/8 bg-white/95 p-1.5 shadow-lg backdrop-blur-xl"
+                    className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[12rem] rounded-2xl border border-[#E6EAF0] bg-white/95 p-1.5 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.32)] backdrop-blur-md"
                   >
                     {overflowItems.map((item) =>
                       item.children?.length ? (
@@ -296,7 +337,7 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
           </nav>
 
           <div className="ml-auto hidden shrink-0 items-center gap-1.5 xl:flex 2xl:gap-2">
-            <div className="inline-flex h-9 items-center rounded-xl border border-black/10 bg-white/75 p-0.5 text-xs font-semibold backdrop-blur-md">
+            <div className="inline-flex h-9 items-center rounded-xl border border-[#E6EAF0] bg-white/90 p-0.5 text-xs font-semibold backdrop-blur-sm">
               <button
                 type="button"
                 aria-pressed={language === 'tr'}
@@ -333,43 +374,32 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
             <Button
               asChild
               variant="outline"
-              className="h-9 shrink-0 rounded-xl border-black/10 bg-white/75 px-2.5 text-[13px] font-semibold leading-none text-[#1D1D1F] backdrop-blur-md hover:bg-slate-50 2xl:px-3 2xl:text-sm"
+              className="h-9 shrink-0 rounded-xl border-[#E6EAF0] bg-white/90 px-2.5 text-[13px] font-semibold leading-none text-[#1D1D1F] backdrop-blur-sm hover:bg-slate-50 2xl:px-3 2xl:text-sm"
             >
               <Link href={loginUrl}>
                 <span className="2xl:hidden">{copy.loginShort}</span>
                 <span className="hidden 2xl:inline">{copy.login}</span>
               </Link>
             </Button>
-            {isHome ? (
-              <>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="hidden h-9 shrink-0 rounded-xl border-[#0071E3]/25 bg-white/75 px-2.5 text-[13px] font-semibold leading-none text-[#1D1D1F] hover:bg-[#EEF6FF] lg:inline-flex 2xl:px-3 2xl:text-sm"
-                >
-                  <Link href={registerUrl}>{copy.startTrialShort}</Link>
-                </Button>
-                <Button
-                  asChild
-                  className="h-9 shrink-0 rounded-xl bg-[#0071E3] px-3 text-[13px] font-semibold leading-none text-white hover:bg-[#0063C8] 2xl:text-sm"
-                >
-                  <Link href={DEMO_CONTACT_PATH}>{copy.demo}</Link>
-                </Button>
-              </>
-            ) : (
-              <Button
-                asChild
-                className="h-9 shrink-0 rounded-xl bg-[#0071E3] px-3 text-[13px] font-semibold leading-none text-white hover:bg-[#0063C8] 2xl:text-sm"
-              >
-                <Link href={registerUrl}>{copy.startTrialShort}</Link>
-              </Button>
-            )}
+            <Button
+              asChild
+              variant="ctaPrimary"
+              className="h-9 shrink-0 rounded-xl px-3 text-[13px] font-semibold leading-none 2xl:text-sm"
+            >
+              <Link href={registerUrl} data-cta-priority="primary">
+                {copy.startTrialShort}
+              </Link>
+            </Button>
+          </div>
+
           </div>
 
           <button
+            ref={mobileMenuTriggerRef}
             type="button"
             aria-label={mobileOpen ? copy.closeMenu : copy.openMenu}
             aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation-menu"
             className="ml-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white/75 xl:hidden"
             onClick={() => {
               setMobileOpen((state) => !state)
@@ -406,7 +436,7 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               className="mx-auto mt-2 w-[min(1180px,calc(100vw-1.25rem))] overflow-hidden"
             >
-              <div className="rounded-2xl border border-black/8 bg-white/92 shadow-glass-soft backdrop-blur-xl">
+              <div className="rounded-2xl border border-[#E6EAF0] bg-white/95 shadow-[0_12px_30px_-22px_rgba(15,23,42,0.3)] backdrop-blur-md">
                 <ul className="flex gap-1 overflow-x-auto px-2 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-3">
                   {activeItem.children.map((child) => (
                     <li key={child.href} className="shrink-0">
@@ -428,12 +458,13 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
         <AnimatePresence>
           {mobileOpen && (
             <FocusTrapPanel
+              id="mobile-navigation-menu"
               role="dialog"
               label="Mobil menü"
               onEscape={() => setMobileOpen(false)}
-              className="mx-auto mt-2 w-[min(1180px,calc(100vw-1.25rem))] rounded-2xl border border-black/8 bg-white/84 p-3 shadow-glass backdrop-blur-xl xl:hidden"
+              className="mx-auto mt-2 w-[min(1180px,calc(100vw-1.25rem))] rounded-2xl border border-[#E6EAF0] bg-white/94 p-3 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.32)] backdrop-blur-md xl:hidden"
             >
-              <div className="mb-2 inline-flex h-10 items-center rounded-xl border border-black/10 bg-white/75 p-1 text-xs font-semibold">
+              <div className="mb-2 inline-flex h-10 items-center rounded-xl border border-[#E6EAF0] bg-white/90 p-1 text-xs font-semibold">
                 <button
                   type="button"
                   aria-pressed={language === 'tr'}
@@ -541,18 +572,27 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
                     <>
                       <Button
                         asChild
-                        variant="outline"
-                        className="h-10 rounded-xl border-[#0071E3]/25 text-sm font-semibold"
+                        variant="ctaPrimary"
+                        className="h-10 rounded-xl text-sm font-semibold sm:col-span-2"
                       >
-                        <Link href={registerUrl} onClick={() => setMobileOpen(false)}>
+                        <Link
+                          href={registerUrl}
+                          data-cta-priority="primary"
+                          onClick={() => setMobileOpen(false)}
+                        >
                           {copy.startTrialShort}
                         </Link>
                       </Button>
                       <Button
                         asChild
-                        className="h-10 rounded-xl bg-[#0071E3] text-sm font-semibold text-white sm:col-span-2"
+                        variant="ctaSecondary"
+                        className="h-10 rounded-xl text-sm font-semibold"
                       >
-                        <Link href={DEMO_CONTACT_PATH} onClick={() => setMobileOpen(false)}>
+                        <Link
+                          href={DEMO_CONTACT_PATH}
+                          data-cta-priority="secondary"
+                          onClick={() => setMobileOpen(false)}
+                        >
                           {copy.demoFull}
                         </Link>
                       </Button>
@@ -560,9 +600,14 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
                   ) : (
                     <Button
                       asChild
-                      className="h-10 rounded-xl bg-[#0071E3] text-sm font-semibold text-white"
+                      variant="ctaPrimary"
+                      className="h-10 rounded-xl text-sm font-semibold"
                     >
-                      <Link href={registerUrl} onClick={() => setMobileOpen(false)}>
+                      <Link
+                        href={registerUrl}
+                        data-cta-priority="primary"
+                        onClick={() => setMobileOpen(false)}
+                      >
                         {copy.startTrialShort}
                       </Link>
                     </Button>
@@ -577,7 +622,7 @@ export function SiteHeader({ variant: _variant = 'home' }: SiteHeaderProps) {
       {/* Pushes hero/content down as submenu opens */}
       <div
         aria-hidden
-        className="transition-[height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        className="transition-[height] duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]"
         style={{ height: spacerPx }}
       />
     </>

@@ -27,7 +27,7 @@ export function AuthMarketingShell({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={() => setLanguage(language === 'tr' ? 'en' : 'tr')}
-          className="flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm backdrop-blur-md transition duration-300 hover:border-[#0071E3] hover:text-[#0071E3]"
+          className="flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm backdrop-blur-md transition duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)] hover:border-[#0071E3] hover:text-[#0071E3]"
         >
           <Globe className="h-3.5 w-3.5" />
           <span>{language === 'tr' ? 'EN' : 'TR'}</span>

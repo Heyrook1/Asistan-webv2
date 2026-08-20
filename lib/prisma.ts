@@ -49,6 +49,9 @@ const SOFT_DELETE_MODELS = new Set<Prisma.ModelName>([
   'Notification',
   'NotificationAction',
   'ClientNotification',
+  'PersonMedication',
+  'PersonAllergy',
+  'PersonDocument',
   'PushSubscription',
   'Reminder',
   'Conversation',
@@ -92,17 +95,17 @@ prismaClient.$use(async (params, next) => {
     ) {
       const args = (params.args ?? {}) as Record<string, unknown>
       if (args.include || args.select) {
-        const patched = applySoftDeleteToQueryArgs({ ...args }) ?? {}
+        const patched = applySoftDeleteToQueryArgs({ ...args }, params.model) ?? {}
         if (args.where === undefined) {
           delete patched.where
         } else {
-          patched.where = applySoftDeleteToWhereRelationFilters(args.where)
+          patched.where = applySoftDeleteToWhereRelationFilters(args.where, params.model)
         }
         params.args = patched
       } else if (args.where) {
         params.args = {
           ...args,
-          where: applySoftDeleteToWhereRelationFilters(args.where),
+          where: applySoftDeleteToWhereRelationFilters(args.where, params.model),
         }
       }
     }
@@ -149,9 +152,9 @@ prismaClient.$use(async (params, next) => {
     params.action === 'groupBy' ||
     params.action === 'updateMany'
   ) {
-    const args = applySoftDeleteToQueryArgs((params.args ?? {}) as Record<string, unknown>) ?? {}
+    const args = applySoftDeleteToQueryArgs((params.args ?? {}) as Record<string, unknown>, params.model) ?? {}
     if (args.where) {
-      args.where = applySoftDeleteToWhereRelationFilters(args.where)
+      args.where = applySoftDeleteToWhereRelationFilters(args.where, params.model)
     }
     params.args = args
   }

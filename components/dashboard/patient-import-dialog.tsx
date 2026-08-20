@@ -172,10 +172,10 @@ export function PatientImportDialog({
             />
           </div>
 
-          <label className="flex items-start gap-2 text-sm text-brand-ink">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-brand-ink">
             <input
               type="checkbox"
-              className="mt-1"
+              className="size-4 shrink-0"
               checked={skipDuplicates}
               onChange={(e) => setSkipDuplicates(e.target.checked)}
               disabled={pending}

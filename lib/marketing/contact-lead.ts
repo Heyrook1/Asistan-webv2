@@ -8,12 +8,16 @@ export const CONTACT_PRIVACY_NOTICE_VERSION = '2026-08-10'
 export const contactLeadSchema = z.object({
   name: z.string().trim().min(2, 'Ad en az 2 karakter olmalı').max(120),
   email: z.string().trim().email('Geçersiz e-posta').max(160),
-  phone: z.string().trim().min(6, 'Geçersiz telefon').max(40),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .refine((value) => value === '' || value.length >= 6, 'Geçersiz telefon'),
   company: z.string().trim().max(160).optional().or(z.literal('')),
   service_type: z
     .enum(['patient-booking', 'provider-onboarding', 'clinic-admin', 'custom-integration'])
     .optional(),
-  message: z.string().trim().min(10, 'Mesaj en az 10 karakter olmalı').max(4000),
+  message: z.string().trim().max(4000),
   privacyAccepted: z.literal(true, {
     errorMap: () => ({ message: 'Gizlilik ve kullanım koşullarını kabul etmelisiniz' }),
   }),

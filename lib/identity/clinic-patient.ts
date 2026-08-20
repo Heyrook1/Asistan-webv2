@@ -23,6 +23,13 @@ export type ClinicPatientInput = {
    * only Person.identityHash. Clinic staff can fill the card later.
    */
   persistIdentityOnPatientCard?: boolean
+  /**
+   * Pre-resolved ecosystem Person id. Provided by the caller when the Person was
+   * committed BEFORE a Serializable booking tx (owner-connection Person is otherwise
+   * invisible to the tx snapshot and fails the Patient.personId FK). When omitted,
+   * the Person is resolved on this transaction.
+   */
+  personId?: string
 }
 
 export type ClinicPatientResult = {
@@ -105,12 +112,14 @@ export async function resolveOrCreateClinicPatient(
   const identityNumber = input.identityNumber?.trim() || null
   const persistPlaintext = Boolean(input.persistIdentityOnPatientCard && identityNumber)
 
-  const { personId } = await resolveOrCreatePerson(tx, {
-    fullName: input.fullName,
-    phone: input.phone,
-    email,
-    identityNumber,
-  })
+  const { personId } = input.personId
+    ? { personId: input.personId }
+    : await resolveOrCreatePerson(tx, {
+        fullName: input.fullName,
+        phone: input.phone,
+        email,
+        identityNumber,
+      })
 
   const existing = await findClinicPatientIncludingDeleted(tx, input.businessId, {
     personId,

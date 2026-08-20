@@ -13,17 +13,17 @@ describe('public pricing annual totals', () => {
     expect(starter).toBeTruthy()
     if (!starter) return
 
-    expect(publicPlanMonthlyAmount(starter, 'monthly')).toBe(149)
-    expect(publicPlanMonthlyAmount(starter, 'annual')).toBe(119)
-    expect(publicPlanAnnualPrepaidAmount(starter)).toBe(119 * 12)
-    expect(formatPublicPlanPrice(1428, 'tr')).toBe('€1.428')
+    expect(publicPlanMonthlyAmount(starter, 'monthly')).toBe(1000)
+    expect(publicPlanMonthlyAmount(starter, 'annual')).toBe(1000)
+    expect(publicPlanAnnualPrepaidAmount(starter)).toBe(1000 * 12)
+    expect(formatPublicPlanPrice(12000, 'tr')).toBe('12.000 TRY')
   })
 
   it('matches Professional and Enterprise prepaid math', () => {
     const plans = listPublicMarketingPlanCards()
     const pro = plans.find((p) => p.code === 'PROFESSIONAL')
     const ent = plans.find((p) => p.code === 'ENTERPRISE')
-    expect(publicPlanAnnualPrepaidAmount(pro!)).toBe(199 * 12)
-    expect(publicPlanAnnualPrepaidAmount(ent!)).toBe(399 * 12)
+    expect(publicPlanAnnualPrepaidAmount(pro!)).toBe(2500 * 12)
+    expect(publicPlanAnnualPrepaidAmount(ent!)).toBeNull()
   })
 })

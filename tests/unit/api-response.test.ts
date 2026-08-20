@@ -4,6 +4,7 @@ import {
   apiError,
   apiSuccess,
   apiValidationError,
+  noStore,
   parsePathId,
   pathIdSchema,
 } from '@/lib/api-response'
@@ -64,5 +65,11 @@ describe('standard API response contract (A5)', () => {
     const response = apiSuccess({ id: 'x' }, 201)
     expect(response.status).toBe(201)
     expect(await response.json()).toEqual({ ok: true, data: { id: 'x' } })
+  })
+
+  it('noStore marks responses uncacheable', () => {
+    const response = noStore(apiSuccess({ id: 'x' }))
+    expect(response.headers.get('Cache-Control')).toMatch(/no-store/)
+    expect(response.headers.get('Pragma')).toBe('no-cache')
   })
 })

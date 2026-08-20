@@ -36,6 +36,8 @@ export const RLS_MIGRATIONS = [
   '20260807000100_notification_outbox.sql',
   '20260808000100_notification_outbox_rls.sql',
   '20260808000200_patient_channel_attempt_rls.sql',
+  '20260820000100_person_health_records.sql',
+  '20260820000200_person_documents_bucket.sql',
 ]
 
 export function resolveDatabaseUrl() {

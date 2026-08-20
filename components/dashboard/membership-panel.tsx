@@ -295,6 +295,7 @@ export function MembershipPanel({
                 selfServeEnabled &&
                 isOwner &&
                 !pendingPayment &&
+                Boolean(price) &&
                 plan.code !== 'DEMO_14_DAYS' &&
                 (membership.isDemo || plan.code !== membership.planCode || urgency !== 'ok')
 
@@ -318,9 +319,9 @@ export function MembershipPanel({
                   <p className="mt-3 text-sm font-semibold text-brand-ink">
                     {price
                       ? period === 'YEARLY'
-                        ? `€${price.amount}/yıl`
-                        : `€${price.amount}/ay`
-                      : 'Teklif'}
+                        ? `${price.amount.toLocaleString('tr-TR')} ${price.currency}/yıl`
+                        : `${price.amount.toLocaleString('tr-TR')} ${price.currency}/ay`
+                      : 'İletişime geçiniz'}
                   </p>
                   <ul className="mt-2 space-y-1">
                     {plan.features.slice(0, 4).map((feature) => (
@@ -330,7 +331,11 @@ export function MembershipPanel({
                       </li>
                     ))}
                   </ul>
-                  {selfServeEnabled && plan.code !== 'DEMO_14_DAYS' ? (
+                  {!price && plan.code !== 'DEMO_14_DAYS' ? (
+                    <Button asChild variant="outline" size="sm" className="mt-3 w-full">
+                      <Link href="/contact">İletişime geç</Link>
+                    </Button>
+                  ) : selfServeEnabled && plan.code !== 'DEMO_14_DAYS' ? (
                     <Button
                       type="button"
                       size="sm"

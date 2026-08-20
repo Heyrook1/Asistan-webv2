@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, Bell } from 'lucide-react'
+import { ArrowLeft, Bell, UserRound } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -11,10 +11,11 @@ import { cn } from '@/lib/utils'
 
 const TITLES: Record<string, { tr: string; en: string }> = {
   '/client': { tr: 'Ana Sayfa', en: 'Home' },
-  '/client/clinics': { tr: 'Klinikler', en: 'Clinics' },
-  '/client/bookings': { tr: 'Randevular', en: 'Bookings' },
-  '/client/appointments': { tr: 'Randevular', en: 'Bookings' },
-  '/client/health': { tr: 'Pasaport', en: 'Passport' },
+  '/client/clinics': { tr: 'Keşfet', en: 'Discover' },
+  '/client/doctors': { tr: 'Doktor', en: 'Doctor' },
+  '/client/bookings': { tr: 'Randevular', en: 'Appointments' },
+  '/client/appointments': { tr: 'Randevular', en: 'Appointments' },
+  '/client/health': { tr: 'Sağlık', en: 'Health' },
   '/client/profile': { tr: 'Profil', en: 'Profile' },
 }
 
@@ -43,7 +44,7 @@ export function RezervasyonTopBar() {
         >
           <ArrowLeft className="size-4 shrink-0" aria-hidden />
           <span className="text-[12px] font-bold tracking-tight">
-            {t({ tr: 'Ana sayfa', en: 'Home' })}
+            {t({ tr: 'Asistan', en: 'Asistan' })}
           </span>
         </Link>
         <Link
@@ -61,9 +62,9 @@ export function RezervasyonTopBar() {
     <header className="flex items-center justify-between gap-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <Link
-          href="/"
+          href="/client"
           className="flex size-11 shrink-0 items-center justify-center rounded-[1.1rem] bg-white text-slate-600 ring-1 ring-slate-900/5 transition hover:text-[#0071E3] active:scale-[0.98]"
-          aria-label={t({ tr: 'Ana sayfaya dön', en: 'Back to homepage' })}
+          aria-label={t({ tr: 'Uygulama ana sayfasına dön', en: 'Back to app home' })}
         >
           <ArrowLeft className="size-4" aria-hidden />
         </Link>
@@ -88,13 +89,17 @@ export function RezervasyonTopBar() {
 
       <Link
         href="/client/profile"
+        aria-label={t({ tr: 'Profilimi aç', en: 'Open my profile' })}
+        aria-current={pathname.startsWith('/client/profile') ? 'page' : undefined}
         className={cn(
-          'shrink-0 rounded-full bg-white px-3.5 py-2 text-[11px] font-bold text-slate-600',
+          'flex size-11 shrink-0 items-center justify-center rounded-[1.1rem] bg-white text-slate-600',
           'ring-1 ring-slate-900/5 transition hover:text-[#0071E3]',
           'active:scale-[0.98]',
+          pathname.startsWith('/client/profile') &&
+            'bg-[#EDF5FF] text-[#0071E3] ring-[#0071E3]/15',
         )}
       >
-        {t({ tr: 'Profil', en: 'Profile' })}
+        <UserRound className="size-[1.15rem]" aria-hidden />
       </Link>
     </header>
   )

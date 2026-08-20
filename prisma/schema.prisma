@@ -128,6 +128,45 @@ enum FileCategory {
   DIGER
 }
 
+// ── Patient-owned (Person-scoped) health records ────────────────────────────
+/// Provenance of a Person-scoped health record. "verified" chrome is only shown
+/// when provenance can genuinely be verified (never for PATIENT_ENTERED).
+enum HealthRecordSource {
+  PATIENT_ENTERED
+  CLINIC_ENTERED
+  PROVIDER_ENTERED
+  SYSTEM_IMPORTED
+}
+
+enum PersonMedicationStatus {
+  ACTIVE
+  ENDED
+  ARCHIVED
+}
+
+enum PersonAllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+  UNKNOWN
+}
+
+enum PersonDocumentCategory {
+  LAB_RESULT
+  MEDICAL_REPORT
+  IMAGING
+  PRESCRIPTION
+  VISIT_DOCUMENT
+  REFERRAL
+  OTHER
+}
+
+/// Record visibility baseline — always PRIVATE until the patient shares via Passport.
+enum HealthRecordVisibility {
+  PRIVATE
+  SHAREABLE
+}
+
 enum NotificationType {
   APPOINTMENT
   PATIENT
@@ -645,6 +684,9 @@ model Person {
   clientUsers    ClientUser[]
   matchesAsLeft  PersonIdentityMatch[] @relation("PersonMatchLeft")
   matchesAsRight PersonIdentityMatch[] @relation("PersonMatchRight")
+  medications    PersonMedication[]
+  allergies      PersonAllergy[]
+  documents      PersonDocument[]
 
   @@index([fullNameCanon])
   @@index([deletedAt])
@@ -686,6 +728,90 @@ model PersonIdentityMergeLedger {
   @@index([businessId, acceptedAt])
   @@index([matchId])
   @@index([undoneAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Patient-owned health records (ecosystem, Person-scoped) — the patient's own
+// longitudinal record under Asistan Passport. NOT businessId-scoped: access is
+// gated by the app.person_id GUC + RLS (mirrors passport reads), never by a
+// clinic tenant. Clinic-authored records keep their own clinic-scoped models.
+// ────────────────────────────────────────────────────────────────────────────
+
+model PersonMedication {
+  id                    String                 @id @default(uuid())
+  personId              String
+  name                  String
+  strength              String?
+  form                  String?
+  frequency             String?
+  startDate             DateTime?
+  endDate               DateTime?
+  instructions          String?                @db.Text
+  notes                 String?                @db.Text
+  status                PersonMedicationStatus @default(ACTIVE)
+  stoppedAt             DateTime?
+  sourceType            HealthRecordSource     @default(PATIENT_ENTERED)
+  sourceClinicId        String?
+  sourceProviderId      String?
+  createdByClientUserId String?
+  visibility            HealthRecordVisibility @default(PRIVATE)
+  deletedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, status])
+  @@index([personId, deletedAt])
+}
+
+model PersonAllergy {
+  id                    String                 @id @default(uuid())
+  personId              String
+  name                  String
+  reaction              String?
+  severity              PersonAllergySeverity  @default(UNKNOWN)
+  firstObservedAt       DateTime?
+  notes                 String?                @db.Text
+  sourceType            HealthRecordSource     @default(PATIENT_ENTERED)
+  sourceClinicId        String?
+  sourceProviderId      String?
+  createdByClientUserId String?
+  visibility            HealthRecordVisibility @default(PRIVATE)
+  deletedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([personId, deletedAt])
+}
+
+model PersonDocument {
+  id                     String                 @id @default(uuid())
+  personId               String
+  title                  String
+  category               PersonDocumentCategory @default(OTHER)
+  /// Object path inside the private `person-documents` bucket — never a public/signed URL.
+  storageKey             String                 @unique
+  mimeType               String
+  fileSize               Int
+  documentDate           DateTime?
+  notes                  String?                @db.Text
+  sourceType             HealthRecordSource     @default(PATIENT_ENTERED)
+  sourceClinicId         String?
+  sourceProviderId       String?
+  uploadedByClientUserId String?
+  visibility             HealthRecordVisibility @default(PRIVATE)
+  deletedAt              DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, category])
+  @@index([personId, deletedAt])
 }
 
 // ────────────────────────────────────────────────────────────────────────────

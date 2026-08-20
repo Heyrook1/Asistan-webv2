@@ -425,15 +425,29 @@ export function PublicBookingWidget({
           typeof json.appointmentId === 'string' ? json.appointmentId : null
         const apiOk = json.ok === true
         if (!ok || !apiOk || !appointmentId) {
-          const msg =
-            (typeof json.error === 'string' && json.error) ||
-            (status === 409
-              ? 'Bu saat az önce doldu veya istek çakıştı. Lütfen başka bir saat seçin.'
-              : 'Randevu oluşturulamadı')
+          const serverError = typeof json.error === 'string' ? json.error : ''
+          // Slot-gone can arrive as 409 (conflict) or a SlotConflictError message.
+          const slotGone =
+            status === 409 || /doldu|slot|saat|no longer|availab/i.test(serverError)
+          const msg = slotGone
+            ? lang === 'en'
+              ? 'That time is no longer available. Please choose another appointment time.'
+              : 'Bu saat az önce doldu. Lütfen başka bir uygun saat seçin.'
+            : status === 400
+              ? serverError ||
+                (lang === 'en'
+                  ? 'Please check the highlighted fields and try again.'
+                  : 'Lütfen işaretli alanları kontrol edip tekrar deneyin.')
+              : status >= 500
+                ? lang === 'en'
+                  ? 'We couldn’t complete your booking right now. Please try again in a moment.'
+                  : 'Randevunuz şu anda tamamlanamadı. Lütfen birazdan tekrar deneyin.'
+                : serverError ||
+                  (lang === 'en' ? 'Booking could not be created' : 'Randevu oluşturulamadı')
           setSubmitError(msg)
           toast.error(msg)
           idempotencyKeyRef.current = newIdempotencyKey()
-          if (status === 409) {
+          if (slotGone) {
             setStartTime(null)
             refreshSlots()
           }
@@ -1347,7 +1361,7 @@ export function PublicBookingWidget({
               </div>
 
               <div className="space-y-1">
-                <div className="flex items-start gap-2.5">
+                <div className="flex items-center gap-2.5">
                   <input
                     id="book-privacy-ack"
                     type="checkbox"
@@ -1362,11 +1376,11 @@ export function PublicBookingWidget({
                     aria-describedby={
                       privacyError ? 'book-privacy-error' : 'book-privacy-ack-hint'
                     }
-                    className="mt-0.5 h-4 w-4 min-h-4 min-w-4 cursor-pointer rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500/40"
+                    className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500/40"
                   />
                   <label
                     htmlFor="book-privacy-ack"
-                    className="cursor-pointer text-xs font-medium leading-5 text-slate-700"
+                    className="flex min-h-11 cursor-pointer items-center text-xs font-medium leading-5 text-slate-700"
                   >
                     {lang === 'en' ? (
                       <>
@@ -1406,7 +1420,7 @@ export function PublicBookingWidget({
                 )}
               </div>
 
-              <div className="flex items-start gap-2.5 border-t border-slate-200/80 pt-3">
+              <div className="flex items-center gap-2.5 border-t border-slate-200/80 pt-3">
                 <input
                   id="book-marketing-optin"
                   type="checkbox"
@@ -1414,12 +1428,12 @@ export function PublicBookingWidget({
                   onChange={(e) => setMarketingOptIn(e.target.checked)}
                   disabled={pending}
                   aria-describedby="book-marketing-hint"
-                  className="mt-0.5 h-4 w-4 min-h-4 min-w-4 cursor-pointer rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500/40"
+                  className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500/40"
                 />
                 <div>
                   <label
                     htmlFor="book-marketing-optin"
-                    className="cursor-pointer text-xs font-medium leading-5 text-slate-700"
+                    className="flex min-h-11 cursor-pointer items-center text-xs font-medium leading-5 text-slate-700"
                   >
                     {lang === 'en'
                       ? 'I want optional campaign / product updates (not required to book).'

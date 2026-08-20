@@ -59,6 +59,11 @@ export type ClientPassport = {
   clinics: ClientPassportClinic[]
   visits: ClientPassportVisit[]
   timeline: ClientPassportTimelineItem[]
+  counts?: {
+    activeMedications: number
+    allergies: number
+    documents: number
+  }
   honesty: {
     titleTr: string
     disclaimerTr: string

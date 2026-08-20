@@ -6,6 +6,7 @@ import {
   indexDiscoveryBusy,
   indexDiscoveryRules,
   resolveNextAvailableFromMaps,
+  resolveNextSlotsFromMaps,
   type DiscoveryBusyRow,
   type DiscoveryNextRequest,
   type DiscoveryRuleRow,
@@ -111,5 +112,82 @@ describe('discovery batch next-available (BUG-005)', () => {
     const p95 = percentile(samples, 0.95)
     // CI-safe budget: 50 × 14 × 3 slot scans should stay well under 250ms p95 on modern runners
     expect(p95).toBeLessThan(250)
+  })
+})
+
+describe('clinic-detail next-slots (batch path)', () => {
+  const dates = buildHorizon('2099-06-02', 7) // Tue start
+  const serviceId = 'svc-1'
+
+  function buildMaps(overrides?: {
+    rules?: DiscoveryRuleRow[]
+    appts?: DiscoveryBusyRow[]
+    durationByService?: Map<string, number>
+  }) {
+    const rules =
+      overrides?.rules ??
+      dates.map((date) => ({
+        staffId: 'doc-1',
+        weekday: getWeekdayFromDateString(date),
+        startTime: '09:00',
+        endTime: '12:00',
+        slotIntervalMin: 30,
+        locationId: null,
+      }))
+    return {
+      dates,
+      durationByService: overrides?.durationByService ?? new Map([[serviceId, 30]]),
+      rulesByStaffWeekday: indexDiscoveryRules(rules),
+      apptByStaffDate: indexDiscoveryBusy(overrides?.appts ?? []),
+      blockByStaffDate: indexDiscoveryBusy([]),
+      nowByTz: new Map([['Asia/Nicosia', { date: '2099-06-01', time: '08:00' }]]),
+    }
+  }
+
+  it('returns up to 6 slots for the first available day, tagged with serviceId', () => {
+    const result = resolveNextSlotsFromMaps(
+      [{ doctorId: 'doc-1', serviceId, timezone: 'Asia/Nicosia' }],
+      buildMaps(),
+    )
+    const slots = result.get('doc-1') ?? []
+    expect(slots.length).toBe(6)
+    expect(slots[0]).toEqual({
+      date: '2099-06-02',
+      startTime: '09:00',
+      endTime: '09:30',
+      serviceId,
+    })
+    expect(slots.every((s) => s.serviceId === serviceId)).toBe(true)
+    // All slots come from the same (first available) day.
+    expect(new Set(slots.map((s) => s.date)).size).toBe(1)
+  })
+
+  it('skips fully-booked first day and returns the next open day', () => {
+    const appts: DiscoveryBusyRow[] = [
+      { staffId: 'doc-1', date: dates[0], startTime: '09:00', endTime: '12:00' },
+    ]
+    const result = resolveNextSlotsFromMaps(
+      [{ doctorId: 'doc-1', serviceId, timezone: 'Asia/Nicosia' }],
+      buildMaps({ appts }),
+    )
+    const slots = result.get('doc-1') ?? []
+    expect(slots[0]?.date).toBe(dates[1])
+    expect(slots[0]?.startTime).toBe('09:00')
+  })
+
+  it('returns empty when the service duration is unknown (missing/inactive service)', () => {
+    const result = resolveNextSlotsFromMaps(
+      [{ doctorId: 'doc-1', serviceId, timezone: 'Asia/Nicosia' }],
+      buildMaps({ durationByService: new Map() }),
+    )
+    expect(result.get('doc-1')).toEqual([])
+  })
+
+  it('returns empty when the doctor has no rules', () => {
+    const result = resolveNextSlotsFromMaps(
+      [{ doctorId: 'doc-1', serviceId, timezone: 'Asia/Nicosia' }],
+      buildMaps({ rules: [] }),
+    )
+    expect(result.get('doc-1')).toEqual([])
   })
 })

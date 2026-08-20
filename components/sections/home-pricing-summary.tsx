@@ -24,7 +24,7 @@ export function HomePricingSummary() {
   return (
     <section
       id="pricing"
-      className="scroll-mt-28 bg-[#F6F7F9] px-4 py-16 sm:px-6 lg:py-20"
+      className="scroll-mt-28 bg-white px-4 py-16 sm:px-6 lg:py-20"
       aria-labelledby="home-pricing-heading"
     >
       <div className="mx-auto max-w-[1100px]">
@@ -36,8 +36,8 @@ export function HomePricingSummary() {
             en: 'List price. Trial first.',
           })}
           description={t({
-            tr: '€149–€499 erken erişim katalogudur — imzalı ROI/kanıt yoksa satış baskısı yok. Yıllık peşin ve vergi/kur: /fiyatlandirma.',
-            en: '€149–€499 is early-access catalog — no pressure sell without proof. Annual prepaid + tax/FX on /fiyatlandirma.',
+            tr: 'Başlangıç 1.000 TRY, Profesyonel 2.500 TRY. Kurumsal paket için ekibimizle iletişime geçin.',
+            en: 'Starter is 1,000 TRY and Professional is 2,500 TRY. Contact our team for Enterprise.',
           })}
         />
 
@@ -77,23 +77,26 @@ export function HomePricingSummary() {
           })}
         </ul>
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div data-testid="home-pricing-conversion-ctas" className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button
             asChild
-            className="h-12 rounded-2xl bg-[#0071E3] px-6 font-bold text-white hover:bg-[#0063C8]"
+            variant="ctaPrimary"
+            className="h-12 rounded-2xl px-6 font-bold"
           >
-            <Link href={getRegisterPath(locale)} className="inline-flex items-center gap-2">
+            <Link href={getRegisterPath(locale)} data-cta-priority="primary" className="inline-flex items-center gap-2">
               {t(ENTRY_CTA.clinicTrial)}
               <ArrowRight className="size-4" aria-hidden />
             </Link>
           </Button>
-          <Button asChild variant="outline" className="h-12 rounded-2xl border-slate-200 bg-white px-6 font-semibold">
-            <Link href="/fiyatlandirma">
-              {t({ tr: 'Tüm fiyatları incele', en: 'See full pricing' })}
+          <Button asChild variant="ctaSecondary" className="h-12 rounded-2xl px-6 font-semibold">
+            <Link href={DEMO_CONTACT_PATH} data-cta-priority="secondary">
+              {t(ENTRY_CTA.demoRequest)}
             </Link>
           </Button>
           <Button asChild variant="ghost" className="h-12 rounded-2xl px-4 font-semibold text-[#0071E3]">
-            <Link href={DEMO_CONTACT_PATH}>{t(ENTRY_CTA.demoRequest)}</Link>
+            <Link href="/fiyatlandirma">
+              {t({ tr: 'Tüm fiyatları incele', en: 'See full pricing' })}
+            </Link>
           </Button>
         </div>
       </div>

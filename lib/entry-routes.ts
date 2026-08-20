@@ -42,7 +42,7 @@ export {
 
 /** Canonical bilingual CTA labels — keep marketing copy in sync with these. */
 export const ENTRY_CTA = {
-  /** Secondary conversion — free trial (landing primary is demoRequest). */
+  /** Primary conversion — self-serve free trial. */
   clinicTrial: {
     tr: 'Kliniğinizde 14 gün ücretsiz deneyin',
     en: 'Try it free for 14 days in your clinic',

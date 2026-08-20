@@ -194,7 +194,7 @@ export function PatientJourneySection() {
                     >
                       <div
                         className={cn(
-                          'relative flex h-full min-h-[168px] flex-col rounded-2xl border bg-white p-4 transition-shadow duration-300',
+                          'relative flex h-full min-h-[168px] flex-col rounded-2xl border bg-white p-4 transition-shadow duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]',
                           reached ? 'shadow-md' : 'shadow-none',
                           isCurrent && 'ring-2 ring-[#0071E3]/30 shadow-[0_16px_40px_-20px_rgba(0,113,227,0.45)]',
                           step.tone === 'blue' && reached && 'border-[#0071E3]/25',

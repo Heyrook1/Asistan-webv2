@@ -474,7 +474,12 @@ export async function ClinicDetailPanel({ clinic }: { clinic: ClientClinicDetail
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1 font-bold text-slate-900">
-                          <span className="truncate">{doctor.fullName}</span>
+                          <Link
+                            href={`/client/doctors/${doctor.id}`}
+                            className="truncate rounded outline-none hover:text-[#0071E3] focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
+                          >
+                            {doctor.fullName}
+                          </Link>
                           {doctor.verified ? (
                             <BadgeCheck
                               className="size-4 shrink-0 text-[#0071E3]"

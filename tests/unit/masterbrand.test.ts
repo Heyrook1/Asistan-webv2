@@ -53,14 +53,15 @@ describe('lib/brand/masterbrand', () => {
     expect(copyrightLine(2026, 'tr')).toContain('Asistan Health')
   })
 
-  it('exposes real Instagram handle, not generic social roots', () => {
-    expect(MASTERBRAND.social.instagram).toContain('instagram.com/asistan.kktc')
+  it('exposes the configured social profiles, not generic social roots', () => {
+    expect(MASTERBRAND.social.facebook).toBe('https://www.facebook.com/AsistanHealth')
+    expect(MASTERBRAND.social.instagram).toContain('instagram.com/asistan.health')
+    expect(MASTERBRAND.social.linkedin).toBe('https://www.linkedin.com/company/asistan-health')
     expect(MASTERBRAND.social.instagram).not.toBe('https://instagram.com')
     expect(MASTERBRAND.regionalHost).toBe('kktc.asistan.online')
     expect(MASTERBRAND.og.width).toBe(1200)
     expect(MASTERBRAND.og.height).toBe(630)
-    expect(
-      socialLinks().every((l) => !l.href.endsWith('instagram.com') && !l.href.endsWith('linkedin.com')),
-    ).toBe(true)
+    expect(socialLinks()).toHaveLength(3)
+    expect(socialLinks().every((link) => !/\/(facebook|instagram|linkedin)\.com\/?$/.test(link.href))).toBe(true)
   })
 })

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "prototype:dev": "node scripts/dev-prototype.mjs",
     "predev": "node scripts/ensure-db-ready.mjs",
     "rezervasyon:dev": "next dev --turbopack",
     "dev:webpack": "next dev --webpack",

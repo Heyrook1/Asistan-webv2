@@ -2,9 +2,8 @@ import 'server-only'
 
 import type { PatientFile, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { sessionPrisma } from '@/lib/prisma-owner'
 import { tenantTransaction } from '@/lib/security/tenant-db-context'
-import { createClient } from '@/lib/supabase/server'
+import { batchSignStorageKeys } from '@/lib/storage-sign'
 import {
   MESSAGE_MEDIA_BUCKET,
   MESSAGE_MEDIA_SIGNED_URL_TTL_SECONDS,
@@ -279,24 +278,6 @@ export async function getPatientDetail(
     },
     { includeFiles: options.includeFiles !== false }
   )
-}
-
-async function batchSignStorageKeys(
-  bucket: string,
-  storageKeys: string[],
-  ttlSeconds: number
-): Promise<Map<string, string>> {
-  if (storageKeys.length === 0) return new Map()
-  const supabase = await createClient()
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(storageKeys, ttlSeconds)
-  if (error || !data) return new Map()
-  const result = new Map<string, string>()
-  for (const item of data) {
-    if (item.path && !item.error && item.signedUrl) {
-      result.set(item.path, item.signedUrl)
-    }
-  }
-  return result
 }
 
 async function signPatientFiles(files: PatientFile[]) {

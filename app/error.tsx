@@ -39,7 +39,7 @@ export default function AppError({
           </p>
         )}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Button onClick={reset} className="bg-brand-blue text-white hover:bg-brand-blue-hover">
+          <Button onClick={reset} variant="ctaPrimary">
             Tekrar dene
           </Button>
           <Button asChild variant="outline">

@@ -8,6 +8,7 @@ import { useFocusTrap } from '@/hooks/use-focus-trap'
 type FocusTrapPanelProps = {
   children: React.ReactNode
   className?: string
+  id?: string
   labelledBy?: string
   label?: string
   onEscape?: () => void
@@ -17,6 +18,7 @@ type FocusTrapPanelProps = {
 export function FocusTrapPanel({
   children,
   className,
+  id,
   labelledBy,
   label,
   onEscape,
@@ -36,6 +38,7 @@ export function FocusTrapPanel({
   return (
     <div
       ref={ref}
+      id={id}
       role={role}
       aria-modal={role === 'dialog' ? true : undefined}
       aria-labelledby={labelledBy}

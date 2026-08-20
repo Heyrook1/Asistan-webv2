@@ -38,6 +38,10 @@ export function RegisterForm() {
   const [passwordMatchError, setPasswordMatchError] = useState('')
 
   const supabase = createClient()
+  const fieldCorrectionHint = t({
+    tr: 'Bu alanı kontrol edip tekrar deneyin.',
+    en: 'Please check this field and try again.',
+  })
 
   function validateName(value: string, opts?: { allowEmpty?: boolean }) {
     if (!value.trim()) {
@@ -240,12 +244,12 @@ export function RegisterForm() {
     <div className="w-full max-w-4xl grid gap-8 lg:grid-cols-2 items-center">
       {/* LEFT COLUMN: Premium Copy & Benefits */}
       <div className="space-y-6 text-left hidden lg:block">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#1D1D1F] leading-tight">
+        <p className="text-3xl font-extrabold tracking-tight text-[#1D1D1F] leading-tight">
           {t({
             tr: 'Kliniğiniz için hesabınızı oluşturun',
             en: 'Create your clinic account'
           })}
-        </h1>
+        </p>
         <p className="text-sm font-semibold leading-relaxed text-[#5D6068]">
           {t({
             tr: 'Dakikalar içinde panelinizi açın, ekip rollerini tanımlayın ve ilk randevuyu planlayın.',
@@ -281,9 +285,9 @@ export function RegisterForm() {
         {!signUpSuccess ? (
           <div className="space-y-6">
             <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-[#1D1D1F]">
+              <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F]">
                 {t(ENTRY_CTA.clinicTrial)}
-              </h2>
+              </h1>
               <p className="text-xs font-semibold text-[#86868B]">
                 {t(ENTRY_CTA.clinicTrialRiskReducer)}
               </p>
@@ -295,14 +299,19 @@ export function RegisterForm() {
                 className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-700 rounded-2xl flex items-center gap-2.5 text-xs font-semibold"
               >
                 <ShieldAlert className="h-4.5 w-4.5 text-red-600 shrink-0" aria-hidden="true" />
-                <span>{error}</span>
+                <div>
+                  <p>{error}</p>
+                  <p className="mt-0.5 font-medium text-red-700/80">
+                    {t({ tr: 'Alanları kontrol edin veya tekrar deneyin.', en: 'Check the fields or try again.' })}
+                  </p>
+                </div>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               {/* Full Name Field */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-name">
+                <label className="px-0.5 text-xs font-bold text-[#374151]" htmlFor="register-name">
                   {t({ tr: 'Ad Soyad', en: 'Full Name' })}{' '}
                   <span className="text-red-500" aria-hidden="true">
                     *
@@ -330,15 +339,16 @@ export function RegisterForm() {
                   />
                 </div>
                 {nameError && (
-                  <p id="register-name-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                  <p id="register-name-error" role="alert" className="px-0.5 text-xs font-medium text-red-600">
                     {nameError}
+                    <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                   </p>
                 )}
               </div>
 
               {/* Email Field */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-email">
+                <label className="px-0.5 text-xs font-bold text-[#374151]" htmlFor="register-email">
                   {t({ tr: 'E-posta Adresi', en: 'Email Address' })}{' '}
                   <span className="text-red-500" aria-hidden="true">
                     *
@@ -366,8 +376,9 @@ export function RegisterForm() {
                   />
                 </div>
                 {emailError && (
-                  <p id="register-email-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                  <p id="register-email-error" role="alert" className="px-0.5 text-xs font-medium text-red-600">
                     {emailError}
+                    <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                   </p>
                 )}
               </div>
@@ -376,7 +387,7 @@ export function RegisterForm() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {/* Password Field */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-password">
+                  <label className="px-0.5 text-xs font-bold text-[#374151]" htmlFor="register-password">
                     {t({ tr: 'Şifre', en: 'Password' })}{' '}
                     <span className="text-red-500" aria-hidden="true">
                       *
@@ -422,8 +433,9 @@ export function RegisterForm() {
                     </button>
                   </div>
                   {passwordError && (
-                    <p id="register-password-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                    <p id="register-password-error" role="alert" className="px-0.5 text-xs font-medium text-red-600">
                       {passwordError}
+                      <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                     </p>
                   )}
                   {password && !passwordError && (
@@ -438,7 +450,7 @@ export function RegisterForm() {
 
                 {/* Confirm Password Field */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#1D1D1F]/80 px-0.5" htmlFor="register-confirm-password">
+                  <label className="px-0.5 text-xs font-bold text-[#374151]" htmlFor="register-confirm-password">
                     {t({ tr: 'Şifre Tekrar', en: 'Confirm Password' })}{' '}
                     <span className="text-red-500" aria-hidden="true">
                       *
@@ -484,8 +496,9 @@ export function RegisterForm() {
                     </button>
                   </div>
                   {passwordMatchError && (
-                    <p id="register-password-match-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                    <p id="register-password-match-error" role="alert" className="px-0.5 text-xs font-medium text-red-600">
                       {passwordMatchError}
+                      <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                     </p>
                   )}
                 </div>
@@ -493,7 +506,7 @@ export function RegisterForm() {
 
               {/* Terms Checkbox */}
               <div className="space-y-1 py-1.5">
-                <div className="flex items-start gap-2">
+                <div className="flex items-center gap-2">
                   <input
                     id="register-terms"
                     type="checkbox"
@@ -508,9 +521,9 @@ export function RegisterForm() {
                     aria-required="true"
                     aria-invalid={termsError ? true : undefined}
                     aria-describedby={termsError ? 'register-terms-error' : undefined}
-                    className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/40"
+                    className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/40"
                   />
-                  <label htmlFor="register-terms" className="cursor-pointer text-xs font-semibold leading-normal text-[#5D6068] selection:bg-transparent">
+                  <label htmlFor="register-terms" className="flex min-h-11 cursor-pointer items-center text-xs font-semibold leading-normal text-[#5D6068] selection:bg-transparent">
                     {language === 'tr' ? (
                       <>
                         <Link
@@ -570,8 +583,9 @@ export function RegisterForm() {
                   </label>
                 </div>
                 {termsError && (
-                  <p id="register-terms-error" role="alert" className="px-0.5 text-xs font-medium text-red-500">
+                  <p id="register-terms-error" role="alert" className="px-0.5 text-xs font-medium text-red-600">
                     {termsError}
+                    <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                   </p>
                 )}
               </div>
@@ -580,7 +594,8 @@ export function RegisterForm() {
               <Button
                 type="submit"
                 disabled={loading || !!emailError || !!nameError || !!passwordError || !!passwordMatchError || !!termsError}
-                className="mt-3 h-11 min-h-11 w-full rounded-xl bg-[#0071E3] text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-[1.01] hover:bg-[#0063C8] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
+                variant="ctaPrimary"
+                className="mt-3 h-auto min-h-11 w-full !whitespace-normal rounded-xl py-2.5 text-sm font-bold leading-tight sm:h-11 sm:whitespace-nowrap"
               >
                 {loading ? (
                   <>
@@ -589,7 +604,7 @@ export function RegisterForm() {
                   </>
                 ) : (
                   <>
-                    {t(ENTRY_CTA.clinicTrial)}
+                    <span className="min-w-0">{t(ENTRY_CTA.clinicTrial)}</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}

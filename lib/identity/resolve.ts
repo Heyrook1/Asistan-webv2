@@ -138,17 +138,63 @@ async function personResolveOnTx(
   }
 
   if (best) {
-    await tx.person.update({
-      where: { id: best.id },
-      data: {
-        fullNameCanon: signals.fullNameCanon || best.fullNameCanon,
-        phoneE164: signals.phoneE164 ?? best.phoneE164,
-        emailNorm: signals.emailNorm ?? best.emailNorm,
-        identityHash: signals.identityHash ?? best.identityHash,
-        birthDate: birthDateValue(input) ?? best.birthDate,
-      },
-    })
-    return { personId: best.id, gpiDisplay: best.gpiDisplay, created: false }
+    const bestId = best.id
+    const bestGpi = best.gpiDisplay
+
+    // Only claim a unique signal for `best` if no OTHER matched person already owns it.
+    // Otherwise the update collides (P2002 on identityHash/phoneE164/emailNorm) and
+    // aborts the whole booking transaction. The conflicting person surfaces via the
+    // weak-signal PersonIdentityMatch suggestion path instead of a hard merge here.
+    const ownedByOther = (
+      field: 'phoneE164' | 'emailNorm' | 'identityHash',
+      value: string | null,
+    ) => Boolean(value && candidates.some((c) => c.id !== bestId && c[field] === value))
+
+    const nextPhone = ownedByOther('phoneE164', signals.phoneE164)
+      ? best.phoneE164
+      : signals.phoneE164 ?? best.phoneE164
+    const nextEmail = ownedByOther('emailNorm', signals.emailNorm)
+      ? best.emailNorm
+      : signals.emailNorm ?? best.emailNorm
+    const nextIdentity = ownedByOther('identityHash', signals.identityHash)
+      ? best.identityHash
+      : signals.identityHash ?? best.identityHash
+
+    const nextName = signals.fullNameCanon || best.fullNameCanon
+    const nextBirth = birthDateValue(input) ?? best.birthDate
+
+    // SAVEPOINT retry defends against unique holders outside the take:8 candidate
+    // window or a concurrent insert — drop the offending field, keep best's value.
+    await tx.$executeRawUnsafe(`SAVEPOINT person_update`)
+    try {
+      await tx.person.update({
+        where: { id: bestId },
+        data: {
+          fullNameCanon: nextName,
+          phoneE164: nextPhone,
+          emailNorm: nextEmail,
+          identityHash: nextIdentity,
+          birthDate: nextBirth,
+        },
+      })
+      await tx.$executeRawUnsafe(`RELEASE SAVEPOINT person_update`)
+    } catch (error) {
+      await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT person_update`)
+      if (!isUniqueViolation(error)) throw error
+      const fields = uniqueTargetFields(error)
+      await tx.person.update({
+        where: { id: bestId },
+        data: {
+          fullNameCanon: nextName,
+          phoneE164: fields.includes('phoneE164') ? best.phoneE164 : nextPhone,
+          emailNorm: fields.includes('emailNorm') ? best.emailNorm : nextEmail,
+          identityHash: fields.includes('identityHash') ? best.identityHash : nextIdentity,
+          birthDate: nextBirth,
+        },
+      })
+    }
+
+    return { personId: bestId, gpiDisplay: bestGpi, created: false }
   }
 
   const phoneTaken = Boolean(
@@ -261,6 +307,34 @@ export async function resolveOrCreatePerson(
     } finally {
       await safeResetRole(tx)
     }
+  })
+}
+
+/**
+ * Resolve or create ecosystem Person in its OWN transaction (no caller tx reused).
+ *
+ * Required before a Serializable booking transaction: when identity Prisma is distinct,
+ * the Person is committed on a separate owner connection. A Serializable tx started
+ * earlier cannot see that row, so linking `Patient.personId` inside it fails the FK
+ * check. Committing the Person first makes it visible to the booking snapshot.
+ */
+export async function resolveOrCreatePersonStandalone(
+  input: ResolvePersonInput,
+): Promise<{ personId: string; gpiDisplay: string; created: boolean }> {
+  return runWithTenantBypassAsync('identity:resolve', async () => {
+    // identityPrisma() === owner client when distinct, otherwise the app client.
+    if (isIdentityPrismaDistinct()) {
+      return identityPrisma().$transaction((idTx) => personResolveOnTx(idTx, input))
+    }
+
+    return identityPrisma().$transaction(async (idTx) => {
+      await idTx.$executeRawUnsafe(`SET LOCAL ROLE asistan_identity`)
+      try {
+        return await personResolveOnTx(idTx, input)
+      } finally {
+        await safeResetRole(idTx)
+      }
+    })
   })
 }
 

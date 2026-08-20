@@ -147,10 +147,10 @@ export default function ProductPage() {
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.95fr_1fr] lg:px-8">
           <FadeUp>
             <Badge className="mb-5 border-0 bg-white text-brand-teal">Ürün</Badge>
-            <h1 className="mb-6 font-heading text-4xl font-black leading-[1.08] tracking-tight text-brand-navy md:text-5xl lg:text-6xl">
+            <h1 className="mb-6 font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy md:text-5xl lg:text-6xl">
               Kliniğinizin günlük işlerini tek panelden yönetin.
             </h1>
-            <p className="mb-8 max-w-xl text-lg leading-8 text-slate-600">
+            <p className="mb-8 max-w-xl text-lg leading-8 text-[#6B7280]">
               Asistan; takvim, hasta kartları, hatırlatmalar, ekip rolleri ve operasyon
               önerilerini sade bir iş akışında birleştirir.
             </p>
@@ -158,7 +158,8 @@ export default function ProductPage() {
               <Link href={getClinicTrialPath('tr')}>
                 <Button
                   size="lg"
-                  className="h-12 rounded-xl bg-brand-teal px-6 font-semibold text-white hover:bg-brand-teal-hover"
+                  variant="ctaPrimary"
+                  className="h-12 rounded-xl px-6 font-semibold"
                 >
                   {ENTRY_CTA.clinicTrial.tr}
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -167,8 +168,8 @@ export default function ProductPage() {
               <Link href={DEMO_CONTACT_PATH}>
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="h-12 rounded-xl border-brand-teal/30 px-6 text-brand-teal hover:bg-brand-teal/5"
+                  variant="ctaSecondary"
+                  className="h-12 rounded-xl px-6 font-semibold"
                 >
                   {ENTRY_CTA.demoRequest.tr}
                 </Button>

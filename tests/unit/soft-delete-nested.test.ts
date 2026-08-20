@@ -82,4 +82,83 @@ describe('soft-delete nested filters (appointment archive consistency)', () => {
       },
     })
   })
+
+  it('keeps scalar notes on PersonMedication select (not a PatientNote relation)', () => {
+    const args = applySoftDeleteToQueryArgs(
+      {
+        where: { personId: 'p1' },
+        select: { id: true, name: true, notes: true, sourceType: true },
+      },
+      'PersonMedication',
+    )
+
+    expect(args?.select).toEqual({
+      id: true,
+      name: true,
+      notes: true,
+      sourceType: true,
+    })
+  })
+
+  it('keeps scalar notes on PersonAllergy select', () => {
+    const args = applySoftDeleteToQueryArgs(
+      {
+        select: { id: true, allergen: true, notes: true },
+      },
+      'PersonAllergy',
+    )
+
+    expect(args?.select).toEqual({
+      id: true,
+      allergen: true,
+      notes: true,
+    })
+  })
+
+  it('does not treat notes string filters as PatientNote relation filters', () => {
+    expect(
+      applySoftDeleteToWhereRelationFilters(
+        { personId: 'p1', notes: { contains: 'aspirin' } },
+        'PersonMedication',
+      ),
+    ).toEqual({
+      personId: 'p1',
+      notes: { contains: 'aspirin' },
+    })
+  })
+
+  it('still injects deletedAt into Patient.notes relation include', () => {
+    const args = applySoftDeleteToQueryArgs(
+      {
+        include: { notes: true },
+      },
+      'Patient',
+    )
+
+    expect(args?.include).toEqual({
+      notes: { where: { deletedAt: null } },
+    })
+  })
+
+  it('injects deletedAt into nested Patient.notes under Business.patients', () => {
+    const args = applySoftDeleteToQueryArgs(
+      {
+        include: {
+          patients: {
+            include: { notes: true },
+          },
+        },
+      },
+      'Business',
+    )
+
+    expect(args?.include).toEqual({
+      patients: {
+        where: { deletedAt: null },
+        include: {
+          notes: { where: { deletedAt: null } },
+        },
+      },
+    })
+  })
 })

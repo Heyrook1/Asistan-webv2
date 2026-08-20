@@ -174,9 +174,10 @@ export function IntakeFormEditor({
                   />
                 </div>
               ) : null}
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
                 <input
                   type="checkbox"
+                  className="size-4 shrink-0"
                   checked={field.required}
                   onChange={(e) => updateField(field.id, { required: e.target.checked })}
                 />

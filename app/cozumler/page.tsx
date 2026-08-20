@@ -93,10 +93,10 @@ export default function SolutionsPage() {
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.95fr_1fr] lg:px-8">
           <FadeUp>
             <Badge className="mb-5 border-0 bg-white text-brand-blue">Çözümler</Badge>
-            <h1 className="mb-6 font-heading text-4xl font-black leading-[1.08] tracking-tight text-brand-navy md:text-5xl lg:text-6xl">
+            <h1 className="mb-6 font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy md:text-5xl lg:text-6xl">
               İlk olarak sağlık profesyonelleri için geliştirildi.
             </h1>
-            <p className="mb-8 max-w-xl text-lg leading-8 text-slate-600">
+            <p className="mb-8 max-w-xl text-lg leading-8 text-[#6B7280]">
               {productName('health', 'tr')} aktif. Güzellik, hukuk ve emlak çözümleri aynı iş yönetimi
               yaklaşımıyla sıradaki sektörlerdir — “yakında” olanlar tamamlanmış sayılmaz.
             </p>
@@ -104,7 +104,8 @@ export default function SolutionsPage() {
               <Link href="/cozumler/health">
                 <Button
                   size="lg"
-                  className="h-12 rounded-xl bg-brand-blue px-6 font-semibold text-white hover:bg-brand-blue/90"
+                  variant="ctaSecondary"
+                  className="h-12 rounded-xl px-6 font-semibold"
                 >
                   Asistan Health’i incele
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -113,8 +114,8 @@ export default function SolutionsPage() {
               <Link href={getClinicTrialPath('tr')}>
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="h-12 rounded-xl border-brand-blue/30 px-6 text-brand-blue hover:bg-brand-blue/5"
+                  variant="ctaPrimary"
+                  className="h-12 rounded-xl px-6 font-semibold"
                 >
                   {ENTRY_CTA.clinicTrial.tr}
                 </Button>

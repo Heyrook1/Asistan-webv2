@@ -11,6 +11,8 @@ import type { CreateClientBookingInput } from '@/lib/client-marketplace/booking-
 import { BOOKING_PRIVACY_NOTICE_VERSION } from '@/lib/client-marketplace/booking-schema'
 import { resolveOrCreateClinicPatient } from '@/lib/identity/clinic-patient'
 import { ensurePatientCardOnConfirm } from '@/lib/identity/ensure-patient-card-on-confirm'
+import { resolveOrCreatePersonStandalone } from '@/lib/identity/resolve'
+import { isIdentityPrismaDistinct } from '@/lib/prisma-owner'
 import { setTenantBusinessId } from '@/lib/security/tenant-db-context'
 
 export class SlotConflictError extends Error {
@@ -32,6 +34,12 @@ export type CreateSlotAppointmentInput = {
    * Guest public: allow booking with null locationId.
    */
   requireLocationIfIdProvided: boolean
+  /**
+   * Pre-resolved ecosystem Person id (committed before the Serializable booking tx).
+   * Threaded to resolveOrCreateClinicPatient so no Person is created inside the tx —
+   * an owner-connection Person is invisible to the tx snapshot and fails the FK.
+   */
+  personId?: string
   /** Channel-specific writes after appointment + timeline (idempotency claim, clientNotification). */
   onAfterAppointment?: (
     tx: Prisma.TransactionClient,
@@ -152,6 +160,7 @@ export async function createSlotAppointmentTx(
     city: payload.city,
     // Guest public book: never write plaintext national ID to Patient card.
     persistIdentityOnPatientCard: Boolean(input.clientUserId),
+    personId: input.personId,
   })
 
   const status = business.autoConfirmClientAppointments
@@ -227,11 +236,26 @@ export async function createSlotAppointmentTx(
 export async function runSlotAppointmentTransaction(
   input: CreateSlotAppointmentInput
 ): Promise<CreateSlotAppointmentResult> {
+  // When identity Prisma is distinct, Person is committed on a separate owner
+  // connection. A Serializable booking tx started afterwards cannot see it, so the
+  // Patient.personId FK write fails. Resolve + commit the Person FIRST so it is
+  // visible to the tx snapshot; the tx then only links (never creates) the Person.
+  let personId = input.personId
+  if (!personId && isIdentityPrismaDistinct()) {
+    const person = await resolveOrCreatePersonStandalone({
+      fullName: input.payload.fullName,
+      phone: input.payload.phone,
+      email: input.payload.email,
+      identityNumber: input.payload.identityNumber,
+    })
+    personId = person.personId
+  }
+
   return prisma.$transaction(
     async (tx) => {
       // asistan_app RLS: without GUC, doctor/service/appointment reads are empty.
       await setTenantBusinessId(tx, input.payload.businessId)
-      return createSlotAppointmentTx(tx, input)
+      return createSlotAppointmentTx(tx, { ...input, personId })
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

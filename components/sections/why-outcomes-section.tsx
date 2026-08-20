@@ -40,7 +40,7 @@ export function WhyOutcomesSection() {
   return (
     <section
       id="why"
-      className="bg-[#F6F7F9] scroll-mt-28 px-4 py-16 sm:px-6 lg:py-20"
+      className="bg-[var(--section-surface-neutral)] scroll-mt-28 px-4 py-16 sm:px-6 lg:py-20"
       aria-labelledby="why-heading"
     >
       <div className="mx-auto max-w-[1100px]">

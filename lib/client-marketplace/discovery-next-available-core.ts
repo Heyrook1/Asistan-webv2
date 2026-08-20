@@ -125,3 +125,77 @@ export function resolveNextAvailableFromMaps(
 
 /** Fixed DB round-trips for discovery next-available (services + rules + appts + blocks). */
 export const DISCOVERY_NEXT_AVAILABLE_QUERY_BUDGET = 4
+
+export type NextSlot = {
+  date: string
+  startTime: string
+  endTime: string
+  serviceId: string
+}
+
+export type NextSlotsRequest = {
+  doctorId: string
+  serviceId: string
+  timezone: string
+  /** Pre-resolved "now" for the request timezone (optional; falls back to nowByTz). */
+  now?: { date: string; time: string }
+}
+
+/**
+ * Resolve up to `limit` bookable slots on the first available day per doctor from
+ * preloaded batch maps. Powers the clinic-detail "nextSlots" preview without the
+ * per-doctor x per-day `getAvailableSlots` transaction N+1.
+ *
+ * Returns Map doctorId -> slot list (empty when service duration is unknown,
+ * mirroring the original NOT_BOOKABLE guard for missing/inactive services).
+ */
+export function resolveNextSlotsFromMaps(
+  requests: NextSlotsRequest[],
+  maps: DiscoveryBatchMaps,
+  limit = 6
+): Map<string, NextSlot[]> {
+  const result = new Map<string, NextSlot[]>()
+
+  for (const req of requests) {
+    const tz = req.timezone || 'Europe/Istanbul'
+    const now = req.now ?? maps.nowByTz.get(tz)
+    const durationMin = maps.durationByService.get(req.serviceId)
+    if (!now || durationMin == null) {
+      result.set(req.doctorId, [])
+      continue
+    }
+
+    let slotsForDoctor: NextSlot[] = []
+
+    for (let i = 0; i < maps.dates.length; i += 1) {
+      const date = maps.dates[i]
+      const weekday = getWeekdayFromDateString(date)
+      const dayRules = maps.rulesByStaffWeekday.get(`${req.doctorId}:${weekday}`) ?? []
+      if (dayRules.length === 0) continue
+
+      const slots = computeAvailableSlots({
+        durationMin,
+        rules: dayRules,
+        appointments: maps.apptByStaffDate.get(`${req.doctorId}:${date}`) ?? [],
+        blocks: maps.blockByStaffDate.get(`${req.doctorId}:${date}`) ?? [],
+        date,
+        nowDate: now.date,
+        nowTime: now.time,
+      })
+
+      if (slots.length > 0) {
+        slotsForDoctor = slots.slice(0, limit).map((slot) => ({
+          date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          serviceId: req.serviceId,
+        }))
+        break
+      }
+    }
+
+    result.set(req.doctorId, slotsForDoctor)
+  }
+
+  return result
+}

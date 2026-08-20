@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { getAccessToken } from '@/lib/client-marketplace/client-fetch'
 import { patientChromeName } from '@/lib/brand/masterbrand'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -31,12 +32,6 @@ type Profile = {
   email: string | null
   address: string | null
   city: string | null
-}
-
-async function getAccessToken() {
-  const supabase = createClient()
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
 }
 
 async function claimGuestBookings(token: string, t: Translate) {
@@ -437,11 +432,11 @@ export function ClientProfilePanel() {
             </div>
 
             {mode === 'register' ? (
-              <label className="flex items-start gap-2 text-[12px] leading-relaxed text-slate-600">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-[12px] leading-relaxed text-slate-600">
                 <input
                   type="checkbox"
                   name="acceptedTerms"
-                  className="mt-0.5 size-4 rounded border-slate-300"
+                  className="size-4 shrink-0 rounded border-slate-300"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
                   required

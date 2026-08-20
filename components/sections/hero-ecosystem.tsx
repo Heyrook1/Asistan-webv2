@@ -62,22 +62,26 @@ export function HeroEcosystem() {
         <div className="absolute bottom-0 left-0 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto grid max-w-[1200px] items-center gap-14 lg:grid-cols-[0.95fr_1.05fr] lg:gap-8">
-        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-          <AsistanLogo size="lg" priority />
+      <div className="relative mx-auto grid max-w-[1200px] grid-cols-[minmax(0,1fr)] items-center gap-14 lg:grid-cols-[0.95fr_1.05fr] lg:gap-8">
+        <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
+          <AsistanLogo
+            size="md"
+            priority
+            className="!h-auto !w-[144px] sm:!w-[156px] lg:!w-[168px]"
+          />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-[#0071E3]">
             Asistan Health
           </p>
           <h1
             id="hero-heading"
-            className="mt-3 max-w-xl font-display text-[2rem] font-extrabold leading-[1.12] tracking-tight text-[#1D1D1F] sm:text-5xl lg:text-[3.25rem]"
+            className="mt-4 max-w-xl font-display text-[2rem] font-extrabold leading-[1.16] tracking-tight text-[#1D1D1F] sm:text-5xl lg:text-[3.25rem]"
           >
             {t({
               tr: 'Klinik gününüzü sakinleştiren dijital sağlık altyapısı.',
               en: 'The digital clinic layer that calms your day.',
             })}
           </h1>
-          <p className="mt-4 max-w-lg text-base leading-relaxed text-[#5D6068] sm:text-lg">
+          <p className="mt-6 max-w-lg text-base leading-7 text-[#6B7280] sm:text-lg sm:leading-8">
             {t({
               tr: 'Randevu, hasta ve ekip — tek panelde.',
               en: 'Scheduling, patients, and team — one panel.',
@@ -88,7 +92,7 @@ export function HeroEcosystem() {
             {stats.map((stat) => (
               <li
                 key={stat.label}
-                className="rounded-2xl border border-white/80 bg-white/80 px-3 py-3 text-left shadow-sm backdrop-blur-md"
+                className="rounded-2xl border border-[#E6EAF0] bg-white/92 px-3 py-3 text-left shadow-[0_12px_28px_-22px_rgba(15,23,42,0.28)]"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                   {stat.label}

@@ -31,6 +31,8 @@ describe('rls policy inventory', () => {
 
   it('requires deny-default on platform-only tables', () => {
     expect(listDenyPostgrestTables()).toContain('Person')
+    expect(listDenyPostgrestTables()).toContain('PersonMedication')
+    expect(listDenyPostgrestTables()).toContain('PersonDocument')
     expect(listDenyPostgrestTables()).toContain('Waitlist')
     expect(policyLooksDenyAll('false', 'false')).toBe(true)
   })

@@ -13,7 +13,7 @@ export function FinalCtaBand() {
   return (
     <section
       id="cta"
-      className="relative scroll-mt-28 overflow-hidden px-4 py-20 sm:px-6 lg:py-24"
+      className="relative scroll-mt-28 overflow-hidden bg-white px-4 py-20 sm:px-6 lg:py-24"
       aria-labelledby="final-cta-heading"
     >
       <div
@@ -35,27 +35,33 @@ export function FinalCtaBand() {
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-base text-[#5D6068]">
           {t({
-            tr: '20 dakikalık demoda panelinizi görün — veya hemen denemeye başlayın.',
-            en: 'See your panel in a 20-minute demo — or start a trial now.',
+            tr: 'Hemen denemeye başlayın; ihtiyaç olursa ekiple 20 dakikalık bir demo planlayın.',
+            en: 'Start a trial now, then plan a 20-minute demo with the team if you need one.',
           })}
         </p>
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div
+          data-testid="home-final-conversion-ctas"
+          className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
+        >
           <Button
             asChild
-            className="h-14 min-w-[14rem] rounded-2xl bg-[#0071E3] px-8 text-base font-bold text-white hover:bg-[#0063C8]"
+            variant="ctaPrimary"
+            className="h-14 min-w-[14rem] rounded-2xl px-8 text-base font-bold"
           >
-            <Link href={DEMO_CONTACT_PATH} className="flex items-center gap-2">
-              {t(ENTRY_CTA.demoRequest)}
+            <Link href={getRegisterPath(language)} data-cta-priority="primary" className="flex items-center gap-2">
+              {t(ENTRY_CTA.clinicTrial)}
               <ArrowRight className="size-5" aria-hidden />
             </Link>
           </Button>
           <Button
             asChild
-            variant="outline"
-            className="h-14 min-w-[14rem] rounded-2xl border-[#0071E3]/25 bg-white px-6 text-base font-semibold"
+            variant="ctaSecondary"
+            className="h-14 min-w-[14rem] rounded-2xl px-6 text-base font-semibold"
           >
-            <Link href={getRegisterPath(language)}>{t(ENTRY_CTA.clinicTrial)}</Link>
+            <Link href={DEMO_CONTACT_PATH} data-cta-priority="secondary">
+              {t(ENTRY_CTA.demoRequest)}
+            </Link>
           </Button>
         </div>
 

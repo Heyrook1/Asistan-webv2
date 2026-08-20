@@ -33,130 +33,32 @@ import {
   canCancelOrRescheduleByPolicy,
   DEFAULT_CANCEL_MIN_HOURS,
 } from '@/lib/client-marketplace/cancel-policy'
-import { createClient } from '@/lib/supabase/client'
+import {
+  clientFetch as sharedClientFetch,
+  getAccessToken,
+} from '@/lib/client-marketplace/client-fetch'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
-
-type AppointmentRow = {
-  id: string
-  status: AppointmentStatus
-  date: string
-  startTime: string
-  endTime: string
-  businessId: string
-  serviceId: string
-  doctorId: string | null
-  locationId: string | null
-  hasReview?: boolean
-  clinic: { id: string; name: string; slug?: string | null }
-  doctor: { id: string; fullName: string; specialty: string | null } | null
-  service: { id: string; name: string }
-  location: { id: string; name: string; address: string | null } | null
-}
-
-type Slot = { startTime: string; endTime: string }
-
-/** Same pair shape as useLanguage().t — for module-level helpers. */
-type Translate = <T>(translations: { tr: T; en: T }) => T
-
-function statusLabel(status: AppointmentStatus, t: Translate): string {
-  switch (status) {
-    case 'SCHEDULED':
-      return t({ tr: 'Onay bekliyor', en: 'Awaiting confirmation' })
-    case 'CONFIRMED':
-      return t({ tr: 'Onaylandı', en: 'Confirmed' })
-    case 'COMPLETED':
-      return t({ tr: 'Tamamlandı', en: 'Completed' })
-    case 'CANCELLED':
-      return t({ tr: 'İptal', en: 'Cancelled' })
-    case 'NO_SHOW':
-      return t({ tr: 'Gelinmedi', en: 'No-show' })
-  }
-}
-
-const STATUS_CLASS: Record<AppointmentStatus, string> = {
-  SCHEDULED: 'bg-amber-50 text-amber-800 border-amber-200',
-  CONFIRMED: 'bg-sky-50 text-sky-800 border-sky-200',
-  COMPLETED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  CANCELLED: 'bg-rose-50 text-rose-800 border-rose-200',
-  NO_SHOW: 'bg-slate-100 text-slate-700 border-slate-200',
-}
-
-function isActive(status: AppointmentStatus) {
-  return status === 'SCHEDULED' || status === 'CONFIRMED'
-}
-
-function appointmentStartsAtMs(date: string, startTime: string): number {
-  const time = startTime.length === 5 ? `${startTime}:00` : startTime
-  return new Date(`${date}T${time}`).getTime()
-}
-
-/** Yaklaşan = aktif durum + henüz başlamamış (geçmiş tarihli SCHEDULED past'e düşer). */
-function isUpcomingRow(row: AppointmentRow, now = Date.now()) {
-  return isActive(row.status) && appointmentStartsAtMs(row.date, row.startTime) >= now
-}
-
-function nextStepCopy(status: AppointmentStatus, t: Translate) {
-  switch (status) {
-    case 'SCHEDULED':
-      return t({
-        tr: 'Klinik onayı bekleniyor. Onaylanınca bildirim alırsınız.',
-        en: 'Waiting for clinic confirmation. You will be notified once it is approved.',
-      })
-    case 'CONFIRMED':
-      return t({
-        tr: 'Randevunuz onaylandı. Zamanı gelince hatırlatma gönderilir.',
-        en: 'Your appointment is confirmed. A reminder will be sent closer to the time.',
-      })
-    case 'COMPLETED':
-      return t({
-        tr: 'Ziyaret tamamlandı. Deneyiminizi puanlayabilirsiniz.',
-        en: 'Visit completed. You can rate your experience.',
-      })
-    case 'CANCELLED':
-      return t({
-        tr: 'Bu randevu iptal edildi. Yeni bir saat seçebilirsiniz.',
-        en: 'This appointment was cancelled. You can pick a new time.',
-      })
-    case 'NO_SHOW':
-      return t({
-        tr: 'Bu randevu gelinmedi olarak işaretlendi.',
-        en: 'This appointment was marked as a no-show.',
-      })
-  }
-}
+import {
+  appointmentStartsAtMs,
+  isActive,
+  isUpcomingRow,
+  nextStepCopy,
+  statusLabel,
+  STATUS_CLASS,
+  type AppointmentRow,
+  type Slot,
+  type Translate,
+} from '@/components/client/bookings/appointment-model'
 
 const CANCEL_MIN_HOURS = DEFAULT_CANCEL_MIN_HOURS
 
-async function getAccessToken() {
-  const supabase = createClient()
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 async function clientFetch<T>(path: string, init?: RequestInit, t?: Translate): Promise<T> {
-  const token = await getAccessToken()
-  if (!token) {
-    throw new Error('AUTH_REQUIRED')
-  }
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${token}`,
-      ...(init?.headers ?? {}),
-    },
-  })
-  const body = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    const fallback = t
-      ? t({ tr: 'İstek başarısız', en: 'Request failed' })
-      : 'Request failed'
-    throw new Error((body as { error?: string }).error ?? fallback)
-  }
-  return body as T
+  return sharedClientFetch<T>(
+    path,
+    init,
+    t ? t({ tr: 'İstek başarısız', en: 'Request failed' }) : 'Request failed',
+  )
 }
 
 export function ClientBookingsPanel() {
@@ -267,7 +169,17 @@ export function ClientBookingsPanel() {
   const past = useMemo(
     () =>
       rows
-        .filter((row) => !isUpcomingRow(row))
+        .filter((row) => !isUpcomingRow(row) && row.status !== 'CANCELLED')
+        .sort(
+          (a, b) =>
+            appointmentStartsAtMs(b.date, b.startTime) - appointmentStartsAtMs(a.date, a.startTime)
+        ),
+    [rows]
+  )
+  const cancelled = useMemo(
+    () =>
+      rows
+        .filter((row) => row.status === 'CANCELLED')
         .sort(
           (a, b) =>
             appointmentStartsAtMs(b.date, b.startTime) - appointmentStartsAtMs(a.date, a.startTime)
@@ -573,6 +485,17 @@ export function ClientBookingsPanel() {
               </Link>
             ) : null}
           </section>
+
+          {cancelled.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                {t({ tr: 'İptal edilenler', en: 'Cancelled' })} ({cancelled.length})
+              </h2>
+              {cancelled.map((row) => (
+                <BookingCard key={row.id} row={row} focused={focusId === row.id} />
+              ))}
+            </section>
+          ) : null}
         </>
       )}
 

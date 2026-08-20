@@ -1,7 +1,7 @@
 /**
  * Public marketing pricing — single source of truth.
  * Amounts and plan codes come from `lib/vendor-membership.ts`.
- * Do not hardcode EUR/TL prices in UI components.
+ * Do not hardcode TRY prices in UI components.
  *
  * Security rule: tenant isolation, basic RBAC, and mandatory privacy / in-product
  * audit controls ship on every plan. Only advanced audit export / governance may
@@ -219,28 +219,28 @@ export function publicPlanMonthlyAmount(
   cycle: PublicBillingCycle
 ): number | null {
   if (plan.demoOnly) return 0
-  if (cycle === 'monthly') return plan.monthlyPriceEur
-  return plan.yearlyPriceEur
+  if (cycle === 'monthly') return plan.monthlyPriceTry
+  return plan.yearlyPriceTry
 }
 
 /**
  * Amount charged when paying annual upfront.
- * `yearlyPriceEur` in catalog is the discounted monthly-equivalent rate.
+ * `yearlyPriceTry` in the catalog is the monthly-equivalent rate.
  */
 export function publicPlanAnnualPrepaidAmount(plan: PublicPricingPlan): number | null {
   if (plan.demoOnly) return 0
-  if (plan.yearlyPriceEur == null || plan.yearlyPriceEur <= 0) return null
-  return plan.yearlyPriceEur * 12
+  if (plan.yearlyPriceTry == null || plan.yearlyPriceTry <= 0) return null
+  return plan.yearlyPriceTry * 12
 }
 
 export function formatPublicPlanPrice(
   amount: number | null,
   locale: PublicPricingLocale
 ): string {
-  if (amount == null) return locale === 'tr' ? 'Özel' : 'Custom'
+  if (amount == null) return locale === 'tr' ? 'İletişime geçiniz' : 'Contact us'
   if (amount === 0) return locale === 'tr' ? 'Ücretsiz' : 'Free'
   const formatted = amount.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')
-  return `€${formatted}`
+  return `${formatted} TRY`
 }
 
 /** Early-access pricing honesty — list price ≠ mature SaaS proof pack. */
@@ -253,9 +253,9 @@ export const PUBLIC_PRICING_PROOF_GATE: Record<
   }
 > = {
   tr: {
-    title: 'Liste fiyatı · erken erişim gerçeği',
+    title: 'Erken erişim şeffaflık notları',
     body:
-      '€149–€499 aralığı olgun kurumsal SaaS beklentisi yaratabilir. İmzalı pilot, ölçülebilir ROI ve sahada kanıtlanmamış “canlı kanal” vaatleri olmadan önce demo veya 14 günlük deneme ile uyumu doğrulayın — fiyat sayfası satış baskısı değil, planlama aracıdır.',
+      'Plan kartları bugünkü kapsamı ve liste fiyatını gösterir. Demo veya 14 günlük denemede randevu akışı ve destek uyumunu doğrulayın.',
     bullets: [
       'Bugün güçlü olan: klinik paneli, gerçek slot randevusu, işletme bazlı güvenlik kontrolleri.',
       'Kanıt kapısı açık değilse iddia etmiyoruz: sahte logo/sertifika, uydurma NPS/%, imzasız “ROI garantisi”.',
@@ -264,9 +264,9 @@ export const PUBLIC_PRICING_PROOF_GATE: Record<
     ],
   },
   en: {
-    title: 'List price · early-access reality',
+    title: 'Early-access transparency notes',
     body:
-      '€149–€499 can imply mature enterprise SaaS. Without a signed pilot, measurable ROI, and proven live channels, start with a demo or 14-day trial — this page is for planning, not pressure selling.',
+      'Plan cards show today’s scope and list price. Confirm booking-flow and support fit during a demo or 14-day trial.',
     bullets: [
       'Strong today: clinic panel, real slot booking, business-level security controls.',
       'We do not invent proof: fake logos/certs, fabricated NPS/%, unsigned “ROI guarantees”.',
@@ -287,19 +287,17 @@ export const PUBLIC_PRICING_BILLING_DISCLOSURE: Record<
   tr: {
     title: 'Vergi, para birimi ve tahsilat',
     bullets: [
-      'Listelenen tutarlar EUR cinsindendir; faturada ayrıca belirtilmedikçe KDV/vergi hariçtir. Uygulanacak vergi oranı fatura anında netleşir.',
-      'SaaS abonelik tahsilatı varsayılan olarak EUR üzerinden yapılır (kart veya fatura).',
-      'KKTC klinikleri için TL ödeme, fatura düzenlenirken kur ile dönüştürülerek ayrıca anlaşılabilir — anlık TL checkout yoktur.',
-      'TL tahsilatta kur, fatura/ödeme tarihindeki işlem kuruna göre uygulanır; sabit kur garantisi yoktur.',
+      'Listelenen tutarlar TRY cinsindendir; faturada ayrıca belirtilmedikçe KDV/vergi hariçtir. Uygulanacak vergi oranı fatura anında netleşir.',
+      'Başlangıç ve Profesyonel paket tahsilatı TRY üzerinden planlanır (kart veya fatura).',
+      'Kurumsal paket, klinik yapısı ve entegrasyon ihtiyacına göre tekliflendirilir.',
     ],
   },
   en: {
     title: 'Tax, currency, and billing',
     bullets: [
-      'Listed amounts are in EUR and exclude VAT/tax unless the invoice states otherwise. Applicable tax is confirmed on the invoice.',
-      'SaaS subscription collection defaults to EUR (card or invoice).',
-      'TRY payment for Northern Cyprus clinics can be arranged via invoice FX conversion — there is no instant TRY checkout.',
-      'For TRY settlement, the rate is set at invoice/payment time; there is no fixed FX guarantee.',
+      'Listed amounts are in TRY and exclude VAT/tax unless the invoice states otherwise. Applicable tax is confirmed on the invoice.',
+      'Starter and Professional plans are billed in TRY (card or invoice).',
+      'Enterprise is quoted based on clinic structure and integration needs.',
     ],
   },
 }

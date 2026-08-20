@@ -24,7 +24,7 @@ describe('public pricing catalog', () => {
     expect(paid).toEqual([...PAID_VENDOR_PLAN_CODES])
   })
 
-  it('monthly amounts match billing catalog (EUR)', () => {
+  it('monthly amounts match billing catalog (TRY)', () => {
     for (const plan of listPublicPaidPricingPlans()) {
       const ui = publicPlanMonthlyAmount(plan, 'monthly')
       const bill = getVendorPlanPrice(plan.code, 'MONTHLY')
@@ -34,7 +34,8 @@ describe('public pricing catalog', () => {
 
   it('formats free trial as Ücretsiz', () => {
     expect(formatPublicPlanPrice(0, 'tr')).toBe('Ücretsiz')
-    expect(formatPublicPlanPrice(149, 'tr')).toBe('€149')
+    expect(formatPublicPlanPrice(1000, 'tr')).toBe('1.000 TRY')
+    expect(formatPublicPlanPrice(null, 'tr')).toBe('İletişime geçiniz')
   })
 
   it('marketing plan cards are exactly 3 paid tiers', () => {

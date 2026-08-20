@@ -63,7 +63,7 @@ export function LandingFaqSection() {
   return (
     <section
       id="faq"
-      className="bg-[#F6F7F9] scroll-mt-28 px-4 py-16 sm:px-6 lg:py-20"
+      className="bg-[var(--section-surface-neutral)] scroll-mt-28 px-4 py-16 sm:px-6 lg:py-20"
       aria-labelledby="faq-heading"
     >
       <div className="mx-auto max-w-[720px]">

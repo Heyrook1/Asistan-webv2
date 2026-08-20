@@ -34,13 +34,12 @@ export const MASTERBRAND = {
   companyDomain: 'asistan.online',
   /** Live SEO/canonical host — see docs/regional-hubs.md */
   regionalHost: getLiveHub().host,
-  socialHandle: '@asistan.kktc',
   contactEmail: 'merhaba@asistan.online',
   /** Only real, live profiles — never generic domain roots */
   social: {
-    instagram: 'https://www.instagram.com/asistan.kktc/',
-    /** Set when LinkedIn company page is live; do not use generic linkedin.com */
-    linkedin: null as string | null,
+    facebook: 'https://www.facebook.com/AsistanHealth',
+    instagram: 'https://www.instagram.com/asistan.health/',
+    linkedin: 'https://www.linkedin.com/company/asistan-health',
   },
   og: {
     path: '/opengraph-image',
@@ -54,13 +53,11 @@ export const MASTERBRAND = {
 } as const
 
 export function socialLinks(): { label: string; href: string }[] {
-  const links: { label: string; href: string }[] = [
+  return [
+    { label: 'Facebook', href: MASTERBRAND.social.facebook },
     { label: 'Instagram', href: MASTERBRAND.social.instagram },
+    { label: 'LinkedIn', href: MASTERBRAND.social.linkedin },
   ]
-  if (MASTERBRAND.social.linkedin) {
-    links.push({ label: 'LinkedIn', href: MASTERBRAND.social.linkedin })
-  }
-  return links
 }
 
 export const BRAND_PRODUCTS: Record<BrandProductId, BrandProduct> = {

@@ -59,6 +59,24 @@ const proofItems = [
   },
 ]
 
+const clinicAssurances = [
+  {
+    icon: FileLock2,
+    title: 'Hasta bilgileri klinik sınırları içinde kalır',
+    detail: 'İşletme bazlı veri ayrımı, başka bir kliniğin bilgisinin ekibinizin ekranına karışmamasını hedefler.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Ekip erişimi görevle sınırlanır',
+    detail: 'Roller, herkesin yalnızca günlük işi için gereken bilgiye erişmesine yardımcı olur.',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Ne hazırsa açıkça görürsünüz',
+    detail: 'Doğrulanmış kontrolleri gösterir, henüz tamamlanmayanları ise planlanan olarak açıkça etiketleriz.',
+  },
+]
+
 function postureBadgeClass(posture: TrustControlPosture) {
   if (posture === 'active') return 'bg-emerald-500/10 text-emerald-800 ring-emerald-500/20'
   if (posture === 'partial') return 'bg-amber-500/10 text-amber-900 ring-amber-500/20'
@@ -89,10 +107,10 @@ export default async function TrustCenterPage() {
         <div className="marketing-container relative z-10">
           <FadeUp className="mx-auto max-w-3xl text-center">
             <Badge className="marketing-chip mb-5 border-0">Güven Merkezi</Badge>
-            <h1 className="font-heading text-4xl font-black leading-[1.08] text-brand-navy md:text-5xl">
+            <h1 className="font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy md:text-5xl">
               Güven, rozet değil; doğrulanabilir kontrol.
             </h1>
-            <p className="mt-5 text-base leading-8 text-slate-600 md:text-lg">
+            <p className="mt-6 text-base leading-8 text-[#6B7280] md:text-lg">
               Her public iddia kod kontrolü, otomatik test ve son doğrulama tarihine bağlanır. Kanıt kapısı
               kapalıysa kontrol <strong className="font-semibold text-brand-navy">planlanan</strong> olarak
               etiketlenir — kesin dil kullanılmaz.
@@ -101,8 +119,36 @@ export default async function TrustCenterPage() {
         </div>
       </section>
 
+      <section className="bg-white py-12 md:py-14" aria-labelledby="clinic-assurances-heading">
+        <div className="marketing-container">
+          <FadeUp className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue">Klinik için</p>
+            <h2 id="clinic-assurances-heading" className="mt-3 text-3xl font-black text-brand-navy md:text-4xl">
+              Klinik için bugün ne anlama geliyor?
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">
+              Güvenlik kontrollerini teknik terimlere boğmadan, günlük klinik akışındaki karşılığıyla anlatıyoruz.
+            </p>
+          </FadeUp>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {clinicAssurances.map((item, index) => (
+              <ScaleIn key={item.title} delay={0.05 * index}>
+                <article className="h-full rounded-2xl border border-[#E6EAF0] bg-[var(--section-surface-neutral)] p-5">
+                  <div className="inline-flex size-11 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue">
+                    <item.icon className="size-5" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-extrabold text-brand-navy">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{item.detail}</p>
+                </article>
+              </ScaleIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {publishStats ? (
-        <section className="bg-white py-14">
+        <section className="bg-[var(--section-surface-blue)] py-14">
           <div className="marketing-container grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {statCards.map((item, index) => (
               <ScaleIn key={item.label} delay={0.04 * index}>
@@ -118,7 +164,7 @@ export default async function TrustCenterPage() {
           </div>
         </section>
       ) : (
-        <section className="bg-white py-14">
+        <section className="bg-[var(--section-surface-blue)] py-14">
           <div className="marketing-container">
             <ScaleIn>
               <article className="rounded-2xl border border-brand-blue/10 bg-[#F7FAFC] px-6 py-5 text-sm leading-7 text-slate-600">
@@ -135,7 +181,7 @@ export default async function TrustCenterPage() {
         </section>
       )}
 
-      <section className="bg-dashboard-surface py-20">
+      <section className="bg-white py-20">
         <div className="marketing-container">
           <FadeUp className="mb-10 max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue">Kontrol matrisi</p>
@@ -211,7 +257,7 @@ export default async function TrustCenterPage() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
+      <section className="bg-[var(--section-surface-neutral)] py-20">
         <div className="marketing-container">
           <FadeUp className="mb-10 max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-blue">Kanıt yüzeyi</p>
@@ -220,7 +266,7 @@ export default async function TrustCenterPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {proofItems.map((item, index) => (
               <ScaleIn key={item.title} delay={0.05 * index}>
-                <article className="h-full rounded-2xl border border-black/5 p-5">
+                <article className="h-full rounded-2xl border border-black/5 bg-white p-5">
                   <div className="mb-4 inline-flex size-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700">
                     <item.icon className="size-5" aria-hidden="true" />
                   </div>

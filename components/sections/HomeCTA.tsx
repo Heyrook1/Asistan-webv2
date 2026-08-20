@@ -8,44 +8,52 @@ import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 import { DEMO_CONTACT_PATH, ENTRY_CTA } from '@/lib/entry-routes'
 import { Button } from '@/components/ui/button'
 
-/** Hero CTA budget: primary demo + secondary trial + login chip. */
+/** Hero CTA budget: primary trial + secondary demo + login chip. */
 export function HomeCTA() {
   const { t, language } = useLanguage()
 
   return (
     <motion.div
+      data-testid="home-hero-conversion-ctas"
       initial={{ y: 12 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="mt-8 flex w-full max-w-lg flex-col items-center gap-3 sm:items-start"
+      className="mt-8 flex w-full max-w-lg flex-col items-center gap-4 sm:items-start"
     >
       <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
         <Button
           asChild
-          className="group relative h-14 w-full rounded-2xl bg-[#0071E3] px-8 text-base font-bold text-white shadow-lg shadow-[#0071E3]/25 transition duration-300 hover:bg-[#0063C8] hover:shadow-[#0071E3]/35 active:scale-[0.98] sm:w-auto sm:min-w-[14rem]"
+          variant="ctaPrimary"
+          className="group relative h-auto min-h-14 w-full !whitespace-normal rounded-2xl px-8 py-3 text-sm font-bold leading-tight sm:h-14 sm:min-h-0 sm:whitespace-nowrap sm:py-2 sm:text-base sm:w-auto sm:min-w-[14rem]"
         >
-          <Link href={DEMO_CONTACT_PATH} className="flex items-center justify-center gap-2">
-            <span>{t(ENTRY_CTA.demoRequest)}</span>
-            <ArrowRight className="size-5 transition duration-300 group-hover:translate-x-1" aria-hidden />
+          <Link
+            href={getRegisterPath(language)}
+            data-cta-priority="primary"
+            className="flex items-center justify-center gap-2"
+          >
+            <span className="min-w-0">{t(ENTRY_CTA.clinicTrial)}</span>
+            <ArrowRight className="size-5 transition duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)] group-hover:translate-x-1" aria-hidden />
           </Link>
         </Button>
 
         <Button
           asChild
-          variant="outline"
-          className="h-14 w-full rounded-2xl border-[#0071E3]/25 bg-white/80 px-6 text-base font-semibold text-[#1D1D1F] backdrop-blur-sm hover:bg-[#EEF6FF] hover:text-[#0071E3] sm:w-auto"
+          variant="ctaSecondary"
+          className="h-14 w-full rounded-2xl bg-white/95 px-6 text-base font-semibold sm:w-auto"
         >
-          <Link href={getRegisterPath(language)}>{t(ENTRY_CTA.clinicTrial)}</Link>
+          <Link href={DEMO_CONTACT_PATH} data-cta-priority="secondary">
+            {t(ENTRY_CTA.demoRequest)}
+          </Link>
         </Button>
       </div>
 
-      <p className="max-w-md text-center text-sm font-medium text-[#5D6068] sm:text-left">
-        {t(ENTRY_CTA.demoRiskReducer)}
-        {' · '}
+      <p className="max-w-md text-center text-sm font-medium text-[#6B7280] sm:text-left">
         {t(ENTRY_CTA.clinicTrialRiskReducer)}
+        {' · '}
+        {t(ENTRY_CTA.demoRiskReducer)}
       </p>
 
-      <p className="text-center text-sm text-[#5D6068] sm:text-left">
+      <p className="text-center text-sm text-[#6B7280] sm:text-left">
         <Link
           href="/fiyatlandirma"
           className="font-semibold text-[#1D1D1F] underline-offset-4 hover:text-[#0071E3] hover:underline"
@@ -55,7 +63,7 @@ export function HomeCTA() {
         {' · '}
         <Link
           href={getLoginPath(language)}
-          className="font-semibold text-[#5D6068] underline-offset-4 hover:text-[#1D1D1F] hover:underline"
+          className="font-semibold text-[#6B7280] underline-offset-4 hover:text-[#1D1D1F] hover:underline"
         >
           {t(ENTRY_CTA.clinicLogin)}
         </Link>

@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
 import { ClientHealthPanel } from '@/components/client/health-panel'
+import { HealthModules } from '@/components/client/health/health-modules'
 import { withCanonical } from '@/lib/seo'
 import { getServerLanguage } from '@/lib/server-language'
 
@@ -27,7 +28,10 @@ export default async function ClientHealthPage() {
         </main>
       }
     >
-      <ClientHealthPanel />
+      <div className="space-y-5">
+        <ClientHealthPanel />
+        <HealthModules />
+      </div>
     </Suspense>
   )
 }

@@ -46,10 +46,10 @@ export default function ResourcesPage() {
               <Badge className="mb-6 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/10">
                 Kaynaklar
               </Badge>
-              <h1 className="font-heading text-4xl font-black leading-tight text-brand-navy sm:text-5xl lg:text-6xl">
+              <h1 className="font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy sm:text-5xl lg:text-6xl">
                 Klinik yönetimi için sade rehberler.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-[#6B7280]">
                 Randevu takibi, hasta iletişimi ve ekip düzeni hakkında kısa, uygulanabilir içerikler.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -73,13 +73,13 @@ export default function ResourcesPage() {
                   <h2 className="mt-3 text-2xl font-bold text-brand-navy">{featured.title}</h2>
                   <p className="mt-4 leading-relaxed text-slate-500">{featured.description}</p>
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <Button asChild className="min-h-11 rounded-xl bg-brand-blue text-white hover:bg-brand-blue-hover">
+                    <Button asChild variant="ctaPrimary" className="min-h-11 rounded-xl">
                       <Link href={`/kaynaklar/${featured.slug}`}>
                         Rehberi oku
                         <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" className="min-h-11 rounded-xl">
+                    <Button asChild variant="ctaSecondary" className="min-h-11 rounded-xl">
                       <Link href={DEMO_CONTACT_PATH} aria-label={`${ENTRY_CTA.demoRequest.tr} — kaynaklar`}>
                         {ENTRY_CTA.demoRequest.tr}
                       </Link>
@@ -180,7 +180,7 @@ export default function ResourcesPage() {
                 className="min-h-11 rounded-xl border-slate-300"
                 autoComplete="email"
               />
-              <Button type="submit" className="min-h-11 rounded-xl bg-brand-blue text-white hover:bg-brand-blue-hover">
+              <Button type="submit" variant="ctaPrimary" className="min-h-11 rounded-xl">
                 Haberdar Ol
               </Button>
             </form>

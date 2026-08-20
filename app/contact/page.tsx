@@ -1,7 +1,7 @@
 // app/contact/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Mail, MessageSquare, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -19,8 +19,24 @@ import { getLoginPath, getRegisterPath } from '@/lib/auth-routes'
 import { ENTRY_CTA } from '@/lib/entry-routes'
 import { submitContactForm } from '@/app/contact/actions'
 
+const contactFieldFocusOrder = [
+  { errorKey: 'name', elementId: 'contact-name' },
+  { errorKey: 'email', elementId: 'contact-email' },
+  { errorKey: 'phone', elementId: 'contact-phone' },
+  { errorKey: 'company', elementId: 'contact-company' },
+  { errorKey: 'service_type', elementId: 'contact-service-type' },
+  { errorKey: 'message', elementId: 'contact-message' },
+  { errorKey: 'privacyAccepted', elementId: 'contact-privacy' },
+] as const
+
 export default function ContactPage() {
   const { t, language } = useLanguage()
+  const requiredLabel = t({ tr: 'Zorunlu', en: 'Required' })
+  const fieldCorrectionHint = t({
+    tr: 'Lütfen bu alanı kontrol edip tekrar deneyin.',
+    en: 'Please check this field and try again.',
+  })
+  const optionalLabel = t({ tr: 'İsteğe bağlı', en: 'Optional' })
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -31,9 +47,18 @@ export default function ContactPage() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [website, setWebsite] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [formErrorMessage, setFormErrorMessage] = useState('')
+  const [fieldToFocus, setFieldToFocus] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (!fieldToFocus || loading) return
+
+    document.getElementById(fieldToFocus)?.focus()
+    setFieldToFocus(null)
+  }, [fieldToFocus, loading])
 
   const contactOptions = [
     {
@@ -78,12 +103,16 @@ export default function ContactPage() {
     setPrivacyAccepted(false)
     setWebsite('')
     setFieldErrors({})
+    setFormErrorMessage('')
+    setFieldToFocus(null)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setFieldErrors({})
+    setFormErrorMessage('')
+    setFieldToFocus(null)
 
     try {
       const response = await submitContactForm({
@@ -107,11 +136,29 @@ export default function ContactPage() {
         )
         resetForm()
       } else {
-        if (response.errors) setFieldErrors(response.errors)
-        const errorDesc = response.errors
-          ? Object.values(response.errors).flat().join(', ')
-          : response.error ||
-            t({ tr: 'Gönderim başarısız', en: 'Submission failed' })
+        if (response.errors) {
+          setFieldErrors(response.errors)
+
+          const correctionMessage = t({
+            tr: 'Lütfen işaretli alanları düzeltin',
+            en: 'Please correct the highlighted fields',
+          })
+          setFormErrorMessage(correctionMessage)
+
+          const firstInvalidField = contactFieldFocusOrder.find(
+            ({ errorKey }) => response.errors?.[errorKey]?.length,
+          )
+          setFieldToFocus(firstInvalidField?.elementId ?? null)
+
+          toast.error(
+            correctionMessage,
+            { description: Object.values(response.errors).flat().join(', ') },
+          )
+          return
+        }
+        const errorDesc =
+          response.error ||
+          t({ tr: 'Gönderim başarısız', en: 'Submission failed' })
         toast.error(t({ tr: 'Gönderim başarısız', en: 'Submission failed' }), {
           description: errorDesc,
         })
@@ -133,18 +180,18 @@ export default function ContactPage() {
       <section className="relative overflow-hidden pb-16 pt-10 md:pt-12">
         <div className="marketing-hero-bg absolute inset-0" />
         <div className="soft-grid absolute inset-0 opacity-60" />
-        <div className="marketing-container relative z-10 grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <FadeUp>
+        <div className="marketing-container relative z-10 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <FadeUp className="min-w-0">
             <Badge className="marketing-chip mb-5 border-0">
               {t({ tr: 'İletişim', en: 'Contact' })}
             </Badge>
-            <h1 className="max-w-xl font-heading text-4xl font-black leading-[1.08] text-brand-navy md:text-5xl">
+            <h1 className="max-w-xl font-heading text-4xl font-black leading-[1.16] tracking-tight text-brand-navy md:text-5xl">
               {t({
                 tr: "Kliniğiniz için Asistan'ı birlikte planlayalım.",
                 en: "Let's plan Asistan for your clinic together.",
               })}
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-8 text-slate-600 md:text-lg">
+            <p className="mt-6 max-w-xl text-base leading-8 text-[#6B7280] md:text-lg">
               {t({
                 tr: 'Bu form bir talep formudur — canlı toplantı takvimi yoktur. Uygun bir görüşme saati için ekibimiz dönüş yapar.',
                 en: 'This is a request form — there is no live meeting calendar. Our team replies with a suitable time.',
@@ -152,7 +199,7 @@ export default function ContactPage() {
             </p>
           </FadeUp>
 
-          <ScaleIn>
+          <ScaleIn className="min-w-0">
             <Card className="marketing-surface rounded-2xl border-brand-blue/10 bg-white/95 shadow-xl">
               <CardContent className="p-6 md:p-7">
                 {success ? (
@@ -174,7 +221,8 @@ export default function ContactPage() {
                     <Button
                       type="button"
                       onClick={() => setSuccess(false)}
-                      className="mt-4 rounded-xl bg-brand-blue text-white hover:bg-brand-blue/90"
+                      variant="ctaSecondary"
+                      className="mt-4 rounded-xl"
                     >
                       {t({ tr: 'Yeni mesaj gönder', en: 'Send another message' })}
                     </Button>
@@ -195,8 +243,8 @@ export default function ContactPage() {
                     </p>
 
                     <form onSubmit={handleSubmit} className="relative mt-5 space-y-3" noValidate>
-                      {/* Honeypot — visually hidden from users */}
-                      <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                      {/* Honeypot — kept out of visual, keyboard, and assistive-technology flows. */}
+                      <div hidden aria-hidden="true">
                         <label htmlFor="contact-website">Website</label>
                         <input
                           id="contact-website"
@@ -209,10 +257,21 @@ export default function ContactPage() {
                         />
                       </div>
 
+                      {formErrorMessage ? (
+                        <div
+                          role="alert"
+                          data-testid="contact-validation-summary"
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
+                        >
+                          {formErrorMessage}
+                        </div>
+                      ) : null}
+
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-name">
-                            {t({ tr: 'Ad Soyad', en: 'Full Name' })}
+                          <Label htmlFor="contact-name" className="flex items-baseline justify-between gap-2">
+                            <span>{t({ tr: 'Ad Soyad', en: 'Full Name' })}</span>
+                            <span className="text-xs font-semibold text-red-500">{requiredLabel}</span>
                           </Label>
                           <Input
                             id="contact-name"
@@ -227,14 +286,16 @@ export default function ContactPage() {
                             aria-describedby={fieldErrors.name ? 'contact-name-error' : undefined}
                           />
                           {fieldErrors.name ? (
-                            <p id="contact-name-error" className="text-xs text-red-600">
+                            <p id="contact-name-error" role="alert" className="text-xs font-medium text-red-600">
                               {fieldErrors.name[0]}
+                              <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                             </p>
                           ) : null}
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-email">
-                            {t({ tr: 'İş e-postanız', en: 'Work email' })}
+                          <Label htmlFor="contact-email" className="flex items-baseline justify-between gap-2">
+                            <span>{t({ tr: 'İş e-postanız', en: 'Work email' })}</span>
+                            <span className="text-xs font-semibold text-red-500">{requiredLabel}</span>
                           </Label>
                           <Input
                             id="contact-email"
@@ -250,16 +311,18 @@ export default function ContactPage() {
                             aria-describedby={fieldErrors.email ? 'contact-email-error' : undefined}
                           />
                           {fieldErrors.email ? (
-                            <p id="contact-email-error" className="text-xs text-red-600">
+                            <p id="contact-email-error" role="alert" className="text-xs font-medium text-red-600">
                               {fieldErrors.email[0]}
+                              <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                             </p>
                           ) : null}
                         </div>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-phone">
-                            {t({ tr: 'Telefon', en: 'Phone' })}
+                          <Label htmlFor="contact-phone" className="flex items-baseline justify-between gap-2">
+                            <span>{t({ tr: 'Telefon', en: 'Phone' })}</span>
+                            <span className="text-xs font-medium text-slate-500">{optionalLabel}</span>
                           </Label>
                           <Input
                             id="contact-phone"
@@ -267,7 +330,6 @@ export default function ContactPage() {
                             type="tel"
                             placeholder="+90 5XX XXX XX XX"
                             autoComplete="tel"
-                            required
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             disabled={loading}
@@ -275,14 +337,16 @@ export default function ContactPage() {
                             aria-describedby={fieldErrors.phone ? 'contact-phone-error' : undefined}
                           />
                           {fieldErrors.phone ? (
-                            <p id="contact-phone-error" className="text-xs text-red-600">
+                            <p id="contact-phone-error" role="alert" className="text-xs font-medium text-red-600">
                               {fieldErrors.phone[0]}
+                              <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                             </p>
                           ) : null}
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="contact-company">
-                            {t({ tr: 'Klinik / Kurum Adı', en: 'Clinic / Organization' })}
+                          <Label htmlFor="contact-company" className="flex items-baseline justify-between gap-2">
+                            <span>{t({ tr: 'Klinik / Kurum Adı', en: 'Clinic / Organization' })}</span>
+                            <span className="text-xs font-medium text-slate-500">{optionalLabel}</span>
                           </Label>
                           <Input
                             id="contact-company"
@@ -296,8 +360,13 @@ export default function ContactPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label id="contact-service-type-label" htmlFor="contact-service-type">
-                          {t({ tr: 'Hizmet Türü', en: 'Service Type' })}
+                        <Label
+                          id="contact-service-type-label"
+                          htmlFor="contact-service-type"
+                          className="flex items-baseline justify-between gap-2"
+                        >
+                          <span>{t({ tr: 'Hizmet Türü', en: 'Service Type' })}</span>
+                          <span className="text-xs font-medium text-slate-500">{optionalLabel}</span>
                         </Label>
                         <Select
                           name="service_type"
@@ -335,8 +404,9 @@ export default function ContactPage() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="contact-message">
-                          {t({ tr: 'Mesajınız', en: 'Your Message' })}
+                        <Label htmlFor="contact-message" className="flex items-baseline justify-between gap-2">
+                          <span>{t({ tr: 'Mesajınız', en: 'Your Message' })}</span>
+                          <span className="text-xs font-medium text-slate-500">{optionalLabel}</span>
                         </Label>
                         <Textarea
                           id="contact-message"
@@ -346,7 +416,6 @@ export default function ContactPage() {
                             en: 'Briefly note setup, demo, or pricing questions…',
                           })}
                           rows={4}
-                          required
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
                           disabled={loading}
@@ -354,14 +423,15 @@ export default function ContactPage() {
                           aria-describedby={fieldErrors.message ? 'contact-message-error' : undefined}
                         />
                         {fieldErrors.message ? (
-                          <p id="contact-message-error" className="text-xs text-red-600">
+                          <p id="contact-message-error" role="alert" className="text-xs font-medium text-red-600">
                             {fieldErrors.message[0]}
+                            <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                           </p>
                         ) : null}
                       </div>
 
                       <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex items-center gap-2.5">
                           <input
                             id="contact-privacy"
                             name="privacyAccepted"
@@ -377,11 +447,11 @@ export default function ContactPage() {
                                 ? 'contact-privacy-error'
                                 : 'contact-privacy-hint'
                             }
-                            className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-brand-blue focus:ring-2 focus:ring-brand-blue/40"
+                            className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-brand-blue focus:ring-2 focus:ring-brand-blue/40"
                           />
                           <label
                             htmlFor="contact-privacy"
-                            className="cursor-pointer text-xs font-medium leading-relaxed text-slate-600"
+                            className="flex min-h-11 cursor-pointer items-center text-xs font-medium leading-relaxed text-slate-600"
                           >
                             {language === 'tr' ? (
                               <>
@@ -405,10 +475,7 @@ export default function ContactPage() {
                                   kullanım koşullarını
                                 </Link>
                                 {' '}okudum; iletişim talebim için bilgilerin işlenmesini kabul ediyorum.
-                                <span className="text-red-500" aria-hidden="true">
-                                  {' '}
-                                  *
-                                </span>
+                                <span className="text-red-500"> ({requiredLabel})</span>
                               </>
                             ) : (
                               <>
@@ -433,10 +500,7 @@ export default function ContactPage() {
                                   terms of use
                                 </Link>
                                 , and I consent to processing my details for this inquiry.
-                                <span className="text-red-500" aria-hidden="true">
-                                  {' '}
-                                  *
-                                </span>
+                                <span className="text-red-500"> ({requiredLabel})</span>
                               </>
                             )}
                           </label>
@@ -448,8 +512,9 @@ export default function ContactPage() {
                           })}
                         </p>
                         {fieldErrors.privacyAccepted ? (
-                          <p id="contact-privacy-error" className="pl-6 text-xs text-red-600">
+                          <p id="contact-privacy-error" role="alert" className="pl-6 text-xs font-medium text-red-600">
                             {fieldErrors.privacyAccepted[0]}
+                            <span className="ml-1 text-red-700/80">{fieldCorrectionHint}</span>
                           </p>
                         ) : null}
                       </div>
@@ -457,7 +522,8 @@ export default function ContactPage() {
                       <Button
                         type="submit"
                         disabled={loading}
-                        className="h-10 w-full rounded-lg bg-brand-blue text-white hover:bg-brand-blue/90"
+                        variant="ctaPrimary"
+                        className="h-10 w-full rounded-lg"
                       >
                         {loading ? (
                           <>

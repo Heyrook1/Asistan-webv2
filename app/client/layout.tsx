@@ -43,15 +43,23 @@ export default async function ClientLayout({ children }: { children: React.React
     <ClientLanguageBoundary initialLanguage={lang}>
       <div
         data-rz-shell="v3"
-        className="rezervasyon-shell relative min-h-dvh overflow-x-hidden bg-[#F4F6F9]"
+        className="rezervasyon-shell relative isolate min-h-dvh overflow-x-clip bg-[#F4F7FB]"
       >
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[52vh] bg-[radial-gradient(85%_65%_at_50%_-8%,rgba(0,113,227,0.14),transparent_68%)]"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[58vh] bg-[radial-gradient(78%_58%_at_50%_-6%,rgba(0,113,227,0.16),transparent_72%)]"
         />
-        <div className="relative mx-auto flex w-full max-w-screen-sm flex-col px-4 pb-[var(--rz-dock-clearance)] pt-0 md:max-w-[480px] md:px-5 md:shadow-[0_0_40px_rgba(15,23,42,0.08)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[38vh] bg-[radial-gradient(72%_54%_at_50%_108%,rgba(14,165,233,0.08),transparent_72%)]"
+        />
+        <div className="relative mx-auto flex min-h-dvh w-full max-w-screen-sm flex-col px-4 pb-[var(--rz-dock-clearance)] pt-0 md:max-w-[480px] md:bg-white/35 md:px-5 md:shadow-[0_0_50px_rgba(15,23,42,0.08)] md:ring-1 md:ring-white/70 md:backdrop-blur-sm">
           <RezervasyonTopBar />
-          <div className="mt-3 flex-1 space-y-4 has-[[data-rz-home]]:mt-0 md:mt-4 md:has-[[data-rz-home]]:mt-0">
+          <div
+            id="main-content"
+            tabIndex={-1}
+            className="mt-3 flex-1 space-y-4 outline-none has-[[data-rz-home]]:mt-0 md:mt-4 md:has-[[data-rz-home]]:mt-0"
+          >
             <ClientConnectivityBanner />
             {children}
           </div>

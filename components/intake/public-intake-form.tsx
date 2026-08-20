@@ -128,9 +128,10 @@ export function PublicIntakeForm(props: Props) {
                     ))}
                   </select>
                 ) : field.type === 'CHECKBOX' ? (
-                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-700">
                     <input
                       type="checkbox"
+                      className="size-4 shrink-0"
                       checked={Boolean(answers[field.id])}
                       onChange={(e) => setAnswers((prev) => ({ ...prev, [field.id]: e.target.checked }))}
                     />

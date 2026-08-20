@@ -11,6 +11,7 @@ import type {
 import { matchesSpecialtyTerms, specialtySearchTerms } from './specialty-aliases'
 import { getCurrentDateAndTimeForTimezone, getWeekdayFromDateString } from './time'
 import {
+  shouldIncludeDemoClinicsInPublicIndex,
   shouldIncludeTestClinicsInPublicIndex,
 } from './public-clinic-filter'
 import { CLIENT_GEOLOCATION_ENABLED } from './geolocation-policy'
@@ -66,6 +67,7 @@ export async function searchMarketplace(input: {
     const prisma = catalogPrisma()
     const filters = input.filters ?? {}
     const sort = input.sort ?? 'highest-rated'
+    const includeDemoClinics = shouldIncludeDemoClinicsInPublicIndex()
 
     const specialtyTerms = specialtySearchTerms(filters.specialty)
 
@@ -86,7 +88,7 @@ export async function searchMarketplace(input: {
           // Demo vendor accounts, mainland-TR seeds, and *-asistan-test clinics stay out of public index.
           NOT: {
             OR: [
-              { vendorAccount: { isDemo: true } },
+              ...(includeDemoClinics ? [] : [{ vendorAccount: { isDemo: true } }]),
               ...(shouldIncludeTestClinicsInPublicIndex()
                 ? []
                 : [
@@ -367,18 +369,25 @@ export async function searchMarketplace(input: {
 
 /** True when the public catalog has at least one appointment-backed review. */
 export async function publicCatalogHasRatings(): Promise<boolean> {
-  return runWithTenantBypassAsync('marketplace:catalog-has-ratings', async () => {
-    const prisma = catalogPrisma()
-    const row = await prisma.review.findFirst({
-      where: {
-        deletedAt: null,
-        business: {
-          isActive: true,
+  // Fail-soft: a ratings-availability probe must never crash the discovery page.
+  // On a DB outage, return false so the page renders its graceful degraded state.
+  try {
+    return await runWithTenantBypassAsync('marketplace:catalog-has-ratings', async () => {
+      const prisma = catalogPrisma()
+      const row = await prisma.review.findFirst({
+        where: {
           deletedAt: null,
+          business: {
+            isActive: true,
+            deletedAt: null,
+          },
         },
-      },
-      select: { id: true },
+        select: { id: true },
+      })
+      return row != null
     })
-    return row != null
-  })
+  } catch (error) {
+    console.error('[marketplace] catalog-has-ratings probe failed:', error)
+    return false
+  }
 }

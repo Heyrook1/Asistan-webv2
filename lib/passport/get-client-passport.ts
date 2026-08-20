@@ -11,6 +11,7 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { ensureClientUserPersonLink } from '@/lib/passport/ensure-link'
 import { withPersonDb } from '@/lib/passport/person-db'
+import { countHealthRecords } from '@/lib/client-marketplace/health-records/summary'
 import { buildPatientVisitTimeline } from '@/lib/health-timeline'
 import type { HealthTimelineItem } from '@/lib/health-timeline/types'
 import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
@@ -34,6 +35,18 @@ export type ClientPassportVisit = {
   location: { id: string; name: string; address: string | null } | null
 }
 
+export type ClientPassportCounts = {
+  activeMedications: number
+  allergies: number
+  documents: number
+}
+
+const EMPTY_COUNTS: ClientPassportCounts = {
+  activeMedications: 0,
+  allergies: 0,
+  documents: 0,
+}
+
 export type ClientPassport = {
   /** Opaque GPI — not a medical record ID */
   gpiDisplay: string | null
@@ -42,6 +55,8 @@ export type ClientPassport = {
   clinics: ClientPassportClinic[]
   visits: ClientPassportVisit[]
   timeline: HealthTimelineItem[]
+  /** Person-owned health-record counts (real data only; never fabricated). */
+  counts: ClientPassportCounts
   /** Honest product copy keys */
   honesty: {
     titleTr: string
@@ -76,12 +91,13 @@ export async function getClientPassport(input: {
       clinics: [],
       visits: [],
       timeline: [],
+      counts: EMPTY_COUNTS,
       honesty,
     }
   }
 
   // Cross-clinic Person passport — intentional ecosystem read (RLS via app.person_id).
-  const { clinics, visits } = await runWithTenantBypassAsync('passport:cross-clinic-read', () =>
+  const { clinics, visits, counts } = await runWithTenantBypassAsync('passport:cross-clinic-read', () =>
     withPersonDb(link.personId, async (tx) => {
       const patients = await tx.patient.findMany({
         where: { personId: link.personId },
@@ -201,7 +217,19 @@ export async function getClientPassport(input: {
         location: row.location,
       }))
 
-      return { clinics: Array.from(clinicMap.values()), visits: visitRows }
+      let counts: ClientPassportCounts = EMPTY_COUNTS
+      try {
+        const summary = await countHealthRecords(tx, link.personId)
+        counts = {
+          activeMedications: summary.activeMedications,
+          allergies: summary.allergies,
+          documents: summary.documents,
+        }
+      } catch {
+        // Tables may not exist until migrations land — passport still loads.
+      }
+
+      return { clinics: Array.from(clinicMap.values()), visits: visitRows, counts }
     }),
   )
 
@@ -225,6 +253,7 @@ export async function getClientPassport(input: {
     clinics,
     visits,
     timeline,
+    counts,
     honesty,
   }
 }

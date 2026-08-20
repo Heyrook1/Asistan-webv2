@@ -28,3 +28,10 @@ export function shouldIncludeTestClinicsInPublicIndex(): boolean {
   const flag = process.env.CLIENT_SHOW_TEST_CLINICS?.trim().toLowerCase()
   return flag === '1' || flag === 'true' || flag === 'yes'
 }
+
+/** Local prototype opt-in. Demo vendors must remain hidden from production catalogs. */
+export function shouldIncludeDemoClinicsInPublicIndex(): boolean {
+  if (process.env.NODE_ENV === 'production') return false
+  const flag = process.env.CLIENT_SHOW_DEMO_CLINICS?.trim().toLowerCase()
+  return flag === '1' || flag === 'true' || flag === 'yes'
+}

@@ -9,11 +9,14 @@ import { ArrowRight, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/hooks/useLanguage'
 import { productName } from '@/lib/brand/masterbrand'
-import { DEMO_CONTACT_PATH, ENTRY_CTA } from '@/lib/entry-routes'
+import { ENTRY_CTA, getClinicTrialPath } from '@/lib/entry-routes'
 
 /** Defense in depth if mounted outside marketing shells. */
 function isAppShellPath(pathname: string | null) {
   if (!pathname) return false
+  if (pathname === '/contact' || pathname.startsWith('/contact/')) {
+    return true
+  }
   if (
     pathname.startsWith('/client') ||
     pathname.startsWith('/dashboard') ||
@@ -40,6 +43,7 @@ export function FloatingCTA({ variant = 'default' }: FloatingCTAProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [atPageEnd, setAtPageEnd] = useState(false)
+  const [hasClearedIntro, setHasClearedIntro] = useState(false)
 
   const blocked = isAppShellPath(pathname)
   const brandName =
@@ -71,7 +75,9 @@ export function FloatingCTA({ variant = 'default' }: FloatingCTAProps) {
       const vh = window.innerHeight
       const doc = document.documentElement
       const nearBottom = window.scrollY + vh > doc.scrollHeight - 120
+      const clearedIntro = window.scrollY > Math.min(vh * 0.5, 480)
       setAtPageEnd(nearBottom)
+      setHasClearedIntro(clearedIntro)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
@@ -87,11 +93,9 @@ export function FloatingCTA({ variant = 'default' }: FloatingCTAProps) {
 
   if (blocked || !mounted) return null
 
-  const show = !atPageEnd
-  const demoLabel = t({
-    tr: ENTRY_CTA.demoRequest.short.tr,
-    en: ENTRY_CTA.demoRequest.short.en,
-  })
+  // Surface the persistent CTA only after the first decision area is out of view.
+  const show = hasClearedIntro && !atPageEnd
+  const trialLabel = t(ENTRY_CTA.clinicTrial.short)
   const dashboardLabel = t({
     tr: 'Klinik paneli',
     en: 'Clinic dashboard',
@@ -102,6 +106,7 @@ export function FloatingCTA({ variant = 'default' }: FloatingCTAProps) {
       {show ? (
         <motion.aside
           key="floating-b2b-cta"
+          data-testid="floating-cta"
           role="complementary"
           aria-label={brandName}
           initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
@@ -120,10 +125,11 @@ export function FloatingCTA({ variant = 'default' }: FloatingCTAProps) {
             </Link>
           ) : (
             <Link
-              href={DEMO_CONTACT_PATH}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0071E3] px-4 text-sm font-bold text-white no-underline shadow-[0_12px_28px_rgba(0,113,227,0.35)]"
+              href={getClinicTrialPath(language)}
+              data-cta-priority="primary"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#0071E3] px-4 text-sm font-bold text-white no-underline shadow-[0_10px_22px_-14px_rgba(0,113,227,0.5)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-px hover:bg-[#0063C8] hover:shadow-[0_16px_28px_-14px_rgba(0,113,227,0.58)] active:translate-y-0"
             >
-              {demoLabel}
+              {trialLabel}
               <ArrowRight className="size-3.5 opacity-90" aria-hidden />
             </Link>
           )}

@@ -30,8 +30,8 @@
   --accent-foreground: #1D1D1F;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #E0E2E7;
-  --input: #E0E2E7;
+  --border: #E6EAF0;
+  --input: #E6EAF0;
   --ring: #0071E3;
   --chart-1: #0071E3;
   --chart-2: #0EA5E9;
@@ -40,6 +40,15 @@
   --chart-5: #F1F1EF;
   --radius: 1rem;
   --ease-apple: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-interaction-duration: 180ms;
+  --motion-interaction-ease: var(--ease-apple);
+  --default-transition-duration: var(--motion-interaction-duration);
+  --default-transition-timing-function: var(--motion-interaction-ease);
+  --surface-border: #E6EAF0;
+  --surface-shadow: 0 12px 30px -22px rgba(15, 23, 42, 0.3);
+  --surface-shadow-raised: 0 18px 38px -26px rgba(15, 23, 42, 0.34);
+  --section-surface-neutral: #F6F8FB;
+  --section-surface-blue: #F3F7FC;
 
   /* Sidebar - Dark theme */
   --sidebar: #011627;
@@ -63,6 +72,7 @@
   --brand-navy: #1D1D1F;
   --brand-dark: #1D1D1F;
   --brand-blue: var(--primary);
+  --brand-blue-text: #0063C8;
   --brand-blue-hover: var(--primary-hover);
   --brand-teal: var(--brand-blue);
   --brand-teal-hover: var(--brand-blue-hover);
@@ -151,6 +161,7 @@
   --primary-hover: #0071E3;
   --primary-soft: rgba(0, 113, 227, 0.18);
   --accent-pop: #60A5FA;
+  --brand-blue-text: #5BA3F5;
   --secondary: #0F172A;
   --secondary-foreground: #F8FAFC;
   --muted: #0F172A;
@@ -159,9 +170,13 @@
   --accent-foreground: #EEF6FF;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
+  --brand-danger-strong: #F87171;
   --border: #1E293B;
   --input: #1E293B;
   --ring: #5BA3F5;
+  --surface-border: #263549;
+  --surface-shadow: 0 12px 30px -22px rgba(0, 0, 0, 0.55);
+  --surface-shadow-raised: 0 18px 38px -26px rgba(0, 0, 0, 0.64);
   --chart-1: #0071E3;
   --chart-2: #5BA3F5;
   --chart-3: #F8FAFC;
@@ -236,6 +251,7 @@
   --color-brand-teal-dark: var(--brand-teal-dark);
   --color-brand-cyan: var(--brand-cyan);
   --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-text: var(--brand-blue-text);
   --color-brand-blue-hover: var(--brand-blue-hover);
   --color-brand-navy: var(--brand-navy);
   --color-brand-dark: var(--brand-dark);
@@ -283,17 +299,17 @@
 }
 
 .liquid-glass {
-  background: rgba(255, 255, 255, 0.62) !important;
-  border: 1px solid rgba(255, 255, 255, 0.45) !important;
-  backdrop-filter: blur(20px) !important;
-  box-shadow: 0 24px 60px -15px rgba(29, 29, 31, 0.08) !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid var(--surface-border) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: var(--surface-shadow) !important;
 }
 
 .liquid-glass-accent {
-  background: rgba(255, 255, 255, 0.68) !important;
-  border: 1px solid rgba(0, 113, 227, 0.22) !important;
-  backdrop-filter: blur(20px) !important;
-  box-shadow: 0 24px 60px -15px rgba(0, 113, 227, 0.14) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 113, 227, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 16px 32px -24px rgba(0, 113, 227, 0.32) !important;
 }
 
 
@@ -317,6 +333,86 @@
 }
 
 @layer utilities {
+  /*
+   * Accessible text tones
+   *
+   * #0071E3 remains the primary surface colour. Text on the warm page surface
+   * uses its darker companion so small labels and links retain a 4.5:1 ratio.
+   * The slate and status overrides only affect foreground utilities; their
+   * matching surface utilities keep their existing visual values.
+   */
+  .text-\[\#0071E3\],
+  .text-\[\#0071E3\]\/90,
+  .text-primary,
+  .text-brand-blue,
+  .text-brand-teal,
+  .text-brand-teal-accessible {
+    color: var(--brand-blue-text);
+  }
+
+  .hover\:text-\[\#0071E3\]:hover {
+    color: var(--brand-blue-text);
+  }
+
+  .text-slate-300,
+  .text-slate-400 {
+    color: var(--muted-foreground);
+  }
+
+  .text-red-500,
+  .text-rose-500 {
+    color: var(--brand-danger-strong);
+  }
+
+  .text-emerald-500 {
+    color: #047857;
+  }
+
+  .text-amber-500 {
+    color: #A16207;
+  }
+
+  .text-orange-500 {
+    color: #C2410C;
+  }
+
+  .text-sky-500 {
+    color: #0369A1;
+  }
+
+  .dark .text-emerald-500 {
+    color: #34D399;
+  }
+
+  .dark .text-amber-500 {
+    color: #FBBF24;
+  }
+
+  .dark .text-orange-500 {
+    color: #FB923C;
+  }
+
+  .dark .text-sky-500 {
+    color: #38BDF8;
+  }
+
+  .text-white\/35 {
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  input::placeholder,
+  textarea::placeholder,
+  .placeholder\:text-muted-foreground::placeholder,
+  .placeholder\:text-slate-400::placeholder {
+    color: #4B5563;
+    opacity: 1;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #94A3B8;
+  }
+
   .marketing-container {
     width: 100%;
     max-width: 1200px;
@@ -349,7 +445,7 @@
     border-radius: 9999px;
     border: 1px solid color-mix(in srgb, var(--brand-blue) 20%, white);
     background: color-mix(in srgb, var(--brand-blue) 8%, white);
-    color: var(--brand-blue);
+    color: var(--brand-blue-text);
     font-size: 0.72rem;
     font-weight: 700;
     padding: 0.35rem 0.7rem;
@@ -365,7 +461,10 @@
   }
 
   .marketing-card-hover {
-    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    transition:
+      transform var(--motion-interaction-duration) var(--motion-interaction-ease),
+      box-shadow var(--motion-interaction-duration) var(--motion-interaction-ease),
+      border-color var(--motion-interaction-duration) var(--motion-interaction-ease);
   }
 
   .marketing-card-hover:hover {
@@ -434,7 +533,9 @@
   }
 
   .search-glow {
-    transition: box-shadow 200ms ease, border-color 200ms ease;
+    transition:
+      box-shadow var(--motion-interaction-duration) var(--motion-interaction-ease),
+      border-color var(--motion-interaction-duration) var(--motion-interaction-ease);
   }
 
   .search-glow:focus-within {
@@ -443,10 +544,10 @@
   }
 
   .glass-panel {
-    background: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(24px);
-    box-shadow: 0 24px 80px rgba(11, 16, 32, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--surface-border);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--surface-shadow);
   }
 
   .brand-glow {
@@ -571,18 +672,108 @@
   }
 }
 
-/* Asistan patient mobile web (Expo-web reference level) */
+/* Asistan patient mobile web (Expo-web reference level)
+ * Token source of truth: web-mobile/tokens.ts (mirrored with mobile/lib/theme.ts).
+ * Prefer the rz-* utilities below over hardcoded values in patient components. */
 .rezervasyon-shell {
   /* Dock + raised search FAB + safe-area — content/install must clear this */
   --rz-dock-clearance: calc(7.5rem + env(safe-area-inset-bottom, 0px));
   --rz-blue: #0071e3;
+  --rz-blue-hover: #0063c8;
+  --rz-blue-soft: #eef6ff;
   --rz-ink: #0f172a;
   --rz-muted: #3f5163;
   --rz-line: rgba(15, 23, 42, 0.08);
   --rz-sheet: #ffffff;
   --rz-bg: #f7f9fc;
+  --rz-surface-soft: #f8fbff;
+  --rz-border: #dce5f2;
+  --rz-border-strong: #c4d3ea;
+
+  /* Semantic status (confirmed / pending / cancelled / neutral) */
+  --rz-success: #0ea472;
+  --rz-success-soft: #e8f8f1;
+  --rz-warning: #d88a1d;
+  --rz-warning-soft: #fcf3e4;
+  --rz-danger: #d62839;
+  --rz-danger-soft: #fbe9eb;
+  --rz-info: #0071e3;
+  --rz-info-soft: #eef6ff;
+
+  /* Elevation */
+  --rz-shadow-soft: 0 8px 28px rgba(15, 23, 42, 0.06);
+  --rz-shadow-card: 0 12px 30px -22px rgba(15, 23, 42, 0.3);
+  --rz-shadow-raised: 0 18px 38px -26px rgba(15, 23, 42, 0.34);
+
+  /* Motion */
+  --rz-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --rz-motion-fast: 140ms;
+  --rz-motion-normal: 220ms;
+  --rz-motion-slow: 320ms;
+
   color: var(--rz-ink);
   letter-spacing: -0.011em;
+}
+
+/* Typographic scale — one clear hierarchy on mobile. Mirrors web-mobile/tokens.ts. */
+.rezervasyon-shell .rz-display {
+  font-size: 2rem;
+  line-height: 2.375rem;
+  font-weight: 800;
+  letter-spacing: -0.022em;
+}
+.rezervasyon-shell .rz-title {
+  font-size: 1.5rem;
+  line-height: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.rezervasyon-shell .rz-section-title {
+  font-size: 1.15rem;
+  line-height: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.rezervasyon-shell .rz-card-title {
+  font-size: 1rem;
+  line-height: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.011em;
+}
+.rezervasyon-shell .rz-body {
+  font-size: 0.9375rem;
+  line-height: 1.4rem;
+  font-weight: 400;
+}
+.rezervasyon-shell .rz-secondary {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--rz-muted);
+}
+.rezervasyon-shell .rz-caption {
+  font-size: 0.8125rem;
+  line-height: 1.1rem;
+  font-weight: 500;
+  color: var(--rz-muted);
+}
+.rezervasyon-shell .rz-metadata {
+  font-size: 0.6875rem;
+  line-height: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rz-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rezervasyon-shell .rz-enter,
+  .rezervasyon-shell .rz-hero-image {
+    animation: none !important;
+  }
+  .rezervasyon-shell .rz-press:active {
+    transform: none;
+  }
 }
 
 .rezervasyon-shell .rz-enter {

@@ -25,8 +25,13 @@ describe('contactLeadSchema', () => {
     }
   })
 
-  it('rejects short messages', () => {
-    const parsed = contactLeadSchema.safeParse({ ...valid, message: 'kısa' })
+  it('accepts a first-contact lead without phone or a detailed message', () => {
+    const parsed = contactLeadSchema.safeParse({ ...valid, phone: '', message: '' })
+    expect(parsed.success).toBe(true)
+  })
+
+  it('rejects an invalid phone number when one is provided', () => {
+    const parsed = contactLeadSchema.safeParse({ ...valid, phone: 'kısa' })
     expect(parsed.success).toBe(false)
   })
 

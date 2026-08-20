@@ -18,6 +18,7 @@ export const SOFT_DELETE_RELATION_FIELDS = new Set([
   'treatmentPlan',
   'labResults',
   'files',
+  'documents',
   'timeline',
   'members',
   'services',
@@ -38,6 +39,28 @@ export const SOFT_DELETE_RELATION_FIELDS = new Set([
   'pushSubscriptions',
 ])
 
+/**
+ * `notes` is PatientNote[] on Patient/Business, but a scalar String on
+ * PersonMedication / PersonAllergy / PersonDocument (and most other models).
+ * Only treat it as a relation on these parents.
+ */
+const NOTES_RELATION_PARENT_MODELS = new Set(['Patient', 'Business'])
+
+/** When walking a nested include, map the relation field to the child model. */
+const RELATION_CHILD_MODEL: Record<string, string> = {
+  patients: 'Patient',
+  patient: 'Patient',
+  notes: 'PatientNote',
+}
+
+function isSoftDeleteRelationField(key: string, parentModel?: string): boolean {
+  if (!SOFT_DELETE_RELATION_FIELDS.has(key)) return false
+  if (key === 'notes') {
+    return parentModel != null && NOTES_RELATION_PARENT_MODELS.has(parentModel)
+  }
+  return true
+}
+
 export function withNotDeleted(where: unknown): QueryWhere {
   if (!where || typeof where !== 'object' || Array.isArray(where)) {
     return { deletedAt: null }
@@ -51,7 +74,7 @@ export function withNotDeleted(where: unknown): QueryWhere {
   return { ...typedWhere, deletedAt: null }
 }
 
-function applyToRelationArg(value: unknown): unknown {
+function applyToRelationArg(value: unknown, childModel?: string): unknown {
   if (value === true) {
     return { where: { deletedAt: null } }
   }
@@ -63,17 +86,17 @@ function applyToRelationArg(value: unknown): unknown {
   nested.where = withNotDeleted(nested.where)
 
   if (nested.include && typeof nested.include === 'object' && !Array.isArray(nested.include)) {
-    nested.include = applySoftDeleteToNestedTree(nested.include as QueryWhere)
+    nested.include = applySoftDeleteToNestedTree(nested.include as QueryWhere, childModel)
   }
   if (nested.select && typeof nested.select === 'object' && !Array.isArray(nested.select)) {
-    nested.select = applySoftDeleteToNestedTree(nested.select as QueryWhere)
+    nested.select = applySoftDeleteToNestedTree(nested.select as QueryWhere, childModel)
   }
 
   return nested
 }
 
 /** Walk include/select trees and soft-delete-filter relation branches. */
-export function applySoftDeleteToNestedTree(tree: QueryWhere): QueryWhere {
+export function applySoftDeleteToNestedTree(tree: QueryWhere, parentModel?: string): QueryWhere {
   const out: QueryWhere = {}
 
   for (const [key, value] of Object.entries(tree)) {
@@ -82,7 +105,7 @@ export function applySoftDeleteToNestedTree(tree: QueryWhere): QueryWhere {
       if (countArg.select && typeof countArg.select === 'object' && !Array.isArray(countArg.select)) {
         out[key] = {
           ...countArg,
-          select: applySoftDeleteToCountSelect(countArg.select as QueryWhere),
+          select: applySoftDeleteToCountSelect(countArg.select as QueryWhere, parentModel),
         }
       } else {
         out[key] = value
@@ -90,8 +113,8 @@ export function applySoftDeleteToNestedTree(tree: QueryWhere): QueryWhere {
       continue
     }
 
-    if (SOFT_DELETE_RELATION_FIELDS.has(key)) {
-      out[key] = applyToRelationArg(value)
+    if (isSoftDeleteRelationField(key, parentModel)) {
+      out[key] = applyToRelationArg(value, RELATION_CHILD_MODEL[key])
       continue
     }
 
@@ -99,7 +122,7 @@ export function applySoftDeleteToNestedTree(tree: QueryWhere): QueryWhere {
       const nested = value as QueryWhere
       // Nested include/select under non-soft-delete relation (e.g. assignedDoctor)
       if (nested.include || nested.select || nested._count) {
-        out[key] = applySoftDeleteToNestedTree(nested)
+        out[key] = applySoftDeleteToNestedTree(nested, RELATION_CHILD_MODEL[key] ?? parentModel)
         continue
       }
     }
@@ -110,10 +133,10 @@ export function applySoftDeleteToNestedTree(tree: QueryWhere): QueryWhere {
   return out
 }
 
-export function applySoftDeleteToCountSelect(select: QueryWhere): QueryWhere {
+export function applySoftDeleteToCountSelect(select: QueryWhere, parentModel?: string): QueryWhere {
   const out: QueryWhere = {}
   for (const [key, value] of Object.entries(select)) {
-    if (!SOFT_DELETE_RELATION_FIELDS.has(key)) {
+    if (!isSoftDeleteRelationField(key, parentModel)) {
       out[key] = value
       continue
     }
@@ -133,7 +156,10 @@ export function applySoftDeleteToCountSelect(select: QueryWhere): QueryWhere {
 }
 
 /** Apply nested soft-delete filters onto Prisma query args (mutates a shallow copy). */
-export function applySoftDeleteToQueryArgs(args: QueryWhere | undefined): QueryWhere | undefined {
+export function applySoftDeleteToQueryArgs(
+  args: QueryWhere | undefined,
+  parentModel?: string
+): QueryWhere | undefined {
   if (!args) return args
   const next: QueryWhere = { ...args }
 
@@ -142,11 +168,11 @@ export function applySoftDeleteToQueryArgs(args: QueryWhere | undefined): QueryW
   }
 
   if (next.include && typeof next.include === 'object' && !Array.isArray(next.include)) {
-    next.include = applySoftDeleteToNestedTree(next.include as QueryWhere)
+    next.include = applySoftDeleteToNestedTree(next.include as QueryWhere, parentModel)
   }
 
   if (next.select && typeof next.select === 'object' && !Array.isArray(next.select)) {
-    next.select = applySoftDeleteToNestedTree(next.select as QueryWhere)
+    next.select = applySoftDeleteToNestedTree(next.select as QueryWhere, parentModel)
   }
 
   return next
@@ -156,7 +182,7 @@ export function applySoftDeleteToQueryArgs(args: QueryWhere | undefined): QueryW
  * Relation filters in `where` (some/none/every) also bypass middleware.
  * Add deletedAt:null when the relation target is soft-deleted.
  */
-export function applySoftDeleteToWhereRelationFilters(where: unknown): unknown {
+export function applySoftDeleteToWhereRelationFilters(where: unknown, parentModel?: string): unknown {
   if (!where || typeof where !== 'object' || Array.isArray(where)) return where
 
   const src = where as QueryWhere
@@ -165,15 +191,15 @@ export function applySoftDeleteToWhereRelationFilters(where: unknown): unknown {
   for (const [key, value] of Object.entries(src)) {
     if (key === 'AND' || key === 'OR' || key === 'NOT') {
       if (Array.isArray(value)) {
-        out[key] = value.map((item) => applySoftDeleteToWhereRelationFilters(item))
+        out[key] = value.map((item) => applySoftDeleteToWhereRelationFilters(item, parentModel))
       } else {
-        out[key] = applySoftDeleteToWhereRelationFilters(value)
+        out[key] = applySoftDeleteToWhereRelationFilters(value, parentModel)
       }
       continue
     }
 
     if (
-      SOFT_DELETE_RELATION_FIELDS.has(key) &&
+      isSoftDeleteRelationField(key, parentModel) &&
       value &&
       typeof value === 'object' &&
       !Array.isArray(value)
@@ -191,7 +217,7 @@ export function applySoftDeleteToWhereRelationFilters(where: unknown): unknown {
         if ('is' in rel) rel.is = withNotDeleted(rel.is)
         if ('isNot' in rel) {
           // isNot means "not matching this filter" — do not force deletedAt null
-          rel.isNot = applySoftDeleteToWhereRelationFilters(rel.isNot)
+          rel.isNot = applySoftDeleteToWhereRelationFilters(rel.isNot, RELATION_CHILD_MODEL[key])
         }
         out[key] = rel
       }

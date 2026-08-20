@@ -3,14 +3,14 @@
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertCircle, ArrowRight, Globe, Instagram, Linkedin, Loader2, Play, Smartphone } from 'lucide-react'
+import { AlertCircle, ArrowRight, Facebook, Globe, Instagram, Linkedin, Loader2, Play, Smartphone } from 'lucide-react'
 
 import { AsistanLogo } from '@/components/asistan-logo'
 import { useLandingLocale } from '@/components/sections/landing-locale'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
-import { copyrightLine, productName, socialLinks, MASTERBRAND } from '@/lib/brand/masterbrand'
+import { copyrightLine, productName, socialLinks } from '@/lib/brand/masterbrand'
 
 const FOOTER_COPY = {
   tr: {
@@ -251,12 +251,12 @@ export function SiteFooter() {
                   required
                   disabled={loading}
                   placeholder={copy.placeholder}
-                  className="h-11 rounded-xl border border-black/10 bg-white/80 px-4 text-sm outline-none transition focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/10 flex-1 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-xl border border-black/10 bg-white/80 px-4 text-sm placeholder:text-[#4B5563] outline-none transition-[border-color,box-shadow] focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/35 disabled:opacity-60"
                 />
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="h-11 rounded-xl bg-[#0071E3] hover:bg-[#0063C8] px-5 text-sm font-bold text-white transition active:scale-[0.98] shrink-0 disabled:opacity-60 disabled:pointer-events-none"
+                  className="h-11 shrink-0 rounded-xl bg-[#0071E3] px-5 text-sm font-bold text-white shadow-[0_10px_22px_-14px_rgba(0,113,227,0.5)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-px hover:bg-[#0063C8] hover:shadow-[0_16px_28px_-14px_rgba(0,113,227,0.58)] active:translate-y-0 disabled:pointer-events-none disabled:opacity-60"
                 >
                   {loading ? (
                     <>
@@ -273,7 +273,6 @@ export function SiteFooter() {
               </form>
 
               <div className="flex flex-col items-stretch gap-2 lg:items-end">
-                <p className="text-xs font-semibold text-[#5D6068]">{MASTERBRAND.socialHandle}</p>
                 <div className="flex items-center gap-2 lg:justify-end">
                   {socialLinks().map((link) => (
                     <a
@@ -281,10 +280,12 @@ export function SiteFooter() {
                       href={link.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="tap-target rounded-xl border border-black/5 bg-white/80 p-2.5 text-[#1D1D1F] shadow-sm transition duration-300 hover:scale-[1.05] hover:bg-slate-100"
+                      className="tap-target rounded-xl border border-black/5 bg-white/80 p-2.5 text-[#1D1D1F] shadow-sm transition duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)] hover:scale-[1.05] hover:bg-slate-100"
                       aria-label={link.label}
                     >
-                      {link.label === 'LinkedIn' ? (
+                      {link.label === 'Facebook' ? (
+                        <Facebook className="h-4.5 w-4.5" />
+                      ) : link.label === 'LinkedIn' ? (
                         <Linkedin className="h-4.5 w-4.5" />
                       ) : (
                         <Instagram className="h-4.5 w-4.5" />
@@ -334,7 +335,7 @@ export function SiteFooter() {
               <button
                 type="button"
                 className={cn(
-                  'rounded-md px-2.5 py-0.5 font-bold transition-all duration-300',
+                  'rounded-md px-2.5 py-0.5 font-bold transition-all duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]',
                   locale === 'tr' ? 'bg-[#0071E3] text-white shadow-sm' : 'hover:bg-black/5 text-[#5D6068]',
                 )}
                 onClick={() => setLocale('tr')}
@@ -344,7 +345,7 @@ export function SiteFooter() {
               <button
                 type="button"
                 className={cn(
-                  'rounded-md px-2.5 py-0.5 font-bold transition-all duration-300',
+                  'rounded-md px-2.5 py-0.5 font-bold transition-all duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]',
                   locale === 'en' ? 'bg-[#0071E3] text-white shadow-sm' : 'hover:bg-black/5 text-[#5D6068]',
                 )}
                 onClick={() => setLocale('en')}

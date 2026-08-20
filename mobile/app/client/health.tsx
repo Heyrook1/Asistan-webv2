@@ -16,12 +16,45 @@ import { apiGet } from '@/lib/api'
 import { appointmentStatusLabel } from '@/lib/status-labels'
 import { useAppTheme } from '@/lib/use-app-theme'
 import type { ClientPassport } from '@/lib/types'
+import { getHealthSummary, type HealthRecordsSummary } from '@/lib/health-records'
 
 type PassportApiResponse = {
   ok?: boolean
   data?: ClientPassport
   error?: string
 }
+
+type RecordModule = {
+  href: Href
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  subtitle: string
+  count: (s: HealthRecordsSummary) => string | null
+}
+
+const RECORD_MODULES: RecordModule[] = [
+  {
+    href: '/client/health/medications' as Href,
+    icon: 'medkit-outline',
+    title: 'İlaçlar',
+    subtitle: 'Kullandığınız ilaçlar',
+    count: (s) => `${s.activeMedications} aktif`,
+  },
+  {
+    href: '/client/health/allergies' as Href,
+    icon: 'shield-outline',
+    title: 'Alerjiler',
+    subtitle: 'Bilinen alerji ve hassasiyetler',
+    count: (s) => `${s.allergies} kayıt`,
+  },
+  {
+    href: '/client/health/documents' as Href,
+    icon: 'document-text-outline',
+    title: 'Belgeler',
+    subtitle: 'Rapor ve sağlık dosyalarınız',
+    count: (s) => `${s.documents} belge`,
+  },
+]
 
 export default function ClientHealthScreen() {
   const theme = useAppTheme()
@@ -30,11 +63,16 @@ export default function ClientHealthScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [passport, setPassport] = useState<ClientPassport | null>(null)
+  const [summary, setSummary] = useState<HealthRecordsSummary | null>(null)
 
   const load = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
     if (mode === 'initial') setLoading(true)
     if (mode === 'refresh') setRefreshing(true)
     setError(null)
+    // Health-record counts are best-effort; never block the passport on them.
+    void getHealthSummary()
+      .then(setSummary)
+      .catch(() => setSummary(null))
     try {
       const response = await apiGet<PassportApiResponse>('/api/client/passport')
       if (!response.data) {
@@ -144,6 +182,52 @@ export default function ClientHealthScreen() {
                 </View>
               </View>
             </AppCard>
+
+            <AppText variant="subtitle">Sağlık kayıtlarım</AppText>
+            {RECORD_MODULES.map((module) => {
+              const count = summary ? module.count(summary) : null
+              return (
+                <Pressable
+                  key={module.href as string}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${module.title} bölümünü aç`}
+                  onPress={() => router.push(module.href)}
+                  style={{
+                    minHeight: 64,
+                    borderRadius: theme.radii.lg,
+                    backgroundColor: theme.colors.surface,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: theme.radii.md,
+                      backgroundColor: theme.colors.primarySoft,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name={module.icon} size={20} color={theme.colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <AppText variant="caption">{module.title}</AppText>
+                    <AppText variant="micro" color={theme.colors.textMuted}>
+                      {module.subtitle}
+                    </AppText>
+                  </View>
+                  {count ? <Badge label={count} tone="info" /> : null}
+                  <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
+                </Pressable>
+              )
+            })}
 
             <AppText variant="subtitle">Kliniklerim</AppText>
             {!passport.clinics.length ? (

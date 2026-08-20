@@ -340,7 +340,7 @@ export function LoginForm() {
             <Button
               type="submit"
               disabled={loading || !!emailError || !!passwordError}
-              className="mt-6 h-11 min-h-11 w-full rounded-xl bg-[#0071E3] text-sm font-bold text-white shadow-md transition-all duration-300 hover:scale-[1.01] hover:bg-[#0063C8] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
+              className="mt-6 h-11 min-h-11 w-full rounded-xl bg-[#0071E3] text-sm font-bold text-white shadow-md transition-all duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)] hover:scale-[1.01] hover:bg-[#0063C8] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#0071E3]/40"
             >
               {loading ? (
                 <>

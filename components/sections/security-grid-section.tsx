@@ -52,7 +52,7 @@ export function SecurityGridSection() {
   return (
     <section
       id="security"
-      className="bg-white scroll-mt-28 px-4 py-16 sm:px-6 lg:py-20"
+      className="bg-[var(--section-surface-blue)] scroll-mt-28 px-4 py-16 sm:px-6 lg:py-20"
       aria-labelledby="security-heading"
     >
       <div className="mx-auto max-w-[1100px]">

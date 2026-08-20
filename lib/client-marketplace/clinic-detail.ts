@@ -1,15 +1,16 @@
 import 'server-only'
 
-import { catalogPrisma } from '@/lib/prisma-owner'
-import { getAvailableSlots } from '@/lib/client-marketplace/availability'
-import { getCancelMinHoursBefore } from '@/lib/client-marketplace/cancel-policy'
-import { addCalendarDays, calendarDateInTimeZone } from '@/lib/datetime/calendar-label'
-import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
-import { shouldIncludeTestClinicsInPublicIndex, isPublicTestClinic } from '@/lib/client-marketplace/public-clinic-filter'
+import { cache } from 'react'
 
-function todayIso() {
-  return calendarDateInTimeZone()
-}
+import { catalogPrisma } from '@/lib/prisma-owner'
+import { batchFindNextSlots } from '@/lib/client-marketplace/clinic-detail-slots'
+import { getCancelMinHoursBefore } from '@/lib/client-marketplace/cancel-policy'
+import { runWithTenantBypassAsync } from '@/lib/security/tenant-guard'
+import {
+  isPublicTestClinic,
+  shouldIncludeDemoClinicsInPublicIndex,
+  shouldIncludeTestClinicsInPublicIndex,
+} from '@/lib/client-marketplace/public-clinic-filter'
 
 function toNumber(value: unknown) {
   if (value == null) return null
@@ -116,8 +117,11 @@ function summarizeOpeningHours(
     }))
 }
 
-/** Shared loader for GET /api/client/clinics/[id] and /client/clinics/[id] page. */
-export async function getClientClinicDetail(id: string): Promise<ClientClinicDetail | null> {
+/**
+ * Shared loader for GET /api/client/clinics/[id] and /client/clinics/[id] page.
+ * `cache`d so generateMetadata + the page render share one computation per request.
+ */
+export const getClientClinicDetail = cache(async (id: string): Promise<ClientClinicDetail | null> => {
   return runWithTenantBypassAsync('marketplace:clinic-detail', async () => {
     const prisma = catalogPrisma()
     const business = await prisma.business.findFirst({
@@ -161,7 +165,7 @@ export async function getClientClinicDetail(id: string): Promise<ClientClinicDet
     })
 
     if (!business) return null
-    if (business.vendorAccount?.isDemo) return null
+    if (business.vendorAccount?.isDemo && !shouldIncludeDemoClinicsInPublicIndex()) return null
     if (
       !shouldIncludeTestClinicsInPublicIndex() &&
       isPublicTestClinic({ slug: business.slug, name: business.name })
@@ -213,63 +217,47 @@ export async function getClientClinicDetail(id: string): Promise<ClientClinicDet
         ]),
     )
 
-    const today = todayIso()
-    const doctors = await Promise.all(
-      business.members.map(async (doctor) => {
-        const assigned = doctor.serviceAssignments.map((assignment) => assignment.service)
-        const services = assigned.length > 0 ? assigned : business.services
-        const firstService = services[0]
-        const verified = Boolean(
-          doctor.medicalLicenseNo || doctor.diplomaNo || doctor.kktcIdentityNo,
-        )
+    const doctorServicePlan = business.members.map((doctor) => {
+      const assigned = doctor.serviceAssignments.map((assignment) => assignment.service)
+      const services = assigned.length > 0 ? assigned : business.services
+      return { doctor, services, firstService: services[0] }
+    })
 
-        let nextSlots: Array<{
-          date: string
-          startTime: string
-          endTime: string
-          serviceId: string
-        }> = []
+    // One batched rules/appts/blocks load — not per doctor x day getAvailableSlots.
+    const nextSlotsByDoctor = await batchFindNextSlots({
+      businessId: business.id,
+      timezone: business.timezone,
+      doctors: doctorServicePlan
+        .filter((plan) => plan.firstService)
+        .map((plan) => ({ doctorId: plan.doctor.id, serviceId: plan.firstService!.id })),
+    })
 
-        if (firstService) {
-          for (let day = 0; day < 7 && nextSlots.length === 0; day += 1) {
-            const date = addCalendarDays(today, day)
-            const slots = await getAvailableSlots({
-              businessId: business.id,
-              doctorId: doctor.id,
-              serviceId: firstService.id,
-              date,
-            })
-            nextSlots = slots.slice(0, 6).map((slot) => ({
-              date,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              serviceId: firstService.id,
-            }))
-          }
-        }
+    const doctors = doctorServicePlan.map(({ doctor, services }) => {
+      const verified = Boolean(
+        doctor.medicalLicenseNo || doctor.diplomaNo || doctor.kktcIdentityNo,
+      )
 
-        return {
-          id: doctor.id,
-          fullName: doctor.fullName,
-          specialty: doctor.specialty,
-          bio: doctor.bio,
-          avatarUrl: doctor.user?.avatarUrl ?? null,
-          verified,
-          services: services.map((service) => ({
-            id: service.id,
-            name: service.name,
-            description: service.description,
-            durationMin: service.durationMin,
-            price: toNumber(service.price),
-          })),
-          nextSlots,
-          reviews: reviewByDoctorId.get(doctor.id) ?? {
-            averageRating: null,
-            reviewCount: 0,
-          },
-        }
-      }),
-    )
+      return {
+        id: doctor.id,
+        fullName: doctor.fullName,
+        specialty: doctor.specialty,
+        bio: doctor.bio,
+        avatarUrl: doctor.user?.avatarUrl ?? null,
+        verified,
+        services: services.map((service) => ({
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          durationMin: service.durationMin,
+          price: toNumber(service.price),
+        })),
+        nextSlots: nextSlotsByDoctor.get(doctor.id) ?? [],
+        reviews: reviewByDoctorId.get(doctor.id) ?? {
+          averageRating: null,
+          reviewCount: 0,
+        },
+      }
+    })
 
     const verifiedDoctorCount = doctors.filter((d) => d.verified).length
     const specialtySummary = Array.from(
@@ -335,4 +323,4 @@ export async function getClientClinicDetail(id: string): Promise<ClientClinicDet
       })),
     }
   })
-}
+})

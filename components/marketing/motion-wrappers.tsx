@@ -258,7 +258,7 @@ export function MouseParallax({
   return (
     <div
       ref={ref}
-      className={`transition-transform duration-300 ease-out ${className}`}
+      className={`transition-transform duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)] ${className}`}
       onMouseMove={enabled ? handleMouseMove : undefined}
       onMouseLeave={enabled ? handleMouseLeave : undefined}
       style={style}

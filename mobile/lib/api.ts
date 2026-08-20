@@ -137,3 +137,59 @@ export function apiPatch<T>(path: string, body: unknown) {
     body: JSON.stringify(body),
   })
 }
+
+export function apiDelete<T>(path: string) {
+  return request<T>(path, { method: 'DELETE' })
+}
+
+/**
+ * Multipart upload for the patient app. Does NOT set Content-Type (the platform
+ * sets the multipart boundary). `form` should contain a React Native file part
+ * ({ uri, name, type }) plus metadata fields.
+ */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const token = await getAccessToken()
+  const baseCandidates = buildApiBaseUrlCandidates()
+  const networkErrors: string[] = []
+
+  let response: Response | null = null
+  for (const baseUrl of baseCandidates) {
+    try {
+      response = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        body: form,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+      resolvedApiBaseUrl = baseUrl
+      break
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Bilinmeyen ag hatasi'
+      networkErrors.push(`${baseUrl} -> ${reason}`)
+    }
+  }
+
+  if (!response) {
+    throw new Error(`Backend ulasilamaz durumda. Denenen adresler: ${baseCandidates.join(', ')}.`)
+  }
+
+  const rawBody = await response.text()
+  let payload: unknown = null
+  if (rawBody) {
+    try {
+      payload = JSON.parse(rawBody)
+    } catch {
+      payload = null
+    }
+  }
+  if (!response.ok) {
+    const message =
+      (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string'
+        ? payload.error
+        : null) ?? `Yukleme basarisiz (${response.status})`
+    throw new Error(message)
+  }
+
+  return payload as T
+}

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowRight,
   Building2,
+  CalendarClock,
   Heart,
   Leaf,
   Search,
@@ -17,6 +18,7 @@ import {
 
 import { ClinicCard } from '@/components/client/clinic-card'
 import { ClientMarketplaceDemoBanner } from '@/components/client/marketplace-demo-banner'
+import { UpcomingAppointmentCard } from '@/components/client/home/upcoming-appointment-card'
 import { useLanguage } from '@/hooks/useLanguage'
 import { patientChromeName, brandTagline } from '@/lib/brand/masterbrand'
 import type { ClientDiscoveryItem } from '@/lib/client-marketplace/types'
@@ -133,6 +135,55 @@ export function RezervasyonHomeHub({
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Signed-in patients: next appointment surfaces above the fold. Guests see nothing. */}
+      <section className="rz-enter">
+        <UpcomingAppointmentCard />
+      </section>
+
+      <section className="rz-enter space-y-3">
+        <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+          {t({ tr: 'Hızlı işlemler', en: 'Quick actions' })}
+        </p>
+        <div className="grid grid-cols-3 gap-2.5">
+          {[
+            {
+              key: 'discover',
+              label: { tr: 'Doktor bul', en: 'Find a doctor' },
+              icon: Stethoscope,
+              href: '/client/clinics',
+            },
+            {
+              key: 'appointments',
+              label: { tr: 'Randevularım', en: 'Appointments' },
+              icon: CalendarClock,
+              href: '/client/bookings',
+            },
+            {
+              key: 'health',
+              label: { tr: 'Sağlığım', en: 'My health' },
+              icon: Heart,
+              href: '/client/health',
+            },
+          ].map((action) => {
+            const Icon = action.icon
+            return (
+              <Link
+                key={action.key}
+                href={action.href}
+                className="rz-press flex min-h-[92px] flex-col items-start justify-between rounded-2xl border border-[var(--rz-border)] bg-white p-3 text-left shadow-[var(--rz-shadow-soft)] transition hover:border-[var(--rz-border-strong)]"
+              >
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--rz-blue-soft)] text-[var(--rz-blue)]">
+                  <Icon className="size-[1.05rem]" strokeWidth={1.9} aria-hidden />
+                </span>
+                <span className="text-[12.5px] font-semibold leading-tight text-slate-800">
+                  {t(action.label)}
+                </span>
+              </Link>
+            )
+          })}
         </div>
       </section>
 

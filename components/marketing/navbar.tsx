@@ -90,7 +90,7 @@ export function Navbar() {
   return (
     <nav
       className={cn(
-        'fixed inset-x-0 top-0 z-50 border-b transition-all duration-300',
+        'fixed inset-x-0 top-0 z-50 border-b transition-all duration-[var(--motion-interaction-duration)] ease-[var(--motion-interaction-ease)]',
         scrolled
           ? 'border-brand-blue/15 bg-white/96 shadow-[0_10px_30px_rgba(12,29,54,0.08)] backdrop-blur-xl'
           : 'border-transparent bg-white/90 backdrop-blur-md'

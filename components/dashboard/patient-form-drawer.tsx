@@ -473,14 +473,14 @@ export function PatientFormDrawer({
                     <Field label="Not *">
                       <Textarea value={item.note} onChange={(e) => set({ ...item, note: e.target.value })} rows={3} />
                     </Field>
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
                       <input
                         id={`note-pinned-${idx}`}
                         name={`notes[${idx}].isPinned`}
                         type="checkbox"
                         checked={item.isPinned}
                         onChange={(e) => set({ ...item, isPinned: e.target.checked })}
-                        className="rounded text-brand-teal focus:ring-brand-teal"
+                        className="size-4 shrink-0 rounded text-brand-teal focus:ring-brand-teal"
                       />
                       Bu notu hasta profilinde üste sabitle
                     </label>

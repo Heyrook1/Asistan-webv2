@@ -34,6 +34,16 @@ export function apiSuccess<T>(data: T, statusCode = 200): NextResponse<ApiSucces
   return NextResponse.json({ ok: true, data }, { status: statusCode })
 }
 
+/**
+ * Force a private, uncacheable response — required for PHI / health-record routes
+ * so nothing lands in browser, PWA, CDN, or shared caches.
+ */
+export function noStore<T extends NextResponse>(response: T): T {
+  response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate')
+  response.headers.set('Pragma', 'no-cache')
+  return response
+}
+
 export function apiError(
   message: string,
   statusCode = 500,

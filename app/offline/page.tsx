@@ -26,10 +26,10 @@ export default function OfflinePage() {
         tekrar deneyin.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <Button asChild className="min-h-11 rounded-xl bg-[#0071E3] text-white hover:bg-[#0063C8]">
+        <Button asChild variant="ctaPrimary" className="min-h-11 rounded-xl">
           <Link href="/client">Asistan’a dön</Link>
         </Button>
-        <Button asChild variant="outline" className="min-h-11 rounded-xl">
+        <Button asChild variant="ctaSecondary" className="min-h-11 rounded-xl">
           <Link href="/">Ana sayfa</Link>
         </Button>
       </div>
